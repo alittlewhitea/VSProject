@@ -98,6 +98,34 @@ function pickMediaUrl(result: unknown): string | null {
   return null;
 }
 
+function estimateTaskSeconds(type: "image" | "video", provider: string | undefined, duration: string) {
+  if (type === "image") {
+    if (provider === "flux-image") return 120;
+    if (provider === "recraft-image") return 75;
+    return 90;
+  }
+  if (duration === "10s") return 150;
+  if (duration === "8s") return 125;
+  return 95;
+}
+
+function formatDuration(seconds: number) {
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest ? `${minutes}m ${rest}s` : `${minutes}m`;
+}
+
+function taskProgress(task: Pick<TaskItem, "status" | "createdAt" | "type" | "provider">, duration: string) {
+  if (task.status === "Completed") return 100;
+  if (task.status === "Failed") return 100;
+  const estimate = estimateTaskSeconds(task.type === "Image" ? "image" : "video", task.provider, duration);
+  const startedAt = task.createdAt ? new Date(task.createdAt).getTime() : Date.now();
+  const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+  const base = task.status === "Running" ? 25 : 8;
+  return Math.min(94, Math.max(base, Math.round((elapsed / estimate) * 100)));
+}
+
 function StudioContent() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -312,8 +340,14 @@ function StudioContent() {
   );
 
   const estCredits = mode === "image" ? 12 : duration === "10s" ? 68 : duration === "8s" ? 56 : 42;
+  const estimatedSeconds = estimateTaskSeconds(mode, provider, duration);
   const isPromptValid = prompt.trim().length >= 8;
   const latestPreviewTask = tasks.find((task) => task.mediaUrl && task.status === "Completed") || tasks.find((task) => task.mediaUrl);
+  const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
+  const completedTasks = tasks.filter((task) => task.status === "Completed");
+  const failedTasks = tasks.filter((task) => task.status === "Failed");
+  const latestActiveTask = activeTasks[0] || null;
+  const latestActiveProgress = latestActiveTask ? taskProgress(latestActiveTask, duration) : 0;
   const providerNote =
     provider === "flux-image"
       ? "FLUX Schnell is best for fast visual drafts. Use OpenAI GPT-Image-2 for exact text, counting, or strict layout instructions."
@@ -401,6 +435,24 @@ function StudioContent() {
       }
 
       if (payload.transport === "mock") {
+        const updateMockStatus = async (mockStatus: "completed" | "failed") => {
+          const response = await fetch(
+            `/api/generate/status?taskId=${encodeURIComponent(payload.taskId)}&mockStatus=${mockStatus}`,
+            {
+              headers: {
+                Authorization: `Bearer ${liveToken}`
+              }
+            }
+          );
+          const statusPayload = (await response.json().catch(() => null)) as { balance?: number | null } | null;
+          if (typeof statusPayload?.balance === "number") {
+            setCreditBalance(statusPayload.balance);
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem(SESSION_CREDIT_BALANCE_KEY, String(statusPayload.balance));
+            }
+          }
+        };
+
         await new Promise((resolve) => setTimeout(resolve, 900));
         setTasks((prev) =>
           prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Running" } : task))
@@ -410,12 +462,14 @@ function StudioContent() {
         await new Promise((resolve) => setTimeout(resolve, 1200));
         const shouldFail = prompt.toLowerCase().includes("fail");
         if (shouldFail) {
+          await updateMockStatus("failed").catch(() => null);
           setTasks((prev) =>
             prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: 0 } : task))
           );
           setStatusTone("error");
           setStatusText("Generation failed. Try a clearer prompt or another provider.");
         } else {
+          await updateMockStatus("completed").catch(() => null);
           setTasks((prev) =>
             prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Completed" } : task))
           );
@@ -730,28 +784,44 @@ function StudioContent() {
             </article>
 
             <article className="card tone-violet rounded-3xl p-6">
-              <h3 className="text-xl font-semibold tracking-tight">Queue Status</h3>
-              <div className="mt-4 space-y-3">
-                {[
-                  { label: "In queue", value: "4 tasks" },
-                  { label: "Running", value: "2 tasks" },
-                  { label: "Avg. start", value: "14s" }
-                ].map((x) => (
-                  <div key={x.label} className="chip flex items-center justify-between rounded-xl px-4 py-3 text-sm text-[#4f596b]">
-                    <span>{x.label}</span>
-                    <span className="font-semibold text-[#1d1d1f]">{x.value}</span>
-                  </div>
-                ))}
+              <h3 className="text-xl font-semibold tracking-tight">Wait Estimate</h3>
+              <p className="mt-3 text-sm leading-7 text-[#576173]">
+                This setup usually takes about <span className="font-semibold text-[#1d1d1f]">{formatDuration(estimatedSeconds)}</span>.
+                Tasks keep running after you leave this page.
+              </p>
+              <div className="mt-4 rounded-xl border border-black/10 bg-white/90 p-4">
+                <div className="mb-2 flex items-center justify-between text-xs text-[#667084]">
+                  <span>{latestActiveTask ? `${latestActiveTask.status} task` : "Ready to submit"}</span>
+                  <span>{latestActiveTask ? `${latestActiveProgress}%` : formatDuration(estimatedSeconds)}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[#e6ebf4]">
+                  <div
+                    className="h-full rounded-full bg-[#8b6fe8] transition-all duration-500"
+                    style={{ width: `${latestActiveTask ? latestActiveProgress : 0}%` }}
+                  />
+                </div>
+                <p className="mt-3 text-xs leading-5 text-[#667084]">
+                  Progress is an estimate based on provider status and elapsed time. Finished results sync back into Creations.
+                </p>
               </div>
             </article>
 
             <article className="card tone-peach rounded-3xl p-6">
               <h3 className="text-xl font-semibold tracking-tight">Cost Preview</h3>
-              <p className="mt-3 text-sm leading-7 text-[#535d6e]">Current provider and settings estimate <span className="font-semibold text-[#1d1d1f]">{estCredits} credits</span> for this generation.</p>
-              <div className="mt-4 rounded-xl border border-black/10 bg-white/90 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-[#657286]">Monthly spend trend</p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight">$428.20</p>
-                <p className="text-sm text-[#667084]">-7.8% vs last month</p>
+              <p className="mt-3 text-sm leading-7 text-[#535d6e]">
+                Current provider and settings estimate <span className="font-semibold text-[#1d1d1f]">{estCredits} credits</span> for this generation.
+              </p>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {[
+                  { label: "Active", value: activeTasks.length },
+                  { label: "Done", value: completedTasks.length },
+                  { label: "Failed", value: failedTasks.length }
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl border border-black/10 bg-white/90 p-3 text-center">
+                    <p className="text-xs text-[#667084]">{item.label}</p>
+                    <p className="mt-1 text-xl font-semibold">{item.value}</p>
+                  </div>
+                ))}
               </div>
             </article>
           </div>
@@ -827,15 +897,31 @@ function StudioContent() {
           </article>
 
           <article className="card tone-pink rounded-3xl p-6">
-            <h3 className="text-2xl font-semibold tracking-tight">Provider Blend</h3>
-            <p className="mt-2 text-sm leading-7 text-[#576173]">Keep quality stable by balancing providers per use case and latency target.</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {["ChatGPT", "Seedance", "Kling", "Flux"].map((x, i) => (
-                <div key={x} className="rounded-xl border border-black/10 bg-white/90 p-4">
-                  <p className="text-sm font-semibold">{x}</p>
-                  <p className="mt-1 text-xs text-[#667388]">Traffic share {28 - i * 4}%</p>
+            <h3 className="text-2xl font-semibold tracking-tight">Background Tasks</h3>
+            <p className="mt-2 text-sm leading-7 text-[#576173]">
+              Submitted jobs are stored in your account and keep running through the provider queue. You can close the page and check Creations later.
+            </p>
+            <div className="mt-4 grid gap-3">
+              {activeTasks.slice(0, 4).map((task) => {
+                const progress = taskProgress(task, duration);
+                return (
+                  <div key={`${task.id}-progress`} className="rounded-xl border border-black/10 bg-white/90 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate text-sm font-semibold">{task.id}</p>
+                      <p className="shrink-0 text-xs text-[#667388]">{progress}%</p>
+                    </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#ece7f8]">
+                      <div className="h-full rounded-full bg-[#d36c9d] transition-all duration-500" style={{ width: `${progress}%` }} />
+                    </div>
+                    <p className="mt-2 text-xs text-[#667388]">{task.status} / {task.cost} credits</p>
+                  </div>
+                );
+              })}
+              {!activeTasks.length ? (
+                <div className="rounded-xl border border-black/10 bg-white/90 p-4 text-sm text-[#667084]">
+                  No background tasks right now.
                 </div>
-              ))}
+              ) : null}
             </div>
           </article>
         </section>

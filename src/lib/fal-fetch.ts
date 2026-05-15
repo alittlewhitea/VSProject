@@ -75,16 +75,29 @@ export async function fetchFal(url: string, options: FalFetchOptions = {}) {
   const timeoutMs = options.timeoutMs ?? 20000;
   const { attempts: _attempts, timeoutMs: _timeoutMs, ...requestInit } = options;
   let lastError = "request failed";
+  const startedAt = Date.now();
+
+  if (process.platform === "win32" && process.env.FAL_USE_NATIVE_FETCH !== "1") {
+    try {
+      const response = await fetchFalWithCurl(url, requestInit, timeoutMs);
+      console.info(`[fal] ${requestInit.method || "GET"} ${url} via curl in ${Date.now() - startedAt}ms`);
+      return response;
+    } catch (error) {
+      lastError = `curl: ${describeError(error)}`;
+    }
+  }
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      return await fetch(url, {
+      const response = await fetch(url, {
         ...requestInit,
         signal: requestInit.signal || controller.signal
       });
+      console.info(`[fal] ${requestInit.method || "GET"} ${url} via fetch in ${Date.now() - startedAt}ms`);
+      return response;
     } catch (error) {
       lastError = describeError(error);
       if (attempt === attempts) {
@@ -98,7 +111,9 @@ export async function fetchFal(url: string, options: FalFetchOptions = {}) {
 
   if (process.platform === "win32") {
     try {
-      return await fetchFalWithCurl(url, requestInit, timeoutMs);
+      const response = await fetchFalWithCurl(url, requestInit, timeoutMs);
+      console.info(`[fal] ${requestInit.method || "GET"} ${url} via curl fallback in ${Date.now() - startedAt}ms`);
+      return response;
     } catch (error) {
       throw new Error(`fal.ai network error after ${attempts} fetch attempts and curl fallback: ${describeError(error)}; fetch: ${lastError}`);
     }

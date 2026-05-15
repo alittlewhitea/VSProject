@@ -112,17 +112,23 @@ export async function POST(request: Request) {
           { status: 402 }
         );
       }
-      const { error: insertError } = await admin.from("generation_tasks").insert({
-        id: taskId,
-        user_id: user.id,
-        mode: body.mode,
-        provider: body.provider,
-        prompt,
-        status: "queued",
-        estimated_credits: estimatedCredits,
-        transport: "mock"
-      });
-      if (insertError) {
+      let insertErrorMessage = "";
+      try {
+        const { error: insertError } = await admin.from("generation_tasks").insert({
+          id: taskId,
+          user_id: user.id,
+          mode: body.mode,
+          provider: body.provider,
+          prompt,
+          status: "queued",
+          estimated_credits: estimatedCredits,
+          transport: "mock"
+        });
+        insertErrorMessage = insertError?.message || "";
+      } catch (insertError) {
+        insertErrorMessage = insertError instanceof Error ? insertError.message : "Task history insert timed out.";
+      }
+      if (insertErrorMessage) {
         return NextResponse.json({
           taskId,
           status: "queued",
@@ -131,7 +137,7 @@ export async function POST(request: Request) {
           provider: body.provider,
           estimatedCredits,
           balance: spendResult.balance,
-          storageWarning: `DB insert failed (mock): ${insertError.message}`
+          storageWarning: `DB insert failed (mock): ${insertErrorMessage}`
         });
       }
       return NextResponse.json({
@@ -191,19 +197,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error: insertError } = await admin.from("generation_tasks").insert({
-      id: submitPayload.request_id,
-      user_id: user.id,
-      mode: body.mode,
-      provider: body.provider,
-      prompt,
-      status: "queued",
-      estimated_credits: estimatedCredits,
-      transport: "real",
-      status_url: submitPayload.status_url,
-      response_url: submitPayload.response_url || null
-    });
-    if (insertError) {
+    let insertErrorMessage = "";
+    try {
+      const { error: insertError } = await admin.from("generation_tasks").insert({
+        id: submitPayload.request_id,
+        user_id: user.id,
+        mode: body.mode,
+        provider: body.provider,
+        prompt,
+        status: "queued",
+        estimated_credits: estimatedCredits,
+        transport: "real",
+        status_url: submitPayload.status_url,
+        response_url: submitPayload.response_url || null
+      });
+      insertErrorMessage = insertError?.message || "";
+    } catch (insertError) {
+      insertErrorMessage = insertError instanceof Error ? insertError.message : "Task history insert timed out.";
+    }
+    if (insertErrorMessage) {
       return NextResponse.json({
         taskId: submitPayload.request_id,
         status: submitPayload.status?.toLowerCase() || "queued",
@@ -214,7 +226,7 @@ export async function POST(request: Request) {
         balance: spendResult.balance,
         statusUrl: submitPayload.status_url,
         responseUrl: submitPayload.response_url || null,
-        storageWarning: `DB insert failed (real): ${insertError.message}`
+        storageWarning: `DB insert failed (real): ${insertErrorMessage}`
       });
     }
 

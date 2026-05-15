@@ -20,15 +20,76 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized. Invalid or missing Supabase access token." }, { status: 401 });
     }
 
-    const falKey = process.env.FAL_KEY;
-    if (!falKey) {
-      return NextResponse.json({ error: "FAL_KEY is not configured." }, { status: 400 });
-    }
-
     const { searchParams } = new URL(request.url);
     const statusUrl = searchParams.get("statusUrl");
     const responseUrl = searchParams.get("responseUrl");
     const taskId = searchParams.get("taskId");
+    const mockStatus = searchParams.get("mockStatus");
+
+    if (mockStatus) {
+      if (!taskId) {
+        return NextResponse.json({ error: "taskId is required for mock status updates." }, { status: 400 });
+      }
+      if (mockStatus !== "completed" && mockStatus !== "failed") {
+        return NextResponse.json({ error: "Invalid mockStatus." }, { status: 400 });
+      }
+
+      const admin = createSupabaseAdminClient();
+      if (!admin) {
+        return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
+      }
+
+      const { data: task, error: taskError } = await admin
+        .from("generation_tasks")
+        .select("estimated_credits, transport")
+        .eq("id", taskId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (taskError) {
+        return NextResponse.json({ error: taskError.message }, { status: 500 });
+      }
+      if (!task) {
+        return NextResponse.json({ error: "Task not found." }, { status: 404 });
+      }
+      if ((task as { transport?: string }).transport !== "mock") {
+        return NextResponse.json({ error: "mockStatus can only update mock tasks." }, { status: 400 });
+      }
+
+      let balance: number | null = null;
+      const estimatedCredits =
+        typeof (task as { estimated_credits?: unknown }).estimated_credits === "number"
+          ? (task as { estimated_credits: number }).estimated_credits
+          : 0;
+
+      if (mockStatus === "failed" && estimatedCredits > 0) {
+        balance = await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
+      }
+
+      await admin
+        .from("generation_tasks")
+        .update({
+          status: mockStatus,
+          raw_result: {
+            transport: "mock",
+            status: mockStatus
+          }
+        })
+        .eq("id", taskId)
+        .eq("user_id", user.id)
+        .throwOnError();
+
+      return NextResponse.json({
+        status: mockStatus.toUpperCase(),
+        result: null,
+        balance
+      });
+    }
+
+    const falKey = process.env.FAL_KEY;
+    if (!falKey) {
+      return NextResponse.json({ error: "FAL_KEY is not configured." }, { status: 400 });
+    }
 
     if (!statusUrl || !isAllowedFalUrl(statusUrl)) {
       return NextResponse.json({ error: "Invalid statusUrl." }, { status: 400 });

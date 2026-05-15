@@ -203,24 +203,44 @@ export async function spendCredits(admin: SupabaseClient, userId: string, amount
     };
   }
 
-  const { error } = await admin
-    .from("user_credit_accounts")
-    .update({
-      balance: nextBalance,
-      updated_at: new Date().toISOString()
-    })
-    .eq("user_id", userId);
+  try {
+    const { error } = await admin
+      .from("user_credit_accounts")
+      .update({
+        balance: nextBalance,
+        updated_at: new Date().toISOString()
+      })
+      .eq("user_id", userId);
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
+
+    await admin.from("credit_ledger").insert({
+      user_id: userId,
+      amount: -amount,
+      reason,
+      reference_id: referenceId || null
+    });
+  } catch (error) {
+    if (canUseDevCreditFallback()) {
+      const devAccount = getDevCreditAccount(userId);
+      if (devAccount.balance < amount) {
+        return {
+          ok: false as const,
+          balance: devAccount.balance
+        };
+      }
+      const devBalance = devAccount.balance - amount;
+      devCreditAccounts.set(userId, { ...devAccount, balance: devBalance });
+      addDevLedgerEntry(userId, -amount, reason, referenceId);
+      return {
+        ok: true as const,
+        balance: devBalance
+      };
+    }
     throw error;
   }
-
-  await admin.from("credit_ledger").insert({
-    user_id: userId,
-    amount: -amount,
-    reason,
-    reference_id: referenceId || null
-  });
 
   return {
     ok: true as const,
