@@ -1,0 +1,366 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { TopNav } from "../../components/top-nav";
+import { AppButton } from "../../components/ui/button";
+import { createBrowserSupabaseClient } from "../../lib/supabase-client";
+
+type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
+
+type CreationTask = {
+  id: string;
+  type: "Image" | "Video";
+  status: TaskStatus;
+  cost: number;
+  provider?: string;
+  prompt?: string;
+  ratio?: string;
+  transport?: "real" | "mock";
+  createdAt?: string;
+  statusUrl?: string | null;
+  responseUrl?: string | null;
+  mediaUrl?: string | null;
+};
+
+const SESSION_TASKS_KEY = "nova_session_tasks";
+
+function pickMediaUrl(result: unknown): string | null {
+  if (!result || typeof result !== "object") return null;
+  const payload = result as Record<string, unknown>;
+  if (typeof payload.url === "string") return payload.url;
+  if (Array.isArray(payload.images) && payload.images[0] && typeof payload.images[0] === "object") {
+    const first = payload.images[0] as Record<string, unknown>;
+    if (typeof first.url === "string") return first.url;
+  }
+  if (payload.video && typeof payload.video === "object") {
+    const video = payload.video as Record<string, unknown>;
+    if (typeof video.url === "string") return video.url;
+  }
+  if (Array.isArray(payload.videos) && payload.videos[0] && typeof payload.videos[0] === "object") {
+    const first = payload.videos[0] as Record<string, unknown>;
+    if (typeof first.url === "string") return first.url;
+  }
+  return null;
+}
+
+function readSessionTasks(): CreationTask[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = window.localStorage.getItem(SESSION_TASKS_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored) as CreationTask[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function mergeTasks(remoteTasks: CreationTask[], sessionTasks: CreationTask[]) {
+  const seen = new Set<string>();
+  return [...sessionTasks, ...remoteTasks].filter((task) => {
+    if (seen.has(task.id)) return false;
+    seen.add(task.id);
+    return true;
+  });
+}
+
+function formatDate(value?: string) {
+  if (!value) return "This session";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function providerLabel(provider?: string) {
+  const labels: Record<string, string> = {
+    "chatgpt-image": "OpenAI GPT-Image-2",
+    "flux-image": "FLUX Schnell",
+    "recraft-image": "Recraft",
+    "seedance-video": "Seedance",
+    "kling-video": "Kling",
+    "veo-video": "Veo"
+  };
+  return provider ? labels[provider] || provider : "Unknown provider";
+}
+
+export default function CreationsPage() {
+  const router = useRouter();
+  const [tasks, setTasks] = useState<CreationTask[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [syncNote, setSyncNote] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const sessionTasks = readSessionTasks();
+    if (sessionTasks.length) {
+      setTasks(sessionTasks);
+      setSelectedId(sessionTasks[0].id);
+      setSyncNote("Refreshing cloud history...");
+    }
+
+    const supabase = createBrowserSupabaseClient();
+    supabase.auth.getSession().then(async ({ data }) => {
+      const token = data.session?.access_token || null;
+      if (!token) {
+        router.replace("/auth?next=/creations");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await fetch("/api/tasks", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (!response.ok) throw new Error("Creation history could not be loaded.");
+        const payload = (await response.json()) as {
+          tasks: Array<{
+            id: string;
+            mode: "image" | "video";
+            provider?: string;
+            prompt?: string;
+            status: "queued" | "running" | "completed" | "failed";
+            estimated_credits: number;
+            transport?: "real" | "mock";
+            created_at?: string;
+            status_url?: string | null;
+            response_url?: string | null;
+            output_url?: string | null;
+            raw_result?: unknown;
+          }>;
+          storageWarning?: string;
+        };
+        const remoteTasks: CreationTask[] = payload.tasks.map((task) => ({
+          id: task.id,
+          type: task.mode === "image" ? "Image" : "Video",
+          status:
+            task.status === "queued"
+              ? "Queued"
+              : task.status === "running"
+                ? "Running"
+                : task.status === "completed"
+                  ? "Completed"
+                  : "Failed",
+          cost: task.estimated_credits,
+          provider: task.provider,
+          prompt: task.prompt,
+          transport: task.transport,
+          createdAt: task.created_at,
+          statusUrl: task.status_url || null,
+          responseUrl: task.response_url || null,
+          mediaUrl: task.output_url || pickMediaUrl(task.raw_result) || null
+        }));
+        const merged = mergeTasks(remoteTasks, readSessionTasks());
+        setTasks(merged);
+        setSelectedId((prev) => prev || merged[0]?.id || null);
+        setNote(merged.length ? "" : payload.storageWarning || "");
+        setSyncNote(payload.storageWarning ? "Cloud history unavailable. Showing browser-saved creations." : "");
+      } catch (error) {
+        const sessionTasks = readSessionTasks();
+        setTasks(sessionTasks);
+        setSelectedId(sessionTasks[0]?.id || null);
+        if (sessionTasks.length) {
+          setNote("");
+          setSyncNote("Cloud history unavailable. Showing browser-saved creations.");
+        } else {
+          setNote(error instanceof Error ? error.message : "Creation history is temporarily unavailable.");
+          setSyncNote("");
+        }
+      } finally {
+        setLoading(false);
+      }
+    });
+  }, [router]);
+
+  const selectedTask = tasks.find((task) => task.id === selectedId) || tasks[0] || null;
+  const stats = useMemo(
+    () => ({
+      total: tasks.length,
+      completed: tasks.filter((task) => task.status === "Completed").length,
+      running: tasks.filter((task) => task.status === "Running" || task.status === "Queued").length
+    }),
+    [tasks]
+  );
+
+  return (
+    <main className="bg-grid min-h-screen pb-14">
+      <div className="mx-auto max-w-7xl px-4 pt-4 md:px-8 md:pt-5">
+        <TopNav />
+
+        <section className="hero-sheen rounded-[2rem] border border-black/5 bg-gradient-to-b from-white to-[#f7f9fd] p-6 shadow-[0_24px_60px_rgba(13,18,35,0.08)] md:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.14em] text-[#6e6e73]">Personal Creative Center</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-5xl">Creations</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5c6374]">
+                Review generated assets, inspect prompts, and reopen outputs without leaving your workspace.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <AppButton href="/studio?mode=image" variant="primary">New image</AppButton>
+              <AppButton href="/studio?mode=video" variant="secondary">New video</AppButton>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6 grid gap-4 md:grid-cols-3">
+          {[
+            { label: "Total creations", value: stats.total },
+            { label: "Completed", value: stats.completed },
+            { label: "Queued or running", value: stats.running }
+          ].map((item) => (
+            <div key={item.label} className="card rounded-2xl p-5">
+              <p className="text-xs uppercase tracking-[0.14em] text-[#667487]">{item.label}</p>
+              <p className="mt-2 text-3xl font-semibold tracking-tight">{item.value}</p>
+            </div>
+          ))}
+        </section>
+
+        {note ? (
+          <p className="mt-5 rounded-xl border border-[#d8b85d]/30 bg-[#fff8df] px-4 py-3 text-sm text-[#705d1d]">
+            {note}
+          </p>
+        ) : null}
+
+        <section className="mt-6 grid gap-5 lg:grid-cols-[0.95fr_1.35fr]">
+          <article className="card rounded-3xl p-5 md:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-semibold tracking-tight">History</h2>
+              <div className="flex items-center gap-3">
+                {loading || syncNote ? (
+                  <span className="text-xs text-[#667084]">{loading ? "Refreshing cloud history..." : syncNote}</span>
+                ) : null}
+                <Link href="/studio?mode=image" className="text-sm font-semibold text-[#0071e3]">
+                  Create
+                </Link>
+              </div>
+            </div>
+
+            {loading && !tasks.length ? (
+              <p className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-[#667084]">Loading creations...</p>
+            ) : tasks.length ? (
+              <div className="space-y-3">
+                {tasks.map((task) => (
+                  <button
+                    key={task.id}
+                    type="button"
+                    onClick={() => setSelectedId(task.id)}
+                    className={`motion-smooth grid w-full grid-cols-[72px_1fr] gap-3 rounded-2xl border p-3 text-left ${
+                      selectedTask?.id === task.id
+                        ? "border-[#0071e3]/40 bg-[#f1f7ff]"
+                        : "border-black/10 bg-white hover:bg-[#f8fbff]"
+                    }`}
+                  >
+                    <div className="flex h-[72px] items-center justify-center overflow-hidden rounded-xl bg-[#eef2f7]">
+                      {task.mediaUrl ? (
+                        task.type === "Video" ? (
+                          <video src={task.mediaUrl} className="h-full w-full object-cover" muted />
+                        ) : (
+                          <img src={task.mediaUrl} alt={task.id} className="h-full w-full object-cover" />
+                        )
+                      ) : (
+                        <span className="text-xs font-semibold text-[#667084]">{task.type}</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-semibold">{providerLabel(task.provider)}</p>
+                        <span className="shrink-0 rounded-full border border-black/10 bg-white px-2 py-0.5 text-[11px] text-[#5f6779]">
+                          {task.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#667084]">
+                        {task.prompt || "Prompt not available for this saved session item."}
+                      </p>
+                      <p className="mt-2 text-[11px] uppercase tracking-[0.12em] text-[#8a93a3]">{formatDate(task.createdAt)}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-black/10 bg-white p-6 text-sm leading-7 text-[#667084]">
+                No creations yet. Start a new generation and it will appear here.
+              </div>
+            )}
+          </article>
+
+          <article className="card rounded-3xl p-5 md:p-6">
+            {selectedTask ? (
+              <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.14em] text-[#667487]">Task detail</p>
+                      <h2 className="mt-1 text-2xl font-semibold tracking-tight">{providerLabel(selectedTask.provider)}</h2>
+                    </div>
+                    {selectedTask.mediaUrl ? (
+                      <a
+                        href={`/api/generate/download?url=${encodeURIComponent(selectedTask.mediaUrl)}&name=${encodeURIComponent(selectedTask.id)}`}
+                        className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white"
+                      >
+                        Download
+                      </a>
+                    ) : null}
+                  </div>
+
+                  <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {[
+                      { label: "Status", value: selectedTask.status },
+                      { label: "Type", value: selectedTask.type },
+                      { label: "Credits", value: String(selectedTask.cost) },
+                      { label: "Ratio", value: selectedTask.ratio || "Not saved" },
+                      { label: "Transport", value: selectedTask.transport || "Unknown" },
+                      { label: "Created", value: formatDate(selectedTask.createdAt) }
+                    ].map((item) => (
+                      <div key={item.label} className="rounded-xl border border-black/10 bg-white/80 p-3">
+                        <dt className="text-[11px] uppercase tracking-[0.12em] text-[#778194]">{item.label}</dt>
+                        <dd className="mt-1 text-sm font-semibold text-[#1d1d1f]">{item.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  <div className="mt-5 rounded-2xl border border-black/10 bg-white/80 p-4">
+                    <p className="text-xs uppercase tracking-[0.14em] text-[#667487]">Prompt</p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[#343d4d]">
+                      {selectedTask.prompt || "Prompt was not saved for this older session item."}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-black/10 bg-white/80 p-4">
+                    <p className="text-xs uppercase tracking-[0.14em] text-[#667487]">Task ID</p>
+                    <p className="mt-2 break-all text-sm font-medium text-[#343d4d]">{selectedTask.id}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-black/10 bg-white p-3">
+                  {selectedTask.mediaUrl ? (
+                    selectedTask.type === "Video" ? (
+                      <video src={selectedTask.mediaUrl} controls className="max-h-[680px] w-full rounded-xl bg-black object-contain" />
+                    ) : (
+                      <img src={selectedTask.mediaUrl} alt={selectedTask.id} className="max-h-[680px] w-full rounded-xl bg-[#eef2f7] object-contain" />
+                    )
+                  ) : (
+                    <div className="flex min-h-[420px] items-center justify-center rounded-xl bg-[#eef2f7] p-6 text-center text-sm text-[#667084]">
+                      Preview will appear when the task completes.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-black/10 bg-white p-6 text-sm text-[#667084]">
+                Select a creation to inspect its details.
+              </div>
+            )}
+          </article>
+        </section>
+      </div>
+    </main>
+  );
+}
