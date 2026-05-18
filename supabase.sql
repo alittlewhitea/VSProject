@@ -11,11 +11,29 @@ create table if not exists public.generation_tasks (
   response_url text,
   output_url text,
   raw_result jsonb,
-  created_at timestamptz not null default now()
+  title text,
+  is_favorite boolean not null default false,
+  deleted_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
+
+alter table public.generation_tasks
+  add column if not exists title text,
+  add column if not exists is_favorite boolean not null default false,
+  add column if not exists deleted_at timestamptz,
+  add column if not exists updated_at timestamptz not null default now();
 
 create index if not exists generation_tasks_user_id_created_at_idx
   on public.generation_tasks (user_id, created_at desc);
+
+create index if not exists generation_tasks_user_id_active_created_at_idx
+  on public.generation_tasks (user_id, created_at desc)
+  where deleted_at is null;
+
+create index if not exists generation_tasks_user_id_favorite_idx
+  on public.generation_tasks (user_id, is_favorite, created_at desc)
+  where deleted_at is null;
 
 alter table public.generation_tasks enable row level security;
 

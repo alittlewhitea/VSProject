@@ -10,8 +10,8 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }) {
   const document = getLegalDocument(params.slug);
   return {
-    title: document ? `${document.title} | Nova Studio` : "Legal | Nova Studio",
-    description: document?.summary || "Nova Studio legal information."
+    title: document ? `${document.title} | DreamFace` : "Legal | DreamFace",
+    description: document?.summary || "DreamFace legal information."
   };
 }
 
@@ -67,13 +67,6 @@ export default function LegalPage({ params }: { params: { slug: string } }) {
                   </div>
                 </section>
               ))}
-
-              <section className="rounded-2xl border border-[#d8b85d]/30 bg-[#fff8df] p-5">
-                <h2 className="text-lg font-semibold tracking-tight text-[#5e4d12]">Important note</h2>
-                <p className="mt-2 text-sm leading-7 text-[#705d1d]">
-                  These pages are operational policy drafts for Nova Studio and are not legal advice. Review them with qualified counsel before relying on them for production launch.
-                </p>
-              </section>
             </div>
           </div>
         </section>

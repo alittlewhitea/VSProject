@@ -14,6 +14,8 @@ type TaskItem = {
   type: "Image" | "Video";
   status: TaskStatus;
   cost: number;
+  title?: string | null;
+  isFavorite?: boolean;
   provider?: string;
   prompt?: string;
   ratio?: string;
@@ -190,7 +192,27 @@ function StudioContent() {
     if (promptParam) {
       setPrompt(promptParam);
     }
-  }, [sp]);
+
+    const providerParam = sp.get("provider");
+    if (
+      providerParam &&
+      (mode === "image"
+        ? ["chatgpt-image", "flux-image", "recraft-image"].includes(providerParam)
+        : ["seedance-video", "kling-video", "veo-video"].includes(providerParam))
+    ) {
+      setProvider(providerParam);
+    }
+
+    const ratioParam = sp.get("ratio");
+    if (ratioParam && ["1:1", "16:9", "9:16"].includes(ratioParam)) {
+      setRatio(ratioParam);
+    }
+
+    const durationParam = sp.get("duration");
+    if (durationParam && (mode === "image" ? durationParam === "single" : ["6s", "8s", "10s"].includes(durationParam))) {
+      setDuration(durationParam);
+    }
+  }, [mode, sp]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -218,6 +240,8 @@ function StudioContent() {
             response_url?: string | null;
             output_url?: string | null;
             raw_result?: unknown;
+            title?: string | null;
+            is_favorite?: boolean;
           }>;
           storageWarning?: string;
         };
@@ -233,6 +257,8 @@ function StudioContent() {
                   ? "Completed"
                   : "Failed",
           cost: t.estimated_credits,
+          title: t.title || null,
+          isFavorite: Boolean(t.is_favorite),
           provider: t.provider,
           prompt: t.prompt,
           transport: t.transport,

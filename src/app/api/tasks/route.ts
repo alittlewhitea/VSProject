@@ -6,6 +6,8 @@ import { refundCredits } from "../../../lib/credits";
 
 const TASK_HISTORY_TIMEOUT_MS = 4500;
 const TASK_SYNC_LIMIT = 5;
+const TASK_SELECT =
+  "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, raw_result, created_at, updated_at, title, is_favorite";
 
 type TaskHistoryResult = {
   data: unknown[] | null;
@@ -20,6 +22,12 @@ type PendingTaskRow = {
   transport: "real" | "mock";
   status_url: string | null;
   response_url: string | null;
+};
+
+type TaskUpdatePayload = {
+  id?: string;
+  title?: string | null;
+  isFavorite?: boolean;
 };
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -67,6 +75,12 @@ function normalizeFalStatus(status: string) {
   if (upperStatus === "IN_PROGRESS") return "running";
   if (upperStatus === "COMPLETED") return "completed";
   return "failed";
+}
+
+function normalizeTitle(value: unknown) {
+  if (typeof value !== "string") return null;
+  const title = value.trim().replace(/\s+/g, " ");
+  return title ? title.slice(0, 120) : null;
 }
 
 async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminClient>, userId: string) {
@@ -126,7 +140,8 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
           .update({
             status: normalized,
             output_url: extractMediaUrl(result),
-            raw_result: result
+            raw_result: result,
+            updated_at: new Date().toISOString()
           })
           .eq("id", task.id)
           .eq("user_id", userId);
@@ -153,8 +168,9 @@ export async function GET(request: Request) {
   const { data, error } = await withTimeout<TaskHistoryResult>(
     admin
       .from("generation_tasks")
-      .select("id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, raw_result, created_at")
+      .select(TASK_SELECT)
       .eq("user_id", user.id)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(30) as unknown as Promise<TaskHistoryResult>,
     TASK_HISTORY_TIMEOUT_MS
@@ -174,5 +190,103 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ tasks: data ?? [] });
+}
+
+export async function PATCH(request: Request) {
+  const user = await getUserFromBearerToken(request.headers.get("authorization"));
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized. Invalid or missing Supabase access token." }, { status: 401 });
+  }
+
+  const admin = createSupabaseAdminClient();
+  if (!admin) {
+    return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
+  }
+
+  let payload: TaskUpdatePayload;
+  try {
+    payload = (await request.json()) as TaskUpdatePayload;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  if (!payload.id || typeof payload.id !== "string") {
+    return NextResponse.json({ error: "Task id is required." }, { status: 400 });
+  }
+
+  const update: Record<string, unknown> = {
+    updated_at: new Date().toISOString()
+  };
+
+  if ("title" in payload) {
+    update.title = normalizeTitle(payload.title);
+  }
+
+  if ("isFavorite" in payload) {
+    update.is_favorite = Boolean(payload.isFavorite);
+  }
+
+  if (Object.keys(update).length === 1) {
+    return NextResponse.json({ error: "No supported task updates were provided." }, { status: 400 });
+  }
+
+  const { data, error } = await admin
+    .from("generation_tasks")
+    .update(update)
+    .eq("id", payload.id)
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .select(TASK_SELECT)
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!data) {
+    return NextResponse.json({ error: "Task not found." }, { status: 404 });
+  }
+
+  return NextResponse.json({ task: data });
+}
+
+export async function DELETE(request: Request) {
+  const user = await getUserFromBearerToken(request.headers.get("authorization"));
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized. Invalid or missing Supabase access token." }, { status: 401 });
+  }
+
+  const admin = createSupabaseAdminClient();
+  if (!admin) {
+    return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
+  }
+
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "Task id is required." }, { status: 400 });
+  }
+
+  const now = new Date().toISOString();
+  const { data, error } = await admin
+    .from("generation_tasks")
+    .update({
+      deleted_at: now,
+      updated_at: now
+    })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!data) {
+    return NextResponse.json({ error: "Task not found." }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true, id });
 }
 

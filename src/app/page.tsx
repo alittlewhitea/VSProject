@@ -368,7 +368,7 @@ export default async function HomePage() {
         <footer className="mt-16 rounded-3xl bg-gradient-to-br from-[#dff3fa] via-[#e8f8ff] to-[#efeefe] px-7 py-9">
           <div className="grid gap-7 border-b border-black/10 pb-7 md:grid-cols-5">
             <div>
-              <p className="text-2xl font-semibold tracking-tight">nova</p>
+              <p className="text-2xl font-semibold tracking-tight">dreamface</p>
               <p className="mt-2 text-sm text-[#506170]">Unified image + video generation infrastructure.</p>
             </div>
             <div>
@@ -383,7 +383,8 @@ export default async function HomePage() {
             </div>
             <div>
               <p className="text-sm font-semibold">Company</p>
-              <p className="mt-2 text-sm text-[#4f5a67]">Documentation</p>
+              <Link href="/about" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">About Us</Link>
+              <p className="text-sm text-[#4f5a67]">Documentation</p>
               <p className="text-sm text-[#4f5a67]">Contact</p>
             </div>
             <div>
@@ -397,7 +398,7 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-          <p className="pt-5 text-xs text-[#667180]">(c) 2026 Nova Studio. All rights reserved.</p>
+          <p className="pt-5 text-xs text-[#667180]">(c) 2026 DreamFace. All rights reserved.</p>
         </footer>
       </div>
     </main>
