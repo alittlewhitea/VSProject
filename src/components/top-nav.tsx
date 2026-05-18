@@ -67,7 +67,9 @@ export function TopNav() {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <p className="text-4xl font-semibold tracking-tight">nova</p>
+          <Link href="/" className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            dreamface
+          </Link>
           <nav className="hidden gap-6 text-sm text-[#4b4b54] lg:flex">
             <a className={pathname === "/" && active === "products" ? "font-semibold text-[#111]" : ""} href="/#products">Products</a>
             <a className={pathname === "/" && active === "providers" ? "font-semibold text-[#111]" : ""} href="/#providers">Providers</a>

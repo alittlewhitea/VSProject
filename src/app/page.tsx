@@ -1,4 +1,7 @@
 import Link from "next/link";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { HomeHeroCarousel } from "../components/home-hero-carousel";
 import { Reveal } from "../components/reveal";
 import { TopNav } from "../components/top-nav";
 import { AppButton } from "../components/ui/button";
@@ -64,7 +67,23 @@ const faqs = [
   }
 ];
 
+const HERO_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif"]);
+
+async function getHeroImages() {
+  try {
+    const imageDir = path.join(process.cwd(), "public", "images");
+    const files = await fs.readdir(imageDir);
+    return files
+      .filter((file) => HERO_IMAGE_EXTENSIONS.has(path.extname(file).toLowerCase()))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      .map((file) => `/images/${encodeURIComponent(file)}`);
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage() {
+  const heroImages = await getHeroImages();
   const galleryItems = (await fetchPublishedGalleryItems({ limit: 8, featuredFirst: true }).catch(() => []))
     .map(mapGalleryRow)
     .slice(0, 8);
@@ -75,74 +94,136 @@ export default async function HomePage() {
         <TopNav />
 
         <Reveal>
-          <section className="relative overflow-hidden rounded-[2.25rem] border border-black/5 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_34%,#f7fffb_68%,#fffaf4_100%)] px-5 py-8 shadow-[0_28px_80px_rgba(72,103,170,0.12)] md:px-10 md:py-10">
-            <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-[#d9cbff]/35 blur-3xl" />
-            <div className="absolute -bottom-28 left-1/4 h-80 w-80 rounded-full bg-[#bdeee5]/35 blur-3xl" />
-            <div className="relative mx-auto flex min-h-[520px] max-w-6xl flex-col justify-center">
-              <div className="mx-auto max-w-5xl text-center">
-                <div className="flex flex-wrap justify-center gap-2 text-xs font-semibold uppercase tracking-[0.14em]">
-                  <span className="rounded-full border border-[#d7e5ff] bg-white/80 px-4 py-2 text-[#38618f] shadow-sm">Image Studio</span>
-                  <span className="rounded-full border border-[#cbeee8] bg-white/80 px-4 py-2 text-[#35756e] shadow-sm">Video Studio</span>
-                  <span className="rounded-full border border-[#e3d8ff] bg-white/80 px-4 py-2 text-[#725da6] shadow-sm">Prompt Gallery</span>
+          <HomeHeroCarousel images={heroImages} />
+        </Reveal>
+
+        <Reveal>
+          <section className="hidden relative overflow-hidden rounded-[2.25rem] border border-black/5 bg-[#f7f9fc] shadow-[0_32px_90px_rgba(35,51,89,0.16)]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(62,130,246,0.16),transparent_30%),radial-gradient(circle_at_84%_16%,rgba(23,169,154,0.14),transparent_28%),linear-gradient(135deg,#ffffff_0%,#f8fbff_45%,#f7fffb_100%)]" />
+            <div className="relative grid min-h-[680px] gap-8 px-5 py-8 md:px-10 md:py-12 lg:grid-cols-[0.98fr_1.02fr] lg:items-center">
+              <div className="max-w-2xl">
+                <div className="inline-flex flex-wrap gap-2 rounded-full border border-black/10 bg-white/76 p-1.5 shadow-[0_12px_30px_rgba(23,35,61,0.08)] backdrop-blur">
+                  <span className="rounded-full bg-[#1d1d1f] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white">Image</span>
+                  <span className="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#35756e]">Video</span>
+                  <span className="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#725da6]">Voiceover</span>
                 </div>
 
-                <p className="mt-10 text-sm font-semibold uppercase tracking-[0.16em] text-[#687386]">Unified AI Creation Platform</p>
-                <h1 className="mx-auto mt-5 max-w-5xl text-5xl font-semibold leading-[0.98] tracking-tight text-[#172033] sm:text-6xl md:text-7xl">
-                  Create images, videos, and campaigns in one workflow.
+                <p className="mt-10 text-sm font-semibold uppercase tracking-[0.16em] text-[#687386]">DreamFace AI Creative Studio</p>
+                <h1 className="mt-5 text-5xl font-semibold leading-[0.96] tracking-tight text-[#101827] sm:text-6xl md:text-7xl">
+                  Turn ideas into campaign-ready AI visuals.
                 </h1>
-                <p className="mx-auto mt-6 max-w-3xl text-base leading-7 text-[#53627b] sm:text-lg sm:leading-8 md:text-xl md:leading-9">
-                  Use curated visual prompts as a starting point, route work across image and video models, and keep every generation organized in one studio.
+                <p className="mt-6 max-w-xl text-base leading-7 text-[#53627b] sm:text-lg sm:leading-8">
+                  Create images, videos, and voiceover-ready assets from one clean studio. Route work across leading models, keep tasks running in the background, and manage every result in your account.
                 </p>
 
-                <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <div className="mt-8 flex flex-wrap gap-3">
                   <Link
                     href="/studio?mode=image"
-                    className="inline-flex items-center justify-center rounded-full bg-[#3b82f6] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#8ebcff]/35 transition-transform duration-150 active:scale-[0.98]"
+                    className="inline-flex items-center justify-center rounded-full bg-[#1d1d1f] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-black/15 transition-transform duration-150 active:scale-[0.98]"
                   >
-                    Generate Image
-                  </Link>
-                  <Link
-                    href="/studio?mode=video"
-                    className="inline-flex items-center justify-center rounded-full bg-[#17a99a] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#9be2da]/40 transition-transform duration-150 active:scale-[0.98]"
-                  >
-                    Generate Video
+                    Open Studio
                   </Link>
                   <Link
                     href="/gallery"
-                    className="inline-flex items-center justify-center rounded-full bg-[#8b6fe8] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#cabdff]/45 transition-transform duration-150 active:scale-[0.98]"
+                    className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-semibold text-[#1d1d1f] shadow-sm transition-transform duration-150 active:scale-[0.98]"
                   >
-                    Explore Gallery
+                    Explore prompts
                   </Link>
+                </div>
+
+                <div className="mt-9 grid gap-3 sm:grid-cols-3">
+                  {[
+                    { value: "No subscription", label: "Credits-based wallet" },
+                    { value: "Background tasks", label: "Close the page safely" },
+                    { value: "Refund visible", label: "Failed jobs are traceable" }
+                  ].map((item) => (
+                    <div key={item.value} className="rounded-2xl border border-black/10 bg-white/72 p-4 backdrop-blur">
+                      <p className="text-sm font-semibold text-[#172033]">{item.value}</p>
+                      <p className="mt-1 text-xs leading-5 text-[#667084]">{item.label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="mx-auto mt-10 w-full max-w-5xl min-w-0">
-                <div className="rounded-[1.5rem] border border-black/10 bg-white/78 p-3 shadow-[0_16px_42px_rgba(83,111,170,0.11)] backdrop-blur">
-                  <div className="mb-2 flex items-center justify-between gap-3 px-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#607088]">Supported Model Routing</p>
-                    <p className="text-[11px] text-[#8a94a6]">Image + Video</p>
-                  </div>
-                  <div className="model-ticker relative min-w-0 overflow-hidden py-1">
-                    <div className="model-ticker-track flex w-max gap-2">
-                      {[...heroImageModels.map((model) => ({ model, type: "Image" })), ...heroVideoModels.map((model) => ({ model, type: "Video" })), ...heroImageModels.map((model) => ({ model, type: "Image" })), ...heroVideoModels.map((model) => ({ model, type: "Video" }))].map((item, index) => (
-                        <span
-                          key={`${item.type}-${item.model}-${index}`}
-                          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold shadow-sm ${
-                            item.type === "Image"
-                              ? "border-[#d7e5ff] bg-[#f8fbff] text-[#365b86]"
-                              : "border-[#cbeee8] bg-[#f7fffb] text-[#35756e]"
+              <div className="relative min-h-[540px]">
+                <div className="absolute left-4 top-4 z-10 rounded-2xl border border-black/10 bg-white/86 px-4 py-3 shadow-[0_16px_38px_rgba(23,35,61,0.13)] backdrop-blur">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#667084]">Live routing</p>
+                  <p className="mt-1 text-sm font-semibold text-[#172033]">GPT Image 2 · Seedance · Kling</p>
+                </div>
+
+                <div className="absolute right-2 top-20 grid w-[76%] grid-cols-2 gap-3 sm:right-8">
+                  {(galleryItems.length ? galleryItems.slice(0, 4) : []).map((item, index) => (
+                    <Link
+                      key={item.id}
+                      href={galleryItemPath(item)}
+                      className={`group overflow-hidden rounded-[1.5rem] border border-white/70 bg-white shadow-[0_22px_50px_rgba(23,35,61,0.16)] ${
+                        index === 1 ? "translate-y-10" : index === 2 ? "-translate-y-3" : ""
+                      }`}
+                    >
+                      <div className="aspect-[4/5] overflow-hidden bg-[#eef2f7]">
+                        <img
+                          src={item.thumbnailUrl || item.imageUrl}
+                          alt={item.title}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                        />
+                      </div>
+                    </Link>
+                  ))}
+                  {!galleryItems.length
+                    ? ["Image task", "Video scene", "Product shot", "Campaign asset"].map((label, index) => (
+                        <div
+                          key={label}
+                          className={`aspect-[4/5] rounded-[1.5rem] border border-white/70 bg-gradient-to-br from-white via-[#edf4ff] to-[#eefaf6] p-4 shadow-[0_22px_50px_rgba(23,35,61,0.16)] ${
+                            index === 1 ? "translate-y-10" : index === 2 ? "-translate-y-3" : ""
                           }`}
                         >
-                          {item.type}: {item.model}
-                        </span>
-                      ))}
+                          <p className="text-sm font-semibold text-[#172033]">{label}</p>
+                        </div>
+                      ))
+                    : null}
+                </div>
+
+                <div className="absolute bottom-8 left-0 right-0 mx-auto max-w-md rounded-[1.5rem] border border-black/10 bg-white/88 p-4 shadow-[0_22px_55px_rgba(23,35,61,0.14)] backdrop-blur">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-[#667084]">Generation queue</p>
+                      <p className="mt-1 text-sm font-semibold text-[#172033]">DreamFace keeps work running after you leave</p>
                     </div>
+                    <span className="rounded-full bg-[#eefaf3] px-3 py-1 text-xs font-semibold text-[#197a46]">Synced</span>
+                  </div>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e6ebf4]">
+                    <div className="h-full w-[72%] rounded-full bg-[#17a99a]" />
                   </div>
                 </div>
               </div>
             </div>
           </section>
         </Reveal>
+
+        <section className="mx-auto mt-5 w-full max-w-6xl min-w-0">
+          <div className="rounded-[1.5rem] border border-black/10 bg-white/78 p-3 shadow-[0_16px_42px_rgba(83,111,170,0.09)] backdrop-blur">
+            <div className="mb-2 flex items-center justify-between gap-3 px-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#607088]">Supported Model Routing</p>
+              <p className="text-[11px] text-[#8a94a6]">Image + Video</p>
+            </div>
+            <div className="model-ticker relative min-w-0 overflow-hidden py-1">
+              <div className="model-ticker-track flex w-max gap-2">
+                {[...heroImageModels.map((model) => ({ model, type: "Image" })), ...heroVideoModels.map((model) => ({ model, type: "Video" })), ...heroImageModels.map((model) => ({ model, type: "Image" })), ...heroVideoModels.map((model) => ({ model, type: "Video" }))].map((item, index) => (
+                  <span
+                    key={`${item.type}-${item.model}-${index}`}
+                    className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold shadow-sm ${
+                      item.type === "Image"
+                        ? "border-[#d7e5ff] bg-[#f8fbff] text-[#365b86]"
+                        : "border-[#cbeee8] bg-[#f7fffb] text-[#35756e]"
+                    }`}
+                  >
+                    {item.type}: {item.model}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
 
         {galleryItems.length ? (
           <section id="products" className="section-shell mt-14 md:mt-20">
