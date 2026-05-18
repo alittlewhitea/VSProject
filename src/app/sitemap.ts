@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { galleryItemPath, mapGalleryRow } from "../lib/gallery";
 import { fetchPublishedGalleryItems } from "../lib/gallery-server";
+import { LEGAL_DOCUMENTS } from "../lib/legal";
 
 function siteUrl() {
   return (
@@ -23,6 +24,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: item.isFeatured ? 0.8 : 0.7
     };
   });
+  const legalUrls = LEGAL_DOCUMENTS.map((document) => ({
+    url: `${baseUrl}/legal/${document.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.4
+  }));
 
   return [
     {
@@ -43,6 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7
     },
+    ...legalUrls,
     ...galleryUrls
   ];
 }

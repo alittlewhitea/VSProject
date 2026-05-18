@@ -4,6 +4,7 @@ import { TopNav } from "../components/top-nav";
 import { AppButton } from "../components/ui/button";
 import { galleryItemPath, mapGalleryRow } from "../lib/gallery";
 import { fetchPublishedGalleryItems } from "../lib/gallery-server";
+import { LEGAL_DOCUMENTS } from "../lib/legal";
 
 const imageProviders = ["ChatGPT Image 2", "Flux 2", "Recraft Pro"];
 const videoProviders = ["Seedance 2.0", "Kling 3.0", "Veo 3.1"];
@@ -365,7 +366,7 @@ export default async function HomePage() {
         </section>
 
         <footer className="mt-16 rounded-3xl bg-gradient-to-br from-[#dff3fa] via-[#e8f8ff] to-[#efeefe] px-7 py-9">
-          <div className="grid gap-7 border-b border-black/10 pb-7 md:grid-cols-4">
+          <div className="grid gap-7 border-b border-black/10 pb-7 md:grid-cols-5">
             <div>
               <p className="text-2xl font-semibold tracking-tight">nova</p>
               <p className="mt-2 text-sm text-[#506170]">Unified image + video generation infrastructure.</p>
@@ -384,6 +385,16 @@ export default async function HomePage() {
               <p className="text-sm font-semibold">Company</p>
               <p className="mt-2 text-sm text-[#4f5a67]">Documentation</p>
               <p className="text-sm text-[#4f5a67]">Contact</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold">License & Terms</p>
+              <div className="mt-2 grid gap-1">
+                {LEGAL_DOCUMENTS.map((document) => (
+                  <Link key={document.slug} href={`/legal/${document.slug}`} className="text-sm text-[#4f5a67] hover:text-[#1d1d1f]">
+                    {document.title}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
           <p className="pt-5 text-xs text-[#667180]">(c) 2026 Nova Studio. All rights reserved.</p>
