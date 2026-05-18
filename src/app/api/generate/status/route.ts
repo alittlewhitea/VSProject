@@ -70,6 +70,7 @@ export async function GET(request: Request) {
         .from("generation_tasks")
         .update({
           status: mockStatus,
+          updated_at: new Date().toISOString(),
           raw_result: {
             transport: "mock",
             status: mockStatus
@@ -163,7 +164,8 @@ export async function GET(request: Request) {
             .update({
               status: normalized,
               output_url: mediaUrl,
-              raw_result: result
+              raw_result: result,
+              updated_at: new Date().toISOString()
             })
             .eq("id", taskId)
             .eq("user_id", user.id)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCreditPack } from "../../../../lib/billing";
 import { getUserFromBearerToken } from "../../../../lib/server-auth";
+import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { getStripe } from "../../../../lib/stripe";
 
 export async function POST(request: Request) {
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      success_url: `${origin}/billing?checkout=success`,
+      success_url: `${origin}/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/billing?checkout=cancelled`,
       customer_email: user.email || undefined,
       line_items: [
@@ -50,6 +51,26 @@ export async function POST(request: Request) {
       }
     });
 
+    const admin = createSupabaseAdminClient();
+    if (admin && session.id) {
+      await admin
+        .from("credit_purchases")
+        .upsert(
+          {
+            user_id: user.id,
+            stripe_checkout_id: session.id,
+            pack_id: pack.id,
+            credits: pack.credits,
+            amount_cents: pack.amountCents,
+            currency: "usd",
+            status: "pending",
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: "stripe_checkout_id" }
+        )
+        .throwOnError();
+    }
+
     return NextResponse.json({ url: session.url });
   } catch (error) {
     return NextResponse.json(
@@ -60,4 +81,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

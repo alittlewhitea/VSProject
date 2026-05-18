@@ -25,6 +25,11 @@ type CreationTask = {
   statusUrl?: string | null;
   responseUrl?: string | null;
   mediaUrl?: string | null;
+  chargedCredits?: number;
+  chargeLedgerId?: number | string | null;
+  refundedCredits?: number;
+  refundLedgerId?: number | string | null;
+  refundStatus?: "refunded" | "not_refunded" | "not_applicable";
 };
 
 type ApiTask = {
@@ -43,6 +48,11 @@ type ApiTask = {
   raw_result?: unknown;
   title?: string | null;
   is_favorite?: boolean;
+  charged_credits?: number;
+  charge_ledger_id?: number | string | null;
+  refunded_credits?: number;
+  refund_ledger_id?: number | string | null;
+  refund_status?: "refunded" | "not_refunded" | "not_applicable";
 };
 
 const SESSION_TASKS_KEY = "nova_session_tasks";
@@ -140,7 +150,12 @@ function taskFromApi(task: ApiTask): CreationTask {
     updatedAt: task.updated_at || null,
     statusUrl: task.status_url || null,
     responseUrl: task.response_url || null,
-    mediaUrl: task.output_url || pickMediaUrl(task.raw_result) || null
+    mediaUrl: task.output_url || pickMediaUrl(task.raw_result) || null,
+    chargedCredits: typeof task.charged_credits === "number" ? task.charged_credits : task.estimated_credits,
+    chargeLedgerId: task.charge_ledger_id || null,
+    refundedCredits: typeof task.refunded_credits === "number" ? task.refunded_credits : 0,
+    refundLedgerId: task.refund_ledger_id || null,
+    refundStatus: task.refund_status || (task.status === "failed" ? "not_refunded" : "not_applicable")
   };
 }
 
@@ -508,7 +523,7 @@ export default function CreationsPage() {
                     {[
                       { label: "Status", value: selectedTask.status },
                       { label: "Type", value: selectedTask.type },
-                      { label: "Credits", value: String(selectedTask.cost) },
+                      { label: "Credits charged", value: String(selectedTask.chargedCredits ?? selectedTask.cost) },
                       { label: "Ratio", value: selectedTask.ratio || "Not saved" },
                       { label: "Transport", value: selectedTask.transport || "Unknown" },
                       { label: "Created", value: formatDate(selectedTask.createdAt) }
@@ -519,6 +534,46 @@ export default function CreationsPage() {
                       </div>
                     ))}
                   </dl>
+
+                  <div className="mt-5 rounded-2xl border border-black/10 bg-white/80 p-4">
+                    <p className="text-xs uppercase tracking-[0.14em] text-[#667487]">Credit trust log</p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-black/10 bg-white p-3">
+                        <p className="text-[11px] uppercase tracking-[0.12em] text-[#778194]">Charge ledger</p>
+                        <p className="mt-1 text-sm font-semibold text-[#1d1d1f]">
+                          {selectedTask.chargeLedgerId ? `#${selectedTask.chargeLedgerId}` : "Pending ledger sync"}
+                        </p>
+                        <p className="mt-1 text-xs text-[#667084]">
+                          Charged {selectedTask.chargedCredits ?? selectedTask.cost} credits
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-black/10 bg-white p-3">
+                        <p className="text-[11px] uppercase tracking-[0.12em] text-[#778194]">Refund status</p>
+                        <p
+                          className={`mt-1 text-sm font-semibold ${
+                            selectedTask.refundStatus === "refunded"
+                              ? "text-[#197a46]"
+                              : selectedTask.refundStatus === "not_refunded"
+                                ? "text-[#b03439]"
+                                : "text-[#1d1d1f]"
+                          }`}
+                        >
+                          {selectedTask.refundStatus === "refunded"
+                            ? "Refunded"
+                            : selectedTask.refundStatus === "not_refunded"
+                              ? "Not refunded yet"
+                              : "Not applicable"}
+                        </p>
+                        <p className="mt-1 text-xs text-[#667084]">
+                          {selectedTask.refundLedgerId
+                            ? `Ledger #${selectedTask.refundLedgerId}, +${selectedTask.refundedCredits || 0} credits`
+                            : selectedTask.status === "Failed"
+                              ? "Refresh if the provider failure was just detected."
+                              : "Refunds appear here only when a task fails."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="mt-5 rounded-2xl border border-black/10 bg-white/80 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">

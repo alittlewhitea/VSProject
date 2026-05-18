@@ -15,6 +15,18 @@ type LedgerEntry = {
   created_at: string;
 };
 
+type PurchaseEntry = {
+  id: number | string;
+  stripe_checkout_id: string;
+  pack_id: string;
+  credits: number;
+  amount_cents: number;
+  currency: string;
+  status: "pending" | "completed" | "cancelled" | "failed";
+  created_at: string;
+  updated_at: string;
+};
+
 function formatReason(reason: string) {
   const labels: Record<string, string> = {
     signup_bonus: "Signup bonus",
@@ -35,15 +47,28 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatStatus(status: string) {
+  const labels: Record<string, string> = {
+    pending: "Pending",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    failed: "Failed"
+  };
+  return labels[status] || status;
+}
+
 function BillingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [purchases, setPurchases] = useState<PurchaseEntry[]>([]);
   const [message, setMessage] = useState("");
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
+  const [refreshingCredits, setRefreshingCredits] = useState(false);
   const checkoutState = searchParams.get("checkout");
+  const checkoutSessionId = searchParams.get("session_id");
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -57,29 +82,65 @@ function BillingContent() {
     });
   }, [router]);
 
+  async function loadCredits(token: string) {
+    setRefreshingCredits(true);
+    try {
+      const response = await fetch("/api/credits", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+      });
+      const payload = (await response.json()) as {
+        balance?: number | null;
+        ledger?: LedgerEntry[];
+        purchases?: PurchaseEntry[];
+        storageWarning?: string;
+      };
+      if (typeof payload.balance === "number") setBalance(payload.balance);
+      if (Array.isArray(payload.ledger)) setLedger(payload.ledger);
+      if (Array.isArray(payload.purchases)) setPurchases(payload.purchases);
+      if (payload.storageWarning) setMessage(payload.storageWarning);
+      return payload;
+    } catch {
+      setMessage("Credit balance is temporarily unavailable.");
+      return null;
+    } finally {
+      setRefreshingCredits(false);
+    }
+  }
+
   useEffect(() => {
     if (!accessToken) return;
-    fetch("/api/credits", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    })
-      .then((res) => res.json())
-      .then((payload: { balance?: number | null; ledger?: LedgerEntry[]; storageWarning?: string }) => {
-        if (typeof payload.balance === "number") setBalance(payload.balance);
-        if (Array.isArray(payload.ledger)) setLedger(payload.ledger);
-        if (payload.storageWarning) setMessage(payload.storageWarning);
-      })
-      .catch(() => setMessage("Credit balance is temporarily unavailable."));
+    loadCredits(accessToken);
   }, [accessToken]);
 
   useEffect(() => {
+    if (!accessToken) return undefined;
+
     if (checkoutState === "success") {
-      setMessage("Payment completed. Credits will appear after Stripe confirms the webhook.");
+      setMessage("Payment completed. Refreshing your balance from Stripe confirmation...");
+      let attempts = 0;
+      const timer = window.setInterval(async () => {
+        attempts += 1;
+        const payload = await loadCredits(accessToken);
+        const matchingPurchase = payload?.purchases?.find(
+          (purchase) => !checkoutSessionId || purchase.stripe_checkout_id === checkoutSessionId
+        );
+        if (matchingPurchase?.status === "completed" || attempts >= 8) {
+          window.clearInterval(timer);
+          setMessage(
+            matchingPurchase?.status === "completed"
+              ? "Payment confirmed. Credits have been added to your balance."
+              : "Payment completed. Stripe confirmation may still be processing; refresh again in a moment."
+          );
+        }
+      }, 1800);
+      return () => window.clearInterval(timer);
     } else if (checkoutState === "cancelled") {
       setMessage("Checkout was cancelled. No credits were added.");
     }
-  }, [checkoutState]);
+    return undefined;
+  }, [accessToken, checkoutSessionId, checkoutState]);
 
   const bestValuePack = useMemo(
     () => CREDIT_PACKS.reduce((best, pack) => (pack.credits / pack.amountCents > best.credits / best.amountCents ? pack : best), CREDIT_PACKS[0]),
@@ -125,6 +186,14 @@ function BillingContent() {
             <div className="glass rounded-2xl px-5 py-4 text-right">
               <p className="text-xs uppercase tracking-[0.14em] text-[#637084]">Current balance</p>
               <p className="mt-1 text-3xl font-semibold tracking-tight">{balance === null ? "--" : balance.toLocaleString()}</p>
+              <button
+                type="button"
+                onClick={() => accessToken && loadCredits(accessToken)}
+                disabled={!accessToken || refreshingCredits}
+                className="mt-3 rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-[#1d1d1f] disabled:opacity-50"
+              >
+                {refreshingCredits ? "Refreshing" : "Refresh balance"}
+              </button>
             </div>
           </div>
         </section>
@@ -192,6 +261,54 @@ function BillingContent() {
             ) : (
               <p className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-[#667084]">
                 No credit activity yet.
+              </p>
+            )}
+          </article>
+        </section>
+
+        <section className="mt-6 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <article className="card rounded-3xl p-6">
+            <h2 className="text-2xl font-semibold tracking-tight">Stripe purchases</h2>
+            <p className="mt-2 text-sm leading-7 text-[#667084]">
+              Checkout ID, package, credits, payment time, and confirmation status are shown for payment traceability.
+            </p>
+          </article>
+
+          <article className="card rounded-3xl p-5 md:p-6">
+            {purchases.length ? (
+              <div className="space-y-3">
+                {purchases.map((purchase) => (
+                  <div key={purchase.id} className="rounded-2xl border border-black/10 bg-white px-4 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">
+                          {purchase.pack_id} · {purchase.credits.toLocaleString()} credits
+                        </p>
+                        <p className="mt-1 break-all text-xs text-[#667084]">
+                          Stripe checkout ID: {purchase.stripe_checkout_id}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                          purchase.status === "completed"
+                            ? "border-[#197a46]/20 bg-[#eefaf3] text-[#197a46]"
+                            : "border-[#d8b85d]/30 bg-[#fff8df] text-[#705d1d]"
+                        }`}
+                      >
+                        {formatStatus(purchase.status)}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2 text-xs text-[#667084] sm:grid-cols-3">
+                      <p>Amount: {formatUsd(purchase.amount_cents)}</p>
+                      <p>Created: {formatDate(purchase.created_at)}</p>
+                      <p>Updated: {formatDate(purchase.updated_at)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-[#667084]">
+                No Stripe purchases yet.
               </p>
             )}
           </article>

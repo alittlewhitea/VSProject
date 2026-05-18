@@ -62,8 +62,25 @@ create table if not exists public.credit_ledger (
 create index if not exists credit_ledger_user_id_created_at_idx
   on public.credit_ledger (user_id, created_at desc);
 
+create table if not exists public.credit_purchases (
+  id bigserial primary key,
+  user_id uuid not null,
+  stripe_checkout_id text not null unique,
+  pack_id text not null,
+  credits int not null,
+  amount_cents int not null default 0,
+  currency text not null default 'usd',
+  status text not null default 'pending' check (status in ('pending', 'completed', 'cancelled', 'failed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists credit_purchases_user_id_created_at_idx
+  on public.credit_purchases (user_id, created_at desc);
+
 alter table public.user_credit_accounts enable row level security;
 alter table public.credit_ledger enable row level security;
+alter table public.credit_purchases enable row level security;
 
 drop policy if exists "Users can view own credit account" on public.user_credit_accounts;
 create policy "Users can view own credit account"
@@ -73,6 +90,11 @@ create policy "Users can view own credit account"
 drop policy if exists "Users can view own credit ledger" on public.credit_ledger;
 create policy "Users can view own credit ledger"
   on public.credit_ledger for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can view own credit purchases" on public.credit_purchases;
+create policy "Users can view own credit purchases"
+  on public.credit_purchases for select
   using (auth.uid() = user_id);
 
 create extension if not exists pgcrypto;

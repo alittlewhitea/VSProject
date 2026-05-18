@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { addCredits } from "../../../../lib/credits";
+import { getCreditPack } from "../../../../lib/billing";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { getStripe } from "../../../../lib/stripe";
 
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
 
   const session = event.data.object;
   const userId = session.metadata?.userId;
+  const packId = session.metadata?.packId || "unknown";
   const credits = Number(session.metadata?.credits || 0);
   if (!userId || !Number.isInteger(credits) || credits <= 0) {
     return NextResponse.json({ error: "Stripe session metadata is missing credit details." }, { status: 400 });
@@ -44,6 +46,20 @@ export async function POST(request: Request) {
   if (!admin) {
     return NextResponse.json({ error: "Credit storage is not configured." }, { status: 500 });
   }
+
+  const pack = getCreditPack(packId);
+  const purchase = {
+    user_id: userId,
+    stripe_checkout_id: session.id,
+    pack_id: packId,
+    credits,
+    amount_cents: typeof session.amount_total === "number" ? session.amount_total : pack?.amountCents || 0,
+    currency: session.currency || "usd",
+    status: "completed",
+    updated_at: new Date().toISOString()
+  };
+
+  await admin.from("credit_purchases").upsert(purchase, { onConflict: "stripe_checkout_id" }).throwOnError();
 
   const { data: existingLedger, error: ledgerError } = await admin
     .from("credit_ledger")
@@ -61,4 +77,3 @@ export async function POST(request: Request) {
   await addCredits(admin, userId, credits, "stripe_checkout", session.id);
   return NextResponse.json({ received: true });
 }
-

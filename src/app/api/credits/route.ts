@@ -13,6 +13,10 @@ import {
 
 const CREDIT_TIMEOUT_MS = 4500;
 
+type CreditPurchasesResult = {
+  data: unknown[] | null;
+};
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("Credit storage timed out.")), timeoutMs);
@@ -37,10 +41,20 @@ export async function GET(request: Request) {
 
     const account = await withTimeout(ensureCreditAccount(admin, user.id), CREDIT_TIMEOUT_MS);
     const ledger = await withTimeout(listCreditLedger(admin, user.id), CREDIT_TIMEOUT_MS).catch(() => []);
+    const { data: purchases } = await withTimeout<CreditPurchasesResult>(
+      admin
+        .from("credit_purchases")
+        .select("id, stripe_checkout_id, pack_id, credits, amount_cents, currency, status, created_at, updated_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(25) as unknown as Promise<CreditPurchasesResult>,
+      CREDIT_TIMEOUT_MS
+    ).catch(() => ({ data: [] }));
     return NextResponse.json({
       balance: account.balance,
       freeGranted: account.free_granted,
       ledger,
+      purchases: purchases || [],
       signupBonusCredits: SIGNUP_BONUS_CREDITS
     });
   } catch (error) {

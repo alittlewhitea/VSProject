@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getUserFromBearerToken } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { fetchFal } from "../../../lib/fal-fetch";
@@ -10,8 +11,33 @@ const TASK_SELECT =
   "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, raw_result, created_at, updated_at, title, is_favorite";
 
 type TaskHistoryResult = {
-  data: unknown[] | null;
+  data: TaskRow[] | null;
   error: { message: string } | null;
+};
+
+type LedgerRow = {
+  id: number | string;
+  amount: number;
+  reason: string;
+  reference_id: string | null;
+};
+
+type TaskRow = {
+  id: string;
+  mode: "image" | "video";
+  provider?: string;
+  prompt?: string;
+  status: "queued" | "running" | "completed" | "failed";
+  estimated_credits: number;
+  transport?: "real" | "mock";
+  status_url?: string | null;
+  response_url?: string | null;
+  output_url?: string | null;
+  raw_result?: unknown;
+  created_at?: string;
+  updated_at?: string | null;
+  title?: string | null;
+  is_favorite?: boolean;
 };
 
 type PendingTaskRow = {
@@ -81,6 +107,31 @@ function normalizeTitle(value: unknown) {
   if (typeof value !== "string") return null;
   const title = value.trim().replace(/\s+/g, " ");
   return title ? title.slice(0, 120) : null;
+}
+
+async function attachCreditLedger(admin: SupabaseClient, userId: string, tasks: TaskRow[]) {
+  if (!tasks.length) return tasks;
+  const taskIds = tasks.map((task) => task.id);
+  const { data } = await admin
+    .from("credit_ledger")
+    .select("id, amount, reason, reference_id")
+    .eq("user_id", userId)
+    .in("reference_id", taskIds)
+    .in("reason", ["generation_task", "generation_refund"]);
+
+  const ledger = (data || []) as LedgerRow[];
+  return tasks.map((task) => {
+    const charge = ledger.find((entry) => entry.reference_id === task.id && entry.reason === "generation_task");
+    const refund = ledger.find((entry) => entry.reference_id === task.id && entry.reason === "generation_refund");
+    return {
+      ...task,
+      charged_credits: charge ? Math.abs(charge.amount) : task.estimated_credits,
+      charge_ledger_id: charge?.id || null,
+      refunded_credits: refund ? Math.abs(refund.amount) : 0,
+      refund_ledger_id: refund?.id || null,
+      refund_status: refund ? "refunded" : task.status === "failed" ? "not_refunded" : "not_applicable"
+    };
+  });
 }
 
 async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminClient>, userId: string) {
@@ -189,7 +240,10 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.json({ tasks: data ?? [] });
+  const tasksWithLedger = await withTimeout(attachCreditLedger(admin, user.id, data ?? []), TASK_HISTORY_TIMEOUT_MS).catch(
+    () => data ?? []
+  );
+  return NextResponse.json({ tasks: tasksWithLedger });
 }
 
 export async function PATCH(request: Request) {
