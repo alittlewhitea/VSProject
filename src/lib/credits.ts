@@ -3,6 +3,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export const SIGNUP_BONUS_CREDITS = 120;
 
 type CreditAccount = { user_id: string; balance: number; free_granted: boolean };
+type CreditApplyResult = {
+  balance: number;
+  ledger_id: number | string | null;
+  duplicate: boolean;
+  applied: boolean;
+};
 export type CreditLedgerEntry = {
   id: number | string;
   amount: number;
@@ -41,6 +47,9 @@ export function addDevCredits(userId: string, amount: number) {
 
 function addDevLedgerEntry(userId: string, amount: number, reason: string, referenceId?: string) {
   const entries = devCreditLedger.get(userId) || [];
+  if (referenceId && entries.some((entry) => entry.reason === reason && entry.reference_id === referenceId)) {
+    return;
+  }
   entries.unshift({
     id: `dev_${Date.now()}_${entries.length}`,
     amount,
@@ -73,16 +82,32 @@ export async function ensureCreditAccount(admin: SupabaseClient, userId: string)
 
     const { data, error } = await admin
       .from("user_credit_accounts")
-      .insert({
-        user_id: userId,
-        balance: SIGNUP_BONUS_CREDITS,
-        free_granted: true
-      })
+      .upsert(
+        {
+          user_id: userId,
+          balance: SIGNUP_BONUS_CREDITS,
+          free_granted: true
+        },
+        { onConflict: "user_id", ignoreDuplicates: true }
+      )
       .select("user_id, balance, free_granted")
-      .single();
+      .maybeSingle();
 
     if (error) {
       throw error;
+    }
+
+    if (!data) {
+      const { data: selected, error: selectedError } = await admin
+        .from("user_credit_accounts")
+        .select("user_id, balance, free_granted")
+        .eq("user_id", userId)
+        .single();
+
+      if (selectedError) {
+        throw selectedError;
+      }
+      return selected as CreditAccount;
     }
 
     await admin.from("credit_ledger").insert({
@@ -100,7 +125,35 @@ export async function ensureCreditAccount(admin: SupabaseClient, userId: string)
   }
 }
 
-export async function addCredits(admin: SupabaseClient, userId: string, amount: number, reason: string, referenceId?: string) {
+async function applyCreditLedgerOnce(
+  admin: SupabaseClient,
+  userId: string,
+  amount: number,
+  reason: string,
+  referenceId: string | null,
+  allowNegative = false
+) {
+  const { data, error } = await admin.rpc("apply_credit_ledger_once", {
+    p_user_id: userId,
+    p_amount: amount,
+    p_reason: reason,
+    p_reference_id: referenceId,
+    p_allow_negative: allowNegative
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result || typeof result.balance !== "number") {
+    throw new Error("Credit ledger operation did not return a balance.");
+  }
+
+  return result as CreditApplyResult;
+}
+
+async function addCreditsLegacy(admin: SupabaseClient, userId: string, amount: number, reason: string, referenceId?: string) {
   const account = await ensureCreditAccount(admin, userId);
   const nextBalance = account.balance + amount;
 
@@ -132,6 +185,17 @@ export async function addCredits(admin: SupabaseClient, userId: string, amount: 
   return nextBalance;
 }
 
+export async function addCredits(admin: SupabaseClient, userId: string, amount: number, reason: string, referenceId?: string) {
+  await ensureCreditAccount(admin, userId);
+
+  if (canUseDevCreditFallback() && devCreditAccounts.has(userId)) {
+    return addCreditsLegacy(admin, userId, amount, reason, referenceId);
+  }
+
+  const result = await applyCreditLedgerOnce(admin, userId, amount, reason, referenceId || null);
+  return result.balance;
+}
+
 export async function refundCredits(admin: SupabaseClient, userId: string, amount: number, reason: string, referenceId: string) {
   if (canUseDevCreditFallback() && devCreditAccounts.has(userId)) {
     const alreadyRefunded = getDevCreditLedger(userId).some(
@@ -143,22 +207,6 @@ export async function refundCredits(admin: SupabaseClient, userId: string, amoun
     devCreditAccounts.set(userId, { ...account, balance });
     addDevLedgerEntry(userId, amount, reason, referenceId);
     return balance;
-  }
-
-  const { data: existingRefund, error: refundLookupError } = await admin
-    .from("credit_ledger")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("reason", reason)
-    .eq("reference_id", referenceId)
-    .maybeSingle();
-
-  if (refundLookupError) {
-    throw refundLookupError;
-  }
-  if (existingRefund) {
-    const account = await ensureCreditAccount(admin, userId);
-    return account.balance;
   }
 
   return addCredits(admin, userId, amount, reason, referenceId);
@@ -185,6 +233,7 @@ export async function listCreditLedger(admin: SupabaseClient, userId: string) {
 
 export async function spendCredits(admin: SupabaseClient, userId: string, amount: number, reason: string, referenceId?: string) {
   const account = await ensureCreditAccount(admin, userId);
+
   if (account.balance < amount) {
     return {
       ok: false as const,
@@ -192,9 +241,20 @@ export async function spendCredits(admin: SupabaseClient, userId: string, amount
     };
   }
 
-  const nextBalance = account.balance - amount;
-
   if (canUseDevCreditFallback() && devCreditAccounts.has(userId)) {
+    if (referenceId) {
+      const existingCharge = getDevCreditLedger(userId).some(
+        (entry) => entry.reason === reason && entry.reference_id === referenceId
+      );
+      if (existingCharge) {
+        return {
+          ok: true as const,
+          balance: account.balance,
+          duplicate: true as const
+        };
+      }
+    }
+    const nextBalance = account.balance - amount;
     devCreditAccounts.set(userId, { ...account, balance: nextBalance });
     addDevLedgerEntry(userId, -amount, reason, referenceId);
     return {
@@ -203,47 +263,17 @@ export async function spendCredits(admin: SupabaseClient, userId: string, amount
     };
   }
 
-  try {
-    const { error } = await admin
-      .from("user_credit_accounts")
-      .update({
-        balance: nextBalance,
-        updated_at: new Date().toISOString()
-      })
-      .eq("user_id", userId);
-
-    if (error) {
-      throw error;
-    }
-
-    await admin.from("credit_ledger").insert({
-      user_id: userId,
-      amount: -amount,
-      reason,
-      reference_id: referenceId || null
-    });
-  } catch (error) {
-    if (canUseDevCreditFallback()) {
-      const devAccount = getDevCreditAccount(userId);
-      if (devAccount.balance < amount) {
-        return {
-          ok: false as const,
-          balance: devAccount.balance
-        };
-      }
-      const devBalance = devAccount.balance - amount;
-      devCreditAccounts.set(userId, { ...devAccount, balance: devBalance });
-      addDevLedgerEntry(userId, -amount, reason, referenceId);
-      return {
-        ok: true as const,
-        balance: devBalance
-      };
-    }
-    throw error;
+  const result = await applyCreditLedgerOnce(admin, userId, -amount, reason, referenceId || null);
+  if (!result.applied && !result.duplicate) {
+    return {
+      ok: false as const,
+      balance: result.balance
+    };
   }
 
   return {
     ok: true as const,
-    balance: nextBalance
+    balance: result.balance,
+    duplicate: result.duplicate ? (true as const) : undefined
   };
 }

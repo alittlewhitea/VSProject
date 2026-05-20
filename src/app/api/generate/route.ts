@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { getUserFromBearerToken } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { fetchFal } from "../../../lib/fal-fetch";
-import { ensureCreditAccount, spendCredits } from "../../../lib/credits";
+import { ensureCreditAccount, refundCredits, spendCredits } from "../../../lib/credits";
 
 type GenerateMode = "image" | "video";
 
@@ -12,6 +13,20 @@ type GenerateRequest = {
   ratio: string;
   duration: string;
   prompt: string;
+  idempotencyKey?: string;
+};
+
+type ExistingTask = {
+  id: string;
+  mode: "image" | "video";
+  provider: string;
+  status: "queued" | "running" | "completed" | "failed";
+  estimated_credits: number;
+  transport: "real" | "mock";
+  status_url: string | null;
+  response_url: string | null;
+  failure_code: string | null;
+  failure_reason: string | null;
 };
 
 function isValidBody(body: unknown): body is GenerateRequest {
@@ -69,6 +84,53 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
   return { prompt };
 }
 
+function generationTaskId(idempotencyKey: unknown) {
+  const raw = typeof idempotencyKey === "string" ? idempotencyKey.trim() : "";
+  const key = raw && /^[a-zA-Z0-9_-]{8,80}$/.test(raw) ? raw : randomUUID();
+  return `tsk_${key}`;
+}
+
+async function findExistingTask(admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>, userId: string, taskId: string) {
+  const { data, error } = await admin
+    .from("generation_tasks")
+    .select("id,mode,provider,status,estimated_credits,transport,status_url,response_url,failure_code,failure_reason")
+    .eq("id", taskId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+  return data as ExistingTask | null;
+}
+
+async function returnExistingTask(
+  admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  userId: string,
+  task: ExistingTask
+) {
+  const account = await ensureCreditAccount(admin, userId);
+  if (task.status === "failed" && task.failure_code === "insufficient_credits") {
+    return NextResponse.json(
+      { error: task.failure_reason || "Not enough credits.", taskId: task.id, duplicate: true },
+      { status: 402 }
+    );
+  }
+
+  return NextResponse.json({
+    taskId: task.id,
+    status: task.status,
+    transport: task.transport,
+    mode: task.mode,
+    provider: task.provider,
+    estimatedCredits: task.estimated_credits,
+    balance: account.balance,
+    statusUrl: task.status_url,
+    responseUrl: task.response_url,
+    duplicate: true
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const user = await getUserFromBearerToken(request.headers.get("authorization"));
@@ -90,6 +152,7 @@ export async function POST(request: Request) {
     const estimatedCredits = body.mode === "image" ? 12 : body.duration === "10s" ? 68 : body.duration === "8s" ? 56 : 42;
     const falKey = process.env.FAL_KEY;
     const modelId = getModelId(body.mode, body.provider);
+    const taskId = generationTaskId(body.idempotencyKey);
 
     const admin = createSupabaseAdminClient();
     if (!admin) {
@@ -103,43 +166,64 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!falKey || !modelId) {
-      const taskId = `tsk_${Date.now()}`;
-      const spendResult = await spendCredits(admin, user.id, estimatedCredits, "generation_task", taskId);
-      if (!spendResult.ok) {
-        return NextResponse.json(
-          { error: `Not enough credits. This task needs ${estimatedCredits} credits, but your balance is ${spendResult.balance}.` },
-          { status: 402 }
-        );
+    const existingTask = await findExistingTask(admin, user.id, taskId);
+    if (existingTask) {
+      return returnExistingTask(admin, user.id, existingTask);
+    }
+
+    const transport = !falKey || !modelId ? "mock" : "real";
+    try {
+      const { error: insertError } = await admin.from("generation_tasks").insert({
+        id: taskId,
+        user_id: user.id,
+        mode: body.mode,
+        provider: body.provider,
+        prompt,
+        status: "queued",
+        estimated_credits: estimatedCredits,
+        transport
+      });
+      if (insertError) {
+        const existingAfterConflict = await findExistingTask(admin, user.id, taskId);
+        if (existingAfterConflict) {
+          return returnExistingTask(admin, user.id, existingAfterConflict);
+        }
+        throw insertError;
       }
-      let insertErrorMessage = "";
-      try {
-        const { error: insertError } = await admin.from("generation_tasks").insert({
-          id: taskId,
-          user_id: user.id,
-          mode: body.mode,
-          provider: body.provider,
-          prompt,
-          status: "queued",
-          estimated_credits: estimatedCredits,
-          transport: "mock"
-        });
-        insertErrorMessage = insertError?.message || "";
-      } catch (insertError) {
-        insertErrorMessage = insertError instanceof Error ? insertError.message : "Task history insert timed out.";
+    } catch (insertError) {
+      const existingAfterConflict = await findExistingTask(admin, user.id, taskId);
+      if (existingAfterConflict) {
+        return returnExistingTask(admin, user.id, existingAfterConflict);
       }
-      if (insertErrorMessage) {
-        return NextResponse.json({
-          taskId,
-          status: "queued",
-          transport: "mock" as const,
-          mode: body.mode,
-          provider: body.provider,
-          estimatedCredits,
-          balance: spendResult.balance,
-          storageWarning: `DB insert failed (mock): ${insertErrorMessage}`
-        });
-      }
+      return NextResponse.json(
+        {
+          error: `Task could not be saved, so credits were not charged: ${
+            insertError instanceof Error ? insertError.message : "Task history insert failed."
+          }`
+        },
+        { status: 500 }
+      );
+    }
+
+    const spendResult = await spendCredits(admin, user.id, estimatedCredits, "generation_task", taskId);
+    if (!spendResult.ok) {
+      await admin
+        .from("generation_tasks")
+        .update({
+          status: "failed",
+          failure_code: "insufficient_credits",
+          failure_reason: `Not enough credits. This task needs ${estimatedCredits} credits, but your balance is ${spendResult.balance}.`,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", taskId)
+        .eq("user_id", user.id);
+      return NextResponse.json(
+        { error: `Not enough credits. This task needs ${estimatedCredits} credits, but your balance is ${spendResult.balance}.` },
+        { status: 402 }
+      );
+    }
+
+    if (transport === "mock") {
       return NextResponse.json({
         taskId,
         status: "queued",
@@ -164,12 +248,27 @@ export async function POST(request: Request) {
         body: JSON.stringify(buildFalInput(body, prompt))
       });
     } catch (networkError) {
+      const balance = await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
+      await admin
+        .from("generation_tasks")
+        .update({
+          status: "failed",
+          failure_code: "provider_submit_failed",
+          failure_reason:
+            networkError instanceof Error
+              ? `fal.ai network error before provider accepted the task. Credits were refunded automatically. ${networkError.message}`
+              : "fal.ai network error before provider accepted the task. Credits were refunded automatically.",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", taskId)
+        .eq("user_id", user.id);
       return NextResponse.json(
         {
           error:
             networkError instanceof Error
               ? networkError.message
-              : "fal.ai network error."
+              : "fal.ai network error.",
+          balance
         },
         { status: 502 }
       );
@@ -177,8 +276,19 @@ export async function POST(request: Request) {
 
     if (!submitResponse.ok) {
       const errorText = await submitResponse.text();
+      const balance = await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
+      await admin
+        .from("generation_tasks")
+        .update({
+          status: "failed",
+          failure_code: "provider_submit_failed",
+          failure_reason: `fal.ai rejected the task before generation started. Credits were refunded automatically. ${submitResponse.status} ${errorText}`,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", taskId)
+        .eq("user_id", user.id);
       return NextResponse.json(
-        { error: `fal.ai request failed: ${submitResponse.status} ${errorText}` },
+        { error: `fal.ai request failed: ${submitResponse.status} ${errorText}`, balance },
         { status: 502 }
       );
     }
@@ -189,49 +299,53 @@ export async function POST(request: Request) {
       status_url: string;
       response_url?: string;
     };
-    const spendResult = await spendCredits(admin, user.id, estimatedCredits, "generation_task", submitPayload.request_id);
-    if (!spendResult.ok) {
+
+    try {
+      const normalizedStatus = submitPayload.status?.toUpperCase() === "IN_PROGRESS" ? "running" : "queued";
+      const { error: updateError } = await admin
+        .from("generation_tasks")
+        .update({
+          provider_request_id: submitPayload.request_id,
+          status: normalizedStatus,
+          status_url: submitPayload.status_url,
+          response_url: submitPayload.response_url || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", taskId)
+        .eq("user_id", user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+    } catch (updateError) {
+      const balance = await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
+      try {
+        await admin
+          .from("generation_tasks")
+          .update({
+            status: "failed",
+            failure_code: "local_tracking_failed",
+            failure_reason: `Provider accepted the task (${submitPayload.request_id}), but local tracking could not be updated. Credits were refunded automatically.`,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", taskId)
+          .eq("user_id", user.id);
+      } catch {
+        // The original update already failed. The response still carries the provider id for support.
+      }
       return NextResponse.json(
-        { error: `Not enough credits. This task needs ${estimatedCredits} credits, but your balance is ${spendResult.balance}.` },
-        { status: 402 }
+        {
+          error: `Provider accepted the task but local tracking failed, so credits were refunded. Provider request id: ${submitPayload.request_id}. ${
+            updateError instanceof Error ? updateError.message : "Task update failed."
+          }`,
+          balance
+        },
+        { status: 500 }
       );
     }
 
-    let insertErrorMessage = "";
-    try {
-      const { error: insertError } = await admin.from("generation_tasks").insert({
-        id: submitPayload.request_id,
-        user_id: user.id,
-        mode: body.mode,
-        provider: body.provider,
-        prompt,
-        status: "queued",
-        estimated_credits: estimatedCredits,
-        transport: "real",
-        status_url: submitPayload.status_url,
-        response_url: submitPayload.response_url || null
-      });
-      insertErrorMessage = insertError?.message || "";
-    } catch (insertError) {
-      insertErrorMessage = insertError instanceof Error ? insertError.message : "Task history insert timed out.";
-    }
-    if (insertErrorMessage) {
-      return NextResponse.json({
-        taskId: submitPayload.request_id,
-        status: submitPayload.status?.toLowerCase() || "queued",
-        transport: "real" as const,
-        mode: body.mode,
-        provider: body.provider,
-        estimatedCredits,
-        balance: spendResult.balance,
-        statusUrl: submitPayload.status_url,
-        responseUrl: submitPayload.response_url || null,
-        storageWarning: `DB insert failed (real): ${insertErrorMessage}`
-      });
-    }
-
     return NextResponse.json({
-      taskId: submitPayload.request_id,
+      taskId,
       status: submitPayload.status?.toLowerCase() || "queued",
       transport: "real" as const,
       mode: body.mode,
@@ -239,7 +353,8 @@ export async function POST(request: Request) {
       estimatedCredits,
       balance: spendResult.balance,
       statusUrl: submitPayload.status_url,
-      responseUrl: submitPayload.response_url || null
+      responseUrl: submitPayload.response_url || null,
+      providerRequestId: submitPayload.request_id
     });
   } catch (error) {
     return NextResponse.json(

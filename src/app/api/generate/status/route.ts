@@ -4,6 +4,17 @@ import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { fetchFal } from "../../../../lib/fal-fetch";
 import { refundCredits } from "../../../../lib/credits";
 
+const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
+
+function taskTimeoutMinutes() {
+  const value = Number(process.env.GENERATION_TASK_TIMEOUT_MINUTES || DEFAULT_TASK_TIMEOUT_MINUTES);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_TASK_TIMEOUT_MINUTES;
+}
+
+function isTaskTimedOut(createdAt: string) {
+  return Date.now() - new Date(createdAt).getTime() > taskTimeoutMinutes() * 60 * 1000;
+}
+
 function isAllowedFalUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -70,6 +81,8 @@ export async function GET(request: Request) {
         .from("generation_tasks")
         .update({
           status: mockStatus,
+          failure_code: mockStatus === "failed" ? "mock_failed" : null,
+          failure_reason: mockStatus === "failed" ? "Local mock generation was marked as failed." : null,
           updated_at: new Date().toISOString(),
           raw_result: {
             transport: "mock",
@@ -143,16 +156,52 @@ export async function GET(request: Request) {
                 : "failed";
 
         try {
-          if (normalized === "failed") {
-            const { data: task } = await admin
+          let taskForRefund: { estimated_credits?: number; created_at?: string } | null = null;
+          const { data: task } = await admin
+            .from("generation_tasks")
+            .select("estimated_credits, created_at")
+            .eq("id", taskId)
+            .eq("user_id", user.id)
+            .maybeSingle();
+          taskForRefund = task as { estimated_credits?: number; created_at?: string } | null;
+
+          if (
+            taskForRefund?.created_at &&
+            (normalized === "queued" || normalized === "running") &&
+            isTaskTimedOut(taskForRefund.created_at)
+          ) {
+            const estimatedCredits =
+              typeof taskForRefund.estimated_credits === "number" ? taskForRefund.estimated_credits : 0;
+            if (estimatedCredits > 0) {
+              await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
+            }
+            const now = new Date().toISOString();
+            await admin
               .from("generation_tasks")
-              .select("estimated_credits")
+              .update({
+                status: "failed",
+                failure_code: "task_timeout",
+                failure_reason: `The provider task did not finish within ${taskTimeoutMinutes()} minutes. Credits were refunded automatically.`,
+                last_checked_at: now,
+                timed_out_at: now,
+                updated_at: now
+              })
               .eq("id", taskId)
               .eq("user_id", user.id)
-              .maybeSingle();
+              .throwOnError();
+
+            return NextResponse.json({
+              status: "FAILED",
+              result: null,
+              failureCode: "task_timeout",
+              failureReason: `The provider task did not finish within ${taskTimeoutMinutes()} minutes. Credits were refunded automatically.`
+            });
+          }
+
+          if (normalized === "failed") {
             const estimatedCredits =
-              task && typeof task === "object" && typeof (task as { estimated_credits?: unknown }).estimated_credits === "number"
-                ? (task as { estimated_credits: number }).estimated_credits
+              taskForRefund && typeof taskForRefund.estimated_credits === "number"
+                ? taskForRefund.estimated_credits
                 : 0;
             if (estimatedCredits > 0) {
               await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
@@ -165,6 +214,9 @@ export async function GET(request: Request) {
               status: normalized,
               output_url: mediaUrl,
               raw_result: result,
+              failure_code: normalized === "failed" ? "provider_failed" : null,
+              failure_reason: normalized === "failed" ? "The provider reported this task as failed." : null,
+              last_checked_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
             .eq("id", taskId)

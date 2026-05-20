@@ -7,8 +7,9 @@ import { refundCredits } from "../../../lib/credits";
 
 const TASK_HISTORY_TIMEOUT_MS = 4500;
 const TASK_SYNC_LIMIT = 5;
+const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 const TASK_SELECT =
-  "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, raw_result, created_at, updated_at, title, is_favorite";
+  "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, raw_result, created_at, updated_at, title, is_favorite, failure_code, failure_reason, last_checked_at, timed_out_at";
 
 type TaskHistoryResult = {
   data: TaskRow[] | null;
@@ -38,6 +39,10 @@ type TaskRow = {
   updated_at?: string | null;
   title?: string | null;
   is_favorite?: boolean;
+  failure_code?: string | null;
+  failure_reason?: string | null;
+  last_checked_at?: string | null;
+  timed_out_at?: string | null;
 };
 
 type PendingTaskRow = {
@@ -48,6 +53,7 @@ type PendingTaskRow = {
   transport: "real" | "mock";
   status_url: string | null;
   response_url: string | null;
+  created_at: string;
 };
 
 type TaskUpdatePayload = {
@@ -103,6 +109,15 @@ function normalizeFalStatus(status: string) {
   return "failed";
 }
 
+function taskTimeoutMinutes() {
+  const value = Number(process.env.GENERATION_TASK_TIMEOUT_MINUTES || DEFAULT_TASK_TIMEOUT_MINUTES);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_TASK_TIMEOUT_MINUTES;
+}
+
+function isTaskTimedOut(createdAt: string) {
+  return Date.now() - new Date(createdAt).getTime() > taskTimeoutMinutes() * 60 * 1000;
+}
+
 function normalizeTitle(value: unknown) {
   if (typeof value !== "string") return null;
   const title = value.trim().replace(/\s+/g, " ");
@@ -140,7 +155,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
 
   const { data } = await admin
     .from("generation_tasks")
-    .select("id,user_id,status,estimated_credits,transport,status_url,response_url")
+    .select("id,user_id,status,estimated_credits,transport,status_url,response_url,created_at")
     .eq("user_id", userId)
     .eq("transport", "real")
     .in("status", ["queued", "running"])
@@ -153,6 +168,26 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
       if (!isAllowedFalUrl(task.status_url)) return;
 
       try {
+        if (isTaskTimedOut(task.created_at)) {
+          const now = new Date().toISOString();
+          if (task.estimated_credits > 0) {
+            await refundCredits(admin, userId, task.estimated_credits, "generation_refund", task.id);
+          }
+          await admin
+            .from("generation_tasks")
+            .update({
+              status: "failed",
+              failure_code: "task_timeout",
+              failure_reason: `The provider task did not finish within ${taskTimeoutMinutes()} minutes. Credits were refunded automatically.`,
+              last_checked_at: now,
+              timed_out_at: now,
+              updated_at: now
+            })
+            .eq("id", task.id)
+            .eq("user_id", userId);
+          return;
+        }
+
         const statusRes = await fetchFal(task.status_url, {
           attempts: 1,
           timeoutMs: 3500,
@@ -192,6 +227,9 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
             status: normalized,
             output_url: extractMediaUrl(result),
             raw_result: result,
+            failure_code: normalized === "failed" ? "provider_failed" : null,
+            failure_reason: normalized === "failed" ? "The provider reported this task as failed." : null,
+            last_checked_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
           .eq("id", task.id)

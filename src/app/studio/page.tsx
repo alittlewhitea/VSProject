@@ -414,7 +414,11 @@ function StudioContent() {
           provider,
           ratio,
           duration,
-          prompt
+          prompt,
+          idempotencyKey:
+            typeof window !== "undefined" && window.crypto?.randomUUID
+              ? window.crypto.randomUUID()
+              : `${Date.now()}_${Math.random().toString(36).slice(2)}`
         })
       });
 

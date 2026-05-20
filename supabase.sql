@@ -11,8 +11,13 @@ create table if not exists public.generation_tasks (
   response_url text,
   output_url text,
   raw_result jsonb,
+  provider_request_id text,
   title text,
   is_favorite boolean not null default false,
+  failure_code text,
+  failure_reason text,
+  last_checked_at timestamptz,
+  timed_out_at timestamptz,
   deleted_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -21,6 +26,11 @@ create table if not exists public.generation_tasks (
 alter table public.generation_tasks
   add column if not exists title text,
   add column if not exists is_favorite boolean not null default false,
+  add column if not exists provider_request_id text,
+  add column if not exists failure_code text,
+  add column if not exists failure_reason text,
+  add column if not exists last_checked_at timestamptz,
+  add column if not exists timed_out_at timestamptz,
   add column if not exists deleted_at timestamptz,
   add column if not exists updated_at timestamptz not null default now();
 
@@ -61,6 +71,135 @@ create table if not exists public.credit_ledger (
 
 create index if not exists credit_ledger_user_id_created_at_idx
   on public.credit_ledger (user_id, created_at desc);
+
+create unique index if not exists credit_ledger_user_reason_reference_unique_idx
+  on public.credit_ledger (user_id, reason, reference_id)
+  where reference_id is not null;
+
+create or replace function public.apply_credit_ledger_once(
+  p_user_id uuid,
+  p_amount int,
+  p_reason text,
+  p_reference_id text,
+  p_allow_negative boolean default false
+)
+returns table (
+  balance int,
+  ledger_id bigint,
+  duplicate boolean,
+  applied boolean
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing_id bigint;
+  v_balance int;
+  v_next_balance int;
+  v_ledger_id bigint;
+begin
+  if p_user_id is null then
+    raise exception 'p_user_id is required';
+  end if;
+
+  if p_amount = 0 then
+    raise exception 'p_amount cannot be zero';
+  end if;
+
+  if p_reason is null or length(trim(p_reason)) = 0 then
+    raise exception 'p_reason is required';
+  end if;
+
+  if p_reference_id is not null then
+    select id
+      into v_existing_id
+      from public.credit_ledger
+      where user_id = p_user_id
+        and reason = p_reason
+        and reference_id = p_reference_id
+      limit 1;
+
+    if v_existing_id is not null then
+      select user_credit_accounts.balance
+        into v_balance
+        from public.user_credit_accounts
+        where user_credit_accounts.user_id = p_user_id;
+
+      balance := coalesce(v_balance, 0);
+      ledger_id := v_existing_id;
+      duplicate := true;
+      applied := false;
+      return next;
+      return;
+    end if;
+  end if;
+
+  insert into public.user_credit_accounts (user_id, balance, free_granted)
+  values (p_user_id, 120, true)
+  on conflict (user_id) do nothing;
+
+  select user_credit_accounts.balance
+    into v_balance
+    from public.user_credit_accounts
+    where user_credit_accounts.user_id = p_user_id
+    for update;
+
+  v_next_balance := v_balance + p_amount;
+  if v_next_balance < 0 and not p_allow_negative then
+    balance := v_balance;
+    ledger_id := null;
+    duplicate := false;
+    applied := false;
+    return next;
+    return;
+  end if;
+
+  insert into public.credit_ledger (user_id, amount, reason, reference_id)
+  values (p_user_id, p_amount, p_reason, p_reference_id)
+  returning id into v_ledger_id;
+
+  update public.user_credit_accounts
+    set balance = v_next_balance,
+        updated_at = now()
+    where user_id = p_user_id;
+
+  balance := v_next_balance;
+  ledger_id := v_ledger_id;
+  duplicate := false;
+  applied := true;
+  return next;
+exception
+  when unique_violation then
+    if p_reference_id is not null then
+      select id
+        into v_existing_id
+        from public.credit_ledger
+        where user_id = p_user_id
+          and reason = p_reason
+          and reference_id = p_reference_id
+        limit 1;
+
+      select user_credit_accounts.balance
+        into v_balance
+        from public.user_credit_accounts
+        where user_credit_accounts.user_id = p_user_id;
+
+      balance := coalesce(v_balance, 0);
+      ledger_id := v_existing_id;
+      duplicate := true;
+      applied := false;
+      return next;
+      return;
+    end if;
+    raise;
+end;
+$$;
+
+revoke all on function public.apply_credit_ledger_once(uuid, int, text, text, boolean) from public;
+revoke all on function public.apply_credit_ledger_once(uuid, int, text, text, boolean) from anon;
+revoke all on function public.apply_credit_ledger_once(uuid, int, text, text, boolean) from authenticated;
+grant execute on function public.apply_credit_ledger_once(uuid, int, text, text, boolean) to service_role;
 
 create table if not exists public.credit_purchases (
   id bigserial primary key,

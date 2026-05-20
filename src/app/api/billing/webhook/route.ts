@@ -48,12 +48,19 @@ export async function POST(request: Request) {
   }
 
   const pack = getCreditPack(packId);
+  if (!pack) {
+    return NextResponse.json({ error: "Stripe session references an unknown credit pack." }, { status: 400 });
+  }
+  if (credits !== pack.credits) {
+    return NextResponse.json({ error: "Stripe session credit metadata does not match the configured pack." }, { status: 400 });
+  }
+
   const purchase = {
     user_id: userId,
     stripe_checkout_id: session.id,
     pack_id: packId,
     credits,
-    amount_cents: typeof session.amount_total === "number" ? session.amount_total : pack?.amountCents || 0,
+    amount_cents: typeof session.amount_total === "number" ? session.amount_total : pack.amountCents,
     currency: session.currency || "usd",
     status: "completed",
     updated_at: new Date().toISOString()

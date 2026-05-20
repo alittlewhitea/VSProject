@@ -30,6 +30,10 @@ type CreationTask = {
   refundedCredits?: number;
   refundLedgerId?: number | string | null;
   refundStatus?: "refunded" | "not_refunded" | "not_applicable";
+  failureCode?: string | null;
+  failureReason?: string | null;
+  lastCheckedAt?: string | null;
+  timedOutAt?: string | null;
 };
 
 type ApiTask = {
@@ -53,6 +57,10 @@ type ApiTask = {
   refunded_credits?: number;
   refund_ledger_id?: number | string | null;
   refund_status?: "refunded" | "not_refunded" | "not_applicable";
+  failure_code?: string | null;
+  failure_reason?: string | null;
+  last_checked_at?: string | null;
+  timed_out_at?: string | null;
 };
 
 const SESSION_TASKS_KEY = "nova_session_tasks";
@@ -155,7 +163,11 @@ function taskFromApi(task: ApiTask): CreationTask {
     chargeLedgerId: task.charge_ledger_id || null,
     refundedCredits: typeof task.refunded_credits === "number" ? task.refunded_credits : 0,
     refundLedgerId: task.refund_ledger_id || null,
-    refundStatus: task.refund_status || (task.status === "failed" ? "not_refunded" : "not_applicable")
+    refundStatus: task.refund_status || (task.status === "failed" ? "not_refunded" : "not_applicable"),
+    failureCode: task.failure_code || null,
+    failureReason: task.failure_reason || null,
+    lastCheckedAt: task.last_checked_at || null,
+    timedOutAt: task.timed_out_at || null
   };
 }
 
@@ -526,7 +538,9 @@ export default function CreationsPage() {
                       { label: "Credits charged", value: String(selectedTask.chargedCredits ?? selectedTask.cost) },
                       { label: "Ratio", value: selectedTask.ratio || "Not saved" },
                       { label: "Transport", value: selectedTask.transport || "Unknown" },
-                      { label: "Created", value: formatDate(selectedTask.createdAt) }
+                      { label: "Created", value: formatDate(selectedTask.createdAt) },
+                      { label: "Last checked", value: formatDate(selectedTask.lastCheckedAt) },
+                      { label: "Failure code", value: selectedTask.failureCode || "None" }
                     ].map((item) => (
                       <div key={item.label} className="rounded-xl border border-black/10 bg-white/80 p-3">
                         <dt className="text-[11px] uppercase tracking-[0.12em] text-[#778194]">{item.label}</dt>
@@ -534,6 +548,16 @@ export default function CreationsPage() {
                       </div>
                     ))}
                   </dl>
+
+                  {selectedTask.failureReason ? (
+                    <div className="mt-5 rounded-2xl border border-[#b03439]/20 bg-[#fff7f7] p-4">
+                      <p className="text-xs uppercase tracking-[0.14em] text-[#b03439]">Failure reason</p>
+                      <p className="mt-2 text-sm leading-7 text-[#6f3033]">{selectedTask.failureReason}</p>
+                      {selectedTask.timedOutAt ? (
+                        <p className="mt-2 text-xs text-[#8f5558]">Timed out at {formatDate(selectedTask.timedOutAt)}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <div className="mt-5 rounded-2xl border border-black/10 bg-white/80 p-4">
                     <p className="text-xs uppercase tracking-[0.14em] text-[#667487]">Credit trust log</p>
