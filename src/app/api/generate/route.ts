@@ -9,10 +9,15 @@ type GenerateMode = "image" | "video";
 
 type GenerateRequest = {
   mode: GenerateMode;
+  imageWorkflow?: "text-to-image" | "image-to-image";
   provider: string;
   ratio: string;
   duration: string;
   prompt: string;
+  imageSize?: string;
+  imageUrls?: string[];
+  resolution?: string;
+  outputFormat?: string;
   idempotencyKey?: string;
 };
 
@@ -48,6 +53,7 @@ function getModelId(mode: GenerateMode, provider: string): string | null {
   const keyByProvider: Record<string, string | undefined> = {
     "chatgpt-image": process.env.FAL_MODEL_IMAGE_CHATGPT,
     "flux-image": process.env.FAL_MODEL_IMAGE_FLUX,
+    "nano-banana-edit": process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit",
     "recraft-image": process.env.FAL_MODEL_IMAGE_RECRAFT,
     "seedance-video": process.env.FAL_MODEL_VIDEO_SEEDANCE,
     "kling-video": process.env.FAL_MODEL_VIDEO_KLING,
@@ -61,17 +67,53 @@ function getModelId(mode: GenerateMode, provider: string): string | null {
   );
 }
 
-function getFalImageSize(ratio: string) {
+const IMAGE_SIZE_PRESETS = new Set([
+  "default_4_3",
+  "square_hd",
+  "square",
+  "portrait_4_3",
+  "portrait_16_9",
+  "landscape_4_3",
+  "landscape_16_9"
+]);
+const EDIT_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16"]);
+const EDIT_RESOLUTIONS = new Set(["0.5K", "1K", "2K", "4K"]);
+const OUTPUT_FORMATS = new Set(["jpeg", "png", "webp"]);
+
+function getFalImageSize(ratio: string, imageSize?: string) {
+  if (imageSize === "default_4_3") return "landscape_4_3";
+  if (imageSize && IMAGE_SIZE_PRESETS.has(imageSize)) return imageSize;
   if (ratio === "16:9") return "landscape_16_9";
+  if (ratio === "4:3") return "landscape_4_3";
+  if (ratio === "3:4") return "portrait_4_3";
   if (ratio === "9:16") return "portrait_16_9";
   return "square_hd";
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
+  if (body.provider === "nano-banana-edit") {
+    return {
+      prompt,
+      image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 14) : [],
+      aspect_ratio: EDIT_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
+      resolution: body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K",
+      output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
+      num_images: 1,
+      limit_generations: true
+    };
+  }
+
+  if (body.provider === "chatgpt-image") {
+    return {
+      prompt,
+      image_size: getFalImageSize(body.ratio, body.imageSize)
+    };
+  }
+
   if (body.provider === "flux-image") {
     return {
       prompt,
-      image_size: getFalImageSize(body.ratio),
+      image_size: getFalImageSize(body.ratio, body.imageSize),
       guidance_scale: 3.5,
       num_inference_steps: 4,
       num_images: 1,
@@ -150,6 +192,12 @@ export async function POST(request: Request) {
     }
 
     const estimatedCredits = body.mode === "image" ? 12 : body.duration === "10s" ? 68 : body.duration === "8s" ? 56 : 42;
+    if (body.mode === "image" && body.provider === "nano-banana-edit") {
+      const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
+      if (!imageUrls.length) {
+        return NextResponse.json({ error: "Image to Image requires at least one reference image." }, { status: 400 });
+      }
+    }
     const falKey = process.env.FAL_KEY;
     const modelId = getModelId(body.mode, body.provider);
     const taskId = generationTaskId(body.idempotencyKey);

@@ -28,6 +28,31 @@ type TaskItem = {
 
 const SESSION_TASKS_KEY = "nova_session_tasks";
 const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
+const GPT_IMAGE2_DEFAULT_PROMPT = `Create a high-end hero infographic announcing "GPT Image 2 is here".
+Design it like a futuristic periodic table mixed with a clean anatomical diagram: a precise grid of 16-24 mini image panels, each showcasing a different visual style such as oil painting, anime, blueprint, isometric 3D, photorealism, watercolor, pixel art, clay render, cinematic lighting, product photography, fashion editorial, UI mockup, technical diagram, and surreal concept art.
+
+The image should feel electric, colorful, premium, and extremely polished.
+Use a clean modern layout, sharp typography, subtle labels, thin lines, glowing accents, and a strong visual hierarchy.
+The infographic itself should demonstrate the power of an advanced image model: beautiful composition, perfect grids, consistent spacing, readable text, and diverse styles in one coherent design.
+
+No date. No extra caption. Just a powerful visual announcement that speaks for itself.`;
+const GPT_IMAGE2_PREVIEW_URL = "https://v3b.fal.media/files/b/0a981c3d/hdg8iaY8yShEwChTPjFah_OZUgg7Z4.jpg";
+const FLUX_DEFAULT_PROMPT =
+  "portrait | wide angle shot of eyes off to one side of frame, lucid dream-like woman, looking off in distance ::8 style | daydreampunk with glowing skin and eyes, styled in headdress, beautiful, she is dripping in neon lights, very colorful blue, green, purple, bioluminescent, glowing ::8 background | forest, vivid neon wonderland, particles, blue, green, purple ::7 parameters | rule of thirds, golden ratio, assymetric composition, hyper- maximalist, octane render, photorealism, cinematic realism, unreal engine, 8k ::7 --ar 16:9 --s 1000";
+const FLUX_PREVIEW_URL = "https://fal.media/files/tiger/m0K3P3JUR_Brcf7mxk3tl.png";
+const NANO_BANANA_EDIT_DEFAULT_PROMPT =
+  "Transform the reference image into a premium commercial campaign visual. Preserve the main subject identity and composition, improve lighting, color, realism, texture, and background polish. Make it look cinematic, clean, high-end, and ready for a product launch.";
+const NANO_BANANA_EDIT_PREVIEW_URL = "https://v3b.fal.media/files/b/0a981c3d/hdg8iaY8yShEwChTPjFah_OZUgg7Z4.jpg";
+
+const IMAGE_SIZE_PRESETS = [
+  { value: "default_4_3", label: "Default 4:3", dimensions: "1024 x 768", width: 1024, height: 768 },
+  { value: "square_hd", label: "Square HD", dimensions: "1024 x 1024", width: 1024, height: 1024 },
+  { value: "square", label: "Square", dimensions: "512 x 512", width: 512, height: 512 },
+  { value: "portrait_4_3", label: "Portrait 3:4", dimensions: "768 x 1024", width: 768, height: 1024 },
+  { value: "portrait_16_9", label: "Portrait 9:16", dimensions: "576 x 1024", width: 576, height: 1024 },
+  { value: "landscape_4_3", label: "Landscape 4:3", dimensions: "1024 x 768", width: 1024, height: 768 },
+  { value: "landscape_16_9", label: "Landscape 16:9", dimensions: "1024 x 576", width: 1024, height: 576 }
+];
 
 const PROMPT_PRESETS = [
   "Anime key visual of a young cyberpunk courier standing on a rainy neon street, reflective puddles, glowing shop signs, dramatic rim light, cinematic composition, highly detailed",
@@ -118,6 +143,57 @@ function formatDuration(seconds: number) {
   return rest ? `${minutes}m ${rest}s` : `${minutes}m`;
 }
 
+function getImageSizePreset(value: string) {
+  return IMAGE_SIZE_PRESETS.find((preset) => preset.value === value) || IMAGE_SIZE_PRESETS[0];
+}
+
+function ratioFromImageSize(value: string) {
+  const preset = getImageSizePreset(value);
+  const ratio = preset.width / preset.height;
+  if (Math.abs(ratio - 1) < 0.01) return "1:1";
+  if (ratio > 1.5) return "16:9";
+  if (ratio > 1.2) return "4:3";
+  if (ratio < 0.7) return "9:16";
+  return "3:4";
+}
+
+function defaultPromptForProvider(provider: string) {
+  if (provider === "chatgpt-image") return GPT_IMAGE2_DEFAULT_PROMPT;
+  if (provider === "flux-image") return FLUX_DEFAULT_PROMPT;
+  if (provider === "nano-banana-edit") return NANO_BANANA_EDIT_DEFAULT_PROMPT;
+  return "";
+}
+
+function defaultPreviewForProvider(provider: string) {
+  if (provider === "chatgpt-image") return GPT_IMAGE2_PREVIEW_URL;
+  if (provider === "flux-image") return FLUX_PREVIEW_URL;
+  if (provider === "nano-banana-edit") return NANO_BANANA_EDIT_PREVIEW_URL;
+  return null;
+}
+
+function defaultImageSizeForProvider(provider: string) {
+  if (provider === "flux-image") return "landscape_16_9";
+  if (provider === "nano-banana-edit") return "default_4_3";
+  return "default_4_3";
+}
+
+function canReplacePrompt(value: string) {
+  const trimmed = value.trim();
+  return (
+    !trimmed ||
+    trimmed === GPT_IMAGE2_DEFAULT_PROMPT ||
+    trimmed === FLUX_DEFAULT_PROMPT ||
+    trimmed === NANO_BANANA_EDIT_DEFAULT_PROMPT
+  );
+}
+
+function isProviderAllowedForMode(provider: string | null, mode: "image" | "video") {
+  if (!provider) return false;
+  return mode === "image"
+    ? ["chatgpt-image", "flux-image", "nano-banana-edit", "recraft-image"].includes(provider)
+    : ["seedance-video", "kling-video", "veo-video"].includes(provider);
+}
+
 function taskProgress(task: Pick<TaskItem, "status" | "createdAt" | "type" | "provider">, duration: string) {
   if (task.status === "Completed") return 100;
   if (task.status === "Failed") return 100;
@@ -132,9 +208,22 @@ function StudioContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const mode = sp.get("mode") === "image" ? "image" : "video";
+  const providerFromUrl = sp.get("provider");
+  const initialProvider = (isProviderAllowedForMode(providerFromUrl, mode)
+    ? providerFromUrl
+    : mode === "image"
+      ? "chatgpt-image"
+      : "seedance-video") as string;
+  const initialImageWorkflow = sp.get("workflow") === "image-to-image" ? "image-to-image" : "text-to-image";
   const [prompt, setPrompt] = useState("");
-  const [provider, setProvider] = useState(mode === "image" ? "chatgpt-image" : "seedance-video");
+  const [provider, setProvider] = useState(initialProvider);
+  const [imageWorkflow, setImageWorkflow] = useState<"text-to-image" | "image-to-image">(initialImageWorkflow);
   const [ratio, setRatio] = useState(mode === "image" ? "1:1" : "16:9");
+  const [imageSize, setImageSize] = useState("default_4_3");
+  const [referenceImagesText, setReferenceImagesText] = useState("");
+  const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
+  const [editResolution, setEditResolution] = useState("1K");
+  const [outputFormat, setOutputFormat] = useState("png");
   const [duration, setDuration] = useState(mode === "image" ? "single" : "6s");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -180,12 +269,38 @@ function StudioContent() {
   }, [router]);
 
   useEffect(() => {
-    setProvider(mode === "image" ? "chatgpt-image" : "seedance-video");
-    setRatio(mode === "image" ? "1:1" : "16:9");
+    const workflowParam = sp.get("workflow") === "image-to-image" ? "image-to-image" : "text-to-image";
+    const providerParam = sp.get("provider");
+    setImageWorkflow(mode === "image" ? workflowParam : "text-to-image");
+    const nextProvider = (isProviderAllowedForMode(providerParam, mode)
+      ? providerParam
+      : mode === "image" && workflowParam === "image-to-image"
+        ? "nano-banana-edit"
+        : mode === "image"
+        ? "chatgpt-image"
+        : "seedance-video") as string;
+    setProvider(nextProvider);
+    const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
+    setRatio(mode === "image" ? ratioFromImageSize(nextImageSize) : "16:9");
+    setImageSize(nextImageSize);
     setDuration(mode === "image" ? "single" : "6s");
     setStatusText("");
     setStatusTone("idle");
-  }, [mode]);
+  }, [mode, sp]);
+
+  useEffect(() => {
+    const defaultPrompt = mode === "image" ? defaultPromptForProvider(provider) : "";
+    if (defaultPrompt && canReplacePrompt(prompt)) {
+      setPrompt(defaultPrompt);
+    }
+  }, [mode, provider, prompt]);
+
+  useEffect(() => {
+    if (mode !== "image") return;
+    const nextImageSize = defaultImageSizeForProvider(provider);
+    setImageSize(nextImageSize);
+    setRatio(ratioFromImageSize(nextImageSize));
+  }, [mode, provider]);
 
   useEffect(() => {
     const promptParam = sp.get("prompt");
@@ -194,18 +309,19 @@ function StudioContent() {
     }
 
     const providerParam = sp.get("provider");
-    if (
-      providerParam &&
-      (mode === "image"
-        ? ["chatgpt-image", "flux-image", "recraft-image"].includes(providerParam)
-        : ["seedance-video", "kling-video", "veo-video"].includes(providerParam))
-    ) {
-      setProvider(providerParam);
+    if (isProviderAllowedForMode(providerParam, mode)) {
+      setProvider(providerParam as string);
     }
 
     const ratioParam = sp.get("ratio");
-    if (ratioParam && ["1:1", "16:9", "9:16"].includes(ratioParam)) {
+    if (ratioParam && ["1:1", "4:3", "3:4", "16:9", "9:16"].includes(ratioParam)) {
       setRatio(ratioParam);
+    }
+
+    const imageSizeParam = sp.get("imageSize");
+    if (imageSizeParam && IMAGE_SIZE_PRESETS.some((preset) => preset.value === imageSizeParam)) {
+      setImageSize(imageSizeParam);
+      setRatio(ratioFromImageSize(imageSizeParam));
     }
 
     const durationParam = sp.get("duration");
@@ -352,32 +468,70 @@ function StudioContent() {
   const options = useMemo(
     () =>
       mode === "image"
-        ? [
-            { value: "chatgpt-image", label: "OpenAI GPT-Image-2 (fal)" },
-            { value: "flux-image", label: "FLUX Schnell (fast draft)" },
-            { value: "recraft-image", label: "Recraft (fal)" }
-          ]
+        ? imageWorkflow === "image-to-image"
+          ? [
+              { value: "nano-banana-edit", label: "Nano Banana 2 Edit (fal)" }
+            ]
+          : [
+              { value: "chatgpt-image", label: "OpenAI GPT-Image-2 (fal)" },
+              { value: "flux-image", label: "FLUX Schnell (fast draft)" },
+              { value: "recraft-image", label: "Recraft (fal)" }
+            ]
         : [
             { value: "seedance-video", label: "Seedance 2.0 Text-to-Video (fal)" },
             { value: "kling-video", label: "Kling (fal)" },
             { value: "veo-video", label: "Veo (fal)" }
           ],
-    [mode]
+    [mode, imageWorkflow]
   );
 
   const estCredits = mode === "image" ? 12 : duration === "10s" ? 68 : duration === "8s" ? 56 : 42;
   const estimatedSeconds = estimateTaskSeconds(mode, provider, duration);
   const isPromptValid = prompt.trim().length >= 8;
-  const latestPreviewTask = tasks.find((task) => task.mediaUrl && task.status === "Completed") || tasks.find((task) => task.mediaUrl);
+  const latestPreviewTask = mode === "video"
+    ? tasks.find((task) => task.mediaUrl && task.status === "Completed" && task.type === "Video") ||
+      tasks.find((task) => task.mediaUrl && task.type === "Video")
+    : null;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const failedTasks = tasks.filter((task) => task.status === "Failed");
   const latestActiveTask = activeTasks[0] || null;
   const latestActiveProgress = latestActiveTask ? taskProgress(latestActiveTask, duration) : 0;
+  const selectedImageSize = getImageSizePreset(imageSize);
+  const previewAspectRatio = mode === "image" ? `${selectedImageSize.width} / ${selectedImageSize.height}` : "16 / 9";
+  const modelPreviewUrl = mode === "image" ? defaultPreviewForProvider(provider) : null;
   const providerNote =
     provider === "flux-image"
       ? "FLUX Schnell is best for fast visual drafts. Use OpenAI GPT-Image-2 for exact text, counting, or strict layout instructions."
+      : provider === "chatgpt-image"
+        ? "GPT Image 2 supports preset output sizes. The preview frame updates to match the selected canvas."
       : "Use clear subject, style, composition, and constraints for better instruction following.";
+  const referenceImageUrls = [
+    ...referenceImagesText
+      .split(/\r?\n|,/)
+      .map((url) => url.trim())
+      .filter(Boolean),
+    ...referenceImageFiles
+  ].slice(0, 14);
+
+  async function handleReferenceFiles(files: FileList | null) {
+    if (!files?.length) return;
+    const nextFiles = await Promise.all(
+      Array.from(files)
+        .filter((file) => file.type.startsWith("image/"))
+        .slice(0, 4)
+        .map(
+          (file) =>
+            new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result));
+              reader.onerror = () => reject(new Error("Image file could not be read."));
+              reader.readAsDataURL(file);
+            })
+        )
+    );
+    setReferenceImageFiles((prev) => [...prev, ...nextFiles].slice(0, 4));
+  }
 
   async function handleGenerate() {
     if (!isPromptValid || isSubmitting) {
@@ -411,10 +565,15 @@ function StudioContent() {
         },
         body: JSON.stringify({
           mode,
+          imageWorkflow,
           provider,
           ratio,
           duration,
           prompt,
+          imageSize: mode === "image" ? imageSize : undefined,
+          imageUrls: mode === "image" && imageWorkflow === "image-to-image" ? referenceImageUrls : undefined,
+          resolution: mode === "image" && imageWorkflow === "image-to-image" ? editResolution : undefined,
+          outputFormat: mode === "image" && imageWorkflow === "image-to-image" ? outputFormat : undefined,
           idempotencyKey:
             typeof window !== "undefined" && window.crypto?.randomUUID
               ? window.crypto.randomUUID()
@@ -676,12 +835,74 @@ function StudioContent() {
               <p className="chip rounded-full px-3 py-1 text-xs text-[#4f596b]">Estimated {estCredits} credits</p>
             </div>
 
+            {mode === "image" ? (
+              <div className="mb-5 inline-flex rounded-2xl border border-black/10 bg-white p-1.5">
+                {[
+                  { value: "text-to-image", label: "Text to Image" },
+                  { value: "image-to-image", label: "Image to Image" }
+                ].map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => {
+                      const workflow = item.value as "text-to-image" | "image-to-image";
+                      setImageWorkflow(workflow);
+                      const nextProvider = workflow === "image-to-image" ? "nano-banana-edit" : "chatgpt-image";
+                      setProvider(nextProvider);
+                      const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
+                      if (nextDefaultPrompt) setPrompt(nextDefaultPrompt);
+                      const nextImageSize = defaultImageSizeForProvider(nextProvider);
+                      setImageSize(nextImageSize);
+                      setRatio(ratioFromImageSize(nextImageSize));
+                      const params = new URLSearchParams(sp.toString());
+                      params.set("mode", "image");
+                      params.set("workflow", workflow);
+                      params.set("provider", nextProvider);
+                      params.set("imageSize", nextImageSize);
+                      params.set("ratio", ratioFromImageSize(nextImageSize));
+                      router.replace(`/studio?${params.toString()}`, { scroll: false });
+                    }}
+                    className={`rounded-xl px-5 py-2 text-sm font-semibold transition ${
+                      imageWorkflow === item.value
+                        ? "bg-[#1d1d1f] text-white"
+                        : "text-[#4c5a70] hover:bg-[#f1f6ff]"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block">
                 <span className="text-sm text-[#5f6779]">Provider API</span>
                 <select
                   value={provider}
-                  onChange={(e) => setProvider(e.target.value)}
+                  onChange={(e) => {
+                    const nextProvider = e.target.value;
+                    setProvider(nextProvider);
+                    const nextDefaultPrompt = mode === "image" ? defaultPromptForProvider(nextProvider) : "";
+                    if (nextDefaultPrompt) {
+                      setPrompt(nextDefaultPrompt);
+                    }
+                    if (mode === "image") {
+                      const nextImageSize = defaultImageSizeForProvider(nextProvider);
+                      setImageSize(nextImageSize);
+                      setRatio(ratioFromImageSize(nextImageSize));
+                      const params = new URLSearchParams(sp.toString());
+                      params.set("mode", "image");
+                      params.set("provider", nextProvider);
+                      params.set("imageSize", nextImageSize);
+                      params.set("ratio", ratioFromImageSize(nextImageSize));
+                      router.replace(`/studio?${params.toString()}`, { scroll: false });
+                    } else {
+                      const params = new URLSearchParams(sp.toString());
+                      params.set("mode", "video");
+                      params.set("provider", nextProvider);
+                      router.replace(`/studio?${params.toString()}`, { scroll: false });
+                    }
+                  }}
                   className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
                 >
                   {options.map((o) => (
@@ -693,43 +914,145 @@ function StudioContent() {
               </label>
 
               <label className="block">
-                <span className="text-sm text-[#5f6779]">Aspect Ratio</span>
-                <select
-                  value={ratio}
-                  onChange={(e) => setRatio(e.target.value)}
-                  className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
-                >
-                  <option value="1:1">1:1</option>
-                  <option value="16:9">16:9</option>
-                  <option value="9:16">9:16</option>
-                </select>
+                <span className="text-sm text-[#5f6779]">{mode === "image" ? "Output Size" : "Aspect Ratio"}</span>
+                {mode === "image" ? (
+                  <select
+                    value={imageSize}
+                    onChange={(e) => {
+                      setImageSize(e.target.value);
+                      setRatio(ratioFromImageSize(e.target.value));
+                      const params = new URLSearchParams(sp.toString());
+                      params.set("mode", "image");
+                      params.set("provider", provider);
+                      params.set("imageSize", e.target.value);
+                      params.set("ratio", ratioFromImageSize(e.target.value));
+                      router.replace(`/studio?${params.toString()}`, { scroll: false });
+                    }}
+                    className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
+                  >
+                    {IMAGE_SIZE_PRESETS.map((preset) => (
+                      <option key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <select
+                    value={ratio}
+                    onChange={(e) => setRatio(e.target.value)}
+                    className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
+                  >
+                    <option value="16:9">16:9</option>
+                    <option value="9:16">9:16</option>
+                    <option value="1:1">1:1</option>
+                  </select>
+                )}
               </label>
             </div>
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="text-sm text-[#5f6779]">Duration</span>
-                <select
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
-                >
-                  {mode === "image" ? (
-                    <option value="single">Single Output</option>
-                  ) : (
-                    <>
-                      <option value="6s">6 seconds</option>
-                      <option value="8s">8 seconds</option>
-                      <option value="10s">10 seconds</option>
-                    </>
-                  )}
-                </select>
+                <span className="text-sm text-[#5f6779]">{imageWorkflow === "image-to-image" ? "Resolution" : "Duration"}</span>
+                {mode === "image" && imageWorkflow === "image-to-image" ? (
+                  <select
+                    value={editResolution}
+                    onChange={(e) => setEditResolution(e.target.value)}
+                    className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
+                  >
+                    <option value="0.5K">0.5K</option>
+                    <option value="1K">1K</option>
+                    <option value="2K">2K</option>
+                    <option value="4K">4K</option>
+                  </select>
+                ) : (
+                  <select
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
+                  >
+                    {mode === "image" ? (
+                      <option value="single">Single Output</option>
+                    ) : (
+                      <>
+                        <option value="6s">6 seconds</option>
+                        <option value="8s">8 seconds</option>
+                        <option value="10s">10 seconds</option>
+                      </>
+                    )}
+                  </select>
+                )}
               </label>
-              <div className="tone-mint rounded-xl border border-black/10 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-[#667487]">Routing note</p>
-                <p className="mt-2 text-sm leading-6 text-[#475162]">Smart fallback is enabled. If provider queue spikes, tasks reroute to your backup policy.</p>
-              </div>
+              {mode === "image" && imageWorkflow === "image-to-image" ? (
+                <label className="block">
+                  <span className="text-sm text-[#5f6779]">Output Format</span>
+                  <select
+                    value={outputFormat}
+                    onChange={(e) => setOutputFormat(e.target.value)}
+                    className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
+                  >
+                    <option value="png">PNG</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="webp">WEBP</option>
+                  </select>
+                </label>
+              ) : (
+                <div className="tone-mint rounded-xl border border-black/10 p-4">
+                  <p className="text-xs uppercase tracking-[0.14em] text-[#667487]">Routing note</p>
+                  <p className="mt-2 text-sm leading-6 text-[#475162]">Smart fallback is enabled. If provider queue spikes, tasks reroute to your backup policy.</p>
+                </div>
+              )}
             </div>
+
+            {mode === "image" && imageWorkflow === "image-to-image" ? (
+              <div className="mt-4 rounded-2xl border border-black/10 bg-white/80 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[#1d1d1f]">Reference Images</p>
+                    <p className="mt-1 text-xs text-[#667084]">Paste image URLs or upload local images. Up to 14 references.</p>
+                  </div>
+                  <span className="rounded-full bg-[#f3f7ff] px-3 py-1 text-xs font-semibold text-[#395172]">
+                    {referenceImageUrls.length} selected
+                  </span>
+                </div>
+                <textarea
+                  rows={3}
+                  value={referenceImagesText}
+                  onChange={(e) => setReferenceImagesText(e.target.value)}
+                  className="motion-smooth mt-3 w-full rounded-xl border border-black/10 bg-white/95 p-3 text-sm text-[#1d1d1f] placeholder:text-[#9ca3b7] outline-none focus:border-[#77a8e8]"
+                  placeholder="https://example.com/reference.jpg"
+                />
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <label className="cursor-pointer rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f] shadow-sm">
+                    Upload images
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
+                    />
+                  </label>
+                  {referenceImageFiles.length ? (
+                    <button
+                      type="button"
+                      onClick={() => setReferenceImageFiles([])}
+                      className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#6e6e73]"
+                    >
+                      Clear uploads
+                    </button>
+                  ) : null}
+                </div>
+                {referenceImageUrls.length ? (
+                  <div className="mt-3 grid grid-cols-4 gap-2">
+                    {referenceImageUrls.slice(0, 8).map((url, index) => (
+                      <div key={`${url.slice(0, 32)}-${index}`} className="aspect-square overflow-hidden rounded-xl bg-[#eef1f7]">
+                        <img src={url} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             <label className="mt-4 block">
               <span className="text-sm text-[#5f6779]">Prompt</span>
@@ -778,38 +1101,77 @@ function StudioContent() {
 
           <div className="grid gap-5">
             <article className="card rounded-3xl p-6">
-              <h3 className="text-xl font-semibold tracking-tight">Current Preview</h3>
-              {latestPreviewTask ? (
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-xl font-semibold tracking-tight">Current Preview</h3>
+                  <p className="mt-1 text-xs text-[#667084]">
+                    {mode === "image"
+                      ? `${selectedImageSize.label} · ${selectedImageSize.dimensions}`
+                      : `${ratio} preview frame`}
+                  </p>
+                </div>
+                {latestPreviewTask?.mediaUrl ? (
+                  <a
+                    href={`/api/generate/download?url=${encodeURIComponent(latestPreviewTask.mediaUrl || "")}&name=${encodeURIComponent(latestPreviewTask.id)}`}
+                    className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold text-[#2e3b52] hover:bg-[#f3f7ff]"
+                  >
+                    Download
+                  </a>
+                ) : null}
+              </div>
+              {mode === "image" && modelPreviewUrl ? (
+                <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
+                  <div
+                    className="relative overflow-hidden rounded-lg border border-black/10 bg-[#f6f7fb]"
+                    style={{ aspectRatio: previewAspectRatio }}
+                  >
+                    <img
+                      src={modelPreviewUrl}
+                      alt={`${provider} example preview`}
+                      className="h-full w-full object-cover opacity-95"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 text-white">
+                      <p className="text-sm font-semibold">
+                        {provider === "flux-image" ? "FLUX Schnell sample" : "GPT Image 2 sample"}
+                      </p>
+                      <p className="mt-1 text-xs text-white/75">The canvas matches your selected output size.</p>
+                    </div>
+                  </div>
+                </div>
+              ) : latestPreviewTask ? (
                 <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <p className="text-xs text-[#677388]">{latestPreviewTask.id}</p>
-                    <a
-                      href={`/api/generate/download?url=${encodeURIComponent(latestPreviewTask.mediaUrl || "")}&name=${encodeURIComponent(latestPreviewTask.id)}`}
-                      className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold text-[#2e3b52] hover:bg-[#f3f7ff]"
-                    >
-                      Download
-                    </a>
                   </div>
                   {latestPreviewTask.type === "Video" ? (
                     <button
                       type="button"
                       onClick={() => setPreviewModal({ url: latestPreviewTask.mediaUrl || "", type: "Video" })}
-                      className="block w-full text-left"
+                      className="block w-full overflow-hidden rounded-lg bg-[#f4f6fb] text-left"
+                      style={{ aspectRatio: previewAspectRatio }}
                     >
-                      <video src={latestPreviewTask.mediaUrl || undefined} controls className="w-full rounded-lg" />
+                      <video src={latestPreviewTask.mediaUrl || undefined} controls className="h-full w-full object-contain" />
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setPreviewModal({ url: latestPreviewTask.mediaUrl || "", type: "Image" })}
-                      className="block w-full"
+                      className="block w-full overflow-hidden rounded-lg bg-[#f4f6fb]"
+                      style={{ aspectRatio: previewAspectRatio }}
                     >
-                      <img src={latestPreviewTask.mediaUrl || ""} alt={latestPreviewTask.id} className="w-full rounded-lg object-cover" />
+                      <img src={latestPreviewTask.mediaUrl || ""} alt={latestPreviewTask.id} className="h-full w-full object-contain" />
                     </button>
                   )}
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-[#667084]">No preview yet. Generate your first task to see output here.</p>
+                <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
+                  <div
+                    className="grid place-items-center rounded-lg border border-dashed border-black/15 bg-[#f6f7fb]"
+                    style={{ aspectRatio: previewAspectRatio }}
+                  >
+                    <p className="text-sm text-[#667084]">No preview yet. Generate your first task to see output here.</p>
+                  </div>
+                </div>
               )}
             </article>
 
