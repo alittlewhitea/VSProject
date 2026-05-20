@@ -40,9 +40,8 @@ const GPT_IMAGE2_PREVIEW_URL = "https://v3b.fal.media/files/b/0a981c3d/hdg8iaY8y
 const FLUX_DEFAULT_PROMPT =
   "portrait | wide angle shot of eyes off to one side of frame, lucid dream-like woman, looking off in distance ::8 style | daydreampunk with glowing skin and eyes, styled in headdress, beautiful, she is dripping in neon lights, very colorful blue, green, purple, bioluminescent, glowing ::8 background | forest, vivid neon wonderland, particles, blue, green, purple ::7 parameters | rule of thirds, golden ratio, assymetric composition, hyper- maximalist, octane render, photorealism, cinematic realism, unreal engine, 8k ::7 --ar 16:9 --s 1000";
 const FLUX_PREVIEW_URL = "https://fal.media/files/tiger/m0K3P3JUR_Brcf7mxk3tl.png";
-const NANO_BANANA_EDIT_DEFAULT_PROMPT =
-  "Transform the reference image into a premium commercial campaign visual. Preserve the main subject identity and composition, improve lighting, color, realism, texture, and background polish. Make it look cinematic, clean, high-end, and ready for a product launch.";
-const NANO_BANANA_EDIT_PREVIEW_URL = "https://v3b.fal.media/files/b/0a981c3d/hdg8iaY8yShEwChTPjFah_OZUgg7Z4.jpg";
+const NANO_BANANA_EDIT_DEFAULT_PROMPT = "make a photo of the man driving the car down the california coastline";
+const NANO_BANANA_EDIT_PREVIEW_URL = "https://storage.googleapis.com/falserverless/example_outputs/nano-banana-2-edit-output.png";
 
 const IMAGE_SIZE_PRESETS = [
   { value: "default_4_3", label: "Default 4:3", dimensions: "1024 x 768", width: 1024, height: 768 },
@@ -53,6 +52,10 @@ const IMAGE_SIZE_PRESETS = [
   { value: "landscape_4_3", label: "Landscape 4:3", dimensions: "1024 x 768", width: 1024, height: 768 },
   { value: "landscape_16_9", label: "Landscape 16:9", dimensions: "1024 x 576", width: 1024, height: 576 }
 ];
+
+const DEFAULT_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1"];
+const GROK_VIDEO_RATIO_OPTIONS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"];
+const GROK_VIDEO_RESOLUTION_OPTIONS = ["720p", "480p"];
 
 const PROMPT_PRESETS = [
   "Anime key visual of a young cyberpunk courier standing on a rainy neon street, reflective puddles, glowing shop signs, dramatic rim light, cinematic composition, highly detailed",
@@ -191,7 +194,7 @@ function isProviderAllowedForMode(provider: string | null, mode: "image" | "vide
   if (!provider) return false;
   return mode === "image"
     ? ["chatgpt-image", "flux-image", "nano-banana-edit", "recraft-image"].includes(provider)
-    : ["seedance-video", "kling-video", "veo-video"].includes(provider);
+    : ["seedance-video", "kling-video", "veo-video", "grok-video"].includes(provider);
 }
 
 function taskProgress(task: Pick<TaskItem, "status" | "createdAt" | "type" | "provider">, duration: string) {
@@ -223,6 +226,7 @@ function StudioContent() {
   const [referenceImagesText, setReferenceImagesText] = useState("");
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
   const [editResolution, setEditResolution] = useState("1K");
+  const [videoResolution, setVideoResolution] = useState("720p");
   const [outputFormat, setOutputFormat] = useState("png");
   const [duration, setDuration] = useState(mode === "image" ? "single" : "6s");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -314,7 +318,7 @@ function StudioContent() {
     }
 
     const ratioParam = sp.get("ratio");
-    if (ratioParam && ["1:1", "4:3", "3:4", "16:9", "9:16"].includes(ratioParam)) {
+    if (ratioParam && [...GROK_VIDEO_RATIO_OPTIONS, "1:1", "4:3", "3:4", "16:9", "9:16"].includes(ratioParam)) {
       setRatio(ratioParam);
     }
 
@@ -327,6 +331,11 @@ function StudioContent() {
     const durationParam = sp.get("duration");
     if (durationParam && (mode === "image" ? durationParam === "single" : ["6s", "8s", "10s"].includes(durationParam))) {
       setDuration(durationParam);
+    }
+
+    const resolutionParam = sp.get("resolution");
+    if (resolutionParam && GROK_VIDEO_RESOLUTION_OPTIONS.includes(resolutionParam)) {
+      setVideoResolution(resolutionParam);
     }
   }, [mode, sp]);
 
@@ -480,7 +489,8 @@ function StudioContent() {
         : [
             { value: "seedance-video", label: "Seedance 2.0 Text-to-Video (fal)" },
             { value: "kling-video", label: "Kling (fal)" },
-            { value: "veo-video", label: "Veo (fal)" }
+            { value: "veo-video", label: "Veo (fal)" },
+            { value: "grok-video", label: "Grok Imagine Video Text-to-Video (fal)" }
           ],
     [mode, imageWorkflow]
   );
@@ -498,14 +508,18 @@ function StudioContent() {
   const latestActiveTask = activeTasks[0] || null;
   const latestActiveProgress = latestActiveTask ? taskProgress(latestActiveTask, duration) : 0;
   const selectedImageSize = getImageSizePreset(imageSize);
-  const previewAspectRatio = mode === "image" ? `${selectedImageSize.width} / ${selectedImageSize.height}` : "16 / 9";
+  const videoPreviewRatio = ratio.includes(":") ? ratio.replace(":", " / ") : "16 / 9";
+  const previewAspectRatio = mode === "image" ? `${selectedImageSize.width} / ${selectedImageSize.height}` : videoPreviewRatio;
   const modelPreviewUrl = mode === "image" ? defaultPreviewForProvider(provider) : null;
   const providerNote =
     provider === "flux-image"
       ? "FLUX Schnell is best for fast visual drafts. Use OpenAI GPT-Image-2 for exact text, counting, or strict layout instructions."
       : provider === "chatgpt-image"
         ? "GPT Image 2 supports preset output sizes. The preview frame updates to match the selected canvas."
-      : "Use clear subject, style, composition, and constraints for better instruction following.";
+        : provider === "grok-video"
+          ? "Grok Imagine Video supports prompt, duration, aspect ratio, and 480p/720p output resolution."
+          : "Use clear subject, style, composition, and constraints for better instruction following.";
+  const videoRatioOptions = provider === "grok-video" ? GROK_VIDEO_RATIO_OPTIONS : DEFAULT_VIDEO_RATIO_OPTIONS;
   const referenceImageUrls = [
     ...referenceImagesText
       .split(/\r?\n|,/)
@@ -572,7 +586,12 @@ function StudioContent() {
           prompt,
           imageSize: mode === "image" ? imageSize : undefined,
           imageUrls: mode === "image" && imageWorkflow === "image-to-image" ? referenceImageUrls : undefined,
-          resolution: mode === "image" && imageWorkflow === "image-to-image" ? editResolution : undefined,
+          resolution:
+            mode === "image" && imageWorkflow === "image-to-image"
+              ? editResolution
+              : mode === "video" && provider === "grok-video"
+                ? videoResolution
+                : undefined,
           outputFormat: mode === "image" && imageWorkflow === "image-to-image" ? outputFormat : undefined,
           idempotencyKey:
             typeof window !== "undefined" && window.crypto?.randomUUID
@@ -900,6 +919,11 @@ function StudioContent() {
                       const params = new URLSearchParams(sp.toString());
                       params.set("mode", "video");
                       params.set("provider", nextProvider);
+                      if (nextProvider === "grok-video") {
+                        params.set("resolution", videoResolution);
+                      } else {
+                        params.delete("resolution");
+                      }
                       router.replace(`/studio?${params.toString()}`, { scroll: false });
                     }
                   }}
@@ -942,9 +966,11 @@ function StudioContent() {
                     onChange={(e) => setRatio(e.target.value)}
                     className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
                   >
-                    <option value="16:9">16:9</option>
-                    <option value="9:16">9:16</option>
-                    <option value="1:1">1:1</option>
+                    {videoRatioOptions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
                   </select>
                 )}
               </label>
@@ -995,6 +1021,28 @@ function StudioContent() {
                     <option value="webp">WEBP</option>
                   </select>
                 </label>
+              ) : mode === "video" && provider === "grok-video" ? (
+                <label className="block">
+                  <span className="text-sm text-[#5f6779]">Resolution</span>
+                  <select
+                    value={videoResolution}
+                    onChange={(e) => {
+                      setVideoResolution(e.target.value);
+                      const params = new URLSearchParams(sp.toString());
+                      params.set("mode", "video");
+                      params.set("provider", provider);
+                      params.set("resolution", e.target.value);
+                      router.replace(`/studio?${params.toString()}`, { scroll: false });
+                    }}
+                    className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
+                  >
+                    {GROK_VIDEO_RESOLUTION_OPTIONS.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               ) : (
                 <div className="tone-mint rounded-xl border border-black/10 p-4">
                   <p className="text-xs uppercase tracking-[0.14em] text-[#667487]">Routing note</p>
@@ -1014,13 +1062,21 @@ function StudioContent() {
                     {referenceImageUrls.length} selected
                   </span>
                 </div>
-                <textarea
-                  rows={3}
-                  value={referenceImagesText}
-                  onChange={(e) => setReferenceImagesText(e.target.value)}
-                  className="motion-smooth mt-3 w-full rounded-xl border border-black/10 bg-white/95 p-3 text-sm text-[#1d1d1f] placeholder:text-[#9ca3b7] outline-none focus:border-[#77a8e8]"
-                  placeholder="https://example.com/reference.jpg"
-                />
+                <div className="mt-3 rounded-2xl border border-dashed border-[#9ab2d6]/70 bg-[#f4f8ff] p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52647f]">Image URLs</span>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[#667084]">
+                      one URL per line
+                    </span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={referenceImagesText}
+                    onChange={(e) => setReferenceImagesText(e.target.value)}
+                    className="motion-smooth w-full resize-none rounded-xl border border-[#cdd9ed] bg-white/85 p-3 font-mono text-xs leading-5 text-[#1d1d1f] placeholder:text-[#9ca3b7] outline-none focus:border-[#4c82d9]"
+                    placeholder={"https://example.com/reference-1.jpg\nhttps://example.com/reference-2.png"}
+                  />
+                </div>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <label className="cursor-pointer rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f] shadow-sm">
                     Upload images
@@ -1132,7 +1188,11 @@ function StudioContent() {
                     />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 text-white">
                       <p className="text-sm font-semibold">
-                        {provider === "flux-image" ? "FLUX Schnell sample" : "GPT Image 2 sample"}
+                        {provider === "flux-image"
+                          ? "FLUX Schnell sample"
+                          : provider === "nano-banana-edit"
+                            ? "Nano Banana 2 Edit sample"
+                            : "GPT Image 2 sample"}
                       </p>
                       <p className="mt-1 text-xs text-white/75">The canvas matches your selected output size.</p>
                     </div>

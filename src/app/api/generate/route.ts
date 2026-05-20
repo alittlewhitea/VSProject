@@ -57,7 +57,8 @@ function getModelId(mode: GenerateMode, provider: string): string | null {
     "recraft-image": process.env.FAL_MODEL_IMAGE_RECRAFT,
     "seedance-video": process.env.FAL_MODEL_VIDEO_SEEDANCE,
     "kling-video": process.env.FAL_MODEL_VIDEO_KLING,
-    "veo-video": process.env.FAL_MODEL_VIDEO_VEO
+    "veo-video": process.env.FAL_MODEL_VIDEO_VEO,
+    "grok-video": process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/text-to-video"
   };
 
   return (
@@ -79,6 +80,8 @@ const IMAGE_SIZE_PRESETS = new Set([
 const EDIT_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16"]);
 const EDIT_RESOLUTIONS = new Set(["0.5K", "1K", "2K", "4K"]);
 const OUTPUT_FORMATS = new Set(["jpeg", "png", "webp"]);
+const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
+const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 
 function getFalImageSize(ratio: string, imageSize?: string) {
   if (imageSize === "default_4_3") return "landscape_4_3";
@@ -91,6 +94,16 @@ function getFalImageSize(ratio: string, imageSize?: string) {
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
+  if (body.provider === "grok-video") {
+    const duration = Number.parseInt(body.duration, 10);
+    return {
+      prompt,
+      duration: Number.isInteger(duration) && duration > 0 ? duration : 6,
+      aspect_ratio: VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
+      resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p"
+    };
+  }
+
   if (body.provider === "nano-banana-edit") {
     return {
       prompt,
