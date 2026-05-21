@@ -498,10 +498,19 @@ function StudioContent() {
   const estCredits = mode === "image" ? 12 : duration === "10s" ? 68 : duration === "8s" ? 56 : 42;
   const estimatedSeconds = estimateTaskSeconds(mode, provider, duration);
   const isPromptValid = prompt.trim().length >= 8;
-  const latestPreviewTask = mode === "video"
-    ? tasks.find((task) => task.mediaUrl && task.status === "Completed" && task.type === "Video") ||
-      tasks.find((task) => task.mediaUrl && task.type === "Video")
-    : null;
+  const currentTaskType: TaskItem["type"] = mode === "image" ? "Image" : "Video";
+  const latestPreviewTask =
+    tasks.find(
+      (task) =>
+        task.mediaUrl &&
+        task.status === "Completed" &&
+        task.type === currentTaskType &&
+        task.provider === provider
+    ) ||
+    tasks.find((task) => task.mediaUrl && task.type === currentTaskType && task.provider === provider) ||
+    tasks.find((task) => task.mediaUrl && task.status === "Completed" && task.type === currentTaskType) ||
+    tasks.find((task) => task.mediaUrl && task.type === currentTaskType) ||
+    null;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const failedTasks = tasks.filter((task) => task.status === "Failed");
@@ -855,10 +864,20 @@ function StudioContent() {
             </div>
 
             {mode === "image" ? (
-              <div className="mb-5 inline-flex rounded-2xl border border-black/10 bg-white p-1.5">
+              <div className="mb-5 rounded-2xl border border-black/10 bg-white/80 p-3 shadow-sm">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#637084]">Image Workflow</p>
+                    <p className="mt-1 text-xs text-[#667084]">Choose text-only generation or edit from reference images.</p>
+                  </div>
+                  <span className="hidden rounded-full bg-[#f3f7ff] px-3 py-1 text-xs font-semibold text-[#40526f] sm:inline-flex">
+                    {imageWorkflow === "image-to-image" ? "Reference required" : "Prompt only"}
+                  </span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
                 {[
-                  { value: "text-to-image", label: "Text to Image" },
-                  { value: "image-to-image", label: "Image to Image" }
+                  { value: "text-to-image", label: "Text to Image", note: "Create from prompt" },
+                  { value: "image-to-image", label: "Image to Image", note: "Edit uploaded or linked images" }
                 ].map((item) => (
                   <button
                     key={item.value}
@@ -881,15 +900,19 @@ function StudioContent() {
                       params.set("ratio", ratioFromImageSize(nextImageSize));
                       router.replace(`/studio?${params.toString()}`, { scroll: false });
                     }}
-                    className={`rounded-xl px-5 py-2 text-sm font-semibold transition ${
+                    className={`rounded-xl border px-4 py-3 text-left transition ${
                       imageWorkflow === item.value
-                        ? "bg-[#1d1d1f] text-white"
-                        : "text-[#4c5a70] hover:bg-[#f1f6ff]"
+                        ? "border-[#1d1d1f] bg-[#1d1d1f] text-white shadow-[0_10px_24px_rgba(29,29,31,0.2)]"
+                        : "border-black/10 bg-white text-[#4c5a70] hover:bg-[#f1f6ff]"
                     }`}
                   >
-                    {item.label}
+                    <span className="block text-sm font-semibold">{item.label}</span>
+                    <span className={`mt-1 block text-xs ${imageWorkflow === item.value ? "text-white/70" : "text-[#6b7485]"}`}>
+                      {item.note}
+                    </span>
                   </button>
                 ))}
+                </div>
               </div>
             ) : null}
 
@@ -1175,30 +1198,7 @@ function StudioContent() {
                   </a>
                 ) : null}
               </div>
-              {mode === "image" && modelPreviewUrl ? (
-                <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
-                  <div
-                    className="relative overflow-hidden rounded-lg border border-black/10 bg-[#f6f7fb]"
-                    style={{ aspectRatio: previewAspectRatio }}
-                  >
-                    <img
-                      src={modelPreviewUrl}
-                      alt={`${provider} example preview`}
-                      className="h-full w-full object-cover opacity-95"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 text-white">
-                      <p className="text-sm font-semibold">
-                        {provider === "flux-image"
-                          ? "FLUX Schnell sample"
-                          : provider === "nano-banana-edit"
-                            ? "Nano Banana 2 Edit sample"
-                            : "GPT Image 2 sample"}
-                      </p>
-                      <p className="mt-1 text-xs text-white/75">The canvas matches your selected output size.</p>
-                    </div>
-                  </div>
-                </div>
-              ) : latestPreviewTask ? (
+              {latestPreviewTask ? (
                 <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <p className="text-xs text-[#677388]">{latestPreviewTask.id}</p>
@@ -1222,6 +1222,29 @@ function StudioContent() {
                       <img src={latestPreviewTask.mediaUrl || ""} alt={latestPreviewTask.id} className="h-full w-full object-contain" />
                     </button>
                   )}
+                </div>
+              ) : mode === "image" && modelPreviewUrl ? (
+                <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
+                  <div
+                    className="relative overflow-hidden rounded-lg border border-black/10 bg-[#f6f7fb]"
+                    style={{ aspectRatio: previewAspectRatio }}
+                  >
+                    <img
+                      src={modelPreviewUrl}
+                      alt={`${provider} example preview`}
+                      className="h-full w-full object-cover opacity-95"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 text-white">
+                      <p className="text-sm font-semibold">
+                        {provider === "flux-image"
+                          ? "FLUX Schnell sample"
+                          : provider === "nano-banana-edit"
+                            ? "Nano Banana 2 Edit sample"
+                            : "GPT Image 2 sample"}
+                      </p>
+                      <p className="mt-1 text-xs text-white/75">The canvas matches your selected output size.</p>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">

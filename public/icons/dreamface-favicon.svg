@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DreamFace favicon">
+  <defs>
+    <linearGradient id="bg" x1="64" x2="448" y1="32" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="0.52" stop-color="#101827"/>
+      <stop offset="1" stop-color="#1b1230"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="132" x2="392" y1="124" y2="390" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#76e4ff"/>
+      <stop offset="0.48" stop-color="#9db7ff"/>
+      <stop offset="1" stop-color="#9b72ff"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.37 0 0 0 0 0.86 0 0 0 0 1 0 0 0 .75 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M256 92 402 364H110L256 92Z" fill="none" stroke="#ffffff" stroke-opacity=".18" stroke-width="22"/>
+  <path d="M256 92 402 364H110L256 92Z" fill="none" stroke="url(#mark)" stroke-linecap="round" stroke-linejoin="round" stroke-width="24" filter="url(#glow)"/>
+  <path d="M256 170 331 322H181L256 170Z" fill="none" stroke="#eef7ff" stroke-opacity=".9" stroke-linecap="round" stroke-linejoin="round" stroke-width="13"/>
+  <circle cx="256" cy="170" r="15" fill="#76e4ff"/>
+  <circle cx="181" cy="322" r="15" fill="#9b72ff"/>
+  <circle cx="331" cy="322" r="15" fill="#ffffff"/>
+  <path d="M181 322h150M256 170l-75 152M256 170l75 152" stroke="#dff8ff" stroke-opacity=".45" stroke-width="6"/>
+</svg>
