@@ -378,7 +378,7 @@ export default function CreationsPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <AppButton href="/studio?mode=image&workflow=text-to-image" variant="primary">New image</AppButton>
-              <AppButton href="/studio?mode=video" variant="secondary">New video</AppButton>
+              <AppButton href="/studio?mode=video&workflow=text-to-video" variant="secondary">New video</AppButton>
             </div>
           </div>
         </section>

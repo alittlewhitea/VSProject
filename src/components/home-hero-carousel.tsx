@@ -22,7 +22,7 @@ export function HomeHeroCarousel({ images }: HomeHeroCarouselProps) {
   function hrefForSlide(src: string) {
     const normalized = src.toLowerCase();
     if (normalized.includes("video") || normalized.includes("seedance") || normalized.includes("kling") || normalized.includes("veo")) {
-      return "/studio?mode=video";
+      return "/studio?mode=video&workflow=text-to-video";
     }
     return "/studio?mode=image&workflow=text-to-image";
   }

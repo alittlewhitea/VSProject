@@ -815,7 +815,7 @@ function StudioContent() {
                 Image Studio
               </Link>
               <Link
-                href="/studio?mode=video"
+                href="/studio?mode=video&workflow=text-to-video"
                 className={`rounded-xl px-6 py-2.5 text-base font-semibold transition ${
                   mode === "video"
                     ? "bg-[#0c7a71] text-white shadow-[0_8px_18px_rgba(12,122,113,0.35)]"
