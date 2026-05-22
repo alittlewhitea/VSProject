@@ -118,7 +118,7 @@ export default async function HomePage() {
 
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link
-                    href="/studio?mode=image"
+                    href="/studio?mode=image&workflow=text-to-image"
                     className="inline-flex items-center justify-center rounded-full bg-[#1d1d1f] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-black/15 transition-transform duration-150 active:scale-[0.98]"
                   >
                     Open Studio
@@ -312,7 +312,7 @@ export default async function HomePage() {
           <Reveal>
             <div className="mb-6 flex items-end justify-between">
               <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">Provider Selection</h3>
-              <Link href="/studio" className="text-sm font-semibold text-[#1d1d1f]">
+              <Link href="/studio?mode=image&workflow=text-to-image" className="text-sm font-semibold text-[#1d1d1f]">
                 See all in studio -&gt;
               </Link>
             </div>
@@ -383,7 +383,7 @@ export default async function HomePage() {
                 ))}
               </div>
               <div className="mt-8">
-                <AppButton href="/studio" variant="dark">Start Building</AppButton>
+                <AppButton href="/studio?mode=image&workflow=text-to-image" variant="dark">Start Building</AppButton>
               </div>
             </div>
           </Reveal>
@@ -393,7 +393,7 @@ export default async function HomePage() {
           <Reveal>
             <div className="mb-6 flex items-end justify-between">
               <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">Credits that never feel like a subscription</h3>
-              <Link href="/studio" className="text-sm font-semibold text-[#1d1d1f]">Open wallet -&gt;</Link>
+              <Link href="/studio?mode=image&workflow=text-to-image" className="text-sm font-semibold text-[#1d1d1f]">Open wallet -&gt;</Link>
             </div>
           </Reveal>
           <div className="grid gap-5 md:grid-cols-3">
@@ -405,7 +405,7 @@ export default async function HomePage() {
                   <p className="mt-4 text-4xl font-semibold tracking-tight">{p.price}</p>
                   <p className="mt-2 text-sm text-[#5a6070]">{p.credits}</p>
                   <div className="mt-6">
-                    <AppButton href="/studio?mode=image" variant="dark" size="md">Get credits</AppButton>
+                    <AppButton href="/studio?mode=image&workflow=text-to-image" variant="dark" size="md">Get credits</AppButton>
                   </div>
                 </article>
               </Reveal>
@@ -439,7 +439,7 @@ export default async function HomePage() {
                 Launch faster with one clean studio for image and video generation.
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
-                <AppButton href="/studio" variant="primary">Start in Studio</AppButton>
+                <AppButton href="/studio?mode=image&workflow=text-to-image" variant="primary">Start in Studio</AppButton>
                 <AppButton variant="secondary">Contact sales</AppButton>
               </div>
             </div>

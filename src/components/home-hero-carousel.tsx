@@ -24,7 +24,7 @@ export function HomeHeroCarousel({ images }: HomeHeroCarouselProps) {
     if (normalized.includes("video") || normalized.includes("seedance") || normalized.includes("kling") || normalized.includes("veo")) {
       return "/studio?mode=video";
     }
-    return "/studio?mode=image";
+    return "/studio?mode=image&workflow=text-to-image";
   }
 
   function showPrevious() {

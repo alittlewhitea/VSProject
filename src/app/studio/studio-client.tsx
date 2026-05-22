@@ -245,7 +245,7 @@ function StudioContent() {
     supabase.auth.getSession().then(({ data }) => {
       const token = data.session?.access_token || null;
       if (!token) {
-        const next = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?mode=image";
+        const next = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?mode=image&workflow=text-to-image";
         router.replace(`/auth?next=${encodeURIComponent(next)}`);
         return;
       }
@@ -575,7 +575,7 @@ function StudioContent() {
         accessToken ||
         (typeof window !== "undefined" ? window.localStorage.getItem("nova_access_token") : null);
       if (!liveToken) {
-        const next = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?mode=image";
+        const next = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?mode=image&workflow=text-to-image";
         router.push(`/auth?next=${encodeURIComponent(next)}`);
         throw new Error("Session expired. Please sign in again.");
       }
@@ -805,7 +805,7 @@ function StudioContent() {
             </div>
             <div className="inline-flex rounded-2xl border border-black/10 bg-white p-1.5">
               <Link
-                href="/studio?mode=image"
+                href="/studio?mode=image&workflow=text-to-image"
                 className={`rounded-xl px-6 py-2.5 text-base font-semibold transition ${
                   mode === "image"
                     ? "bg-[#1c6be1] text-white shadow-[0_8px_18px_rgba(28,107,225,0.35)]"

@@ -98,7 +98,7 @@ export function GalleryDetailClient({ itemId }: { itemId: string }) {
               >
                 {copied ? "Copied" : "Copy Prompt"}
               </button>
-              <AppButton href={`/studio?mode=image&prompt=${encodeURIComponent(item.prompt)}`} variant="primary" size="md">
+              <AppButton href={`/studio?mode=image&workflow=text-to-image&prompt=${encodeURIComponent(item.prompt)}`} variant="primary" size="md">
                 Use Prompt
               </AppButton>
               <a
@@ -154,7 +154,7 @@ export function GalleryDetailClient({ itemId }: { itemId: string }) {
                       {copied ? "Copied" : "Copy Prompt"}
                     </button>
                     <Link
-                      href={`/studio?mode=image&prompt=${encodeURIComponent(item.prompt)}`}
+                      href={`/studio?mode=image&workflow=text-to-image&prompt=${encodeURIComponent(item.prompt)}`}
                       className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-center text-sm font-semibold text-[#1d1d1f] shadow-sm"
                     >
                       Use in Studio

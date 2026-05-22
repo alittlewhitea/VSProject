@@ -7,7 +7,7 @@ const pillars = [
     body:
       "DreamFace brings together current AI models for image, video, and voiceover creation with curated prompts, production-ready workflows, and editing utilities. Everything sits in one workspace so creators can move from idea to polished asset without chasing tools across tabs.",
     cta: "Explore AI Tools",
-    href: "/studio?mode=image"
+    href: "/studio?mode=image&workflow=text-to-image"
   },
   {
     title: "Our mission",
@@ -21,7 +21,7 @@ const pillars = [
     body:
       "DreamFace is built for the new generation of visual creators: solo makers, agencies, ecommerce teams, social studios, and brand marketers. We focus on legally aware AI workflows, reusable prompts, credit-based generation, and organized creation history so you can spend more time creating and less time managing the process.",
     cta: "Start Creating",
-    href: "/studio?mode=image"
+    href: "/studio?mode=image&workflow=text-to-image"
   }
 ];
 
@@ -54,7 +54,7 @@ export default function AboutPage() {
                 DreamFace helps creators and brands produce standout visual content with modern AI models, reusable prompt workflows, credit-based generation, and a growing library of creative references.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
-                <AppButton href="/studio?mode=image" variant="primary">Open Studio</AppButton>
+                <AppButton href="/studio?mode=image&workflow=text-to-image" variant="primary">Open Studio</AppButton>
                 <AppButton href="/gallery" variant="secondary">Browse Gallery</AppButton>
               </div>
             </div>

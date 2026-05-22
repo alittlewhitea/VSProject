@@ -175,6 +175,7 @@ function regenerateHref(task: CreationTask) {
   const params = new URLSearchParams({
     mode: task.type === "Image" ? "image" : "video"
   });
+  if (task.type === "Image") params.set("workflow", "text-to-image");
   if (task.prompt) params.set("prompt", task.prompt);
   if (task.provider) params.set("provider", task.provider);
   if (task.ratio) params.set("ratio", task.ratio);
@@ -376,7 +377,7 @@ export default function CreationsPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <AppButton href="/studio?mode=image" variant="primary">New image</AppButton>
+              <AppButton href="/studio?mode=image&workflow=text-to-image" variant="primary">New image</AppButton>
               <AppButton href="/studio?mode=video" variant="secondary">New video</AppButton>
             </div>
           </div>

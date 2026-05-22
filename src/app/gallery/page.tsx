@@ -297,7 +297,7 @@ function GalleryContent() {
                 : "Add rows to the public gallery table and published items will appear here."}
             </p>
             <div className="mt-5">
-              <AppButton href="/studio?mode=image" variant="secondary" size="md">Open Studio</AppButton>
+              <AppButton href="/studio?mode=image&workflow=text-to-image" variant="secondary" size="md">Open Studio</AppButton>
             </div>
           </section>
         )}

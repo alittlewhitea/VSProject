@@ -8,7 +8,7 @@ import { AppButton } from "../../components/ui/button";
 
 function AuthContent() {
   const sp = useSearchParams();
-  const nextPath = sp.get("next") || "/studio?mode=image";
+  const nextPath = sp.get("next") || "/studio?mode=image&workflow=text-to-image";
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
   const [tone, setTone] = useState<"ok" | "error" | "idle">("idle");

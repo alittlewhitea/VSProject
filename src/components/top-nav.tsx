@@ -104,7 +104,7 @@ export function TopNav() {
                 Billing
               </Link>
               <Link
-                href="/studio?mode=image"
+                href="/studio?mode=image&workflow=text-to-image"
                 className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white transition-transform duration-150 active:scale-[0.97]"
               >
                 Open Studio
@@ -113,13 +113,13 @@ export function TopNav() {
           ) : (
             <>
               <Link
-                href="/auth?next=%2Fstudio%3Fmode%3Dimage"
+                href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image"
                 className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
               >
                 Sign in
               </Link>
               <Link
-                href="/studio?mode=image"
+                href="/studio?mode=image&workflow=text-to-image"
                 className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white transition-transform duration-150 active:scale-[0.97]"
               >
                 Open Studio
