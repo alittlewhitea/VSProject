@@ -54,18 +54,59 @@ const plans = [
 ];
 const faqs = [
   {
-    q: "How do you switch between APIs?",
-    a: "Provider routing is configured per task in Studio, with a single UX across image and video flows."
+    q: "What is DreamFace?",
+    a: "DreamFace is an AI creative studio for generating images and videos in one workspace. Creators can move from prompt ideas to AI image generation, AI image editing, and AI video tasks while keeping models, credits, history, and outputs organized."
   },
   {
-    q: "Can I control cost before generating?",
-    a: "Yes. Every job shows estimated credit usage before submission."
+    q: "Which AI generation tools are available in DreamFace?",
+    a: "DreamFace currently focuses on an AI image generator and an AI video generator. The image studio supports text-to-image and image-to-image creation, while the video studio supports text-to-video workflows across selected models."
   },
   {
-    q: "Do you support enterprise security requirements?",
-    a: "The platform supports private endpoints, audit-friendly task logs, and role-based workflows."
+    q: "Does DreamFace support text-to-image and image-to-image?",
+    a: "Yes. You can create an image from a text prompt or add reference images for image-to-image editing. The studio keeps prompt controls and model selection in the same composer so you can choose the right image workflow without changing tools."
+  },
+  {
+    q: "Does DreamFace support text-to-video and image-to-video?",
+    a: "DreamFace currently exposes text-to-video generation in Video Studio. Image-to-video is a related AI video workflow we can add as model coverage expands, so the product stays clear about what is available now."
+  },
+  {
+    q: "Which AI models can I use?",
+    a: "Model options depend on the workflow. Image creation includes providers such as GPT Image 2, Nano Banana 2, and FLUX Schnell, and video creation includes routed providers such as Seedance, Kling, Veo, and Grok Imagine Video."
+  },
+  {
+    q: "Can I see generation cost before I create?",
+    a: "Yes. DreamFace uses credits and shows the estimated credit cost on the generation action before a task is submitted. Billing and creation history keep purchases, balances, and generation tasks easier to trace."
+  },
+  {
+    q: "What happens if an AI generation task fails?",
+    a: "Generation tasks keep a visible status trail. Failed jobs can show charge and refund information in task details so paid image and video generation stays understandable instead of disappearing behind a spinner."
+  },
+  {
+    q: "Can I browse prompts before opening the studio?",
+    a: "Yes. The DreamFace prompt gallery is a starting point for visual ideas, model examples, and reusable prompts before you open the AI image or video workspace."
+  },
+  {
+    q: "Does DreamFace include AI music or AI voice generation?",
+    a: "Not on the current homepage workflow. DreamFace is centered on AI image generation and AI video generation today, rather than presenting an AI music generator or AI voice generator that is not ready in the studio."
+  },
+  {
+    q: "Can I use generated content in client or commercial projects?",
+    a: "Use depends on the applicable DreamFace terms, the selected provider or model, your inputs, and third-party rights such as trademarks, copyrighted material, and personal likeness. Review the license and terms for the project before publishing or monetizing output."
   }
 ];
+
+const homeFaqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: faq.a
+    }
+  }))
+};
 
 const HERO_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif"]);
 
@@ -90,6 +131,10 @@ export default async function HomePage() {
 
   return (
     <main className="bg-grid pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqJsonLd) }}
+      />
       <div className="mx-auto max-w-7xl px-4 pt-4 md:px-8 md:pt-5">
         <TopNav />
 
@@ -415,12 +460,18 @@ export default async function HomePage() {
 
         <section className="section-shell mt-14 md:mt-20">
           <Reveal>
-            <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">Frequently asked questions</h3>
+            <div className="max-w-4xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#637084]">DreamFace FAQ</p>
+              <h3 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">Frequently asked questions</h3>
+              <p className="mt-4 text-base leading-8 text-[#586579]">
+                Learn how the DreamFace AI image generator, AI video generator, text-to-image, image-to-image, and text-to-video workflows fit into one creative studio with model routing, prompt references, credits, and creation history.
+              </p>
+            </div>
           </Reveal>
-          <div className="mt-6 space-y-3">
+          <div className="mt-7 grid gap-3 lg:grid-cols-2">
             {faqs.map((f, i) => (
               <Reveal key={f.q} delayMs={i * 60}>
-                <article className={`card motion-smooth lift-soft rounded-2xl p-6 ${i % 2 === 0 ? "tone-blue" : "tone-peach"}`}>
+                <article className={`card motion-smooth lift-soft h-full rounded-2xl p-6 ${i % 3 === 0 ? "tone-blue" : i % 3 === 1 ? "tone-peach" : "tone-mint"}`}>
                   <h4 className="text-lg font-semibold tracking-tight">{f.q}</h4>
                   <p className="mt-2 text-sm leading-7 text-[#606676]">{f.a}</p>
                 </article>
