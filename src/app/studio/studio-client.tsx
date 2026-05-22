@@ -42,6 +42,14 @@ const FLUX_DEFAULT_PROMPT =
 const FLUX_PREVIEW_URL = "https://fal.media/files/tiger/m0K3P3JUR_Brcf7mxk3tl.png";
 const NANO_BANANA_EDIT_DEFAULT_PROMPT = "make a photo of the man driving the car down the california coastline";
 const NANO_BANANA_EDIT_PREVIEW_URL = "https://storage.googleapis.com/falserverless/example_outputs/nano-banana-2-edit-output.png";
+const NANO_BANANA_EDIT_REFERENCE_URLS = [
+  "https://storage.googleapis.com/falserverless/example_inputs/nano-banana-edit-input.png",
+  "https://storage.googleapis.com/falserverless/example_inputs/nano-banana-edit-input-2.png"
+];
+const NANO_BANANA_EDIT_REFERENCE_TEXT = NANO_BANANA_EDIT_REFERENCE_URLS.join("\n");
+const GROK_VIDEO_DEFAULT_PROMPT =
+  "Anime schoolgirl bursting out of house door, cherry blossoms blowing, morning light, speed lines indicating rush, chibi-ready expressions, classic shojo aesthetic, vibrant colors";
+const GROK_VIDEO_PREVIEW_URL = "https://v3b.fal.media/files/b/0a8b90e4/RUAbFYlssdqnbjNLmE8qP_IX7BNYGP.mp4";
 
 const IMAGE_SIZE_PRESETS = [
   { value: "default_4_3", label: "Default 4:3", dimensions: "1024 x 768", width: 1024, height: 768 },
@@ -164,6 +172,7 @@ function defaultPromptForProvider(provider: string) {
   if (provider === "chatgpt-image") return GPT_IMAGE2_DEFAULT_PROMPT;
   if (provider === "flux-image") return FLUX_DEFAULT_PROMPT;
   if (provider === "nano-banana-edit") return NANO_BANANA_EDIT_DEFAULT_PROMPT;
+  if (provider === "grok-video") return GROK_VIDEO_DEFAULT_PROMPT;
   return "";
 }
 
@@ -171,6 +180,7 @@ function defaultPreviewForProvider(provider: string) {
   if (provider === "chatgpt-image") return GPT_IMAGE2_PREVIEW_URL;
   if (provider === "flux-image") return FLUX_PREVIEW_URL;
   if (provider === "nano-banana-edit") return NANO_BANANA_EDIT_PREVIEW_URL;
+  if (provider === "grok-video") return GROK_VIDEO_PREVIEW_URL;
   return null;
 }
 
@@ -186,8 +196,14 @@ function canReplacePrompt(value: string) {
     !trimmed ||
     trimmed === GPT_IMAGE2_DEFAULT_PROMPT ||
     trimmed === FLUX_DEFAULT_PROMPT ||
-    trimmed === NANO_BANANA_EDIT_DEFAULT_PROMPT
+    trimmed === NANO_BANANA_EDIT_DEFAULT_PROMPT ||
+    trimmed === GROK_VIDEO_DEFAULT_PROMPT
   );
+}
+
+function canReplaceReferenceImages(value: string) {
+  const trimmed = value.trim();
+  return !trimmed || trimmed === NANO_BANANA_EDIT_REFERENCE_TEXT;
 }
 
 function isProviderAllowedForMode(provider: string | null, mode: "image" | "video") {
@@ -244,15 +260,15 @@ function StudioContent() {
     const supabase = createBrowserSupabaseClient();
     supabase.auth.getSession().then(({ data }) => {
       const token = data.session?.access_token || null;
-      if (!token) {
-        const next = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?mode=image&workflow=text-to-image";
-        router.replace(`/auth?next=${encodeURIComponent(next)}`);
-        return;
-      }
       setAccessToken(token);
       if (typeof window !== "undefined") {
-        window.localStorage.setItem("nova_access_token", token);
+        if (token) {
+          window.localStorage.setItem("nova_access_token", token);
+        } else {
+          window.localStorage.removeItem("nova_access_token");
+        }
       }
+      if (!token) setCreditNote("Sign in to generate and see your credit balance.");
       setAuthReady(true);
     });
     const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -270,7 +286,7 @@ function StudioContent() {
     return () => {
       authSub.subscription.unsubscribe();
     };
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     const workflowParam = sp.get("workflow") === "image-to-image" ? "image-to-image" : "text-to-image";
@@ -293,11 +309,24 @@ function StudioContent() {
   }, [mode, sp]);
 
   useEffect(() => {
-    const defaultPrompt = mode === "image" ? defaultPromptForProvider(provider) : "";
+    const defaultPrompt = defaultPromptForProvider(provider);
     if (defaultPrompt && canReplacePrompt(prompt)) {
       setPrompt(defaultPrompt);
     }
   }, [mode, provider, prompt]);
+
+  useEffect(() => {
+    if (mode === "image" && imageWorkflow === "image-to-image" && provider === "nano-banana-edit") {
+      if (canReplaceReferenceImages(referenceImagesText)) {
+        setReferenceImagesText(NANO_BANANA_EDIT_REFERENCE_TEXT);
+      }
+      return;
+    }
+
+    if (referenceImagesText.trim() === NANO_BANANA_EDIT_REFERENCE_TEXT) {
+      setReferenceImagesText("");
+    }
+  }, [imageWorkflow, mode, provider, referenceImagesText]);
 
   useEffect(() => {
     if (mode !== "image") return;
@@ -519,7 +548,8 @@ function StudioContent() {
   const selectedImageSize = getImageSizePreset(imageSize);
   const videoPreviewRatio = ratio.includes(":") ? ratio.replace(":", " / ") : "16 / 9";
   const previewAspectRatio = mode === "image" ? `${selectedImageSize.width} / ${selectedImageSize.height}` : videoPreviewRatio;
-  const modelPreviewUrl = mode === "image" ? defaultPreviewForProvider(provider) : null;
+  const modelPreviewUrl = defaultPreviewForProvider(provider);
+  const isModelPreviewVideo = provider === "grok-video";
   const providerNote =
     provider === "flux-image"
       ? "FLUX Schnell is best for fast visual drafts. Use OpenAI GPT-Image-2 for exact text, counting, or strict layout instructions."
@@ -889,6 +919,7 @@ function StudioContent() {
                       setProvider(nextProvider);
                       const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
                       if (nextDefaultPrompt) setPrompt(nextDefaultPrompt);
+                      setReferenceImagesText(workflow === "image-to-image" ? NANO_BANANA_EDIT_REFERENCE_TEXT : "");
                       const nextImageSize = defaultImageSizeForProvider(nextProvider);
                       setImageSize(nextImageSize);
                       setRatio(ratioFromImageSize(nextImageSize));
@@ -924,7 +955,7 @@ function StudioContent() {
                   onChange={(e) => {
                     const nextProvider = e.target.value;
                     setProvider(nextProvider);
-                    const nextDefaultPrompt = mode === "image" ? defaultPromptForProvider(nextProvider) : "";
+                    const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
                     if (nextDefaultPrompt) {
                       setPrompt(nextDefaultPrompt);
                     }
@@ -1146,7 +1177,7 @@ function StudioContent() {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <AppButton variant="primary" onClick={handleGenerate} disabled={!isPromptValid || isSubmitting}>
-                {isSubmitting ? "Generating..." : "Generate Now"}
+                {isSubmitting ? "Generating..." : accessToken ? "Generate Now" : "Sign in to Generate"}
               </AppButton>
               <AppButton
                 variant="secondary"
@@ -1223,26 +1254,42 @@ function StudioContent() {
                     </button>
                   )}
                 </div>
-              ) : mode === "image" && modelPreviewUrl ? (
+              ) : modelPreviewUrl ? (
                 <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
                   <div
                     className="relative overflow-hidden rounded-lg border border-black/10 bg-[#f6f7fb]"
                     style={{ aspectRatio: previewAspectRatio }}
                   >
-                    <img
-                      src={modelPreviewUrl}
-                      alt={`${provider} example preview`}
-                      className="h-full w-full object-cover opacity-95"
-                    />
+                    {isModelPreviewVideo ? (
+                      <video
+                        src={modelPreviewUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        controls
+                        className="h-full w-full object-cover opacity-95"
+                      />
+                    ) : (
+                      <img
+                        src={modelPreviewUrl}
+                        alt={`${provider} example preview`}
+                        className="h-full w-full object-cover opacity-95"
+                      />
+                    )}
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 text-white">
                       <p className="text-sm font-semibold">
                         {provider === "flux-image"
                           ? "FLUX Schnell sample"
                           : provider === "nano-banana-edit"
                             ? "Nano Banana 2 Edit sample"
+                            : provider === "grok-video"
+                              ? "Grok Imagine Video sample"
                             : "GPT Image 2 sample"}
                       </p>
-                      <p className="mt-1 text-xs text-white/75">The canvas matches your selected output size.</p>
+                      <p className="mt-1 text-xs text-white/75">
+                        {mode === "image" ? "The canvas matches your selected output size." : "The frame matches your selected aspect ratio."}
+                      </p>
                     </div>
                   </div>
                 </div>
