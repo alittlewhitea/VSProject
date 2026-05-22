@@ -49,10 +49,19 @@ function isValidBody(body: unknown): body is GenerateRequest {
   );
 }
 
-function getModelId(mode: GenerateMode, provider: string): string | null {
+function hasReferenceImages(body: GenerateRequest) {
+  return body.mode === "image" && Array.isArray(body.imageUrls) && body.imageUrls.some((url) => typeof url === "string" && url.trim());
+}
+
+function getModelId(mode: GenerateMode, provider: string, editImage = false): string | null {
   const keyByProvider: Record<string, string | undefined> = {
-    "chatgpt-image": process.env.FAL_MODEL_IMAGE_CHATGPT,
+    "chatgpt-image": editImage
+      ? process.env.FAL_MODEL_IMAGE_CHATGPT_EDIT || "openai/gpt-image-2/edit"
+      : process.env.FAL_MODEL_IMAGE_CHATGPT || "openai/gpt-image-2",
     "flux-image": process.env.FAL_MODEL_IMAGE_FLUX,
+    "nano-banana-image": editImage
+      ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit"
+      : process.env.FAL_MODEL_IMAGE_NANO_BANANA || "fal-ai/nano-banana-2",
     "nano-banana-edit": process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit",
     "recraft-image": process.env.FAL_MODEL_IMAGE_RECRAFT,
     "seedance-video": process.env.FAL_MODEL_VIDEO_SEEDANCE,
@@ -104,7 +113,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
-  if (body.provider === "nano-banana-edit") {
+  if (body.provider === "nano-banana-edit" || (body.provider === "nano-banana-image" && hasReferenceImages(body))) {
     return {
       prompt,
       image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 14) : [],
@@ -117,9 +126,28 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
   }
 
   if (body.provider === "chatgpt-image") {
+    if (hasReferenceImages(body)) {
+      return {
+        prompt,
+        image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 16) : [],
+        image_size: getFalImageSize(body.ratio, body.imageSize),
+        quality: "high",
+        output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png"
+      };
+    }
     return {
       prompt,
       image_size: getFalImageSize(body.ratio, body.imageSize)
+    };
+  }
+
+  if (body.provider === "nano-banana-image") {
+    return {
+      prompt,
+      aspect_ratio: EDIT_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
+      resolution: body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K",
+      output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
+      num_images: 1
     };
   }
 
@@ -212,7 +240,7 @@ export async function POST(request: Request) {
       }
     }
     const falKey = process.env.FAL_KEY;
-    const modelId = getModelId(body.mode, body.provider);
+    const modelId = getModelId(body.mode, body.provider, hasReferenceImages(body));
     const taskId = generationTaskId(body.idempotencyKey);
 
     const admin = createSupabaseAdminClient();

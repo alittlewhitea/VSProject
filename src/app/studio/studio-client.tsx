@@ -177,7 +177,7 @@ function ratioFromImageSize(value: string) {
 function defaultPromptForProvider(provider: string) {
   if (provider === "chatgpt-image") return GPT_IMAGE2_DEFAULT_PROMPT;
   if (provider === "flux-image") return FLUX_DEFAULT_PROMPT;
-  if (provider === "nano-banana-edit") return NANO_BANANA_EDIT_DEFAULT_PROMPT;
+  if (provider === "nano-banana-image" || provider === "nano-banana-edit") return NANO_BANANA_EDIT_DEFAULT_PROMPT;
   if (provider === "grok-video") return GROK_VIDEO_DEFAULT_PROMPT;
   return "";
 }
@@ -185,7 +185,7 @@ function defaultPromptForProvider(provider: string) {
 function defaultPreviewForProvider(provider: string) {
   if (provider === "chatgpt-image") return GPT_IMAGE2_PREVIEW_URL;
   if (provider === "flux-image") return FLUX_PREVIEW_URL;
-  if (provider === "nano-banana-edit") return NANO_BANANA_EDIT_PREVIEW_URL;
+  if (provider === "nano-banana-image" || provider === "nano-banana-edit") return NANO_BANANA_EDIT_PREVIEW_URL;
   if (provider === "grok-video") return GROK_VIDEO_PREVIEW_URL;
   return null;
 }
@@ -202,14 +202,14 @@ function isSamplePrompt(value: string) {
 
 function defaultImageSizeForProvider(provider: string) {
   if (provider === "flux-image") return "landscape_16_9";
-  if (provider === "nano-banana-edit") return "default_4_3";
+  if (provider === "nano-banana-image" || provider === "nano-banana-edit") return "default_4_3";
   return "default_4_3";
 }
 
 function isProviderAllowedForMode(provider: string | null, mode: "image" | "video") {
   if (!provider) return false;
   return mode === "image"
-    ? ["chatgpt-image", "flux-image", "nano-banana-edit", "recraft-image"].includes(provider)
+    ? ["chatgpt-image", "nano-banana-image", "flux-image", "nano-banana-edit", "recraft-image"].includes(provider)
     : ["seedance-video", "kling-video", "veo-video", "grok-video"].includes(provider);
 }
 
@@ -229,7 +229,9 @@ function StudioContent() {
   const mode = sp.get("mode") === "image" ? "image" : "video";
   const providerFromUrl = sp.get("provider");
   const initialProvider = (isProviderAllowedForMode(providerFromUrl, mode)
-    ? providerFromUrl
+    ? providerFromUrl === "nano-banana-edit"
+      ? "nano-banana-image"
+      : providerFromUrl
     : mode === "image"
       ? "chatgpt-image"
       : "seedance-video") as string;
@@ -240,7 +242,9 @@ function StudioContent() {
   const [ratio, setRatio] = useState(mode === "image" ? "1:1" : "16:9");
   const [imageSize, setImageSize] = useState("default_4_3");
   const [referenceImagesText, setReferenceImagesText] = useState(() =>
-    mode === "image" && initialImageWorkflow === "image-to-image" && initialProvider === "nano-banana-edit"
+    mode === "image" &&
+    initialProvider === "nano-banana-image" &&
+    (initialImageWorkflow === "image-to-image" || providerFromUrl === "nano-banana-image")
       ? NANO_BANANA_EDIT_REFERENCE_TEXT
       : ""
   );
@@ -308,11 +312,11 @@ function StudioContent() {
     const nextProvider = (isProviderAllowedForMode(providerParam, mode)
       ? providerParam
       : mode === "image" && workflowParam === "image-to-image"
-        ? "nano-banana-edit"
+        ? "nano-banana-image"
         : mode === "image"
         ? "chatgpt-image"
         : "seedance-video") as string;
-    setProvider(nextProvider);
+    setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
     const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
     setRatio(mode === "image" ? ratioFromImageSize(nextImageSize) : "16:9");
     setImageSize(nextImageSize);
@@ -336,7 +340,7 @@ function StudioContent() {
 
     const providerParam = sp.get("provider");
     if (isProviderAllowedForMode(providerParam, mode)) {
-      setProvider(providerParam as string);
+      setProvider(providerParam === "nano-banana-edit" ? "nano-banana-image" : (providerParam as string));
     }
 
     const ratioParam = sp.get("ratio");
@@ -508,22 +512,17 @@ function StudioContent() {
   const options = useMemo(
     () =>
       mode === "image"
-        ? imageWorkflow === "image-to-image"
-          ? [
-              { value: "nano-banana-edit", label: "Nano Banana 2 Edit (fal)" }
-            ]
-          : [
-              { value: "chatgpt-image", label: "OpenAI GPT-Image-2 (fal)" },
-              { value: "flux-image", label: "FLUX Schnell (fast draft)" },
-              { value: "recraft-image", label: "Recraft (fal)" }
-            ]
+        ? [
+            { value: "chatgpt-image", label: "GPT Image 2" },
+            { value: "nano-banana-image", label: "Nano Banana 2" }
+          ]
         : [
             { value: "seedance-video", label: "Seedance 2.0 Text-to-Video (fal)" },
             { value: "kling-video", label: "Kling (fal)" },
             { value: "veo-video", label: "Veo (fal)" },
             { value: "grok-video", label: "Grok Imagine Video Text-to-Video (fal)" }
           ],
-    [mode, imageWorkflow]
+    [mode]
   );
 
   const estCredits = mode === "image" ? 12 : duration === "10s" ? 68 : duration === "8s" ? 56 : 42;
@@ -630,7 +629,7 @@ function StudioContent() {
         },
         body: JSON.stringify({
           mode,
-          imageWorkflow,
+          imageWorkflow: mode === "image" && referenceImageUrls.length ? "image-to-image" : imageWorkflow,
           provider,
           ratio,
           duration,
@@ -689,6 +688,10 @@ function StudioContent() {
       setTasks((prev) => [queuedTask, ...prev]);
       if (payload.storageWarning) {
         setTaskHistoryNote("This task is running, but task history could not be saved yet. It will remain visible in this browser session.");
+      }
+      if (mode === "image") {
+        router.push(`/creations?task=${encodeURIComponent(payload.taskId)}`);
+        return;
       }
 
       if (payload.transport === "mock") {
@@ -899,63 +902,6 @@ function StudioContent() {
               <p className="chip rounded-full px-3 py-1 text-xs text-[#4f596b]">Estimated {estCredits} credits</p>
             </div>
 
-            {mode === "image" ? (
-              <div className="mb-5 rounded-2xl border border-black/10 bg-white/80 p-3 shadow-sm">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#637084]">Image Workflow</p>
-                    <p className="mt-1 text-xs text-[#667084]">Choose text-only generation or edit from reference images.</p>
-                  </div>
-                  <span className="hidden rounded-full bg-[#f3f7ff] px-3 py-1 text-xs font-semibold text-[#40526f] sm:inline-flex">
-                    {imageWorkflow === "image-to-image" ? "Reference required" : "Prompt only"}
-                  </span>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                {[
-                  { value: "text-to-image", label: "Text to Image", note: "Create from prompt" },
-                  { value: "image-to-image", label: "Image to Image", note: "Edit uploaded or linked images" }
-                ].map((item) => (
-                  <button
-                    key={item.value}
-                    type="button"
-                    onClick={() => {
-                      const workflow = item.value as "text-to-image" | "image-to-image";
-                      setImageWorkflow(workflow);
-                      const nextProvider = workflow === "image-to-image" ? "nano-banana-edit" : "chatgpt-image";
-                      setProvider(nextProvider);
-                      const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
-                      setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
-                      setReferenceImagesText(
-                        !hasCompletedCreation && workflow === "image-to-image" ? NANO_BANANA_EDIT_REFERENCE_TEXT : ""
-                      );
-                      setReferenceImageFiles([]);
-                      const nextImageSize = defaultImageSizeForProvider(nextProvider);
-                      setImageSize(nextImageSize);
-                      setRatio(ratioFromImageSize(nextImageSize));
-                      const params = new URLSearchParams(sp.toString());
-                      params.set("mode", "image");
-                      params.set("workflow", workflow);
-                      params.set("provider", nextProvider);
-                      params.set("imageSize", nextImageSize);
-                      params.set("ratio", ratioFromImageSize(nextImageSize));
-                      router.replace(`/studio?${params.toString()}`, { scroll: false });
-                    }}
-                    className={`rounded-xl border px-4 py-3 text-left transition ${
-                      imageWorkflow === item.value
-                        ? "border-[#1d1d1f] bg-[#1d1d1f] text-white shadow-[0_10px_24px_rgba(29,29,31,0.2)]"
-                        : "border-black/10 bg-white text-[#4c5a70] hover:bg-[#f1f6ff]"
-                    }`}
-                  >
-                    <span className="block text-sm font-semibold">{item.label}</span>
-                    <span className={`mt-1 block text-xs ${imageWorkflow === item.value ? "text-white/70" : "text-[#6b7485]"}`}>
-                      {item.note}
-                    </span>
-                  </button>
-                ))}
-                </div>
-              </div>
-            ) : null}
-
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block">
                 <span className="text-sm text-[#5f6779]">Provider API</span>
@@ -966,8 +912,12 @@ function StudioContent() {
                     setProvider(nextProvider);
                     const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
                     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
-                    if (mode === "image" && imageWorkflow === "image-to-image") {
-                      setReferenceImagesText(!hasCompletedCreation ? NANO_BANANA_EDIT_REFERENCE_TEXT : "");
+                    if (mode === "image") {
+                      setReferenceImagesText(
+                        !hasCompletedCreation && nextProvider === "nano-banana-image"
+                          ? NANO_BANANA_EDIT_REFERENCE_TEXT
+                          : ""
+                      );
                       setReferenceImageFiles([]);
                     }
                     if (mode === "image") {
@@ -1043,8 +993,8 @@ function StudioContent() {
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="text-sm text-[#5f6779]">{imageWorkflow === "image-to-image" ? "Resolution" : "Duration"}</span>
-                {mode === "image" && imageWorkflow === "image-to-image" ? (
+                <span className="text-sm text-[#5f6779]">{mode === "image" && provider === "nano-banana-image" ? "Resolution" : "Duration"}</span>
+                {mode === "image" && provider === "nano-banana-image" ? (
                   <select
                     value={editResolution}
                     onChange={(e) => setEditResolution(e.target.value)}
@@ -1073,7 +1023,7 @@ function StudioContent() {
                   </select>
                 )}
               </label>
-              {mode === "image" && imageWorkflow === "image-to-image" ? (
+              {mode === "image" ? (
                 <label className="block">
                   <span className="text-sm text-[#5f6779]">Output Format</span>
                   <select
@@ -1116,82 +1066,65 @@ function StudioContent() {
               )}
             </div>
 
-            {mode === "image" && imageWorkflow === "image-to-image" ? (
-              <div className="mt-4 rounded-2xl border border-black/10 bg-white/80 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[#1d1d1f]">Reference Images</p>
-                    <p className="mt-1 text-xs text-[#667084]">Paste image URLs or upload local images. Up to 14 references.</p>
-                  </div>
-                  <span className="rounded-full bg-[#f3f7ff] px-3 py-1 text-xs font-semibold text-[#395172]">
-                    {referenceImageUrls.length} selected
-                  </span>
-                </div>
-                <div className="mt-3 rounded-2xl border border-dashed border-[#9ab2d6]/70 bg-[#f4f8ff] p-3">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52647f]">Image URLs</span>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[#667084]">
-                      one URL per line
-                    </span>
-                  </div>
+            <label className="mt-4 block">
+              <span className="text-sm text-[#5f6779]">Prompt</span>
+              <div className="mt-2 rounded-2xl border border-black/10 bg-white/95 p-3 shadow-sm focus-within:border-[#77a8e8]">
+                <div className="flex items-start gap-3">
+                  {mode === "image" ? (
+                    <label
+                      title="Add reference images"
+                      className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-xl border border-black/10 bg-[#f4f8ff] text-2xl font-light text-[#1d1d1f] transition hover:bg-[#e8f1ff]"
+                    >
+                      +
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
+                      />
+                    </label>
+                  ) : null}
                   <textarea
-                    rows={3}
-                    value={referenceImagesText}
-                    onChange={(e) => setReferenceImagesText(e.target.value)}
-                    className="motion-smooth w-full resize-none rounded-xl border border-[#cdd9ed] bg-white/85 p-3 font-mono text-xs leading-5 text-[#1d1d1f] placeholder:text-[#9ca3b7] outline-none focus:border-[#4c82d9]"
-                    placeholder={"https://example.com/reference-1.jpg\nhttps://example.com/reference-2.png"}
+                    rows={mode === "image" ? 5 : 7}
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    className="min-h-[132px] w-full resize-none bg-transparent px-1 py-2 text-[#1d1d1f] placeholder:text-[#9ca3b7] outline-none"
+                    placeholder="Describe the scene you want to create..."
                   />
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <label className="cursor-pointer rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f] shadow-sm">
-                    Upload images
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
-                    />
-                  </label>
-                  {referenceImageUrls.length ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setReferenceImagesText("");
-                        setReferenceImageFiles([]);
-                      }}
-                      className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#6e6e73]"
-                    >
-                      Clear references
-                    </button>
-                  ) : null}
-                </div>
-                {referenceImageUrls.length ? (
-                  <div className="mt-3 grid grid-cols-4 gap-2">
-                    {referenceImageUrls.slice(0, 8).map((url, index) => (
-                      <div key={`${url.slice(0, 32)}-${index}`} className="aspect-square overflow-hidden rounded-xl bg-[#eef1f7]">
-                        <img src={url} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" />
-                      </div>
-                    ))}
+                {mode === "image" && referenceImageUrls.length ? (
+                  <div className="mt-3 border-t border-black/5 pt-3">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#52647f]">
+                        {referenceImageUrls.length} reference {referenceImageUrls.length === 1 ? "image" : "images"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReferenceImagesText("");
+                          setReferenceImageFiles([]);
+                        }}
+                        className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-[#667084]"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                      {referenceImageUrls.slice(0, 8).map((url, index) => (
+                        <div key={`${url.slice(0, 32)}-${index}`} className="aspect-square overflow-hidden rounded-xl bg-[#eef1f7]">
+                          <img src={url} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
               </div>
-            ) : null}
-
-            <label className="mt-4 block">
-              <span className="text-sm text-[#5f6779]">Prompt</span>
-              <textarea
-                rows={7}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/95 p-4 text-[#1d1d1f] placeholder:text-[#9ca3b7] outline-none focus:border-[#77a8e8]"
-                placeholder="Describe what you want to generate..."
-              />
             </label>
 
             <div className="mt-6 flex flex-wrap gap-3">
               <AppButton variant="primary" onClick={handleGenerate} disabled={!isPromptValid || isSubmitting}>
-                {isSubmitting ? "Generating..." : accessToken ? "Generate Now" : "Sign in to Generate"}
+                {isSubmitting ? "Generating..." : accessToken ? `Generate - ${estCredits} credits` : "Sign in to Generate"}
               </AppButton>
               <AppButton
                 variant="secondary"
@@ -1262,7 +1195,7 @@ function StudioContent() {
                       <p className="text-sm font-semibold">
                         {provider === "flux-image"
                           ? "FLUX Schnell sample"
-                          : provider === "nano-banana-edit"
+                          : provider === "nano-banana-image" || provider === "nano-banana-edit"
                             ? "Nano Banana 2 Edit sample"
                             : provider === "grok-video"
                               ? "Grok Imagine Video sample"

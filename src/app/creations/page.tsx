@@ -84,10 +84,16 @@ function pickMediaUrl(result: unknown): string | null {
   return null;
 }
 
-function readSessionTasks(): CreationTask[] {
+function sessionTasksKey(userId: string | null) {
+  return userId ? `${SESSION_TASKS_KEY}:${userId}` : null;
+}
+
+function readSessionTasks(userId: string | null): CreationTask[] {
   if (typeof window === "undefined") return [];
   try {
-    const stored = window.localStorage.getItem(SESSION_TASKS_KEY);
+    const key = sessionTasksKey(userId);
+    if (!key) return [];
+    const stored = window.localStorage.getItem(key);
     if (!stored) return [];
     const parsed = JSON.parse(stored) as CreationTask[];
     return Array.isArray(parsed) ? parsed : [];
@@ -96,9 +102,10 @@ function readSessionTasks(): CreationTask[] {
   }
 }
 
-function saveSessionTasks(tasks: CreationTask[]) {
+function saveSessionTasks(tasks: CreationTask[], userId: string | null) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(SESSION_TASKS_KEY, JSON.stringify(tasks.slice(0, 30)));
+  const key = sessionTasksKey(userId);
+  if (key) window.localStorage.setItem(key, JSON.stringify(tasks.slice(0, 30)));
 }
 
 function mergeTasks(remoteTasks: CreationTask[], sessionTasks: CreationTask[]) {
@@ -123,6 +130,8 @@ function formatDate(value?: string | null) {
 function providerLabel(provider?: string) {
   const labels: Record<string, string> = {
     "chatgpt-image": "OpenAI GPT-Image-2",
+    "nano-banana-image": "Nano Banana 2",
+    "nano-banana-edit": "Nano Banana 2 Edit",
     "flux-image": "FLUX Schnell",
     "recraft-image": "Recraft",
     "seedance-video": "Seedance",
@@ -191,11 +200,13 @@ export default function CreationsPage() {
   const [loading, setLoading] = useState(false);
   const [actionNote, setActionNote] = useState("");
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [titleDraft, setTitleDraft] = useState("");
   const [savingTitle, setSavingTitle] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
-  async function loadTasks(token: string, options?: { quiet?: boolean }) {
+  async function loadTasks(token: string, sessionUserId: string, options?: { quiet?: boolean }) {
     if (!options?.quiet) {
       setLoading(true);
       setSyncNote("Refreshing cloud history and background tasks...");
@@ -213,14 +224,14 @@ export default function CreationsPage() {
         storageWarning?: string;
       };
       const remoteTasks = payload.tasks.map(taskFromApi);
-      const merged = mergeTasks(remoteTasks, readSessionTasks());
+      const merged = mergeTasks(remoteTasks, readSessionTasks(sessionUserId));
       setTasks(merged);
-      saveSessionTasks(merged);
+      saveSessionTasks(merged, sessionUserId);
       setSelectedId((prev) => (prev && merged.some((task) => task.id === prev) ? prev : merged[0]?.id || null));
       setNote(merged.length ? "" : payload.storageWarning || "");
       setSyncNote(payload.storageWarning ? "Cloud history unavailable. Showing browser-saved creations." : "History is up to date.");
     } catch (error) {
-      const sessionTasks = readSessionTasks();
+      const sessionTasks = readSessionTasks(sessionUserId);
       setTasks(sessionTasks);
       setSelectedId((prev) => (prev && sessionTasks.some((task) => task.id === prev) ? prev : sessionTasks[0]?.id || null));
       if (sessionTasks.length) {
@@ -236,23 +247,24 @@ export default function CreationsPage() {
   }
 
   useEffect(() => {
-    const sessionTasks = readSessionTasks();
-    if (sessionTasks.length) {
-      setTasks(sessionTasks);
-      setSelectedId(sessionTasks[0].id);
-      setSyncNote("Refreshing cloud history and background tasks...");
-    }
-
     const supabase = createBrowserSupabaseClient();
     supabase.auth.getSession().then(async ({ data }) => {
       const token = data.session?.access_token || null;
-      if (!token) {
+      const sessionUserId = data.session?.user.id || null;
+      if (!token || !sessionUserId) {
         router.replace("/auth?next=/creations");
         return;
       }
 
       setAccessToken(token);
-      await loadTasks(token, { quiet: true });
+      setUserId(sessionUserId);
+      const sessionTasks = readSessionTasks(sessionUserId);
+      if (sessionTasks.length) {
+        setTasks(sessionTasks);
+        setSelectedId(sessionTasks[0].id);
+        setSyncNote("Refreshing cloud history and background tasks...");
+      }
+      await loadTasks(token, sessionUserId, { quiet: true });
     });
   }, [router]);
 
@@ -290,7 +302,7 @@ export default function CreationsPage() {
     const updatedTask = taskFromApi(payload.task);
     setTasks((prev) => {
       const next = prev.map((task) => (task.id === id ? { ...task, ...updatedTask } : task));
-      saveSessionTasks(next);
+      saveSessionTasks(next, userId);
       return next;
     });
     return updatedTask;
@@ -338,7 +350,7 @@ export default function CreationsPage() {
       if (!response.ok) throw new Error(payload?.error || "Task could not be deleted.");
       setTasks((prev) => {
         const next = prev.filter((item) => item.id !== task.id);
-        saveSessionTasks(next);
+        saveSessionTasks(next, userId);
         setSelectedId(next[0]?.id || null);
         return next;
       });
@@ -417,8 +429,8 @@ export default function CreationsPage() {
               </div>
               <button
                 type="button"
-                onClick={() => accessToken && loadTasks(accessToken)}
-                disabled={loading || !accessToken}
+                onClick={() => accessToken && userId && loadTasks(accessToken, userId)}
+                disabled={loading || !accessToken || !userId}
                 className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f] disabled:opacity-50"
               >
                 {loading ? "Refreshing" : "Refresh"}
@@ -643,7 +655,14 @@ export default function CreationsPage() {
                     selectedTask.type === "Video" ? (
                       <video src={selectedTask.mediaUrl} controls className="max-h-[680px] w-full rounded-xl bg-black object-contain" />
                     ) : (
-                      <img src={selectedTask.mediaUrl} alt={selectedTask.id} className="max-h-[680px] w-full rounded-xl bg-[#eef2f7] object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => setImagePreviewUrl(selectedTask.mediaUrl || null)}
+                        title="Open image preview"
+                        className="block w-full overflow-hidden rounded-xl bg-[#eef2f7]"
+                      >
+                        <img src={selectedTask.mediaUrl} alt={selectedTask.id} className="max-h-[680px] w-full object-contain" />
+                      </button>
                     )
                   ) : (
                     <div className="flex min-h-[420px] items-center justify-center rounded-xl bg-[#eef2f7] p-6 text-center text-sm text-[#667084]">
@@ -660,6 +679,22 @@ export default function CreationsPage() {
           </article>
         </section>
       </div>
+      {imagePreviewUrl ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" onClick={() => setImagePreviewUrl(null)}>
+          <div className="w-full max-w-6xl" onClick={(event) => event.stopPropagation()}>
+            <div className="mb-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setImagePreviewUrl(null)}
+                className="rounded-full border border-white/25 bg-black/40 px-4 py-1.5 text-sm font-semibold text-white"
+              >
+                Close
+              </button>
+            </div>
+            <img src={imagePreviewUrl} alt="Expanded creation" className="max-h-[88vh] w-full rounded-2xl bg-black object-contain" />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
