@@ -78,13 +78,19 @@ const PROMPT_PRESETS = [
   "Small orange cat astronaut floating inside a cozy spaceship cabin, Earth visible through the window, playful but realistic lighting, charming detailed scene"
 ];
 
-function readSessionTasks(): TaskItem[] {
+function scopedSessionKey(key: string, userId: string | null) {
+  return userId ? `${key}:${userId}` : null;
+}
+
+function readSessionTasks(userId: string | null): TaskItem[] {
   if (typeof window === "undefined") {
     return [];
   }
 
   try {
-    const stored = window.localStorage.getItem(SESSION_TASKS_KEY);
+    const key = scopedSessionKey(SESSION_TASKS_KEY, userId);
+    if (!key) return [];
+    const stored = window.localStorage.getItem(key);
     if (!stored) return [];
     const parsed = JSON.parse(stored) as TaskItem[];
     return Array.isArray(parsed) ? parsed : [];
@@ -184,6 +190,16 @@ function defaultPreviewForProvider(provider: string) {
   return null;
 }
 
+function isSamplePrompt(value: string) {
+  const prompt = value.trim();
+  return [
+    GPT_IMAGE2_DEFAULT_PROMPT,
+    FLUX_DEFAULT_PROMPT,
+    NANO_BANANA_EDIT_DEFAULT_PROMPT,
+    GROK_VIDEO_DEFAULT_PROMPT
+  ].includes(prompt);
+}
+
 function defaultImageSizeForProvider(provider: string) {
   if (provider === "flux-image") return "landscape_16_9";
   if (provider === "nano-banana-edit") return "default_4_3";
@@ -239,6 +255,7 @@ function StudioContent() {
   const [taskHistoryNote, setTaskHistoryNote] = useState("");
   const [previewModal, setPreviewModal] = useState<{ url: string; type: "Image" | "Video" } | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [creditNote, setCreditNote] = useState("");
@@ -248,7 +265,9 @@ function StudioContent() {
     const supabase = createBrowserSupabaseClient();
     supabase.auth.getSession().then(({ data }) => {
       const token = data.session?.access_token || null;
+      const nextUserId = data.session?.user.id || null;
       setAccessToken(token);
+      setUserId(nextUserId);
       if (typeof window !== "undefined") {
         if (token) {
           window.localStorage.setItem("nova_access_token", token);
@@ -261,7 +280,13 @@ function StudioContent() {
     });
     const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
       const token = session?.access_token || null;
+      const nextUserId = session?.user.id || null;
       setAccessToken(token);
+      setUserId(nextUserId);
+      if (!nextUserId) {
+        setTasks([]);
+        setCreditBalance(null);
+      }
       if (typeof window !== "undefined") {
         if (token) {
           window.localStorage.setItem("nova_access_token", token);
@@ -337,7 +362,7 @@ function StudioContent() {
   }, [mode, sp]);
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!accessToken || !userId) return;
     (async () => {
       try {
         const response = await fetch("/api/tasks", {
@@ -389,11 +414,11 @@ function StudioContent() {
           responseUrl: t.response_url || null,
           mediaUrl: t.output_url || pickMediaUrl(t.raw_result) || null
         }));
-        const sessionTasks = readSessionTasks();
+        const sessionTasks = readSessionTasks(userId);
         setTasks(mergeTasks(remoteTasks, sessionTasks));
         setTaskHistoryNote(payload.storageWarning || (sessionTasks.length ? "Showing saved tasks from this browser session." : ""));
       } catch (error) {
-        const sessionTasks = readSessionTasks();
+        const sessionTasks = readSessionTasks(userId);
         setTasks(sessionTasks);
         setTaskHistoryNote(
           sessionTasks.length
@@ -404,13 +429,14 @@ function StudioContent() {
         );
       }
     })();
-  }, [accessToken]);
+  }, [accessToken, userId]);
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!accessToken || !userId) return;
     let hasCachedBalance = false;
     if (typeof window !== "undefined") {
-      const cachedBalance = window.localStorage.getItem(SESSION_CREDIT_BALANCE_KEY);
+      const creditKey = scopedSessionKey(SESSION_CREDIT_BALANCE_KEY, userId);
+      const cachedBalance = creditKey ? window.localStorage.getItem(creditKey) : null;
       if (cachedBalance && Number.isFinite(Number(cachedBalance))) {
         hasCachedBalance = true;
         setCreditBalance(Number(cachedBalance));
@@ -435,7 +461,10 @@ function StudioContent() {
         if (typeof payload.balance === "number") {
           setCreditBalance(payload.balance);
           if (typeof window !== "undefined") {
-            window.localStorage.setItem(SESSION_CREDIT_BALANCE_KEY, String(payload.balance));
+            const creditKey = scopedSessionKey(SESSION_CREDIT_BALANCE_KEY, userId);
+            if (creditKey) {
+              window.localStorage.setItem(creditKey, String(payload.balance));
+            }
           }
         }
         if (payload.storageWarning) {
@@ -461,15 +490,20 @@ function StudioContent() {
         );
       }
     })();
-  }, [accessToken]);
+  }, [accessToken, userId]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || tasks.length === 0) {
+    const tasksKey = scopedSessionKey(SESSION_TASKS_KEY, userId);
+    if (typeof window === "undefined" || !tasksKey) {
       return;
     }
 
-    window.localStorage.setItem(SESSION_TASKS_KEY, JSON.stringify(tasks.slice(0, 30)));
-  }, [tasks]);
+    if (tasks.length) {
+      window.localStorage.setItem(tasksKey, JSON.stringify(tasks.slice(0, 30)));
+    } else {
+      window.localStorage.removeItem(tasksKey);
+    }
+  }, [tasks, userId]);
 
   const options = useMemo(
     () =>
@@ -495,28 +529,16 @@ function StudioContent() {
   const estCredits = mode === "image" ? 12 : duration === "10s" ? 68 : duration === "8s" ? 56 : 42;
   const estimatedSeconds = estimateTaskSeconds(mode, provider, duration);
   const isPromptValid = prompt.trim().length >= 8;
-  const currentTaskType: TaskItem["type"] = mode === "image" ? "Image" : "Video";
-  const latestPreviewTask =
-    tasks.find(
-      (task) =>
-        task.mediaUrl &&
-        task.status === "Completed" &&
-        task.type === currentTaskType &&
-        task.provider === provider
-    ) ||
-    tasks.find((task) => task.mediaUrl && task.type === currentTaskType && task.provider === provider) ||
-    tasks.find((task) => task.mediaUrl && task.status === "Completed" && task.type === currentTaskType) ||
-    tasks.find((task) => task.mediaUrl && task.type === currentTaskType) ||
-    null;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
+  const hasCompletedCreation = completedTasks.length > 0;
   const failedTasks = tasks.filter((task) => task.status === "Failed");
   const latestActiveTask = activeTasks[0] || null;
   const latestActiveProgress = latestActiveTask ? taskProgress(latestActiveTask, duration) : 0;
   const selectedImageSize = getImageSizePreset(imageSize);
   const videoPreviewRatio = ratio.includes(":") ? ratio.replace(":", " / ") : "16 / 9";
   const previewAspectRatio = mode === "image" ? `${selectedImageSize.width} / ${selectedImageSize.height}` : videoPreviewRatio;
-  const modelPreviewUrl = defaultPreviewForProvider(provider);
+  const modelPreviewUrl = hasCompletedCreation ? null : defaultPreviewForProvider(provider);
   const isModelPreviewVideo = provider === "grok-video";
   const providerNote =
     provider === "flux-image"
@@ -535,6 +557,14 @@ function StudioContent() {
     ...referenceImageFiles
   ].slice(0, 14);
 
+  useEffect(() => {
+    if (!hasCompletedCreation) return;
+    setPrompt((currentPrompt) => (isSamplePrompt(currentPrompt) ? "" : currentPrompt));
+    setReferenceImagesText((currentReferences) =>
+      currentReferences.trim() === NANO_BANANA_EDIT_REFERENCE_TEXT ? "" : currentReferences
+    );
+  }, [hasCompletedCreation]);
+
   async function handleReferenceFiles(files: FileList | null) {
     if (!files?.length) return;
     const nextFiles = await Promise.all(
@@ -552,6 +582,20 @@ function StudioContent() {
         )
     );
     setReferenceImageFiles((prev) => [...prev, ...nextFiles].slice(0, 4));
+  }
+
+  function clearCompletedWorkbench() {
+    setPrompt("");
+    setReferenceImagesText("");
+    setReferenceImageFiles([]);
+  }
+
+  function cacheCreditBalance(balance: number) {
+    if (typeof window === "undefined") return;
+    const creditKey = scopedSessionKey(SESSION_CREDIT_BALANCE_KEY, userId);
+    if (creditKey) {
+      window.localStorage.setItem(creditKey, String(balance));
+    }
   }
 
   async function handleGenerate() {
@@ -626,9 +670,7 @@ function StudioContent() {
       };
       if (typeof payload.balance === "number") {
         setCreditBalance(payload.balance);
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(SESSION_CREDIT_BALANCE_KEY, String(payload.balance));
-        }
+        cacheCreditBalance(payload.balance);
       }
 
       const queuedTask: TaskItem = {
@@ -662,9 +704,7 @@ function StudioContent() {
           const statusPayload = (await response.json().catch(() => null)) as { balance?: number | null } | null;
           if (typeof statusPayload?.balance === "number") {
             setCreditBalance(statusPayload.balance);
-            if (typeof window !== "undefined") {
-              window.localStorage.setItem(SESSION_CREDIT_BALANCE_KEY, String(statusPayload.balance));
-            }
+            cacheCreditBalance(statusPayload.balance);
           }
         };
 
@@ -688,6 +728,7 @@ function StudioContent() {
           setTasks((prev) =>
             prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Completed" } : task))
           );
+          clearCompletedWorkbench();
           setStatusTone("ok");
           setStatusText("Generation completed. Your result is now in Recent Tasks.");
         }
@@ -740,6 +781,7 @@ function StudioContent() {
           setTasks((prev) =>
             prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Completed" } : task))
           );
+          clearCompletedWorkbench();
           setStatusTone("ok");
           setStatusText("Generation completed via fal.ai. Your result is now in Recent Tasks.");
         } else {
@@ -773,9 +815,7 @@ function StudioContent() {
       if (!response.ok) throw new Error(payload.error || "Unable to add credits.");
       if (typeof payload.balance === "number") {
         setCreditBalance(payload.balance);
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(SESSION_CREDIT_BALANCE_KEY, String(payload.balance));
-        }
+        cacheCreditBalance(payload.balance);
       }
       setCreditNote(`${amount} credits added. Payment integration can replace this dev top-up later.`);
     } catch (error) {
@@ -884,8 +924,11 @@ function StudioContent() {
                       const nextProvider = workflow === "image-to-image" ? "nano-banana-edit" : "chatgpt-image";
                       setProvider(nextProvider);
                       const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
-                      if (nextDefaultPrompt) setPrompt(nextDefaultPrompt);
-                      setReferenceImagesText(workflow === "image-to-image" ? NANO_BANANA_EDIT_REFERENCE_TEXT : "");
+                      setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
+                      setReferenceImagesText(
+                        !hasCompletedCreation && workflow === "image-to-image" ? NANO_BANANA_EDIT_REFERENCE_TEXT : ""
+                      );
+                      setReferenceImageFiles([]);
                       const nextImageSize = defaultImageSizeForProvider(nextProvider);
                       setImageSize(nextImageSize);
                       setRatio(ratioFromImageSize(nextImageSize));
@@ -922,8 +965,10 @@ function StudioContent() {
                     const nextProvider = e.target.value;
                     setProvider(nextProvider);
                     const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
-                    if (nextDefaultPrompt) {
-                      setPrompt(nextDefaultPrompt);
+                    setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
+                    if (mode === "image" && imageWorkflow === "image-to-image") {
+                      setReferenceImagesText(!hasCompletedCreation ? NANO_BANANA_EDIT_REFERENCE_TEXT : "");
+                      setReferenceImageFiles([]);
                     }
                     if (mode === "image") {
                       const nextImageSize = defaultImageSizeForProvider(nextProvider);
@@ -1189,41 +1234,8 @@ function StudioContent() {
                       : `${ratio} preview frame`}
                   </p>
                 </div>
-                {latestPreviewTask?.mediaUrl ? (
-                  <a
-                    href={`/api/generate/download?url=${encodeURIComponent(latestPreviewTask.mediaUrl || "")}&name=${encodeURIComponent(latestPreviewTask.id)}`}
-                    className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold text-[#2e3b52] hover:bg-[#f3f7ff]"
-                  >
-                    Download
-                  </a>
-                ) : null}
               </div>
-              {latestPreviewTask ? (
-                <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-xs text-[#677388]">{latestPreviewTask.id}</p>
-                  </div>
-                  {latestPreviewTask.type === "Video" ? (
-                    <button
-                      type="button"
-                      onClick={() => setPreviewModal({ url: latestPreviewTask.mediaUrl || "", type: "Video" })}
-                      className="block w-full overflow-hidden rounded-lg bg-[#f4f6fb] text-left"
-                      style={{ aspectRatio: previewAspectRatio }}
-                    >
-                      <video src={latestPreviewTask.mediaUrl || undefined} controls className="h-full w-full object-contain" />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setPreviewModal({ url: latestPreviewTask.mediaUrl || "", type: "Image" })}
-                      className="block w-full overflow-hidden rounded-lg bg-[#f4f6fb]"
-                      style={{ aspectRatio: previewAspectRatio }}
-                    >
-                      <img src={latestPreviewTask.mediaUrl || ""} alt={latestPreviewTask.id} className="h-full w-full object-contain" />
-                    </button>
-                  )}
-                </div>
-              ) : modelPreviewUrl ? (
+              {modelPreviewUrl ? (
                 <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
                   <div
                     className="relative overflow-hidden rounded-lg border border-black/10 bg-[#f6f7fb]"
@@ -1329,26 +1341,8 @@ function StudioContent() {
                 {taskHistoryNote}
               </p>
             ) : null}
-            <div className="space-y-3">
-              {tasks.length ? tasks.map((x) => (
-                <div key={x.id} className="motion-smooth flex items-center justify-between rounded-xl border border-black/10 bg-white px-4 py-3 hover:shadow-[0_10px_20px_rgba(18,22,33,0.07)]">
-                  <div>
-                    <p className="text-sm font-semibold">{x.id}</p>
-                    <p className="text-xs text-[#677388]">{x.type} generation</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{x.status}</p>
-                    <p className="text-xs text-[#677388]">{x.cost} credits</p>
-                  </div>
-                </div>
-              )) : (
-                <p className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-[#667084]">
-                  No recent tasks yet.
-                </p>
-              )}
-            </div>
             {tasks.some((task) => task.mediaUrl) ? (
-              <div className="mt-5 grid gap-3">
+              <div className="mb-5 grid gap-3">
                 <p className="text-sm font-semibold text-[#4f596b]">Latest Outputs</p>
                 {tasks
                   .filter((task) => task.mediaUrl)
@@ -1385,6 +1379,24 @@ function StudioContent() {
                   ))}
               </div>
             ) : null}
+            <div className="space-y-3">
+              {tasks.length ? tasks.map((x) => (
+                <div key={x.id} className="motion-smooth flex items-center justify-between rounded-xl border border-black/10 bg-white px-4 py-3 hover:shadow-[0_10px_20px_rgba(18,22,33,0.07)]">
+                  <div>
+                    <p className="text-sm font-semibold">{x.id}</p>
+                    <p className="text-xs text-[#677388]">{x.type} generation</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{x.status}</p>
+                    <p className="text-xs text-[#677388]">{x.cost} credits</p>
+                  </div>
+                </div>
+              )) : (
+                <p className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-[#667084]">
+                  No recent tasks yet.
+                </p>
+              )}
+            </div>
           </article>
 
           <article className="card tone-pink rounded-3xl p-6">
