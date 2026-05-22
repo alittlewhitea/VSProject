@@ -190,22 +190,6 @@ function defaultImageSizeForProvider(provider: string) {
   return "default_4_3";
 }
 
-function canReplacePrompt(value: string) {
-  const trimmed = value.trim();
-  return (
-    !trimmed ||
-    trimmed === GPT_IMAGE2_DEFAULT_PROMPT ||
-    trimmed === FLUX_DEFAULT_PROMPT ||
-    trimmed === NANO_BANANA_EDIT_DEFAULT_PROMPT ||
-    trimmed === GROK_VIDEO_DEFAULT_PROMPT
-  );
-}
-
-function canReplaceReferenceImages(value: string) {
-  const trimmed = value.trim();
-  return !trimmed || trimmed === NANO_BANANA_EDIT_REFERENCE_TEXT;
-}
-
 function isProviderAllowedForMode(provider: string | null, mode: "image" | "video") {
   if (!provider) return false;
   return mode === "image"
@@ -234,12 +218,16 @@ function StudioContent() {
       ? "chatgpt-image"
       : "seedance-video") as string;
   const initialImageWorkflow = sp.get("workflow") === "image-to-image" ? "image-to-image" : "text-to-image";
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider));
   const [provider, setProvider] = useState(initialProvider);
   const [imageWorkflow, setImageWorkflow] = useState<"text-to-image" | "image-to-image">(initialImageWorkflow);
   const [ratio, setRatio] = useState(mode === "image" ? "1:1" : "16:9");
   const [imageSize, setImageSize] = useState("default_4_3");
-  const [referenceImagesText, setReferenceImagesText] = useState("");
+  const [referenceImagesText, setReferenceImagesText] = useState(() =>
+    mode === "image" && initialImageWorkflow === "image-to-image" && initialProvider === "nano-banana-edit"
+      ? NANO_BANANA_EDIT_REFERENCE_TEXT
+      : ""
+  );
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
   const [editResolution, setEditResolution] = useState("1K");
   const [videoResolution, setVideoResolution] = useState("720p");
@@ -307,26 +295,6 @@ function StudioContent() {
     setStatusText("");
     setStatusTone("idle");
   }, [mode, sp]);
-
-  useEffect(() => {
-    const defaultPrompt = defaultPromptForProvider(provider);
-    if (defaultPrompt && canReplacePrompt(prompt)) {
-      setPrompt(defaultPrompt);
-    }
-  }, [mode, provider, prompt]);
-
-  useEffect(() => {
-    if (mode === "image" && imageWorkflow === "image-to-image" && provider === "nano-banana-edit") {
-      if (canReplaceReferenceImages(referenceImagesText)) {
-        setReferenceImagesText(NANO_BANANA_EDIT_REFERENCE_TEXT);
-      }
-      return;
-    }
-
-    if (referenceImagesText.trim() === NANO_BANANA_EDIT_REFERENCE_TEXT) {
-      setReferenceImagesText("");
-    }
-  }, [imageWorkflow, mode, provider, referenceImagesText]);
 
   useEffect(() => {
     if (mode !== "image") return;
@@ -722,7 +690,6 @@ function StudioContent() {
           );
           setStatusTone("ok");
           setStatusText("Generation completed. Your result is now in Recent Tasks.");
-          setPrompt("");
         }
       } else {
         setStatusText("Task queued via fal.ai live API. Waiting for provider...");
@@ -775,7 +742,6 @@ function StudioContent() {
           );
           setStatusTone("ok");
           setStatusText("Generation completed via fal.ai. Your result is now in Recent Tasks.");
-          setPrompt("");
         } else {
           setTasks((prev) =>
             prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: 0 } : task))
@@ -1142,13 +1108,16 @@ function StudioContent() {
                       onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
                     />
                   </label>
-                  {referenceImageFiles.length ? (
+                  {referenceImageUrls.length ? (
                     <button
                       type="button"
-                      onClick={() => setReferenceImageFiles([])}
+                      onClick={() => {
+                        setReferenceImagesText("");
+                        setReferenceImageFiles([]);
+                      }}
                       className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#6e6e73]"
                     >
-                      Clear uploads
+                      Clear references
                     </button>
                   ) : null}
                 </div>
