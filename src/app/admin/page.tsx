@@ -64,9 +64,19 @@ type Task = {
   updated_at: string | null;
 };
 
+type OpsFinding = {
+  kind: "failed_without_refund" | "orphan_without_tracking" | "task_timeout" | "completed_without_output";
+  severity: "critical" | "warning";
+  label: string;
+  count: number;
+  description: string;
+  taskIds: string[];
+};
+
 type OpsPayload = {
   adminEmail?: string;
   summary?: Record<string, number>;
+  findings?: OpsFinding[];
   users?: AdminUser[];
   accounts?: Account[];
   ledger?: Ledger[];
@@ -116,6 +126,7 @@ export default function AdminHomePage() {
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustNote, setAdjustNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [repairing, setRepairing] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -168,6 +179,7 @@ export default function AdminHomePage() {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
+          action: "credit_adjustment",
           userId: adjustUserId,
           amount: Number(adjustAmount),
           note: adjustNote
@@ -186,6 +198,43 @@ export default function AdminHomePage() {
     }
   }
 
+  async function repairGenerationSafety() {
+    if (!token || repairing) return;
+    setRepairing(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/ops", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: "repair_generation_safety",
+          userId: filterUserId.trim() || undefined
+        })
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        repair?: { totalRepaired: number; failedRefunded: number; orphanRefunded: number; timedOutRefunded: number };
+      };
+      if (!response.ok) throw new Error(result.error || "Generation safety repair failed.");
+      setMessage(
+        `Repair complete. ${result.repair?.totalRepaired ?? 0} tasks repaired: ${
+          result.repair?.failedRefunded ?? 0
+        } failed refunds, ${result.repair?.orphanRefunded ?? 0} orphan tasks, ${
+          result.repair?.timedOutRefunded ?? 0
+        } timed-out tasks.`
+      );
+      await loadOps(token, filterUserId);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Generation safety repair failed.");
+    } finally {
+      setRepairing(false);
+    }
+  }
+
   const summary = payload?.summary || {};
   const users = payload?.users || [];
   const accounts = payload?.accounts || [];
@@ -193,6 +242,8 @@ export default function AdminHomePage() {
   const purchases = payload?.purchases || [];
   const tasks = payload?.tasks || [];
   const failedTasks = payload?.failedTasks || [];
+  const findings = payload?.findings || [];
+  const criticalFindingCount = findings.filter((finding) => finding.severity === "critical").reduce((sum, finding) => sum + finding.count, 0);
 
   return (
     <main className="min-h-screen bg-[#f7f7f8] text-[#1d1d1f]">
@@ -222,6 +273,7 @@ export default function AdminHomePage() {
               ["Outstanding credits", summary.totalOutstandingCredits ?? 0],
               ["Revenue", formatUsd(summary.completedPurchaseRevenueCents ?? 0)],
               ["Failed tasks", summary.failedTasks ?? failedTasks.length],
+              ["Critical findings", criticalFindingCount],
               ["Credits purchased", summary.creditsPurchased ?? 0],
               ["Credits spent", summary.creditsSpent ?? 0],
               ["Credits refunded", summary.creditsRefunded ?? 0],
@@ -279,6 +331,45 @@ export default function AdminHomePage() {
               {message}
             </div>
           ) : null}
+        </section>
+
+        <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.14em] text-[#86868b]">Generation safety</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight">Recovery findings</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6e6e73]">
+                Detect charged failures without refunds, provider tasks missing tracking, and tasks past timeout. Repair is idempotent and uses the same refund ledger reference as normal generation failures.
+              </p>
+            </div>
+            <AppButton onClick={repairGenerationSafety} disabled={repairing || loading}>
+              {repairing ? "Repairing..." : filterUserId.trim() ? "Repair filtered user" : "Repair generation safety"}
+            </AppButton>
+          </div>
+          <div className="mt-5 grid gap-3 lg:grid-cols-4">
+            {findings.map((finding) => (
+              <div
+                key={finding.kind}
+                className={`rounded-2xl border p-4 ${
+                  finding.severity === "critical"
+                    ? "border-rose-200 bg-rose-50/70"
+                    : "border-amber-200 bg-amber-50/70"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-semibold text-[#1d1d1f]">{finding.label}</p>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#1d1d1f]">
+                    {finding.count}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-[#5f6779]">{finding.description}</p>
+                {finding.taskIds.length ? (
+                  <p className="mt-2 truncate text-[11px] text-[#86868b]">{finding.taskIds.slice(0, 3).join(", ")}</p>
+                ) : null}
+              </div>
+            ))}
+            {!findings.length ? <Empty loading={loading} /> : null}
+          </div>
         </section>
 
         <section className="mt-6 grid gap-6 xl:grid-cols-2">
