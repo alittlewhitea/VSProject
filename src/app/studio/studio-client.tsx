@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { TopNav } from "../../components/top-nav";
 import { AppButton } from "../../components/ui/button";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
@@ -26,9 +26,27 @@ type TaskItem = {
   mediaUrl?: string | null;
 };
 
+type StudioLoginDraft = {
+  createdAt: string;
+  autoSubmit: boolean;
+  mode: "image" | "video";
+  provider: string;
+  imageWorkflow: "text-to-image" | "image-to-image";
+  ratio: string;
+  imageSize: string;
+  referenceImagesText: string;
+  referenceImageFiles: string[];
+  editResolution: string;
+  videoResolution: string;
+  outputFormat: string;
+  duration: string;
+  prompt: string;
+};
+
 const SESSION_TASKS_KEY = "nova_session_tasks";
 const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
 const GENERATION_IDEMPOTENCY_KEY_PREFIX = "nova_generation_idempotency";
+const STUDIO_LOGIN_DRAFT_KEY = "nova_studio_login_draft";
 const GPT_IMAGE2_DEFAULT_PROMPT = `Create a high-end hero infographic announcing "GPT Image 2 is here".
 Design it like a futuristic periodic table mixed with a clean anatomical diagram: a precise grid of 16-24 mini image panels, each showcasing a different visual style such as oil painting, anime, blueprint, isometric 3D, photorealism, watercolor, pixel art, clay render, cinematic lighting, product photography, fashion editorial, UI mockup, technical diagram, and surreal concept art.
 
@@ -122,6 +140,35 @@ function getPersistentIdempotency(userId: string | null, fingerprint: string) {
 function clearPersistentIdempotency(storageKey: string | null) {
   if (typeof window !== "undefined" && storageKey) {
     window.localStorage.removeItem(storageKey);
+  }
+}
+
+function readStudioLoginDraft() {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem(STUDIO_LOGIN_DRAFT_KEY);
+    if (!stored) return null;
+    const draft = JSON.parse(stored) as StudioLoginDraft;
+    if (!draft || typeof draft !== "object" || typeof draft.prompt !== "string") return null;
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
+function writeStudioLoginDraft(draft: StudioLoginDraft) {
+  if (typeof window === "undefined") return true;
+  try {
+    window.localStorage.setItem(STUDIO_LOGIN_DRAFT_KEY, JSON.stringify(draft));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearStudioLoginDraft() {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(STUDIO_LOGIN_DRAFT_KEY);
   }
 }
 
@@ -307,6 +354,9 @@ function StudioContent() {
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [creditNote, setCreditNote] = useState("");
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [loginDraftNonce, setLoginDraftNonce] = useState(0);
+  const restoredLoginDraftRef = useRef(false);
+  const autoSubmitLoginDraftRef = useRef(false);
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -640,6 +690,49 @@ function StudioContent() {
     }
   }
 
+  function saveLoginDraft(autoSubmit: boolean) {
+    return writeStudioLoginDraft({
+      createdAt: new Date().toISOString(),
+      autoSubmit,
+      mode,
+      provider,
+      imageWorkflow,
+      ratio,
+      imageSize,
+      referenceImagesText,
+      referenceImageFiles,
+      editResolution,
+      videoResolution,
+      outputFormat,
+      duration,
+      prompt
+    });
+  }
+
+  useEffect(() => {
+    if (!authReady || !accessToken || restoredLoginDraftRef.current) return;
+    const draft = readStudioLoginDraft();
+    if (!draft) return;
+
+    restoredLoginDraftRef.current = true;
+    autoSubmitLoginDraftRef.current = draft.autoSubmit;
+    setProvider(draft.provider === "nano-banana-edit" ? "nano-banana-image" : draft.provider);
+    setImageWorkflow(draft.imageWorkflow);
+    setRatio(draft.ratio);
+    setImageSize(draft.imageSize);
+    setReferenceImagesText(draft.referenceImagesText);
+    setReferenceImageFiles(Array.isArray(draft.referenceImageFiles) ? draft.referenceImageFiles : []);
+    setEditResolution(draft.editResolution);
+    setVideoResolution(draft.videoResolution);
+    setOutputFormat(draft.outputFormat);
+    setDuration(draft.duration);
+    setPrompt(draft.prompt);
+    setStatusTone("idle");
+    setStatusText(draft.autoSubmit ? "Your setup was restored. Continuing generation..." : "Your previous setup was restored.");
+
+    setLoginDraftNonce((value) => value + 1);
+  }, [accessToken, authReady]);
+
   async function handleGenerate() {
     if (!isPromptValid || isSubmitting) {
       return;
@@ -661,8 +754,15 @@ function StudioContent() {
         (typeof window !== "undefined" ? window.localStorage.getItem("nova_access_token") : null);
       if (!liveToken) {
         const next = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?mode=image&workflow=text-to-image";
+        const saved = saveLoginDraft(true);
+        setStatusTone(saved ? "idle" : "error");
+        setStatusText(
+          saved
+            ? "We saved your setup. Sign in, then DreamFace will continue this generation automatically."
+            : "Your browser could not save this draft before sign-in. Large uploaded images may exceed local storage."
+        );
         router.push(`/auth?next=${encodeURIComponent(next)}`);
-        throw new Error("Session expired. Please sign in again.");
+        return;
       }
 
       const requestPayload = {
@@ -723,6 +823,7 @@ function StudioContent() {
         failureReason?: string | null;
       };
       clearPersistentIdempotency(idempotencyStorageKey);
+      clearStudioLoginDraft();
       if (typeof payload.balance === "number") {
         setCreditBalance(payload.balance);
         cacheCreditBalance(payload.balance);
@@ -892,6 +993,16 @@ function StudioContent() {
       setIsSubmitting(false);
     }
   }
+
+  useEffect(() => {
+    if (!authReady || !accessToken || !autoSubmitLoginDraftRef.current || isSubmitting || !isPromptValid) return;
+    autoSubmitLoginDraftRef.current = false;
+    const timer = window.setTimeout(() => {
+      handleGenerate();
+    }, 150);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, authReady, isPromptValid, isSubmitting, loginDraftNonce]);
 
   async function handleTopUp(amount: number) {
     if (!accessToken) return;
