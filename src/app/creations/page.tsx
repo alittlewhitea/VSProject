@@ -633,7 +633,7 @@ export default function CreationsPage() {
                       href={regenerateHref(selectedTask)}
                       className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white"
                     >
-                      Regenerate
+                      {selectedTask.status === "Failed" ? "Retry generation" : "Regenerate"}
                     </Link>
                     <button
                       type="button"

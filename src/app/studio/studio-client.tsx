@@ -28,6 +28,7 @@ type TaskItem = {
 
 const SESSION_TASKS_KEY = "nova_session_tasks";
 const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
+const GENERATION_IDEMPOTENCY_KEY_PREFIX = "nova_generation_idempotency";
 const GPT_IMAGE2_DEFAULT_PROMPT = `Create a high-end hero infographic announcing "GPT Image 2 is here".
 Design it like a futuristic periodic table mixed with a clean anatomical diagram: a precise grid of 16-24 mini image panels, each showcasing a different visual style such as oil painting, anime, blueprint, isometric 3D, photorealism, watercolor, pixel art, clay render, cinematic lighting, product photography, fashion editorial, UI mockup, technical diagram, and surreal concept art.
 
@@ -80,6 +81,48 @@ const PROMPT_PRESETS = [
 
 function scopedSessionKey(key: string, userId: string | null) {
   return userId ? `${key}:${userId}` : null;
+}
+
+function hashString(value: string) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+function createIdempotencyFingerprint(payload: Record<string, unknown>) {
+  return hashString(JSON.stringify(payload));
+}
+
+function createRandomIdempotencyKey() {
+  if (typeof window !== "undefined" && window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  return `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
+function getPersistentIdempotency(userId: string | null, fingerprint: string) {
+  if (typeof window === "undefined") {
+    return { storageKey: null, idempotencyKey: createRandomIdempotencyKey() };
+  }
+
+  const scope = userId || "anonymous";
+  const storageKey = `${GENERATION_IDEMPOTENCY_KEY_PREFIX}:${scope}:${fingerprint}`;
+  const existing = window.localStorage.getItem(storageKey);
+  if (existing && /^[a-zA-Z0-9_-]{8,80}$/.test(existing)) {
+    return { storageKey, idempotencyKey: existing };
+  }
+
+  const idempotencyKey = createRandomIdempotencyKey();
+  window.localStorage.setItem(storageKey, idempotencyKey);
+  return { storageKey, idempotencyKey };
+}
+
+function clearPersistentIdempotency(storageKey: string | null) {
+  if (typeof window !== "undefined" && storageKey) {
+    window.localStorage.removeItem(storageKey);
+  }
 }
 
 function readSessionTasks(userId: string | null): TaskItem[] {
@@ -607,6 +650,7 @@ function StudioContent() {
     setStatusText("Submitting task...");
 
     const taskType: TaskItem["type"] = mode === "image" ? "Image" : "Video";
+    let idempotencyStorageKey: string | null = null;
     try {
       const supabase = createBrowserSupabaseClient();
       await supabase.auth.refreshSession();
@@ -621,6 +665,31 @@ function StudioContent() {
         throw new Error("Session expired. Please sign in again.");
       }
 
+      const requestPayload = {
+        mode,
+        imageWorkflow: mode === "image" && referenceImageUrls.length ? "image-to-image" : imageWorkflow,
+        provider,
+        ratio,
+        duration,
+        prompt,
+        imageSize: mode === "image" ? imageSize : undefined,
+        imageUrls: mode === "image" && imageWorkflow === "image-to-image" ? referenceImageUrls : undefined,
+        resolution:
+          mode === "image" && imageWorkflow === "image-to-image"
+            ? editResolution
+            : mode === "video" && provider === "grok-video"
+              ? videoResolution
+              : undefined,
+        outputFormat: mode === "image" && imageWorkflow === "image-to-image" ? outputFormat : undefined
+      };
+      const fingerprint = createIdempotencyFingerprint({
+        ...requestPayload,
+        prompt: prompt.trim(),
+        imageUrls: referenceImageUrls
+      });
+      const idempotency = getPersistentIdempotency(userId, fingerprint);
+      idempotencyStorageKey = idempotency.storageKey;
+
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -628,36 +697,20 @@ function StudioContent() {
           Authorization: `Bearer ${liveToken}`
         },
         body: JSON.stringify({
-          mode,
-          imageWorkflow: mode === "image" && referenceImageUrls.length ? "image-to-image" : imageWorkflow,
-          provider,
-          ratio,
-          duration,
-          prompt,
-          imageSize: mode === "image" ? imageSize : undefined,
-          imageUrls: mode === "image" && imageWorkflow === "image-to-image" ? referenceImageUrls : undefined,
-          resolution:
-            mode === "image" && imageWorkflow === "image-to-image"
-              ? editResolution
-              : mode === "video" && provider === "grok-video"
-                ? videoResolution
-                : undefined,
-          outputFormat: mode === "image" && imageWorkflow === "image-to-image" ? outputFormat : undefined,
-          idempotencyKey:
-            typeof window !== "undefined" && window.crypto?.randomUUID
-              ? window.crypto.randomUUID()
-              : `${Date.now()}_${Math.random().toString(36).slice(2)}`
+          ...requestPayload,
+          idempotencyKey: idempotency.idempotencyKey
         })
       });
 
       if (!response.ok) {
         const errorPayload = (await response.json().catch(() => null)) as { error?: string } | null;
+        clearPersistentIdempotency(idempotencyStorageKey);
         throw new Error(errorPayload?.error || "Generation request failed.");
       }
 
       const payload = (await response.json()) as {
         taskId: string;
-        status: "queued";
+        status: "queued" | "running" | "completed" | "failed";
         transport: "real" | "mock";
         statusUrl?: string | null;
         responseUrl?: string | null;
@@ -666,7 +719,10 @@ function StudioContent() {
         mode?: "image" | "video";
         estimatedCredits?: number;
         balance?: number;
+        duplicate?: boolean;
+        failureReason?: string | null;
       };
+      clearPersistentIdempotency(idempotencyStorageKey);
       if (typeof payload.balance === "number") {
         setCreditBalance(payload.balance);
         cacheCreditBalance(payload.balance);
@@ -675,7 +731,14 @@ function StudioContent() {
       const queuedTask: TaskItem = {
         id: payload.taskId,
         type: taskType,
-        status: "Queued",
+        status:
+          payload.status === "running"
+            ? "Running"
+            : payload.status === "completed"
+              ? "Completed"
+              : payload.status === "failed"
+                ? "Failed"
+                : "Queued",
         cost: estCredits,
         provider,
         prompt: prompt.trim(),
@@ -685,9 +748,17 @@ function StudioContent() {
         statusUrl: payload.statusUrl || null,
         responseUrl: payload.responseUrl || null
       };
-      setTasks((prev) => [queuedTask, ...prev]);
+      setTasks((prev) => [queuedTask, ...prev.filter((task) => task.id !== queuedTask.id)]);
+      if (payload.duplicate) {
+        setStatusText("This request was already submitted. Reopened the existing task instead of charging again.");
+      }
       if (payload.storageWarning) {
         setTaskHistoryNote("This task is running, but task history could not be saved yet. It will remain visible in this browser session.");
+      }
+      if (payload.status === "failed") {
+        setStatusTone("error");
+        setStatusText(payload.failureReason || "This existing task has already failed. Credits should be visible in the refund ledger.");
+        return;
       }
       if (mode === "image") {
         router.push(`/creations?task=${encodeURIComponent(payload.taskId)}`);
@@ -756,7 +827,18 @@ function StudioContent() {
             continue;
           }
 
-          const statusPayload = (await statusRes.json()) as { status?: string; result?: unknown };
+          const statusPayload = (await statusRes.json()) as {
+            status?: string;
+            result?: unknown;
+            balance?: number | null;
+            failureReason?: string;
+            refundLedgerId?: number | string | null;
+            refundedCredits?: number;
+          };
+          if (typeof statusPayload.balance === "number") {
+            setCreditBalance(statusPayload.balance);
+            cacheCreditBalance(statusPayload.balance);
+          }
           const rawStatus = (statusPayload.status || "").toUpperCase();
           if (rawStatus === "IN_QUEUE") {
             setTasks((prev) =>
@@ -792,12 +874,20 @@ function StudioContent() {
             prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: 0 } : task))
           );
           setStatusTone("error");
-          setStatusText("fal.ai task did not complete successfully. Please retry with another prompt/provider.");
+          setStatusText(
+            finalStatus
+              ? "fal.ai task did not complete successfully. Credits are refunded automatically when the provider failure is confirmed."
+              : "Task status was not confirmed in time. Open Creations to refresh status, refund, and retry details."
+          );
         }
       }
     } catch (error) {
       setStatusTone("error");
-      setStatusText(error instanceof Error ? error.message : "Unable to submit generation task.");
+      setStatusText(
+        error instanceof Error
+          ? `${error.message}${idempotencyStorageKey ? " If the request reached the server, retry will reuse the same task key." : ""}`
+          : "Unable to submit generation task."
+      );
     } finally {
       setIsSubmitting(false);
     }

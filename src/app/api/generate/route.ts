@@ -210,6 +210,8 @@ async function returnExistingTask(
     balance: account.balance,
     statusUrl: task.status_url,
     responseUrl: task.response_url,
+    failureCode: task.failure_code,
+    failureReason: task.failure_reason,
     duplicate: true
   });
 }

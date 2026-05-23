@@ -8,6 +8,7 @@ import { refundCredits } from "../../../lib/credits";
 const TASK_HISTORY_TIMEOUT_MS = 4500;
 const TASK_SYNC_LIMIT = 5;
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
+const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
 const TASK_SELECT =
   "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, raw_result, created_at, updated_at, title, is_favorite, failure_code, failure_reason, last_checked_at, timed_out_at";
 
@@ -118,6 +119,15 @@ function isTaskTimedOut(createdAt: string) {
   return Date.now() - new Date(createdAt).getTime() > taskTimeoutMinutes() * 60 * 1000;
 }
 
+function orphanTaskTimeoutMinutes() {
+  const value = Number(process.env.GENERATION_ORPHAN_TIMEOUT_MINUTES || DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES;
+}
+
+function isOrphanTaskTimedOut(createdAt: string) {
+  return Date.now() - new Date(createdAt).getTime() > orphanTaskTimeoutMinutes() * 60 * 1000;
+}
+
 function normalizeTitle(value: unknown) {
   if (typeof value !== "string") return null;
   const title = value.trim().replace(/\s+/g, " ");
@@ -165,9 +175,38 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
   const pendingTasks = (data || []) as PendingTaskRow[];
   await Promise.all(
     pendingTasks.map(async (task) => {
-      if (!isAllowedFalUrl(task.status_url)) return;
-
       try {
+        if (!isAllowedFalUrl(task.status_url)) {
+          const now = new Date().toISOString();
+          if (isOrphanTaskTimedOut(task.created_at)) {
+            if (task.estimated_credits > 0) {
+              await refundCredits(admin, userId, task.estimated_credits, "generation_refund", task.id);
+            }
+            await admin
+              .from("generation_tasks")
+              .update({
+                status: "failed",
+                failure_code: "provider_tracking_missing",
+                failure_reason: `The task was charged but never received a provider tracking URL within ${orphanTaskTimeoutMinutes()} minutes. Credits were refunded automatically. Please retry.`,
+                last_checked_at: now,
+                timed_out_at: now,
+                updated_at: now
+              })
+              .eq("id", task.id)
+              .eq("user_id", userId);
+          } else {
+            await admin
+              .from("generation_tasks")
+              .update({
+                last_checked_at: now,
+                updated_at: now
+              })
+              .eq("id", task.id)
+              .eq("user_id", userId);
+          }
+          return;
+        }
+
         if (isTaskTimedOut(task.created_at)) {
           const now = new Date().toISOString();
           if (task.estimated_credits > 0) {

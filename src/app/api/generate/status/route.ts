@@ -5,6 +5,13 @@ import { fetchFal } from "../../../../lib/fal-fetch";
 import { refundCredits } from "../../../../lib/credits";
 
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
+const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
+
+type RefundInfo = {
+  balance: number | null;
+  refundLedgerId: number | string | null;
+  refundedCredits: number;
+};
 
 function taskTimeoutMinutes() {
   const value = Number(process.env.GENERATION_TASK_TIMEOUT_MINUTES || DEFAULT_TASK_TIMEOUT_MINUTES);
@@ -15,6 +22,15 @@ function isTaskTimedOut(createdAt: string) {
   return Date.now() - new Date(createdAt).getTime() > taskTimeoutMinutes() * 60 * 1000;
 }
 
+function orphanTaskTimeoutMinutes() {
+  const value = Number(process.env.GENERATION_ORPHAN_TIMEOUT_MINUTES || DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES;
+}
+
+function isOrphanTaskTimedOut(createdAt: string) {
+  return Date.now() - new Date(createdAt).getTime() > orphanTaskTimeoutMinutes() * 60 * 1000;
+}
+
 function isAllowedFalUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -22,6 +38,106 @@ function isAllowedFalUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+async function readRefundLedger(
+  admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  userId: string,
+  taskId: string
+) {
+  const { data } = await admin
+    .from("credit_ledger")
+    .select("id, amount")
+    .eq("user_id", userId)
+    .eq("reason", "generation_refund")
+    .eq("reference_id", taskId)
+    .maybeSingle();
+
+  const row = data as { id?: number | string; amount?: number } | null;
+  return {
+    refundLedgerId: row?.id || null,
+    refundedCredits: typeof row?.amount === "number" ? Math.abs(row.amount) : 0
+  };
+}
+
+async function refundAndReadLedger(
+  admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  userId: string,
+  taskId: string,
+  estimatedCredits: number
+): Promise<RefundInfo> {
+  let balance: number | null = null;
+  if (estimatedCredits > 0) {
+    balance = await refundCredits(admin, userId, estimatedCredits, "generation_refund", taskId);
+  }
+  const ledger = await readRefundLedger(admin, userId, taskId);
+  return {
+    balance,
+    ...ledger
+  };
+}
+
+async function failOrphanTaskIfTimedOut(
+  admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  userId: string,
+  taskId: string
+) {
+  const { data: task } = await admin
+    .from("generation_tasks")
+    .select("estimated_credits, created_at, status_url, status")
+    .eq("id", taskId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const row = task as {
+    estimated_credits?: number;
+    created_at?: string;
+    status_url?: string | null;
+    status?: string;
+  } | null;
+
+  if (!row?.created_at || row.status === "completed" || row.status === "failed" || isAllowedFalUrl(row.status_url || "")) {
+    return null;
+  }
+
+  if (!isOrphanTaskTimedOut(row.created_at)) {
+    await admin
+      .from("generation_tasks")
+      .update({
+        last_checked_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", taskId)
+      .eq("user_id", userId);
+    return {
+      pending: true,
+      failureReason: `Provider tracking has not been attached yet. If this remains unresolved for ${orphanTaskTimeoutMinutes()} minutes, credits will be refunded automatically.`
+    };
+  }
+
+  const estimatedCredits = typeof row.estimated_credits === "number" ? row.estimated_credits : 0;
+  const refund = await refundAndReadLedger(admin, userId, taskId, estimatedCredits);
+  const now = new Date().toISOString();
+  const failureReason = `The task was charged but never received a provider tracking URL within ${orphanTaskTimeoutMinutes()} minutes. Credits were refunded automatically. Please retry.`;
+  await admin
+    .from("generation_tasks")
+    .update({
+      status: "failed",
+      failure_code: "provider_tracking_missing",
+      failure_reason: failureReason,
+      last_checked_at: now,
+      timed_out_at: now,
+      updated_at: now
+    })
+    .eq("id", taskId)
+    .eq("user_id", userId);
+
+  return {
+    pending: false,
+    failureCode: "provider_tracking_missing",
+    failureReason,
+    ...refund
+  };
 }
 
 export async function GET(request: Request) {
@@ -68,6 +184,8 @@ export async function GET(request: Request) {
       }
 
       let balance: number | null = null;
+      let refundLedgerId: number | string | null = null;
+      let refundedCredits = 0;
       const estimatedCredits =
         typeof (task as { estimated_credits?: unknown }).estimated_credits === "number"
           ? (task as { estimated_credits: number }).estimated_credits
@@ -75,6 +193,9 @@ export async function GET(request: Request) {
 
       if (mockStatus === "failed" && estimatedCredits > 0) {
         balance = await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
+        const refund = await readRefundLedger(admin, user.id, taskId);
+        refundLedgerId = refund.refundLedgerId;
+        refundedCredits = refund.refundedCredits;
       }
 
       await admin
@@ -96,7 +217,11 @@ export async function GET(request: Request) {
       return NextResponse.json({
         status: mockStatus.toUpperCase(),
         result: null,
-        balance
+        balance,
+        failureCode: mockStatus === "failed" ? "mock_failed" : null,
+        failureReason: mockStatus === "failed" ? "Local mock generation was marked as failed. Credits were refunded automatically." : null,
+        refundLedgerId,
+        refundedCredits
       });
     }
 
@@ -106,6 +231,26 @@ export async function GET(request: Request) {
     }
 
     if (!statusUrl || !isAllowedFalUrl(statusUrl)) {
+      if (taskId) {
+        const admin = createSupabaseAdminClient();
+        if (admin) {
+          const orphanResult = await failOrphanTaskIfTimedOut(admin, user.id, taskId);
+          if (orphanResult?.pending) {
+            return NextResponse.json({
+              status: "IN_QUEUE",
+              result: null,
+              failureReason: orphanResult.failureReason
+            });
+          }
+          if (orphanResult && !orphanResult.pending) {
+            return NextResponse.json({
+              status: "FAILED",
+              result: null,
+              ...orphanResult
+            });
+          }
+        }
+      }
       return NextResponse.json({ error: "Invalid statusUrl." }, { status: 400 });
     }
 
@@ -141,6 +286,7 @@ export async function GET(request: Request) {
         result = await resultRes.json();
       }
     }
+    let statusMeta: Record<string, unknown> = {};
 
     if (taskId) {
       const admin = createSupabaseAdminClient();
@@ -172,16 +318,15 @@ export async function GET(request: Request) {
           ) {
             const estimatedCredits =
               typeof taskForRefund.estimated_credits === "number" ? taskForRefund.estimated_credits : 0;
-            if (estimatedCredits > 0) {
-              await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
-            }
+            const refund = await refundAndReadLedger(admin, user.id, taskId, estimatedCredits);
             const now = new Date().toISOString();
+            const failureReason = `The provider task did not finish within ${taskTimeoutMinutes()} minutes. Credits were refunded automatically.`;
             await admin
               .from("generation_tasks")
               .update({
                 status: "failed",
                 failure_code: "task_timeout",
-                failure_reason: `The provider task did not finish within ${taskTimeoutMinutes()} minutes. Credits were refunded automatically.`,
+                failure_reason: failureReason,
                 last_checked_at: now,
                 timed_out_at: now,
                 updated_at: now
@@ -194,20 +339,26 @@ export async function GET(request: Request) {
               status: "FAILED",
               result: null,
               failureCode: "task_timeout",
-              failureReason: `The provider task did not finish within ${taskTimeoutMinutes()} minutes. Credits were refunded automatically.`
+              failureReason,
+              ...refund
             });
           }
 
+          let refund: RefundInfo = { balance: null, refundLedgerId: null, refundedCredits: 0 };
           if (normalized === "failed") {
             const estimatedCredits =
               taskForRefund && typeof taskForRefund.estimated_credits === "number"
                 ? taskForRefund.estimated_credits
                 : 0;
-            if (estimatedCredits > 0) {
-              await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
-            }
+            refund = await refundAndReadLedger(admin, user.id, taskId, estimatedCredits);
+            statusMeta = {
+              failureCode: "provider_failed",
+              failureReason: "The provider reported this task as failed. Credits were refunded automatically.",
+              ...refund
+            };
           }
 
+          const failureReason = normalized === "failed" ? "The provider reported this task as failed. Credits were refunded automatically." : null;
           await admin
             .from("generation_tasks")
             .update({
@@ -215,7 +366,7 @@ export async function GET(request: Request) {
               output_url: mediaUrl,
               raw_result: result,
               failure_code: normalized === "failed" ? "provider_failed" : null,
-              failure_reason: normalized === "failed" ? "The provider reported this task as failed." : null,
+              failure_reason: failureReason,
               last_checked_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
@@ -230,7 +381,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       status: upperStatus,
-      result
+      result,
+      ...statusMeta
     });
   } catch {
     return NextResponse.json({ error: "Unable to fetch fal.ai task status." }, { status: 500 });
