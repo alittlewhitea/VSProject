@@ -71,6 +71,13 @@ type OpsFinding = {
   taskIds: string[];
 };
 
+type SystemHealthCheck = {
+  key: string;
+  label: string;
+  status: "ok" | "warning" | "critical";
+  detail: string;
+};
+
 function taskTimeoutMinutes() {
   const value = Number(process.env.GENERATION_TASK_TIMEOUT_MINUTES || DEFAULT_TASK_TIMEOUT_MINUTES);
   return Number.isFinite(value) && value > 0 ? value : DEFAULT_TASK_TIMEOUT_MINUTES;
@@ -83,6 +90,20 @@ function orphanTaskTimeoutMinutes() {
 
 function isOlderThan(value: string, minutes: number) {
   return Date.now() - new Date(value).getTime() > minutes * 60 * 1000;
+}
+
+function envPresent(name: string) {
+  return Boolean(process.env[name]?.trim());
+}
+
+function requiredEnvCheck(name: string, label = name): SystemHealthCheck {
+  const present = envPresent(name);
+  return {
+    key: `env_${name}`,
+    label,
+    status: present ? "ok" : "critical",
+    detail: present ? "Configured" : `${name} is missing`
+  };
 }
 
 function ledgerByReference(ledger: LedgerRow[]) {
@@ -98,6 +119,75 @@ function ledgerByReference(ledger: LedgerRow[]) {
 
 function hasLedger(entries: LedgerRow[] | undefined, reason: string) {
   return Boolean(entries?.some((entry) => entry.reason === reason));
+}
+
+function buildSystemHealth(tasks: TaskRow[], ledger: LedgerRow[], purchases: PurchaseRow[]) {
+  const findings = buildOpsFindings(tasks, ledger);
+  const criticalFindings = findings
+    .filter((finding) => finding.severity === "critical")
+    .reduce((sum, finding) => sum + finding.count, 0);
+  const recentTasks = tasks.filter((task) => isOlderThan(task.created_at, 24 * 60) === false);
+  const recentFailed = recentTasks.filter((task) => task.status === "failed").length;
+  const recentCompleted = recentTasks.filter((task) => task.status === "completed").length;
+  const recentFailureRate = recentTasks.length ? recentFailed / recentTasks.length : 0;
+  const pendingPurchases = purchases.filter((purchase) => purchase.status === "pending").length;
+
+  const checks: SystemHealthCheck[] = [
+    requiredEnvCheck("NEXT_PUBLIC_SUPABASE_URL", "Supabase URL"),
+    requiredEnvCheck("NEXT_PUBLIC_SUPABASE_ANON_KEY", "Supabase anon key"),
+    requiredEnvCheck("SUPABASE_SERVICE_ROLE_KEY", "Supabase service role"),
+    requiredEnvCheck("ADMIN_EMAILS", "Admin allowlist"),
+    requiredEnvCheck("FAL_KEY", "fal.ai API key"),
+    {
+      key: "stripe_secret_key",
+      label: "Stripe secret key",
+      status: envPresent("STRIPE_SECRET_KEY") ? "ok" : "warning",
+      detail: envPresent("STRIPE_SECRET_KEY") ? "Configured" : "Missing; checkout cannot create paid sessions"
+    },
+    {
+      key: "stripe_webhook_secret",
+      label: "Stripe webhook secret",
+      status: envPresent("STRIPE_WEBHOOK_SECRET") ? "ok" : "critical",
+      detail: envPresent("STRIPE_WEBHOOK_SECRET") ? "Configured" : "Missing; paid credits cannot be granted safely"
+    },
+    {
+      key: "app_url",
+      label: "Public app URL",
+      status: envPresent("NEXT_PUBLIC_APP_URL") ? "ok" : "warning",
+      detail: envPresent("NEXT_PUBLIC_APP_URL") ? "Configured" : "Missing; checkout callback will fall back to request origin"
+    },
+    {
+      key: "generation_safety",
+      label: "Generation safety findings",
+      status: criticalFindings ? "critical" : "ok",
+      detail: criticalFindings ? `${criticalFindings} critical generation records need repair` : "No critical generation records detected"
+    },
+    {
+      key: "recent_failure_rate",
+      label: "Recent failure rate",
+      status: recentFailureRate > 0.35 ? "critical" : recentFailureRate > 0.18 ? "warning" : "ok",
+      detail: `${recentFailed}/${recentTasks.length} recent tasks failed (${Math.round(recentFailureRate * 100)}%)`
+    },
+    {
+      key: "recent_completion_volume",
+      label: "Recent completions",
+      status: recentTasks.length > 0 && recentCompleted === 0 && recentFailed > 0 ? "warning" : "ok",
+      detail: `${recentCompleted} completed tasks in the recent sample`
+    },
+    {
+      key: "pending_stripe_purchases",
+      label: "Pending Stripe purchases",
+      status: pendingPurchases > 5 ? "warning" : "ok",
+      detail: `${pendingPurchases} pending purchase records in recent sample`
+    }
+  ];
+
+  return {
+    ok: checks.every((check) => check.status === "ok"),
+    critical: checks.filter((check) => check.status === "critical").length,
+    warnings: checks.filter((check) => check.status === "warning").length,
+    checks
+  };
 }
 
 function buildOpsFindings(tasks: TaskRow[], ledger: LedgerRow[]): OpsFinding[] {
@@ -357,6 +447,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     adminEmail: adminUser.email,
     summary: summarize(accounts, ledger, purchases, tasks),
+    health: buildSystemHealth(tasks, ledger, purchases),
     findings: buildOpsFindings(tasks, ledger),
     users: userId ? users.filter((user) => user.id === userId) : users,
     accounts: userId ? accounts.filter((account) => account.user_id === userId) : accounts,

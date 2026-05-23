@@ -73,9 +73,22 @@ type OpsFinding = {
   taskIds: string[];
 };
 
+type SystemHealth = {
+  ok: boolean;
+  critical: number;
+  warnings: number;
+  checks: Array<{
+    key: string;
+    label: string;
+    status: "ok" | "warning" | "critical";
+    detail: string;
+  }>;
+};
+
 type OpsPayload = {
   adminEmail?: string;
   summary?: Record<string, number>;
+  health?: SystemHealth;
   findings?: OpsFinding[];
   users?: AdminUser[];
   accounts?: Account[];
@@ -112,6 +125,12 @@ function statusClass(status: string) {
 
 function amountClass(amount: number) {
   return amount >= 0 ? "text-emerald-700" : "text-rose-700";
+}
+
+function healthClass(status: "ok" | "warning" | "critical") {
+  if (status === "critical") return "border-rose-200 bg-rose-50/70 text-rose-700";
+  if (status === "warning") return "border-amber-200 bg-amber-50/70 text-amber-700";
+  return "border-emerald-200 bg-emerald-50/70 text-emerald-700";
 }
 
 export default function AdminHomePage() {
@@ -243,6 +262,7 @@ export default function AdminHomePage() {
   const tasks = payload?.tasks || [];
   const failedTasks = payload?.failedTasks || [];
   const findings = payload?.findings || [];
+  const health = payload?.health;
   const criticalFindingCount = findings.filter((finding) => finding.severity === "critical").reduce((sum, finding) => sum + finding.count, 0);
 
   return (
@@ -331,6 +351,51 @@ export default function AdminHomePage() {
               {message}
             </div>
           ) : null}
+        </section>
+
+        <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.14em] text-[#86868b]">Production health</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight">System readiness</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6e6e73]">
+                Checks critical environment variables, billing readiness, recent generation failure rate, pending purchases, and task recovery risk.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-black/10 bg-[#fbfbfd] px-4 py-3 text-right">
+              <p className="text-xs uppercase tracking-[0.12em] text-[#86868b]">Status</p>
+              <p className={`mt-1 text-lg font-semibold ${health?.ok ? "text-emerald-700" : "text-rose-700"}`}>
+                {health ? (health.ok ? "Healthy" : `${health.critical} critical / ${health.warnings} warning`) : "Loading"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {(health?.checks || []).map((check) => (
+              <div key={check.key} className={`rounded-2xl border p-4 ${healthClass(check.status)}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-[#1d1d1f]">{check.label}</p>
+                  <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase">
+                    {check.status}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-[#5f6779]">{check.detail}</p>
+              </div>
+            ))}
+            {!health?.checks?.length ? <Empty loading={loading} /> : null}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href="/api/health/network"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
+            >
+              Open network probe
+            </a>
+            <AppButton variant="secondary" onClick={() => loadOps()} disabled={loading}>
+              Refresh health
+            </AppButton>
+          </div>
         </section>
 
         <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
