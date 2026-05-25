@@ -25,24 +25,24 @@ export const CREDIT_LOW_BALANCE_THRESHOLD = 300;
 export const CREDIT_MARKUP_MULTIPLIER = 1.12;
 export const CREDIT_USD_TO_CREDITS = 150;
 
-const GPT_IMAGE_2_TEXT_HIGH: Record<string, number> = {
-  default_4_3: 24,
-  landscape_4_3: 24,
-  landscape_16_9: 24,
-  square_hd: 34,
-  square: 12,
-  portrait_4_3: 28,
-  portrait_16_9: 28
+const GPT_IMAGE_2_TEXT_HIGH_USD: Record<string, number> = {
+  default_4_3: 0.145,
+  landscape_4_3: 0.145,
+  landscape_16_9: 0.145,
+  square_hd: 0.211,
+  square: 0.053,
+  portrait_4_3: 0.145,
+  portrait_16_9: 0.145
 };
 
-const GPT_IMAGE_2_EDIT_HIGH: Record<string, number> = {
-  default_4_3: 25,
-  landscape_4_3: 25,
-  landscape_16_9: 25,
-  square_hd: 36,
-  square: 14,
-  portrait_4_3: 30,
-  portrait_16_9: 30
+const GPT_IMAGE_2_EDIT_HIGH_USD: Record<string, number> = {
+  default_4_3: 0.151,
+  landscape_4_3: 0.151,
+  landscape_16_9: 0.151,
+  square_hd: 0.219,
+  square: 0.06,
+  portrait_4_3: 0.151,
+  portrait_16_9: 0.151
 };
 
 const FLUX_SCHNELL_BY_SIZE: Record<string, number> = {
@@ -71,6 +71,13 @@ function creditsFromFalUsd(amountUsd: number, minimumCredits: number) {
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) return minimumCredits;
   return Math.max(minimumCredits, Math.ceil(amountUsd * CREDIT_USD_TO_CREDITS * CREDIT_MARKUP_MULTIPLIER));
 }
+
+function creditTableFromUsd(prices: Record<string, number>, minimumCredits: number) {
+  return Object.fromEntries(Object.entries(prices).map(([size, usd]) => [size, creditsFromFalUsd(usd, minimumCredits)])) as Record<string, number>;
+}
+
+const GPT_IMAGE_2_TEXT_HIGH = creditTableFromUsd(GPT_IMAGE_2_TEXT_HIGH_USD, 9);
+const GPT_IMAGE_2_EDIT_HIGH = creditTableFromUsd(GPT_IMAGE_2_EDIT_HIGH_USD, 10);
 
 export function estimateGenerationCredits(input: GenerationEstimateInput) {
   if (input.mode === "image") {
@@ -153,9 +160,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "image",
     workflow: "Text to Image",
     endpointId: "openai/gpt-image-2",
-    falBasis: "High quality 1024px output is roughly $0.145-$0.211 depending on canvas.",
+    falBasis: "fal GPT Image 2 high quality table: $0.145 for 1024x768, $0.211 for 1024x1024; token billing is ceiled by fal.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "chatgpt-image", imageSize: "default_4_3" }),
-    unitNote: "24-36 credits"
+    unitNote: "25-36 credits"
   },
   {
     provider: "chatgpt-image",
@@ -163,9 +170,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "image",
     workflow: "Image to Image",
     endpointId: "openai/gpt-image-2/edit",
-    falBasis: "Editing includes input-image cost; high quality 1024px output is roughly $0.151-$0.219.",
+    falBasis: "fal GPT Image 2 edit uses token/image-token billing; high quality 1024px output is roughly $0.151-$0.219.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "chatgpt-image", imageSize: "default_4_3", hasReferences: true }),
-    unitNote: "25-36 credits"
+    unitNote: "26-37 credits"
   },
   {
     provider: "nano-banana-image",

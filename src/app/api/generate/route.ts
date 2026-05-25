@@ -138,7 +138,8 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     }
     return {
       prompt,
-      image_size: getFalImageSize(body.ratio, body.imageSize)
+      image_size: getFalImageSize(body.ratio, body.imageSize),
+      quality: "high"
     };
   }
 
