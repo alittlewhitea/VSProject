@@ -327,6 +327,7 @@ function StudioContent() {
       ? "chatgpt-image"
       : "seedance-video") as string;
   const initialImageWorkflow = sp.get("workflow") === "image-to-image" ? "image-to-image" : "text-to-image";
+  const initialReferenceUrl = sp.get("reference");
   const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider));
   const [provider, setProvider] = useState(initialProvider);
   const [imageWorkflow, setImageWorkflow] = useState<"text-to-image" | "image-to-image">(initialImageWorkflow);
@@ -334,6 +335,9 @@ function StudioContent() {
   const [imageSize, setImageSize] = useState("default_4_3");
   const [referenceImagesText, setReferenceImagesText] = useState(() =>
     mode === "image" &&
+    initialReferenceUrl
+      ? initialReferenceUrl
+      : mode === "image" &&
     initialProvider === "nano-banana-image" &&
     (initialImageWorkflow === "image-to-image" || providerFromUrl === "nano-banana-image")
       ? NANO_BANANA_EDIT_REFERENCE_TEXT
@@ -473,6 +477,12 @@ function StudioContent() {
     const resolutionParam = sp.get("resolution");
     if (resolutionParam && GROK_VIDEO_RESOLUTION_OPTIONS.includes(resolutionParam)) {
       setVideoResolution(resolutionParam);
+    }
+
+    const referenceParam = sp.get("reference");
+    if (mode === "image" && referenceParam) {
+      setImageWorkflow("image-to-image");
+      setReferenceImagesText(referenceParam);
     }
   }, [mode, sp]);
 
@@ -920,7 +930,7 @@ function StudioContent() {
         return;
       }
       if (mode === "image") {
-        router.push(`/creations?task=${encodeURIComponent(payload.taskId)}`);
+        router.push(`/creations/${encodeURIComponent(payload.taskId)}`);
         return;
       }
 

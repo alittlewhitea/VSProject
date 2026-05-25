@@ -10,7 +10,7 @@ const TASK_SYNC_LIMIT = 5;
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
 const TASK_SELECT =
-  "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, raw_result, created_at, updated_at, title, is_favorite, failure_code, failure_reason, last_checked_at, timed_out_at";
+  "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, raw_result, request_settings, created_at, updated_at, title, is_favorite, failure_code, failure_reason, last_checked_at, timed_out_at";
 
 type TaskHistoryResult = {
   data: TaskRow[] | null;
@@ -36,6 +36,7 @@ type TaskRow = {
   response_url?: string | null;
   output_url?: string | null;
   raw_result?: unknown;
+  request_settings?: Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string | null;
   title?: string | null;
@@ -294,13 +295,21 @@ export async function GET(request: Request) {
   await withTimeout(syncPendingFalTasks(admin, user.id), TASK_HISTORY_TIMEOUT_MS).catch(() => null);
 
   const { data, error } = await withTimeout<TaskHistoryResult>(
-    admin
-      .from("generation_tasks")
-      .select(TASK_SELECT)
-      .eq("user_id", user.id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(30) as unknown as Promise<TaskHistoryResult>,
+    (() => {
+      const id = new URL(request.url).searchParams.get("id");
+      let query = admin
+        .from("generation_tasks")
+        .select(TASK_SELECT)
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (id) {
+        query = query.eq("id", id).limit(1);
+      } else {
+        query = query.limit(30);
+      }
+      return query as unknown as Promise<TaskHistoryResult>;
+    })(),
     TASK_HISTORY_TIMEOUT_MS
   ).catch((error: unknown) => ({
     data: [],

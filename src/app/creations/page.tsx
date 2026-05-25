@@ -25,6 +25,7 @@ type CreationTask = {
   statusUrl?: string | null;
   responseUrl?: string | null;
   mediaUrl?: string | null;
+  settings?: Record<string, unknown> | null;
   chargedCredits?: number;
   chargeLedgerId?: number | string | null;
   refundedCredits?: number;
@@ -50,6 +51,7 @@ type ApiTask = {
   response_url?: string | null;
   output_url?: string | null;
   raw_result?: unknown;
+  request_settings?: Record<string, unknown> | null;
   title?: string | null;
   is_favorite?: boolean;
   charged_credits?: number;
@@ -168,6 +170,8 @@ function taskFromApi(task: ApiTask): CreationTask {
     statusUrl: task.status_url || null,
     responseUrl: task.response_url || null,
     mediaUrl: task.output_url || pickMediaUrl(task.raw_result) || null,
+    settings: task.request_settings || null,
+    ratio: typeof task.request_settings?.ratio === "string" ? task.request_settings.ratio : undefined,
     chargedCredits: typeof task.charged_credits === "number" ? task.charged_credits : task.estimated_credits,
     chargeLedgerId: task.charge_ledger_id || null,
     refundedCredits: typeof task.refunded_credits === "number" ? task.refunded_credits : 0,
@@ -188,6 +192,17 @@ function regenerateHref(task: CreationTask) {
   if (task.prompt) params.set("prompt", task.prompt);
   if (task.provider) params.set("provider", task.provider);
   if (task.ratio) params.set("ratio", task.ratio);
+  return `/studio?${params.toString()}`;
+}
+
+function useAsReferenceHref(task: CreationTask) {
+  const params = new URLSearchParams({
+    mode: "image",
+    workflow: "image-to-image",
+    provider: "nano-banana-image"
+  });
+  if (task.prompt) params.set("prompt", task.prompt);
+  if (task.mediaUrl) params.set("reference", task.mediaUrl);
   return `/studio?${params.toString()}`;
 }
 
@@ -497,6 +512,12 @@ export default function CreationsPage() {
                       <h2 className="mt-1 text-2xl font-semibold tracking-tight">{taskTitle(selectedTask)}</h2>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/creations/${encodeURIComponent(selectedTask.id)}`}
+                        className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
+                      >
+                        Open detail
+                      </Link>
                       <button
                         type="button"
                         onClick={() => handleToggleFavorite(selectedTask)}
@@ -635,6 +656,14 @@ export default function CreationsPage() {
                     >
                       {selectedTask.status === "Failed" ? "Retry generation" : "Regenerate"}
                     </Link>
+                    {selectedTask.type === "Image" && selectedTask.mediaUrl ? (
+                      <Link
+                        href={useAsReferenceHref(selectedTask)}
+                        className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
+                      >
+                        Use as reference
+                      </Link>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => handleDeleteTask(selectedTask)}

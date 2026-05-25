@@ -11,6 +11,7 @@ create table if not exists public.generation_tasks (
   response_url text,
   output_url text,
   raw_result jsonb,
+  request_settings jsonb not null default '{}'::jsonb,
   provider_request_id text,
   title text,
   is_favorite boolean not null default false,
@@ -33,6 +34,8 @@ alter table public.generation_tasks
   add column if not exists timed_out_at timestamptz,
   add column if not exists deleted_at timestamptz,
   add column if not exists updated_at timestamptz not null default now();
+alter table public.generation_tasks
+  add column if not exists request_settings jsonb not null default '{}'::jsonb;
 
 create index if not exists generation_tasks_user_id_created_at_idx
   on public.generation_tasks (user_id, created_at desc);

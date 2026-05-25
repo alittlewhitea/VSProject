@@ -167,6 +167,25 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
   return { prompt };
 }
 
+function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
+  const imageUrls = Array.isArray(body.imageUrls)
+    ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()).slice(0, 14)
+    : [];
+
+  return {
+    mode: body.mode,
+    workflow: body.mode === "image" && imageUrls.length ? "image-to-image" : body.imageWorkflow || "text-to-image",
+    provider: body.provider,
+    model_id: modelId,
+    ratio: body.ratio,
+    duration: body.duration,
+    image_size: body.imageSize || null,
+    image_urls: imageUrls,
+    resolution: body.resolution || null,
+    output_format: body.outputFormat || null
+  };
+}
+
 function generationTaskId(idempotencyKey: unknown) {
   const raw = typeof idempotencyKey === "string" ? idempotencyKey.trim() : "";
   const key = raw && /^[a-zA-Z0-9_-]{8,80}$/.test(raw) ? raw : randomUUID();
@@ -272,7 +291,8 @@ export async function POST(request: Request) {
         prompt,
         status: "queued",
         estimated_credits: estimatedCredits,
-        transport
+        transport,
+        request_settings: buildRequestSettings(body, modelId)
       });
       if (insertError) {
         const existingAfterConflict = await findExistingTask(admin, user.id, taskId);
