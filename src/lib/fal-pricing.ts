@@ -6,6 +6,11 @@ type FalPricingResponse = {
   currency?: string;
 };
 
+type FalPricingMapCache = {
+  expiresAt: number;
+  value: Map<string, FalPricingResponse>;
+};
+
 export type LiveModelPricingRow = {
   provider: string;
   label: string;
@@ -25,6 +30,7 @@ export type LiveModelPricingRow = {
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const cache = new Map<string, { expiresAt: number; value: FalPricingResponse | null }>();
+let pricingMapCache: FalPricingMapCache | null = null;
 
 function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "chatgpt-image") return hasReferences ? "openai/gpt-image-2/edit" : "openai/gpt-image-2";
@@ -40,11 +46,15 @@ function endpointForProvider(provider: string, hasReferences = false) {
   return null;
 }
 
-function normalizeFalPricing(payload: unknown): FalPricingResponse | null {
-  if (!payload || typeof payload !== "object") return null;
-  const root = payload as Record<string, unknown>;
-  const prices = Array.isArray(root.prices) ? root.prices : null;
-  const data = prices?.[0] && typeof prices[0] === "object" ? (prices[0] as Record<string, unknown>) : root;
+function falAuthHeader() {
+  const key = process.env.FAL_KEY?.trim();
+  if (!key) return null;
+  return key.toLowerCase().startsWith("key ") ? key : `Key ${key}`;
+}
+
+function normalizeFalPricingEntry(entry: unknown): FalPricingResponse | null {
+  if (!entry || typeof entry !== "object") return null;
+  const data = entry as Record<string, unknown>;
   const unitPrice = Number(data.unit_price ?? data.unitPrice ?? data.price);
   if (!Number.isFinite(unitPrice) || unitPrice <= 0) return null;
   const unit = typeof data.unit === "string" ? data.unit : null;
@@ -57,22 +67,83 @@ function normalizeFalPricing(payload: unknown): FalPricingResponse | null {
   };
 }
 
+function normalizeFalPricing(payload: unknown): FalPricingResponse | null {
+  if (!payload || typeof payload !== "object") return null;
+  const root = payload as Record<string, unknown>;
+  const prices = Array.isArray(root.prices) ? root.prices : null;
+  return normalizeFalPricingEntry(prices?.[0] || root);
+}
+
+async function getFalPricingMap() {
+  const now = Date.now();
+  if (pricingMapCache && pricingMapCache.expiresAt > now) return pricingMapCache.value;
+
+  const authorization = falAuthHeader();
+  if (!authorization) {
+    const empty = new Map<string, FalPricingResponse>();
+    pricingMapCache = { expiresAt: now + CACHE_TTL_MS, value: empty };
+    return empty;
+  }
+
+  const pricesByEndpoint = new Map<string, FalPricingResponse>();
+  let cursor: string | null = null;
+
+  try {
+    for (let page = 0; page < 8; page += 1) {
+      const url = new URL("https://api.fal.ai/v1/models/pricing");
+      if (cursor) url.searchParams.set("cursor", cursor);
+
+      const response = await fetch(url.toString(), {
+        headers: { Authorization: authorization },
+        next: { revalidate: Math.floor(CACHE_TTL_MS / 1000) }
+      });
+      if (!response.ok) throw new Error(`fal pricing list ${response.status}`);
+
+      const payload = (await response.json()) as Record<string, unknown>;
+      const prices = Array.isArray(payload.prices) ? payload.prices : [];
+      for (const item of prices) {
+        if (!item || typeof item !== "object") continue;
+        const raw = item as Record<string, unknown>;
+        const endpointId = typeof raw.endpoint_id === "string" ? raw.endpoint_id : null;
+        const value = normalizeFalPricingEntry(raw);
+        if (endpointId && value) pricesByEndpoint.set(endpointId, value);
+      }
+
+      const hasMore = payload.has_more === true;
+      const nextCursor = typeof payload.next_cursor === "string" && payload.next_cursor.length > 0 ? payload.next_cursor : null;
+      if (!hasMore || !nextCursor) break;
+      cursor = nextCursor;
+    }
+
+    pricingMapCache = { expiresAt: now + CACHE_TTL_MS, value: pricesByEndpoint };
+    return pricesByEndpoint;
+  } catch {
+    pricingMapCache = { expiresAt: now + 10 * 60 * 1000, value: pricesByEndpoint };
+    return pricesByEndpoint;
+  }
+}
+
 export async function getFalModelPricing(endpointId: string) {
   const now = Date.now();
   const cached = cache.get(endpointId);
   if (cached && cached.expiresAt > now) return cached.value;
 
-  const key = process.env.FAL_KEY?.trim();
-  if (!key) {
+  const authorization = falAuthHeader();
+  if (!authorization) {
     cache.set(endpointId, { expiresAt: now + CACHE_TTL_MS, value: null });
     return null;
   }
 
+  const pricingMap = await getFalPricingMap();
+  if (pricingMap.has(endpointId)) {
+    const value = pricingMap.get(endpointId) || null;
+    cache.set(endpointId, { expiresAt: now + CACHE_TTL_MS, value });
+    return value;
+  }
+
   try {
     const response = await fetch(`https://api.fal.ai/v1/models/pricing?endpoint_id=${encodeURIComponent(endpointId)}`, {
-      headers: {
-        Authorization: `Key ${key}`
-      },
+      headers: { Authorization: authorization },
       next: { revalidate: Math.floor(CACHE_TTL_MS / 1000) }
     });
     if (!response.ok) throw new Error(`fal pricing ${response.status}`);
