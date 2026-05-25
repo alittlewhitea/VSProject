@@ -42,7 +42,9 @@ function endpointForProvider(provider: string, hasReferences = false) {
 
 function normalizeFalPricing(payload: unknown): FalPricingResponse | null {
   if (!payload || typeof payload !== "object") return null;
-  const data = payload as Record<string, unknown>;
+  const root = payload as Record<string, unknown>;
+  const prices = Array.isArray(root.prices) ? root.prices : null;
+  const data = prices?.[0] && typeof prices[0] === "object" ? (prices[0] as Record<string, unknown>) : root;
   const unitPrice = Number(data.unit_price ?? data.unitPrice ?? data.price);
   if (!Number.isFinite(unitPrice) || unitPrice <= 0) return null;
   return {
