@@ -47,9 +47,12 @@ function normalizeFalPricing(payload: unknown): FalPricingResponse | null {
   const data = prices?.[0] && typeof prices[0] === "object" ? (prices[0] as Record<string, unknown>) : root;
   const unitPrice = Number(data.unit_price ?? data.unitPrice ?? data.price);
   if (!Number.isFinite(unitPrice) || unitPrice <= 0) return null;
+  const unit = typeof data.unit === "string" ? data.unit : null;
+  const supportedUnits = new Set(["image", "images", "second", "seconds", "megapixel", "megapixels"]);
+  if (unit && !supportedUnits.has(unit.toLowerCase())) return null;
   return {
     unit_price: unitPrice,
-    unit: typeof data.unit === "string" ? data.unit : null,
+    unit,
     currency: typeof data.currency === "string" ? data.currency : "USD"
   };
 }
