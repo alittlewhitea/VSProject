@@ -4,6 +4,7 @@ export type CreditPack = {
   credits: number;
   amountCents: number;
   description: string;
+  idealFor: string;
 };
 
 export const CREDIT_PACKS: CreditPack[] = [
@@ -12,21 +13,24 @@ export const CREDIT_PACKS: CreditPack[] = [
     name: "Starter Pack",
     credits: 600,
     amountCents: 500,
-    description: "A light top-up for trying image ideas."
+    description: "A light top-up for validating prompts, image edits, and short video tests.",
+    idealFor: "Roughly 20+ premium image jobs or 2 short Seedance video jobs."
   },
   {
     id: "creator",
     name: "Creator Pack",
     credits: 1500,
     amountCents: 1000,
-    description: "Enough balance for regular creative batches."
+    description: "Better value for weekly production batches across image and video models.",
+    idealFor: "Roughly 50+ premium image jobs or 5 short Seedance video jobs."
   },
   {
     id: "studio",
     name: "Studio Pack",
     credits: 4000,
     amountCents: 2500,
-    description: "Best for heavier image and video testing."
+    description: "Best for teams testing multiple concepts, references, and video cuts.",
+    idealFor: "Roughly 130+ premium image jobs or 13 short Seedance video jobs."
   }
 ];
 
@@ -40,4 +44,3 @@ export function formatUsd(amountCents: number) {
     currency: "USD"
   }).format(amountCents / 100);
 }
-

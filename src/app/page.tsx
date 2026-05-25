@@ -6,6 +6,7 @@ import { PageAnalytics } from "../components/page-analytics";
 import { Reveal } from "../components/reveal";
 import { TopNav } from "../components/top-nav";
 import { AppButton } from "../components/ui/button";
+import { CREDIT_PACKS, formatUsd } from "../lib/billing";
 import { galleryItemPath, mapGalleryRow } from "../lib/gallery";
 import { fetchPublishedGalleryItems } from "../lib/gallery-server";
 import { LEGAL_DOCUMENTS } from "../lib/legal";
@@ -49,9 +50,14 @@ const useCases = [
   }
 ];
 const plans = [
-  { name: "Trial Credits", price: "Free", note: "For new accounts", credits: "Signup bonus included" },
-  { name: "Creator Pack", price: "$10", note: "Top up when needed", credits: "Pay once, use until spent" },
-  { name: "Studio Pack", price: "$50", note: "For heavier creative runs", credits: "Larger prepaid balance" }
+  { name: "Trial Credits", price: "Free", note: "For new accounts", credits: "120 signup credits included", href: "/studio?mode=image&workflow=text-to-image" },
+  ...CREDIT_PACKS.map((pack) => ({
+    name: pack.name,
+    price: formatUsd(pack.amountCents),
+    note: pack.id === "studio" ? "Best value" : "Top up when needed",
+    credits: `${pack.credits.toLocaleString()} credits · ${pack.idealFor}`,
+    href: "/billing"
+  }))
 ];
 const faqs = [
   {
@@ -440,7 +446,7 @@ export default async function HomePage() {
           <Reveal>
             <div className="mb-6 flex items-end justify-between">
               <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">Credits that never feel like a subscription</h3>
-              <Link href="/studio?mode=image&workflow=text-to-image" className="text-sm font-semibold text-[#1d1d1f]">Open wallet -&gt;</Link>
+              <Link href="/billing" className="text-sm font-semibold text-[#1d1d1f]">Open wallet -&gt;</Link>
             </div>
           </Reveal>
           <div className="grid gap-5 md:grid-cols-3">
@@ -452,7 +458,7 @@ export default async function HomePage() {
                   <p className="mt-4 text-4xl font-semibold tracking-tight">{p.price}</p>
                   <p className="mt-2 text-sm text-[#5a6070]">{p.credits}</p>
                   <div className="mt-6">
-                    <AppButton href="/studio?mode=image&workflow=text-to-image" variant="dark" size="md">Get credits</AppButton>
+                    <AppButton href={p.href} variant="dark" size="md">Get credits</AppButton>
                   </div>
                 </article>
               </Reveal>

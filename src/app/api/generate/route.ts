@@ -4,6 +4,7 @@ import { getUserFromBearerToken } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { fetchFal } from "../../../lib/fal-fetch";
 import { ensureCreditAccount, refundCredits, spendCredits } from "../../../lib/credits";
+import { estimateGenerationCreditsWithLivePricing } from "../../../lib/fal-pricing";
 
 type GenerateMode = "image" | "video";
 
@@ -253,9 +254,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Prompt must be at least 8 characters." }, { status: 400 });
     }
 
-    const estimatedCredits = body.mode === "image" ? 12 : body.duration === "10s" ? 68 : body.duration === "8s" ? 56 : 42;
+    const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
+    const estimatedCredits = await estimateGenerationCreditsWithLivePricing({
+      mode: body.mode,
+      provider: body.provider,
+      imageSize: body.imageSize,
+      duration: body.duration,
+      hasReferences: imageUrls.length > 0,
+      resolution: body.resolution
+    });
     if (body.mode === "image" && body.provider === "nano-banana-edit") {
-      const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
       if (!imageUrls.length) {
         return NextResponse.json({ error: "Image to Image requires at least one reference image." }, { status: 400 });
       }

@@ -7,6 +7,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { TopNav } from "../../components/top-nav";
 import { AppButton } from "../../components/ui/button";
 import { trackEvent } from "../../lib/analytics";
+import { CREDIT_LOW_BALANCE_THRESHOLD, estimateGenerationCredits } from "../../lib/model-pricing";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 
 type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
@@ -646,7 +647,24 @@ function StudioContent() {
     [mode]
   );
 
-  const estCredits = mode === "image" ? 12 : duration === "10s" ? 68 : duration === "8s" ? 56 : 42;
+  const referenceImageUrls = [
+    ...referenceImagesText
+      .split(/\r?\n|,/)
+      .map((url) => url.trim())
+      .filter(Boolean),
+    ...referenceImageFiles
+  ].slice(0, 14);
+
+  const estCredits = estimateGenerationCredits({
+    mode,
+    provider,
+    imageSize,
+    duration,
+    hasReferences: referenceImageUrls.length > 0,
+    resolution: mode === "image" ? editResolution : videoResolution
+  });
+  const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
+  const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const estimatedSeconds = estimateTaskSeconds(mode, provider, duration);
   const isPromptValid = prompt.trim().length >= 8;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
@@ -669,13 +687,6 @@ function StudioContent() {
           ? "Grok Imagine Video supports prompt, duration, aspect ratio, and 480p/720p output resolution."
           : "Use clear subject, style, composition, and constraints for better instruction following.";
   const videoRatioOptions = provider === "grok-video" ? GROK_VIDEO_RATIO_OPTIONS : DEFAULT_VIDEO_RATIO_OPTIONS;
-  const referenceImageUrls = [
-    ...referenceImagesText
-      .split(/\r?\n|,/)
-      .map((url) => url.trim())
-      .filter(Boolean),
-    ...referenceImageFiles
-  ].slice(0, 14);
 
   useEffect(() => {
     if (!hasCompletedCreation) return;
@@ -1057,7 +1068,7 @@ function StudioContent() {
     } catch (error) {
       trackEvent(
         "generation_failed",
-        { mode, provider, error: error instanceof Error ? error.message.slice(0, 180) : "submit_failed" },
+        { mode, provider, error: error instanceof Error ? error.message.slice(0, 180) : "submit_failed", estimated_credits: estCredits },
         accessToken
       );
       setStatusTone("error");
@@ -1179,7 +1190,13 @@ function StudioContent() {
           <article className="card tone-blue rounded-3xl p-6 md:p-7">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-2xl font-semibold tracking-tight">Create Task</h2>
-              <p className="chip rounded-full px-3 py-1 text-xs text-[#4f596b]">Estimated {estCredits} credits</p>
+              <p
+                className={`chip rounded-full px-3 py-1 text-xs ${
+                  hasEnoughCredits ? "text-[#4f596b]" : "border-[#b03439]/20 bg-[#fff1f2] text-[#b03439]"
+                }`}
+              >
+                Estimated {estCredits} credits
+              </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -1408,7 +1425,7 @@ function StudioContent() {
             </label>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <AppButton variant="primary" onClick={handleGenerate} disabled={!isPromptValid || isSubmitting}>
+              <AppButton variant="primary" onClick={handleGenerate} disabled={!isPromptValid || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}>
                 {isSubmitting ? "Generating..." : accessToken ? `Generate - ${estCredits} credits` : "Sign in to Generate"}
               </AppButton>
               <AppButton
@@ -1426,6 +1443,15 @@ function StudioContent() {
               {isPromptValid ? "Prompt looks good. Ready to generate." : "Use at least 8 characters in your prompt."}
             </p>
             <p className="mt-2 text-xs text-[#6c7789]">{providerNote}</p>
+            {accessToken && !hasEnoughCredits ? (
+              <p className="mt-2 rounded-xl border border-[#b03439]/20 bg-[#fff1f2] px-3 py-2 text-xs font-semibold text-[#b03439]">
+                Your balance is below this estimate. Top up before generating.
+              </p>
+            ) : accessToken && lowBalanceAfterGeneration ? (
+              <p className="mt-2 rounded-xl border border-[#d8b85d]/30 bg-[#fff8df] px-3 py-2 text-xs font-semibold text-[#705d1d]">
+                Low balance warning: this job would leave fewer than {CREDIT_LOW_BALANCE_THRESHOLD} credits.
+              </p>
+            ) : null}
             {statusText ? (
               <p
                 className={`mt-2 text-sm ${
