@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { TopNav } from "../../components/top-nav";
 import { AppButton } from "../../components/ui/button";
+import { trackEvent } from "../../lib/analytics";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 
 type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
@@ -357,6 +358,8 @@ function StudioContent() {
   const [loginDraftNonce, setLoginDraftNonce] = useState(0);
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
+  const trackedStudioViewRef = useRef("");
+  const trackedLoginSuccessRef = useRef<string | null>(null);
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -373,6 +376,10 @@ function StudioContent() {
         }
       }
       if (!token) setCreditNote("Sign in to generate and see your credit balance.");
+      if (token && nextUserId && trackedLoginSuccessRef.current !== nextUserId) {
+        trackedLoginSuccessRef.current = nextUserId;
+        trackEvent("login_success", { surface: "studio", mode, provider }, token);
+      }
       setAuthReady(true);
     });
     const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -391,12 +398,23 @@ function StudioContent() {
           window.localStorage.removeItem("nova_access_token");
         }
       }
+      if (token && nextUserId && trackedLoginSuccessRef.current !== nextUserId) {
+        trackedLoginSuccessRef.current = nextUserId;
+        trackEvent("login_success", { surface: "studio", mode, provider }, token);
+      }
       setAuthReady(true);
     });
     return () => {
       authSub.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    const key = `${mode}:${provider}:${imageWorkflow}`;
+    if (trackedStudioViewRef.current === key) return;
+    trackedStudioViewRef.current = key;
+    trackEvent("studio_view", { mode, provider, workflow: imageWorkflow, signed_in: Boolean(accessToken) }, accessToken);
+  }, [accessToken, imageWorkflow, mode, provider]);
 
   useEffect(() => {
     const workflowParam = sp.get("workflow") === "image-to-image" ? "image-to-image" : "text-to-image";
@@ -674,6 +692,11 @@ function StudioContent() {
         )
     );
     setReferenceImageFiles((prev) => [...prev, ...nextFiles].slice(0, 4));
+    trackEvent(
+      "studio_reference_uploaded",
+      { mode, provider, workflow: "image-to-image", files: nextFiles.length, total_references: referenceImageUrls.length + nextFiles.length },
+      accessToken
+    );
   }
 
   function clearCompletedWorkbench() {
@@ -738,6 +761,18 @@ function StudioContent() {
       return;
     }
 
+    trackEvent(
+      "generate_clicked",
+      {
+        mode,
+        provider,
+        workflow: mode === "image" && referenceImageUrls.length ? "image-to-image" : imageWorkflow,
+        estimated_credits: estCredits,
+        signed_in: Boolean(accessToken),
+        has_references: referenceImageUrls.length > 0
+      },
+      accessToken
+    );
     setIsSubmitting(true);
     setStatusTone("idle");
     setStatusText("Submitting task...");
@@ -753,6 +788,11 @@ function StudioContent() {
         accessToken ||
         (typeof window !== "undefined" ? window.localStorage.getItem("nova_access_token") : null);
       if (!liveToken) {
+        trackEvent(
+          "generate_login_required",
+          { mode, provider, workflow: mode === "image" && referenceImageUrls.length ? "image-to-image" : imageWorkflow },
+          accessToken
+        );
         const next = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?mode=image&workflow=text-to-image";
         const saved = saveLoginDraft(true);
         setStatusTone(saved ? "idle" : "error");
@@ -850,6 +890,19 @@ function StudioContent() {
         responseUrl: payload.responseUrl || null
       };
       setTasks((prev) => [queuedTask, ...prev.filter((task) => task.id !== queuedTask.id)]);
+      trackEvent(
+        "generation_queued",
+        {
+          mode,
+          provider,
+          workflow: requestPayload.imageWorkflow,
+          task_id: payload.taskId,
+          transport: payload.transport,
+          estimated_credits: estCredits,
+          duplicate: Boolean(payload.duplicate)
+        },
+        liveToken
+      );
       if (payload.duplicate) {
         setStatusText("This request was already submitted. Reopened the existing task instead of charging again.");
       }
@@ -857,6 +910,11 @@ function StudioContent() {
         setTaskHistoryNote("This task is running, but task history could not be saved yet. It will remain visible in this browser session.");
       }
       if (payload.status === "failed") {
+        trackEvent(
+          "generation_failed",
+          { mode, provider, task_id: payload.taskId, failure_reason: payload.failureReason || "existing_failed" },
+          liveToken
+        );
         setStatusTone("error");
         setStatusText(payload.failureReason || "This existing task has already failed. Credits should be visible in the refund ledger.");
         return;
@@ -898,6 +956,7 @@ function StudioContent() {
           );
           setStatusTone("error");
           setStatusText("Generation failed. Try a clearer prompt or another provider.");
+          trackEvent("generation_failed", { mode, provider, task_id: payload.taskId, transport: "mock" }, liveToken);
         } else {
           await updateMockStatus("completed").catch(() => null);
           setTasks((prev) =>
@@ -906,6 +965,7 @@ function StudioContent() {
           clearCompletedWorkbench();
           setStatusTone("ok");
           setStatusText("Generation completed. Your result is now in Recent Tasks.");
+          trackEvent("generation_completed", { mode, provider, task_id: payload.taskId, transport: "mock" }, liveToken);
         }
       } else {
         setStatusText("Task queued via fal.ai live API. Waiting for provider...");
@@ -970,6 +1030,7 @@ function StudioContent() {
           clearCompletedWorkbench();
           setStatusTone("ok");
           setStatusText("Generation completed via fal.ai. Your result is now in Recent Tasks.");
+          trackEvent("generation_completed", { mode, provider, task_id: payload.taskId, transport: "real" }, liveToken);
         } else {
           setTasks((prev) =>
             prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: 0 } : task))
@@ -980,9 +1041,15 @@ function StudioContent() {
               ? "fal.ai task did not complete successfully. Credits are refunded automatically when the provider failure is confirmed."
               : "Task status was not confirmed in time. Open Creations to refresh status, refund, and retry details."
           );
+          trackEvent("generation_failed", { mode, provider, task_id: payload.taskId, transport: "real", final_status: finalStatus || "timeout" }, liveToken);
         }
       }
     } catch (error) {
+      trackEvent(
+        "generation_failed",
+        { mode, provider, error: error instanceof Error ? error.message.slice(0, 180) : "submit_failed" },
+        accessToken
+      );
       setStatusTone("error");
       setStatusText(
         error instanceof Error
@@ -1046,6 +1113,7 @@ function StudioContent() {
             <div className="inline-flex rounded-2xl border border-black/10 bg-white p-1.5">
               <Link
                 href="/studio?mode=image&workflow=text-to-image"
+                onClick={() => trackEvent("studio_mode_selected", { mode: "image" }, accessToken)}
                 className={`rounded-xl px-6 py-2.5 text-base font-semibold transition ${
                   mode === "image"
                     ? "bg-[#1c6be1] text-white shadow-[0_8px_18px_rgba(28,107,225,0.35)]"
@@ -1056,6 +1124,7 @@ function StudioContent() {
               </Link>
               <Link
                 href="/studio?mode=video&workflow=text-to-video"
+                onClick={() => trackEvent("studio_mode_selected", { mode: "video" }, accessToken)}
                 className={`rounded-xl px-6 py-2.5 text-base font-semibold transition ${
                   mode === "video"
                     ? "bg-[#0c7a71] text-white shadow-[0_8px_18px_rgba(12,122,113,0.35)]"
@@ -1110,6 +1179,7 @@ function StudioContent() {
                   value={provider}
                   onChange={(e) => {
                     const nextProvider = e.target.value;
+                    trackEvent("studio_model_selected", { mode, provider: nextProvider }, accessToken);
                     setProvider(nextProvider);
                     const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
                     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
@@ -1159,6 +1229,7 @@ function StudioContent() {
                   <select
                     value={imageSize}
                     onChange={(e) => {
+                      trackEvent("studio_size_selected", { mode, provider, image_size: e.target.value, ratio: ratioFromImageSize(e.target.value) }, accessToken);
                       setImageSize(e.target.value);
                       setRatio(ratioFromImageSize(e.target.value));
                       const params = new URLSearchParams(sp.toString());
@@ -1179,7 +1250,10 @@ function StudioContent() {
                 ) : (
                   <select
                     value={ratio}
-                    onChange={(e) => setRatio(e.target.value)}
+                    onChange={(e) => {
+                      trackEvent("studio_size_selected", { mode, provider, ratio: e.target.value }, accessToken);
+                      setRatio(e.target.value);
+                    }}
                     className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
                   >
                     {videoRatioOptions.map((item) => (

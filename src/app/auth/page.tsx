@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 import { AppButton } from "../../components/ui/button";
+import { trackEvent } from "../../lib/analytics";
 
 function AuthContent() {
   const sp = useSearchParams();
@@ -15,9 +16,14 @@ function AuthContent() {
   const [loading, setLoading] = useState(false);
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
 
+  useEffect(() => {
+    trackEvent("auth_view", { next: nextPath });
+  }, [nextPath]);
+
   async function signInWithEmail() {
     setLoading(true);
     setMsg("");
+    trackEvent("login_started", { method: "email", next: nextPath });
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -30,9 +36,11 @@ function AuthContent() {
       }
       setTone("ok");
       setMsg("Verification link sent. Please check your email.");
+      trackEvent("login_magic_link_sent", { method: "email", next: nextPath });
     } catch (error) {
       setTone("error");
       setMsg(error instanceof Error ? error.message : "Email sign-in failed.");
+      trackEvent("login_failed", { method: "email", error: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
     } finally {
       setLoading(false);
     }
@@ -41,6 +49,7 @@ function AuthContent() {
   async function signInWithGoogle() {
     setLoading(true);
     setMsg("");
+    trackEvent("login_started", { method: "google", next: nextPath });
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -54,6 +63,7 @@ function AuthContent() {
     } catch (error) {
       setTone("error");
       setMsg(error instanceof Error ? error.message : "Google sign-in failed.");
+      trackEvent("login_failed", { method: "google", error: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
       setLoading(false);
     }
   }

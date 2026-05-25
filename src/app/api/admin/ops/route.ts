@@ -55,6 +55,15 @@ type TaskRow = {
   updated_at: string | null;
 };
 
+type AnalyticsRow = {
+  event_name: string;
+  user_id: string | null;
+  anonymous_id: string | null;
+  session_id: string | null;
+  properties: Record<string, unknown> | null;
+  created_at: string;
+};
+
 type AdjustmentPayload = {
   action?: "credit_adjustment" | "repair_generation_safety";
   userId?: string;
@@ -90,6 +99,16 @@ function orphanTaskTimeoutMinutes() {
 
 function isOlderThan(value: string, minutes: number) {
   return Date.now() - new Date(value).getTime() > minutes * 60 * 1000;
+}
+
+function startOfTodayIso() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date.toISOString();
+}
+
+function daysAgoIso(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 function envPresent(name: string) {
@@ -380,6 +399,70 @@ function summarize(accounts: CreditAccountRow[], ledger: LedgerRow[], purchases:
   };
 }
 
+function countUnique(events: AnalyticsRow[], key: "session_id" | "anonymous_id" | "user_id") {
+  return new Set(events.map((event) => event[key]).filter(Boolean)).size;
+}
+
+function buildFunnel(events: AnalyticsRow[]) {
+  const steps = [
+    { event: "home_view", label: "Home viewed" },
+    { event: "studio_view", label: "Studio viewed" },
+    { event: "generate_clicked", label: "Generate clicked" },
+    { event: "generate_login_required", label: "Login required" },
+    { event: "login_success", label: "Login success" },
+    { event: "generation_queued", label: "Generation queued" },
+    { event: "generation_completed", label: "Generation completed" },
+    { event: "checkout_started", label: "Checkout started" },
+    { event: "checkout_success", label: "Checkout success" }
+  ];
+
+  const eventCounts = new Map<string, AnalyticsRow[]>();
+  for (const event of events) {
+    eventCounts.set(event.event_name, [...(eventCounts.get(event.event_name) || []), event]);
+  }
+
+  return steps.map((step, index) => {
+    const rows = eventCounts.get(step.event) || [];
+    const previousRows = index > 0 ? eventCounts.get(steps[index - 1].event) || [] : [];
+    const count = rows.length;
+    const previous = index > 0 ? previousRows.length : count;
+    return {
+      event: step.event,
+      label: step.label,
+      count,
+      uniqueSessions: countUnique(rows, "session_id"),
+      uniqueUsers: countUnique(rows, "user_id"),
+      conversionFromPrevious: previous ? Math.round((count / previous) * 100) : null
+    };
+  });
+}
+
+function buildAnalyticsSummary(events: AnalyticsRow[]) {
+  const today = startOfTodayIso();
+  const todayEvents = events.filter((event) => event.created_at >= today);
+  const byEvent = new Map<string, number>();
+  const byModel = new Map<string, number>();
+  const byMode = new Map<string, number>();
+
+  for (const event of events) {
+    byEvent.set(event.event_name, (byEvent.get(event.event_name) || 0) + 1);
+    const provider = typeof event.properties?.provider === "string" ? event.properties.provider : null;
+    const mode = typeof event.properties?.mode === "string" ? event.properties.mode : null;
+    if (provider) byModel.set(provider, (byModel.get(provider) || 0) + 1);
+    if (mode) byMode.set(mode, (byMode.get(mode) || 0) + 1);
+  }
+
+  return {
+    totalEvents: events.length,
+    todayEvents: todayEvents.length,
+    uniqueSessions: countUnique(events, "session_id"),
+    uniqueUsers: countUnique(events, "user_id"),
+    byEvent: Object.fromEntries([...byEvent.entries()].sort((a, b) => b[1] - a[1]).slice(0, 16)),
+    byModel: Object.fromEntries([...byModel.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)),
+    byMode: Object.fromEntries([...byMode.entries()].sort((a, b) => b[1] - a[1]))
+  };
+}
+
 export async function GET(request: Request) {
   const adminUser = await getAdminUserFromRequest(request);
   if (!adminUser) {
@@ -394,7 +477,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId")?.trim();
 
-  const [authUsersResult, accountsResult, ledgerResult, purchasesResult, tasksResult] = await Promise.all([
+  const [authUsersResult, accountsResult, ledgerResult, purchasesResult, tasksResult, analyticsResult] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 100 }),
     admin
       .from("user_credit_accounts")
@@ -418,7 +501,13 @@ export async function GET(request: Request) {
       )
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
-      .limit(RECENT_LIMIT)
+      .limit(RECENT_LIMIT),
+    admin
+      .from("analytics_events")
+      .select("event_name,user_id,anonymous_id,session_id,properties,created_at")
+      .gte("created_at", daysAgoIso(7))
+      .order("created_at", { ascending: false })
+      .limit(600)
   ]);
 
   if (authUsersResult.error) return NextResponse.json({ error: authUsersResult.error.message }, { status: 500 });
@@ -432,6 +521,7 @@ export async function GET(request: Request) {
   const ledger = (ledgerResult.data || []) as LedgerRow[];
   const purchases = (purchasesResult.data || []) as PurchaseRow[];
   const tasks = (tasksResult.data || []) as TaskRow[];
+  const analytics = (analyticsResult.error ? [] : analyticsResult.data || []) as AnalyticsRow[];
   const accountByUserId = new Map(accounts.map((account) => [account.user_id, account]));
 
   const users = authUsers.map((user) => {
@@ -447,6 +537,12 @@ export async function GET(request: Request) {
   return NextResponse.json({
     adminEmail: adminUser.email,
     summary: summarize(accounts, ledger, purchases, tasks),
+    analytics: {
+      summary: buildAnalyticsSummary(analytics),
+      funnel: buildFunnel(analytics),
+      recentEvents: userId ? analytics.filter((event) => event.user_id === userId).slice(0, 80) : analytics.slice(0, 80),
+      storageWarning: analyticsResult.error ? analyticsResult.error.message : null
+    },
     health: buildSystemHealth(tasks, ledger, purchases),
     findings: buildOpsFindings(tasks, ledger),
     users: userId ? users.filter((user) => user.id === userId) : users,

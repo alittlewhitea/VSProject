@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { CREDIT_PACKS, formatUsd } from "../../lib/billing";
 import { TopNav } from "../../components/top-nav";
 import { AppButton } from "../../components/ui/button";
+import { trackEvent } from "../../lib/analytics";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 
 type LedgerEntry = {
@@ -67,6 +68,7 @@ function BillingContent() {
   const [message, setMessage] = useState("");
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
   const [refreshingCredits, setRefreshingCredits] = useState(false);
+  const trackedLoginSuccessRef = useRef<string | null>(null);
   const checkoutState = searchParams.get("checkout");
   const checkoutSessionId = searchParams.get("session_id");
 
@@ -77,6 +79,11 @@ function BillingContent() {
       if (!token) {
         router.replace("/auth?next=/billing");
         return;
+      }
+      const userId = data.session?.user.id || null;
+      if (userId && trackedLoginSuccessRef.current !== userId) {
+        trackedLoginSuccessRef.current = userId;
+        trackEvent("login_success", { surface: "billing" }, token);
       }
       setAccessToken(token);
     });
@@ -111,13 +118,15 @@ function BillingContent() {
 
   useEffect(() => {
     if (!accessToken) return;
+    trackEvent("billing_view", { checkout: checkoutState || "none" }, accessToken);
     loadCredits(accessToken);
-  }, [accessToken]);
+  }, [accessToken, checkoutState]);
 
   useEffect(() => {
     if (!accessToken) return undefined;
 
     if (checkoutState === "success") {
+      trackEvent("checkout_success", { stripe_checkout_id: checkoutSessionId || null }, accessToken);
       setMessage("Payment completed. Refreshing your balance from Stripe confirmation...");
       let attempts = 0;
       const timer = window.setInterval(async () => {
@@ -137,6 +146,7 @@ function BillingContent() {
       }, 1800);
       return () => window.clearInterval(timer);
     } else if (checkoutState === "cancelled") {
+      trackEvent("checkout_cancelled", {}, accessToken);
       setMessage("Checkout was cancelled. No credits were added.");
     }
     return undefined;
@@ -151,6 +161,12 @@ function BillingContent() {
     if (!accessToken) return;
     setLoadingPack(packId);
     setMessage("");
+    const pack = CREDIT_PACKS.find((item) => item.id === packId);
+    trackEvent(
+      "checkout_started",
+      { pack_id: packId, credits: pack?.credits || null, amount_cents: pack?.amountCents || null },
+      accessToken
+    );
     try {
       const response = await fetch("/api/billing/checkout", {
         method: "POST",
@@ -188,7 +204,10 @@ function BillingContent() {
               <p className="mt-1 text-3xl font-semibold tracking-tight">{balance === null ? "--" : balance.toLocaleString()}</p>
               <button
                 type="button"
-                onClick={() => accessToken && loadCredits(accessToken)}
+                onClick={() => {
+                  trackEvent("balance_refreshed", { surface: "billing" }, accessToken);
+                  accessToken && loadCredits(accessToken);
+                }}
                 disabled={!accessToken || refreshingCredits}
                 className="mt-3 rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-[#1d1d1f] disabled:opacity-50"
               >

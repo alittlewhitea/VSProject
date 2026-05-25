@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { trackEvent } from "../lib/analytics";
 import { createBrowserSupabaseClient } from "../lib/supabase-client";
 
 export function TopNav() {
@@ -67,15 +68,15 @@ export function TopNav() {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          <Link href="/" onClick={() => trackEvent("nav_clicked", { item: "logo", target: "/" })} className="text-3xl font-semibold tracking-tight sm:text-4xl">
             dreamface
           </Link>
           <nav className="hidden gap-6 text-sm text-[#4b4b54] lg:flex">
-            <a className={pathname === "/" && active === "products" ? "font-semibold text-[#111]" : ""} href="/#products">Products</a>
-            <a className={pathname === "/" && active === "providers" ? "font-semibold text-[#111]" : ""} href="/#providers">Providers</a>
-            <Link className={pathname?.startsWith("/gallery") ? "font-semibold text-[#111]" : ""} href="/gallery">Gallery</Link>
-            <a className={pathname === "/" && active === "platform" ? "font-semibold text-[#111]" : ""} href="/#platform">Platform</a>
-            <a className={pathname === "/" && active === "pricing" ? "font-semibold text-[#111]" : ""} href="/#pricing">Pricing</a>
+            <a onClick={() => trackEvent("nav_clicked", { item: "products", target: "/#products" })} className={pathname === "/" && active === "products" ? "font-semibold text-[#111]" : ""} href="/#products">Products</a>
+            <a onClick={() => trackEvent("nav_clicked", { item: "providers", target: "/#providers" })} className={pathname === "/" && active === "providers" ? "font-semibold text-[#111]" : ""} href="/#providers">Providers</a>
+            <Link onClick={() => trackEvent("nav_clicked", { item: "gallery", target: "/gallery" })} className={pathname?.startsWith("/gallery") ? "font-semibold text-[#111]" : ""} href="/gallery">Gallery</Link>
+            <a onClick={() => trackEvent("nav_clicked", { item: "platform", target: "/#platform" })} className={pathname === "/" && active === "platform" ? "font-semibold text-[#111]" : ""} href="/#platform">Platform</a>
+            <a onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/#pricing" })} className={pathname === "/" && active === "pricing" ? "font-semibold text-[#111]" : ""} href="/#pricing">Pricing</a>
           </nav>
         </div>
         <div className="flex items-center gap-3">
@@ -93,18 +94,21 @@ export function TopNav() {
               </button>
               <Link
                 href="/creations"
+                onClick={() => trackEvent("nav_clicked", { item: "creations", target: "/creations" })}
                 className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
               >
                 Creations
               </Link>
               <Link
                 href="/billing"
+                onClick={() => trackEvent("nav_clicked", { item: "billing", target: "/billing" })}
                 className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
               >
                 Billing
               </Link>
               <Link
                 href="/studio?mode=image&workflow=text-to-image"
+                onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?mode=image&workflow=text-to-image" })}
                 className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white transition-transform duration-150 active:scale-[0.97]"
               >
                 Open Studio
@@ -114,12 +118,14 @@ export function TopNav() {
             <>
               <Link
                 href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image"
+                onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })}
                 className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
               >
                 Sign in
               </Link>
               <Link
                 href="/studio?mode=image&workflow=text-to-image"
+                onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?mode=image&workflow=text-to-image" })}
                 className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white transition-transform duration-150 active:scale-[0.97]"
               >
                 Open Studio

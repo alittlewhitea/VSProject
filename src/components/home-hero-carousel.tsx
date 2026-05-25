@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { trackEvent } from "../lib/analytics";
 
 type HomeHeroCarouselProps = {
   images: string[];
@@ -48,6 +49,7 @@ export function HomeHeroCarousel({ images }: HomeHeroCarouselProps) {
               index === active ? "opacity-100" : "opacity-0"
             }`}
             tabIndex={index === active ? 0 : -1}
+            onClick={() => trackEvent("hero_slide_clicked", { slide: src, target: hrefForSlide(src), index })}
           >
             <img src={src} alt="" className="h-full w-full object-cover" />
           </Link>

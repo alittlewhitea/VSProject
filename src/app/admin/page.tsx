@@ -85,9 +85,41 @@ type SystemHealth = {
   }>;
 };
 
+type FunnelStep = {
+  event: string;
+  label: string;
+  count: number;
+  uniqueSessions: number;
+  uniqueUsers: number;
+  conversionFromPrevious: number | null;
+};
+
+type AnalyticsEvent = {
+  event_name: string;
+  user_id: string | null;
+  anonymous_id: string | null;
+  session_id: string | null;
+  properties: Record<string, unknown> | null;
+  created_at: string;
+};
+
 type OpsPayload = {
   adminEmail?: string;
   summary?: Record<string, number>;
+  analytics?: {
+    summary: {
+      totalEvents: number;
+      todayEvents: number;
+      uniqueSessions: number;
+      uniqueUsers: number;
+      byEvent: Record<string, number>;
+      byModel: Record<string, number>;
+      byMode: Record<string, number>;
+    };
+    funnel: FunnelStep[];
+    recentEvents: AnalyticsEvent[];
+    storageWarning: string | null;
+  };
   health?: SystemHealth;
   findings?: OpsFinding[];
   users?: AdminUser[];
@@ -263,6 +295,9 @@ export default function AdminHomePage() {
   const failedTasks = payload?.failedTasks || [];
   const findings = payload?.findings || [];
   const health = payload?.health;
+  const analytics = payload?.analytics;
+  const funnel = analytics?.funnel || [];
+  const analyticsSummary = analytics?.summary;
   const criticalFindingCount = findings.filter((finding) => finding.severity === "critical").reduce((sum, finding) => sum + finding.count, 0);
 
   return (
@@ -351,6 +386,61 @@ export default function AdminHomePage() {
               {message}
             </div>
           ) : null}
+        </section>
+
+        <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.14em] text-[#86868b]">Conversion funnel</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight">GTM + GA4 event mirror</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#6e6e73]">
+                These events are pushed to dataLayer for GTM/GA4 and stored in Supabase for operational reporting. Window: last 7 days.
+              </p>
+              {analytics?.storageWarning ? (
+                <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  Analytics storage warning: {analytics.storageWarning}
+                </p>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-right md:grid-cols-4">
+              {[
+                ["Events", analyticsSummary?.totalEvents ?? 0],
+                ["Today", analyticsSummary?.todayEvents ?? 0],
+                ["Sessions", analyticsSummary?.uniqueSessions ?? 0],
+                ["Users", analyticsSummary?.uniqueUsers ?? 0]
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl border border-black/10 bg-[#fbfbfd] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[#86868b]">{label}</p>
+                  <p className="mt-1 text-lg font-semibold">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-4">
+            {funnel.map((step, index) => (
+              <div key={step.event} className="rounded-2xl border border-black/10 bg-[#fbfbfd] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold">{step.label}</p>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#6e6e73]">#{index + 1}</span>
+                </div>
+                <p className="mt-3 text-3xl font-semibold">{step.count.toLocaleString()}</p>
+                <p className="mt-1 text-xs text-[#86868b]">
+                  {step.uniqueSessions} sessions / {step.uniqueUsers} users
+                </p>
+                <p className="mt-2 text-xs text-[#4f5a6d]">
+                  Previous step conversion: {step.conversionFromPrevious === null ? "--" : `${step.conversionFromPrevious}%`}
+                </p>
+              </div>
+            ))}
+            {!funnel.length ? <Empty loading={loading} /> : null}
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-3">
+            <AnalyticsBreakdown title="Top events" values={analyticsSummary?.byEvent || {}} />
+            <AnalyticsBreakdown title="Model interest" values={analyticsSummary?.byModel || {}} />
+            <AnalyticsBreakdown title="Mode interest" values={analyticsSummary?.byMode || {}} />
+          </div>
         </section>
 
         <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
@@ -530,9 +620,48 @@ export default function AdminHomePage() {
           <Panel title="Failed Tasks" count={failedTasks.length}>
             <TaskList tasks={failedTasks.slice(0, 30)} loading={loading} failures />
           </Panel>
+
+          <Panel title="Recent Analytics Events" count={analytics?.recentEvents?.length || 0}>
+            <div className="divide-y divide-black/10">
+              {(analytics?.recentEvents || []).slice(0, 30).map((event, index) => (
+                <div key={`${event.event_name}-${event.created_at}-${index}`} className="grid gap-2 py-3 md:grid-cols-[0.6fr_1fr_1fr]">
+                  <div>
+                    <p className="text-sm font-semibold">{event.event_name}</p>
+                    <p className="text-xs text-[#86868b]">{formatDate(event.created_at)}</p>
+                  </div>
+                  <p className="break-all text-xs text-[#86868b]">{event.user_id || event.anonymous_id || "Anonymous"}</p>
+                  <p className="line-clamp-2 text-xs leading-5 text-[#4f5a6d]">
+                    {event.properties ? JSON.stringify(event.properties) : "{}"}
+                  </p>
+                </div>
+              ))}
+              {!analytics?.recentEvents?.length ? <Empty loading={loading} /> : null}
+            </div>
+          </Panel>
         </section>
       </div>
     </main>
+  );
+}
+
+function AnalyticsBreakdown({ title, values }: { title: string; values: Record<string, number> }) {
+  const entries = Object.entries(values);
+  return (
+    <div className="rounded-2xl border border-black/10 bg-[#fbfbfd] p-4">
+      <p className="text-sm font-semibold">{title}</p>
+      <div className="mt-3 space-y-2">
+        {entries.length ? (
+          entries.map(([label, value]) => (
+            <div key={label} className="flex items-center justify-between gap-3 text-sm">
+              <span className="truncate text-[#4f5a6d]">{label}</span>
+              <span className="font-semibold">{value}</span>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-[#86868b]">No events yet.</p>
+        )}
+      </div>
+    </div>
   );
 }
 

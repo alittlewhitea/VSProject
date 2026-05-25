@@ -2,6 +2,7 @@ import Link from "next/link";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { HomeHeroCarousel } from "../components/home-hero-carousel";
+import { PageAnalytics } from "../components/page-analytics";
 import { Reveal } from "../components/reveal";
 import { TopNav } from "../components/top-nav";
 import { AppButton } from "../components/ui/button";
@@ -131,6 +132,7 @@ export default async function HomePage() {
 
   return (
     <main className="bg-grid pb-16">
+      <PageAnalytics eventName="home_view" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqJsonLd) }}

@@ -238,6 +238,35 @@ create policy "Users can view own credit purchases"
 
 create extension if not exists pgcrypto;
 
+create table if not exists public.analytics_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid,
+  anonymous_id text,
+  session_id text,
+  event_name text not null,
+  event_source text not null default 'web',
+  page_path text,
+  referrer text,
+  user_agent text,
+  ip_hash text,
+  properties jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists analytics_events_created_at_idx
+  on public.analytics_events (created_at desc);
+
+create index if not exists analytics_events_event_name_created_at_idx
+  on public.analytics_events (event_name, created_at desc);
+
+create index if not exists analytics_events_user_id_created_at_idx
+  on public.analytics_events (user_id, created_at desc);
+
+create index if not exists analytics_events_session_id_created_at_idx
+  on public.analytics_events (session_id, created_at desc);
+
+alter table public.analytics_events enable row level security;
+
 create table if not exists public.public_gallery_items (
   id text primary key default gen_random_uuid()::text,
   title text not null,
