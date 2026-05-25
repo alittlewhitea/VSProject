@@ -59,7 +59,8 @@ function getModelId(mode: GenerateMode, provider: string, editImage = false): st
     "chatgpt-image": editImage
       ? process.env.FAL_MODEL_IMAGE_CHATGPT_EDIT || "openai/gpt-image-2/edit"
       : process.env.FAL_MODEL_IMAGE_CHATGPT || "openai/gpt-image-2",
-    "flux-image": process.env.FAL_MODEL_IMAGE_FLUX,
+    "flux-image": process.env.FAL_MODEL_IMAGE_FLUX || "fal-ai/flux/schnell",
+    "flux-dev": process.env.FAL_MODEL_IMAGE_FLUX_DEV || "fal-ai/flux/dev",
     "nano-banana-image": editImage
       ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit"
       : process.env.FAL_MODEL_IMAGE_NANO_BANANA || "fal-ai/nano-banana-2",
@@ -153,7 +154,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
-  if (body.provider === "flux-image") {
+  if (body.provider === "flux-image" || body.provider === "flux-dev") {
     return {
       prompt,
       image_size: getFalImageSize(body.ratio, body.imageSize),

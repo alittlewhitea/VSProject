@@ -236,7 +236,7 @@ function pickMediaUrl(result: unknown): string | null {
 
 function estimateTaskSeconds(type: "image" | "video", provider: string | undefined, duration: string) {
   if (type === "image") {
-    if (provider === "flux-image") return 120;
+    if (provider === "flux-image" || provider === "flux-dev") return 120;
     if (provider === "recraft-image") return 75;
     return 90;
   }
@@ -268,7 +268,7 @@ function ratioFromImageSize(value: string) {
 
 function defaultPromptForProvider(provider: string) {
   if (provider === "chatgpt-image") return GPT_IMAGE2_DEFAULT_PROMPT;
-  if (provider === "flux-image") return FLUX_DEFAULT_PROMPT;
+  if (provider === "flux-image" || provider === "flux-dev") return FLUX_DEFAULT_PROMPT;
   if (provider === "nano-banana-image" || provider === "nano-banana-edit") return NANO_BANANA_EDIT_DEFAULT_PROMPT;
   if (provider === "grok-video") return GROK_VIDEO_DEFAULT_PROMPT;
   return "";
@@ -276,7 +276,7 @@ function defaultPromptForProvider(provider: string) {
 
 function defaultPreviewForProvider(provider: string) {
   if (provider === "chatgpt-image") return GPT_IMAGE2_PREVIEW_URL;
-  if (provider === "flux-image") return FLUX_PREVIEW_URL;
+  if (provider === "flux-image" || provider === "flux-dev") return FLUX_PREVIEW_URL;
   if (provider === "nano-banana-image" || provider === "nano-banana-edit") return NANO_BANANA_EDIT_PREVIEW_URL;
   if (provider === "grok-video") return GROK_VIDEO_PREVIEW_URL;
   return null;
@@ -293,7 +293,7 @@ function isSamplePrompt(value: string) {
 }
 
 function defaultImageSizeForProvider(provider: string) {
-  if (provider === "flux-image") return "landscape_16_9";
+  if (provider === "flux-image" || provider === "flux-dev") return "landscape_16_9";
   if (provider === "nano-banana-image" || provider === "nano-banana-edit") return "default_4_3";
   return "default_4_3";
 }
@@ -301,7 +301,7 @@ function defaultImageSizeForProvider(provider: string) {
 function isProviderAllowedForMode(provider: string | null, mode: "image" | "video") {
   if (!provider) return false;
   return mode === "image"
-    ? ["chatgpt-image", "nano-banana-image", "flux-image", "nano-banana-edit", "recraft-image"].includes(provider)
+    ? ["chatgpt-image", "nano-banana-image", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image"].includes(provider)
     : ["seedance-video", "kling-video", "veo-video", "grok-video"].includes(provider);
 }
 
@@ -636,7 +636,9 @@ function StudioContent() {
       mode === "image"
         ? [
             { value: "chatgpt-image", label: "GPT Image 2" },
-            { value: "nano-banana-image", label: "Nano Banana 2" }
+            { value: "nano-banana-image", label: "Nano Banana 2" },
+            { value: "flux-image", label: "FLUX Schnell" },
+            { value: "flux-dev", label: "FLUX Dev" }
           ]
         : [
             { value: "seedance-video", label: "Seedance 2.0 Text-to-Video (fal)" },
@@ -681,7 +683,9 @@ function StudioContent() {
   const providerNote =
     provider === "flux-image"
       ? "FLUX Schnell is best for fast visual drafts. Use OpenAI GPT-Image-2 for exact text, counting, or strict layout instructions."
-      : provider === "chatgpt-image"
+      : provider === "flux-dev"
+        ? "FLUX Dev is better for higher quality drafts when you want more refined composition than Schnell."
+        : provider === "chatgpt-image"
         ? "GPT Image 2 supports preset output sizes. The preview frame updates to match the selected canvas."
         : provider === "grok-video"
           ? "Grok Imagine Video supports prompt, duration, aspect ratio, and 480p/720p output resolution."
@@ -1506,6 +1510,8 @@ function StudioContent() {
                       <p className="text-sm font-semibold">
                         {provider === "flux-image"
                           ? "FLUX Schnell sample"
+                          : provider === "flux-dev"
+                            ? "FLUX Dev sample"
                           : provider === "nano-banana-image" || provider === "nano-banana-edit"
                             ? "Nano Banana 2 Edit sample"
                             : provider === "grok-video"

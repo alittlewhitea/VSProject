@@ -82,6 +82,7 @@ export async function GET() {
         process.env.FAL_MODEL_IMAGE_DEFAULT,
         process.env.FAL_MODEL_IMAGE_CHATGPT,
         process.env.FAL_MODEL_IMAGE_FLUX,
+        process.env.FAL_MODEL_IMAGE_FLUX_DEV,
         process.env.FAL_MODEL_IMAGE_RECRAFT,
         process.env.FAL_MODEL_VIDEO_DEFAULT,
         process.env.FAL_MODEL_VIDEO_SEEDANCE,

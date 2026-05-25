@@ -84,6 +84,7 @@ function providerLabel(provider?: string) {
     "nano-banana-image": "Nano Banana 2",
     "nano-banana-edit": "Nano Banana 2 Edit",
     "flux-image": "FLUX Schnell",
+    "flux-dev": "FLUX Dev",
     "recraft-image": "Recraft",
     "seedance-video": "Seedance",
     "kling-video": "Kling",
