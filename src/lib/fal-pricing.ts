@@ -11,6 +11,11 @@ type FalPricingMapCache = {
   value: Map<string, FalPricingResponse>;
 };
 
+type FalModelEndpointCache = {
+  expiresAt: number;
+  value: Set<string>;
+};
+
 export type LiveModelPricingRow = {
   provider: string;
   label: string;
@@ -31,6 +36,13 @@ export type LiveModelPricingRow = {
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const cache = new Map<string, { expiresAt: number; value: FalPricingResponse | null }>();
 let pricingMapCache: FalPricingMapCache | null = null;
+let modelEndpointCache: FalModelEndpointCache | null = null;
+
+const EXTRA_PRICING_ENDPOINT_IDS = [
+  "fal-ai/nano-banana-2/edit",
+  "fal-ai/nano-banana-pro/edit",
+  "fal-ai/nano-banana/edit"
+];
 
 function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "chatgpt-image") return hasReferences ? "openai/gpt-image-2/edit" : "openai/gpt-image-2";
@@ -50,6 +62,10 @@ function falAuthHeader() {
   const key = process.env.FAL_KEY?.trim();
   if (!key) return null;
   return key.toLowerCase().startsWith("key ") ? key : `Key ${key}`;
+}
+
+function configuredPricingEndpointIds() {
+  return Array.from(new Set([...MODEL_PRICING_ROWS.map((row) => row.endpointId), ...EXTRA_PRICING_ENDPOINT_IDS]));
 }
 
 function normalizeFalPricingEntry(entry: unknown): FalPricingResponse | null {
@@ -74,6 +90,72 @@ function normalizeFalPricing(payload: unknown): FalPricingResponse | null {
   return normalizeFalPricingEntry(prices?.[0] || root);
 }
 
+async function getFalModelEndpointSet(endpointIds: string[]) {
+  const now = Date.now();
+  if (modelEndpointCache && modelEndpointCache.expiresAt > now) return modelEndpointCache.value;
+
+  const authorization = falAuthHeader();
+  const discovered = new Set<string>();
+
+  try {
+    for (let start = 0; start < endpointIds.length; start += 50) {
+      const batch = endpointIds.slice(start, start + 50);
+      const url = new URL("https://api.fal.ai/v1/models");
+      url.searchParams.set("limit", String(batch.length));
+      for (const endpointId of batch) url.searchParams.append("endpoint_id", endpointId);
+
+      const response = await fetch(url.toString(), {
+        headers: authorization ? { Authorization: authorization } : undefined,
+        next: { revalidate: Math.floor(CACHE_TTL_MS / 1000) }
+      });
+      if (!response.ok) throw new Error(`fal models ${response.status}`);
+
+      const payload = (await response.json()) as Record<string, unknown>;
+      const models = Array.isArray(payload.models) ? payload.models : [];
+      for (const model of models) {
+        if (!model || typeof model !== "object") continue;
+        const endpointId = (model as Record<string, unknown>).endpoint_id;
+        if (typeof endpointId === "string") discovered.add(endpointId);
+      }
+    }
+  } catch {
+    // Model metadata is advisory for our UI; pricing remains the source of truth.
+  }
+
+  modelEndpointCache = { expiresAt: now + CACHE_TTL_MS, value: discovered };
+  return discovered;
+}
+
+async function fetchFalPricingForEndpoints(endpointIds: string[], authorization: string) {
+  const pricesByEndpoint = new Map<string, FalPricingResponse>();
+
+  for (let start = 0; start < endpointIds.length; start += 50) {
+    const batch = endpointIds.slice(start, start + 50);
+    if (!batch.length) continue;
+
+    const url = new URL("https://api.fal.ai/v1/models/pricing");
+    for (const endpointId of batch) url.searchParams.append("endpoint_id", endpointId);
+
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: authorization },
+      next: { revalidate: Math.floor(CACHE_TTL_MS / 1000) }
+    });
+    if (!response.ok) throw new Error(`fal pricing batch ${response.status}`);
+
+    const payload = (await response.json()) as Record<string, unknown>;
+    const prices = Array.isArray(payload.prices) ? payload.prices : [];
+    for (const item of prices) {
+      if (!item || typeof item !== "object") continue;
+      const raw = item as Record<string, unknown>;
+      const endpointId = typeof raw.endpoint_id === "string" ? raw.endpoint_id : null;
+      const value = normalizeFalPricingEntry(raw);
+      if (endpointId && value) pricesByEndpoint.set(endpointId, value);
+    }
+  }
+
+  return pricesByEndpoint;
+}
+
 async function getFalPricingMap() {
   const now = Date.now();
   if (pricingMapCache && pricingMapCache.expiresAt > now) return pricingMapCache.value;
@@ -86,41 +168,18 @@ async function getFalPricingMap() {
   }
 
   const pricesByEndpoint = new Map<string, FalPricingResponse>();
-  let cursor: string | null = null;
 
   try {
-    for (let page = 0; page < 8; page += 1) {
-      const url = new URL("https://api.fal.ai/v1/models/pricing");
-      if (cursor) url.searchParams.set("cursor", cursor);
-
-      const response = await fetch(url.toString(), {
-        headers: { Authorization: authorization },
-        next: { revalidate: Math.floor(CACHE_TTL_MS / 1000) }
-      });
-      if (!response.ok) throw new Error(`fal pricing list ${response.status}`);
-
-      const payload = (await response.json()) as Record<string, unknown>;
-      const prices = Array.isArray(payload.prices) ? payload.prices : [];
-      for (const item of prices) {
-        if (!item || typeof item !== "object") continue;
-        const raw = item as Record<string, unknown>;
-        const endpointId = typeof raw.endpoint_id === "string" ? raw.endpoint_id : null;
-        const value = normalizeFalPricingEntry(raw);
-        if (endpointId && value) pricesByEndpoint.set(endpointId, value);
-      }
-
-      const hasMore = payload.has_more === true;
-      const nextCursor = typeof payload.next_cursor === "string" && payload.next_cursor.length > 0 ? payload.next_cursor : null;
-      if (!hasMore || !nextCursor) break;
-      cursor = nextCursor;
-    }
-
-    pricingMapCache = { expiresAt: now + CACHE_TTL_MS, value: pricesByEndpoint };
-    return pricesByEndpoint;
+    const endpointIds = configuredPricingEndpointIds();
+    await getFalModelEndpointSet(endpointIds);
+    const values = await fetchFalPricingForEndpoints(endpointIds, authorization);
+    for (const [endpointId, value] of values) pricesByEndpoint.set(endpointId, value);
   } catch {
-    pricingMapCache = { expiresAt: now + 10 * 60 * 1000, value: pricesByEndpoint };
-    return pricesByEndpoint;
+    // Fall through and cache partial results briefly.
   }
+
+  pricingMapCache = { expiresAt: now + (pricesByEndpoint.size ? CACHE_TTL_MS : 10 * 60 * 1000), value: pricesByEndpoint };
+  return pricesByEndpoint;
 }
 
 export async function getFalModelPricing(endpointId: string) {
