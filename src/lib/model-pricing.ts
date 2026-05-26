@@ -8,6 +8,8 @@ export type GenerationEstimateInput = {
   hasReferences?: boolean;
   resolution?: string | null;
   falUnitPriceUsd?: number | null;
+  quality?: "low" | "medium" | "high" | string | null;
+  numImages?: number | null;
 };
 
 export type ModelPricingRow = {
@@ -35,6 +37,26 @@ const GPT_IMAGE_2_TEXT_HIGH_USD: Record<string, number> = {
   portrait_16_9: 0.145
 };
 
+const GPT_IMAGE_2_TEXT_MEDIUM_USD: Record<string, number> = {
+  default_4_3: 0.037,
+  landscape_4_3: 0.037,
+  landscape_16_9: 0.04,
+  square_hd: 0.053,
+  square: 0.006,
+  portrait_4_3: 0.037,
+  portrait_16_9: 0.037
+};
+
+const GPT_IMAGE_2_TEXT_LOW_USD: Record<string, number> = {
+  default_4_3: 0.005,
+  landscape_4_3: 0.005,
+  landscape_16_9: 0.005,
+  square_hd: 0.006,
+  square: 0.003,
+  portrait_4_3: 0.005,
+  portrait_16_9: 0.005
+};
+
 const GPT_IMAGE_2_EDIT_HIGH_USD: Record<string, number> = {
   default_4_3: 0.151,
   landscape_4_3: 0.151,
@@ -44,6 +66,12 @@ const GPT_IMAGE_2_EDIT_HIGH_USD: Record<string, number> = {
   portrait_4_3: 0.151,
   portrait_16_9: 0.151
 };
+
+function countMultiplier(numImages?: number | null) {
+  const parsed = typeof numImages === "number" ? numImages : 1;
+  if (!Number.isFinite(parsed)) return 1;
+  return Math.min(4, Math.max(1, Math.trunc(parsed)));
+}
 
 const FLUX_SCHNELL_BY_SIZE: Record<string, number> = {
   default_4_3: 6,
@@ -77,46 +105,53 @@ function creditTableFromUsd(prices: Record<string, number>, minimumCredits: numb
 }
 
 const GPT_IMAGE_2_TEXT_HIGH = creditTableFromUsd(GPT_IMAGE_2_TEXT_HIGH_USD, 9);
+const GPT_IMAGE_2_TEXT_MEDIUM = creditTableFromUsd(GPT_IMAGE_2_TEXT_MEDIUM_USD, 3);
+const GPT_IMAGE_2_TEXT_LOW = creditTableFromUsd(GPT_IMAGE_2_TEXT_LOW_USD, 2);
 const GPT_IMAGE_2_EDIT_HIGH = creditTableFromUsd(GPT_IMAGE_2_EDIT_HIGH_USD, 10);
 
 export function estimateGenerationCredits(input: GenerationEstimateInput) {
   if (input.mode === "image") {
     const imageSize = input.imageSize || "default_4_3";
     const dynamicImagePrice = typeof input.falUnitPriceUsd === "number" ? input.falUnitPriceUsd : null;
+    const multiplier = countMultiplier(input.numImages);
 
     if (input.provider === "chatgpt-image") {
       if (dynamicImagePrice) {
-        return creditsFromFalUsd(dynamicImagePrice, input.hasReferences ? 18 : 16);
+        return creditsFromFalUsd(dynamicImagePrice * multiplier, input.hasReferences ? 18 : 16);
       }
-      return (input.hasReferences ? GPT_IMAGE_2_EDIT_HIGH : GPT_IMAGE_2_TEXT_HIGH)[imageSize] || 24;
+      if (input.hasReferences) {
+        return ((GPT_IMAGE_2_EDIT_HIGH[imageSize] || 24) * multiplier);
+      }
+      const table = input.quality === "low" ? GPT_IMAGE_2_TEXT_LOW : input.quality === "medium" ? GPT_IMAGE_2_TEXT_MEDIUM : GPT_IMAGE_2_TEXT_HIGH;
+      return ((table[imageSize] || 24) * multiplier);
     }
 
     if (input.provider === "nano-banana-image" || input.provider === "nano-banana-edit") {
       if (dynamicImagePrice) {
         return creditsFromFalUsd(input.resolution === "4K" ? dynamicImagePrice * 2 : dynamicImagePrice, 10);
       }
-      return nanoBananaCredits(input.resolution);
+      return nanoBananaCredits(input.resolution) * multiplier;
     }
 
     if (input.provider === "nano-banana-pro" || input.provider === "nano-banana-pro-edit") {
       if (dynamicImagePrice) {
         return creditsFromFalUsd(input.resolution === "4K" ? dynamicImagePrice * 2 : dynamicImagePrice, 18);
       }
-      return nanoBananaCredits(input.resolution, true);
+      return nanoBananaCredits(input.resolution, true) * multiplier;
     }
 
     if (input.provider === "flux-image") {
       if (dynamicImagePrice) {
         return creditsFromFalUsd(dynamicImagePrice, 4);
       }
-      return FLUX_SCHNELL_BY_SIZE[imageSize] || 6;
+      return (FLUX_SCHNELL_BY_SIZE[imageSize] || 6) * multiplier;
     }
 
     if (input.provider === "flux-dev") {
       if (dynamicImagePrice) {
         return creditsFromFalUsd(dynamicImagePrice, 8);
       }
-      return 12;
+      return 12 * multiplier;
     }
 
     return 12;

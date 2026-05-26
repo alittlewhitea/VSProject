@@ -19,6 +19,13 @@ type GenerateRequest = {
   imageUrls?: string[];
   resolution?: string;
   outputFormat?: string;
+  quality?: string;
+  numImages?: number;
+  guidanceScale?: number;
+  numInferenceSteps?: number;
+  enableSafetyChecker?: boolean;
+  acceleration?: string;
+  limitGenerations?: boolean;
   idempotencyKey?: string;
 };
 
@@ -72,6 +79,9 @@ function getModelId(mode: GenerateMode, provider: string, editImage = false): st
     "nano-banana-image": editImage
       ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit"
       : process.env.FAL_MODEL_IMAGE_NANO_BANANA || "fal-ai/nano-banana-2",
+    "nano-banana-pro": editImage
+      ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_PRO_EDIT || "fal-ai/nano-banana-pro/edit"
+      : process.env.FAL_MODEL_IMAGE_NANO_BANANA_PRO || "fal-ai/nano-banana-pro",
     "nano-banana-edit": process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit",
     "recraft-image": process.env.FAL_MODEL_IMAGE_RECRAFT,
     "seedance-video": editImage
@@ -103,8 +113,22 @@ const IMAGE_SIZE_PRESETS = new Set([
 const EDIT_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16"]);
 const EDIT_RESOLUTIONS = new Set(["0.5K", "1K", "2K", "4K"]);
 const OUTPUT_FORMATS = new Set(["jpeg", "png", "webp"]);
+const IMAGE_QUALITIES = new Set(["low", "medium", "high"]);
+const ACCELERATION_OPTIONS = new Set(["none", "regular", "high"]);
 const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
 const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
+
+function clampInt(value: unknown, min: number, max: number, fallback: number) {
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, Math.trunc(parsed)));
+}
+
+function clampNumber(value: unknown, min: number, max: number, fallback: number) {
+  const parsed = typeof value === "number" ? value : Number.parseFloat(String(value ?? ""));
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
 
 function getFalImageSize(ratio: string, imageSize?: string) {
   if (imageSize === "default_4_3") return "landscape_4_3";
@@ -137,15 +161,15 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
-  if (body.provider === "nano-banana-edit" || (body.provider === "nano-banana-image" && hasReferenceImages(body))) {
+  if (body.provider === "nano-banana-edit" || ((body.provider === "nano-banana-image" || body.provider === "nano-banana-pro") && hasReferenceImages(body))) {
     return {
       prompt,
       image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 14) : [],
       aspect_ratio: EDIT_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
       resolution: body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K",
       output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
-      num_images: 1,
-      limit_generations: true
+      num_images: clampInt(body.numImages, 1, 4, 1),
+      limit_generations: body.limitGenerations !== false
     };
   }
 
@@ -155,24 +179,28 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
         prompt,
         image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 16) : [],
         image_size: getFalImageSize(body.ratio, body.imageSize),
-        quality: "high",
-        output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png"
+        quality: body.quality && IMAGE_QUALITIES.has(body.quality) ? body.quality : "high",
+        output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
+        num_images: clampInt(body.numImages, 1, 4, 1)
       };
     }
     return {
       prompt,
       image_size: getFalImageSize(body.ratio, body.imageSize),
-      quality: "high"
+      quality: body.quality && IMAGE_QUALITIES.has(body.quality) ? body.quality : "high",
+      output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
+      num_images: clampInt(body.numImages, 1, 4, 1)
     };
   }
 
-  if (body.provider === "nano-banana-image") {
+  if (body.provider === "nano-banana-image" || body.provider === "nano-banana-pro") {
     return {
       prompt,
       aspect_ratio: EDIT_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
       resolution: body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K",
       output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
-      num_images: 1
+      num_images: clampInt(body.numImages, 1, 4, 1),
+      limit_generations: body.limitGenerations !== false
     };
   }
 
@@ -180,12 +208,12 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     return {
       prompt,
       image_size: getFalImageSize(body.ratio, body.imageSize),
-      guidance_scale: 3.5,
-      num_inference_steps: 4,
-      num_images: 1,
-      enable_safety_checker: true,
-      output_format: "png",
-      acceleration: "none"
+      guidance_scale: clampNumber(body.guidanceScale, 0, 20, 3.5),
+      num_inference_steps: clampInt(body.numInferenceSteps, 1, 50, body.provider === "flux-dev" ? 28 : 4),
+      num_images: clampInt(body.numImages, 1, 4, 1),
+      enable_safety_checker: body.enableSafetyChecker !== false,
+      output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
+      acceleration: body.acceleration && ACCELERATION_OPTIONS.has(body.acceleration) ? body.acceleration : "none"
     };
   }
 
@@ -212,7 +240,14 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     image_size: body.imageSize || null,
     image_urls: imageUrls,
     resolution: body.resolution || null,
-    output_format: body.outputFormat || null
+    output_format: body.outputFormat || null,
+    quality: body.quality || null,
+    num_images: body.numImages || null,
+    guidance_scale: body.guidanceScale || null,
+    num_inference_steps: body.numInferenceSteps || null,
+    enable_safety_checker: typeof body.enableSafetyChecker === "boolean" ? body.enableSafetyChecker : null,
+    acceleration: body.acceleration || null,
+    limit_generations: typeof body.limitGenerations === "boolean" ? body.limitGenerations : null
   };
 }
 
@@ -290,7 +325,9 @@ export async function POST(request: Request) {
       imageSize: body.imageSize,
       duration: body.duration,
       hasReferences: imageUrls.length > 0,
-      resolution: body.resolution
+      resolution: body.resolution,
+      quality: body.quality,
+      numImages: body.numImages
     });
     if (body.mode === "image" && body.provider === "nano-banana-edit") {
       if (!imageUrls.length) {

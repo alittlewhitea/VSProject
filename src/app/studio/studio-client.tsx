@@ -43,36 +43,30 @@ type StudioLoginDraft = {
   outputFormat: string;
   duration: string;
   prompt: string;
+  imageQuality?: "low" | "medium" | "high";
+  numImages?: number;
+  guidanceScale?: number;
+  numInferenceSteps?: number;
+  enableSafetyChecker?: boolean;
+  acceleration?: string;
+  limitGenerations?: boolean;
 };
 
 type StudioWorkflow = "text-to-image" | "image-to-image" | "text-to-video" | "image-to-video";
+type GalleryTemplate = {
+  id: string;
+  title: string;
+  prompt: string;
+  imageUrl: string;
+  thumbnailUrl: string | null;
+  model: string;
+  category: string;
+};
 
 const SESSION_TASKS_KEY = "nova_session_tasks";
 const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
 const GENERATION_IDEMPOTENCY_KEY_PREFIX = "nova_generation_idempotency";
 const STUDIO_LOGIN_DRAFT_KEY = "nova_studio_login_draft";
-const GPT_IMAGE2_DEFAULT_PROMPT = `Create a high-end hero infographic announcing "GPT Image 2 is here".
-Design it like a futuristic periodic table mixed with a clean anatomical diagram: a precise grid of 16-24 mini image panels, each showcasing a different visual style such as oil painting, anime, blueprint, isometric 3D, photorealism, watercolor, pixel art, clay render, cinematic lighting, product photography, fashion editorial, UI mockup, technical diagram, and surreal concept art.
-
-The image should feel electric, colorful, premium, and extremely polished.
-Use a clean modern layout, sharp typography, subtle labels, thin lines, glowing accents, and a strong visual hierarchy.
-The infographic itself should demonstrate the power of an advanced image model: beautiful composition, perfect grids, consistent spacing, readable text, and diverse styles in one coherent design.
-
-No date. No extra caption. Just a powerful visual announcement that speaks for itself.`;
-const GPT_IMAGE2_PREVIEW_URL = "https://v3b.fal.media/files/b/0a981c3d/hdg8iaY8yShEwChTPjFah_OZUgg7Z4.jpg";
-const FLUX_DEFAULT_PROMPT =
-  "portrait | wide angle shot of eyes off to one side of frame, lucid dream-like woman, looking off in distance ::8 style | daydreampunk with glowing skin and eyes, styled in headdress, beautiful, she is dripping in neon lights, very colorful blue, green, purple, bioluminescent, glowing ::8 background | forest, vivid neon wonderland, particles, blue, green, purple ::7 parameters | rule of thirds, golden ratio, assymetric composition, hyper- maximalist, octane render, photorealism, cinematic realism, unreal engine, 8k ::7 --ar 16:9 --s 1000";
-const FLUX_PREVIEW_URL = "https://fal.media/files/tiger/m0K3P3JUR_Brcf7mxk3tl.png";
-const NANO_BANANA_EDIT_DEFAULT_PROMPT = "make a photo of the man driving the car down the california coastline";
-const NANO_BANANA_EDIT_PREVIEW_URL = "https://storage.googleapis.com/falserverless/example_outputs/nano-banana-2-edit-output.png";
-const NANO_BANANA_EDIT_REFERENCE_URLS = [
-  "https://storage.googleapis.com/falserverless/example_inputs/nano-banana-edit-input.png",
-  "https://storage.googleapis.com/falserverless/example_inputs/nano-banana-edit-input-2.png"
-];
-const NANO_BANANA_EDIT_REFERENCE_TEXT = NANO_BANANA_EDIT_REFERENCE_URLS.join("\n");
-const GROK_VIDEO_DEFAULT_PROMPT =
-  "Anime schoolgirl bursting out of house door, cherry blossoms blowing, morning light, speed lines indicating rush, chibi-ready expressions, classic shojo aesthetic, vibrant colors";
-const GROK_VIDEO_PREVIEW_URL = "https://v3b.fal.media/files/b/0a8b90e4/RUAbFYlssdqnbjNLmE8qP_IX7BNYGP.mp4";
 
 const IMAGE_SIZE_PRESETS = [
   { value: "default_4_3", label: "Default 4:3", dimensions: "1024 x 768", width: 1024, height: 768 },
@@ -111,6 +105,13 @@ const PROVIDER_META: Record<
     speed: "Fast",
     quality: "Strong editing",
     bestFor: "Reference edits, character/product continuity, image remixing"
+  },
+  "nano-banana-pro": {
+    label: "Nano Banana Pro",
+    shortLabel: "Banana Pro",
+    speed: "Balanced",
+    quality: "Premium creative output",
+    bestFor: "Higher fidelity campaigns, product visuals, and polished prompt-to-image output"
   },
   "flux-image": {
     label: "FLUX Schnell",
@@ -169,13 +170,13 @@ const WORKFLOW_META: Record<
     label: "Text to Image",
     description: "Create a new image from a prompt.",
     recommendedProvider: "chatgpt-image",
-    providers: ["chatgpt-image", "nano-banana-image", "flux-image", "flux-dev"]
+    providers: ["chatgpt-image", "nano-banana-pro", "nano-banana-image", "flux-dev", "flux-image"]
   },
   "image-to-image": {
     label: "Image to Image",
     description: "Upload references and edit, restyle, or extend them.",
     recommendedProvider: "nano-banana-image",
-    providers: ["nano-banana-image", "chatgpt-image"]
+    providers: ["nano-banana-image", "chatgpt-image", "nano-banana-pro"]
   },
   "text-to-video": {
     label: "Text to Video",
@@ -372,41 +373,30 @@ function ratioFromImageSize(value: string) {
 }
 
 function defaultPromptForProvider(provider: string) {
-  if (provider === "chatgpt-image") return GPT_IMAGE2_DEFAULT_PROMPT;
-  if (provider === "flux-image" || provider === "flux-dev") return FLUX_DEFAULT_PROMPT;
-  if (provider === "nano-banana-image" || provider === "nano-banana-edit") return NANO_BANANA_EDIT_DEFAULT_PROMPT;
-  if (provider === "grok-video") return GROK_VIDEO_DEFAULT_PROMPT;
+  void provider;
   return "";
 }
 
 function defaultPreviewForProvider(provider: string) {
-  if (provider === "chatgpt-image") return GPT_IMAGE2_PREVIEW_URL;
-  if (provider === "flux-image" || provider === "flux-dev") return FLUX_PREVIEW_URL;
-  if (provider === "nano-banana-image" || provider === "nano-banana-edit") return NANO_BANANA_EDIT_PREVIEW_URL;
-  if (provider === "grok-video") return GROK_VIDEO_PREVIEW_URL;
+  void provider;
   return null;
 }
 
 function isSamplePrompt(value: string) {
-  const prompt = value.trim();
-  return [
-    GPT_IMAGE2_DEFAULT_PROMPT,
-    FLUX_DEFAULT_PROMPT,
-    NANO_BANANA_EDIT_DEFAULT_PROMPT,
-    GROK_VIDEO_DEFAULT_PROMPT
-  ].includes(prompt);
+  void value;
+  return false;
 }
 
 function defaultImageSizeForProvider(provider: string) {
   if (provider === "flux-image" || provider === "flux-dev") return "landscape_16_9";
-  if (provider === "nano-banana-image" || provider === "nano-banana-edit") return "default_4_3";
+  if (provider === "nano-banana-image" || provider === "nano-banana-pro" || provider === "nano-banana-edit") return "default_4_3";
   return "default_4_3";
 }
 
 function isProviderAllowedForMode(provider: string | null, mode: "image" | "video") {
   if (!provider) return false;
   return mode === "image"
-    ? ["chatgpt-image", "nano-banana-image", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image"].includes(provider)
+    ? ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image"].includes(provider)
     : ["seedance-video", "kling-video", "veo-video", "grok-video"].includes(provider);
 }
 
@@ -459,16 +449,19 @@ function StudioContent() {
     mode === "image" &&
     initialReferenceUrl
       ? initialReferenceUrl
-      : mode === "image" &&
-    initialProvider === "nano-banana-image" &&
-    (initialImageWorkflow === "image-to-image" || providerFromUrl === "nano-banana-image")
-      ? NANO_BANANA_EDIT_REFERENCE_TEXT
       : ""
   );
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
   const [editResolution, setEditResolution] = useState("1K");
   const [videoResolution, setVideoResolution] = useState("720p");
   const [outputFormat, setOutputFormat] = useState("png");
+  const [imageQuality, setImageQuality] = useState<"low" | "medium" | "high">("high");
+  const [numImages, setNumImages] = useState(1);
+  const [guidanceScale, setGuidanceScale] = useState(3.5);
+  const [numInferenceSteps, setNumInferenceSteps] = useState(4);
+  const [enableSafetyChecker, setEnableSafetyChecker] = useState(true);
+  const [acceleration, setAcceleration] = useState("none");
+  const [limitGenerations, setLimitGenerations] = useState(true);
   const [duration, setDuration] = useState(mode === "image" ? "single" : "6s");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -483,6 +476,8 @@ function StudioContent() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loginDraftNonce, setLoginDraftNonce] = useState(0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [galleryTemplates, setGalleryTemplates] = useState<GalleryTemplate[]>([]);
+  const [galleryTemplateNote, setGalleryTemplateNote] = useState("");
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
@@ -773,7 +768,9 @@ function StudioContent() {
     imageSize,
     duration,
     hasReferences: referenceImageUrls.length > 0,
-    resolution: mode === "image" ? editResolution : videoResolution
+    resolution: mode === "image" ? editResolution : videoResolution,
+    quality: imageQuality,
+    numImages: mode === "image" ? numImages : 1
   });
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
@@ -804,23 +801,50 @@ function StudioContent() {
           ? "Grok Imagine Video supports prompt, duration, aspect ratio, and 480p/720p output resolution."
           : "Use clear subject, style, composition, and constraints for better instruction following.";
   const videoRatioOptions = provider === "grok-video" ? GROK_VIDEO_RATIO_OPTIONS : DEFAULT_VIDEO_RATIO_OPTIONS;
+  const showTextToImageTemplates = !isAppsHome && mode === "image" && imageWorkflow === "text-to-image";
+  const providerSettingsLabel =
+    provider === "chatgpt-image"
+      ? `${imageQuality} quality / ${outputFormat.toUpperCase()} / ${numImages} image${numImages > 1 ? "s" : ""}`
+      : provider === "flux-image" || provider === "flux-dev"
+        ? `${numInferenceSteps} steps / guidance ${guidanceScale} / ${outputFormat.toUpperCase()}`
+        : mode === "image"
+          ? `${editResolution} / ${outputFormat.toUpperCase()} / ${numImages} image${numImages > 1 ? "s" : ""}`
+          : "";
+
+  useEffect(() => {
+    if (!showTextToImageTemplates) return;
+    let cancelled = false;
+    setGalleryTemplateNote("");
+    fetch("/api/gallery?sort=featured&limit=18")
+      .then((response) => {
+        if (!response.ok) throw new Error("Gallery templates could not be loaded.");
+        return response.json();
+      })
+      .then((payload: { items?: GalleryTemplate[] }) => {
+        if (cancelled) return;
+        setGalleryTemplates(Array.isArray(payload.items) ? payload.items : []);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setGalleryTemplates([]);
+        setGalleryTemplateNote(error instanceof Error ? error.message : "Gallery templates could not be loaded.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showTextToImageTemplates]);
 
   useEffect(() => {
     if (!hasCompletedCreation) return;
     setPrompt((currentPrompt) => (isSamplePrompt(currentPrompt) ? "" : currentPrompt));
-    setReferenceImagesText((currentReferences) =>
-      currentReferences.trim() === NANO_BANANA_EDIT_REFERENCE_TEXT ? "" : currentReferences
-    );
   }, [hasCompletedCreation]);
 
   function applyWorkflow(nextWorkflow: StudioWorkflow) {
     const nextMode = nextWorkflow === "text-to-image" || nextWorkflow === "image-to-image" ? "image" : "video";
     const nextProvider = providerForWorkflow(nextWorkflow, provider);
-    if (nextMode === "image") {
+      if (nextMode === "image") {
       setImageWorkflow(nextWorkflow as "text-to-image" | "image-to-image");
-      if (nextWorkflow === "image-to-image" && !hasCompletedCreation) {
-        setReferenceImagesText((current) => current || NANO_BANANA_EDIT_REFERENCE_TEXT);
-      } else if (nextWorkflow === "text-to-image") {
+      if (nextWorkflow === "text-to-image") {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
       }
@@ -863,7 +887,7 @@ function StudioContent() {
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
     if (mode === "image") {
-      setReferenceImagesText(!hasCompletedCreation && activeWorkflow === "image-to-image" ? NANO_BANANA_EDIT_REFERENCE_TEXT : "");
+      setReferenceImagesText("");
       setReferenceImageFiles([]);
       const nextImageSize = defaultImageSizeForProvider(nextProvider);
       setImageSize(nextImageSize);
@@ -955,7 +979,14 @@ function StudioContent() {
       videoResolution,
       outputFormat,
       duration,
-      prompt
+      prompt,
+      imageQuality,
+      numImages,
+      guidanceScale,
+      numInferenceSteps,
+      enableSafetyChecker,
+      acceleration,
+      limitGenerations
     });
   }
 
@@ -976,6 +1007,13 @@ function StudioContent() {
     setEditResolution(draft.editResolution);
     setVideoResolution(draft.videoResolution);
     setOutputFormat(draft.outputFormat);
+    setImageQuality(draft.imageQuality || "high");
+    setNumImages(draft.numImages || 1);
+    setGuidanceScale(draft.guidanceScale || 3.5);
+    setNumInferenceSteps(draft.numInferenceSteps || 4);
+    setEnableSafetyChecker(draft.enableSafetyChecker !== false);
+    setAcceleration(draft.acceleration || "none");
+    setLimitGenerations(draft.limitGenerations !== false);
     setDuration(draft.duration);
     setPrompt(draft.prompt);
     setStatusTone("idle");
@@ -1046,12 +1084,19 @@ function StudioContent() {
             ? referenceImageUrls
             : undefined,
         resolution:
-          mode === "image" && referenceImageUrls.length > 0
+          mode === "image"
             ? editResolution
             : mode === "video" && provider === "grok-video"
               ? videoResolution
               : undefined,
-        outputFormat: mode === "image" && referenceImageUrls.length > 0 ? outputFormat : undefined
+        outputFormat: mode === "image" ? outputFormat : undefined,
+        quality: mode === "image" ? imageQuality : undefined,
+        numImages: mode === "image" ? numImages : undefined,
+        guidanceScale: mode === "image" ? guidanceScale : undefined,
+        numInferenceSteps: mode === "image" ? numInferenceSteps : undefined,
+        enableSafetyChecker: mode === "image" ? enableSafetyChecker : undefined,
+        acceleration: mode === "image" ? acceleration : undefined,
+        limitGenerations: mode === "image" ? limitGenerations : undefined
       };
       const fingerprint = createIdempotencyFingerprint({
         ...requestPayload,
@@ -1398,6 +1443,53 @@ function StudioContent() {
                     (item.label === "Home" && isAppsHome) ||
                     (!isAppsHome && item.label === "Image" && mode === "image") ||
                     (!isAppsHome && item.label === "Video" && mode === "video");
+                  if (item.label === "Image") {
+                    return (
+                      <div key={item.label} className="group relative w-full">
+                        <Link
+                          href={item.href}
+                          className={`flex w-full flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold transition ${
+                            active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#6b7280] hover:bg-black/[0.035] hover:text-[#202633]"
+                          }`}
+                        >
+                          <span className={`grid h-8 w-8 place-items-center rounded-xl border text-sm ${
+                            active ? "border-[#bae6fd] bg-white text-[#0ea5e9]" : "border-black/[0.06] bg-white/70 text-[#667085]"
+                          }`}>
+                            I
+                          </span>
+                          Image
+                        </Link>
+                        <div className="pointer-events-none absolute left-[calc(100%+0.9rem)] top-0 z-50 w-60 translate-x-2 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100">
+                          <div className="rounded-3xl border border-black/[0.06] bg-white/95 p-2 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+                            {[
+                              {
+                                label: "Text to Image",
+                                body: "Prompt-led image generation",
+                                href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image"
+                              },
+                              {
+                                label: "Image to Image",
+                                body: "Edit or restyle references",
+                                href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image"
+                              }
+                            ].map((workflowItem) => (
+                              <Link
+                                key={workflowItem.label}
+                                href={workflowItem.href}
+                                onClick={() =>
+                                  trackEvent("studio_workflow_selected", { mode: "image", workflow: workflowItem.label, surface: "sidebar_hover" }, accessToken)
+                                }
+                                className="block rounded-2xl px-4 py-3 text-left transition hover:bg-[#f3f8ff]"
+                              >
+                                <span className="text-sm font-semibold text-[#202633]">{workflowItem.label}</span>
+                                <span className="mt-1 block text-xs font-medium text-[#8b95a7]">{workflowItem.body}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
                   return (
                     <Link
                       key={item.label}
@@ -1546,13 +1638,34 @@ function StudioContent() {
                 </h2>
                 <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
                   {mode === "image" ? (
+                    <>
+                      <div className="inline-flex rounded-full border border-black/[0.06] bg-white/82 p-1 shadow-sm">
+                        {(["text-to-image", "image-to-image"] as StudioWorkflow[]).map((workflow) => {
+                          const active = imageWorkflow === workflow;
+                          return (
+                            <button
+                              key={workflow}
+                              type="button"
+                              onClick={() => applyWorkflow(workflow)}
+                              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                active
+                                  ? "bg-[#202633] text-white shadow-[0_10px_24px_rgba(32,38,51,0.16)]"
+                                  : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
+                              }`}
+                            >
+                              {WORKFLOW_META[workflow].label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     <button
                       type="button"
                       onClick={() => applyWorkflow(referenceImageUrls.length ? "image-to-image" : "text-to-image")}
-                      className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#354052] shadow-sm"
+                      className="hidden rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#354052] shadow-sm"
                     >
                       Image Studio · Text + Reference
                     </button>
+                    </>
                   ) : (
                     (["text-to-video", "image-to-video"] as StudioWorkflow[]).map((workflow) => {
                       const active = activeWorkflow === workflow;
@@ -1687,6 +1800,150 @@ function StudioContent() {
                       {isSubmitting ? "Creating..." : accessToken ? "Generate" : "Sign in to Generate"}
                     </button>
                   </div>
+                  {mode === "image" ? (
+                    <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">Model settings</p>
+                        <p className="text-xs font-medium text-[#8b95a7]">{providerSettingsLabel}</p>
+                      </div>
+                      <div className="grid gap-3 lg:grid-cols-4">
+                        {provider === "chatgpt-image" ? (
+                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">Quality</p>
+                            <div className="grid grid-cols-3 gap-1">
+                              {(["low", "medium", "high"] as const).map((quality) => (
+                                <button
+                                  key={quality}
+                                  type="button"
+                                  onClick={() => setImageQuality(quality)}
+                                  className={`rounded-xl px-2 py-2 text-xs font-semibold capitalize transition ${
+                                    imageQuality === quality ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                  }`}
+                                >
+                                  {quality}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {provider === "flux-image" || provider === "flux-dev" ? (
+                          <>
+                            <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                              <p className="mb-2 text-xs font-semibold text-[#667085]">Steps</p>
+                              <div className="grid grid-cols-4 gap-1">
+                                {[4, 8, 16, 28].map((steps) => (
+                                  <button
+                                    key={steps}
+                                    type="button"
+                                    onClick={() => setNumInferenceSteps(steps)}
+                                    className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${
+                                      numInferenceSteps === steps ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                    }`}
+                                  >
+                                    {steps}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                              <p className="mb-2 text-xs font-semibold text-[#667085]">Guidance</p>
+                              <input
+                                type="range"
+                                min="0"
+                                max="12"
+                                step="0.5"
+                                value={guidanceScale}
+                                onChange={(e) => setGuidanceScale(Number(e.target.value))}
+                                className="w-full accent-[#0ea5e9]"
+                              />
+                              <p className="mt-1 text-xs font-semibold text-[#202633]">{guidanceScale}</p>
+                            </div>
+                          </>
+                        ) : null}
+                        {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
+                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">Resolution</p>
+                            <div className="grid grid-cols-4 gap-1">
+                              {["0.5K", "1K", "2K", "4K"].map((resolution) => (
+                                <button
+                                  key={resolution}
+                                  type="button"
+                                  onClick={() => setEditResolution(resolution)}
+                                  className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${
+                                    editResolution === resolution ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                  }`}
+                                >
+                                  {resolution}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                          <p className="mb-2 text-xs font-semibold text-[#667085]">Output</p>
+                          <div className="grid grid-cols-3 gap-1">
+                            {["png", "jpeg", "webp"].map((format) => (
+                              <button
+                                key={format}
+                                type="button"
+                                onClick={() => setOutputFormat(format)}
+                                className={`rounded-xl px-2 py-2 text-xs font-semibold uppercase transition ${
+                                  outputFormat === format ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                }`}
+                              >
+                                {format}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                          <p className="mb-2 text-xs font-semibold text-[#667085]">Count</p>
+                          <div className="grid grid-cols-4 gap-1">
+                            {[1, 2, 3, 4].map((count) => (
+                              <button
+                                key={count}
+                                type="button"
+                                onClick={() => setNumImages(count)}
+                                className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${
+                                  numImages === count ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                }`}
+                              >
+                                {count}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {provider === "flux-image" || provider === "flux-dev" ? (
+                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">Safety</p>
+                            <button
+                              type="button"
+                              onClick={() => setEnableSafetyChecker((value) => !value)}
+                              className={`w-full rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                                enableSafetyChecker ? "bg-[#e8f7ff] text-[#0284c7]" : "bg-white text-[#667085]"
+                              }`}
+                            >
+                              {enableSafetyChecker ? "Enabled" : "Disabled"}
+                            </button>
+                          </div>
+                        ) : null}
+                        {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
+                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">Limit generations</p>
+                            <button
+                              type="button"
+                              onClick={() => setLimitGenerations((value) => !value)}
+                              className={`w-full rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                                limitGenerations ? "bg-[#e8f7ff] text-[#0284c7]" : "bg-white text-[#667085]"
+                              }`}
+                            >
+                              {limitGenerations ? "On" : "Off"}
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -1719,6 +1976,63 @@ function StudioContent() {
                     </div>
                   ))}
                 </div>
+                {showTextToImageTemplates ? (
+                  <section className="mt-12 text-left">
+                    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#98a2b3]">Prompt gallery</p>
+                        <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[#202633]">Start from a proven visual direction</h3>
+                      </div>
+                      <Link href="/gallery" className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] shadow-sm transition hover:bg-[#f8fafc] hover:text-[#202633]">
+                        Browse Gallery
+                      </Link>
+                    </div>
+                    {galleryTemplateNote ? (
+                      <p className="rounded-2xl border border-black/[0.06] bg-white/70 p-4 text-sm text-[#667085]">{galleryTemplateNote}</p>
+                    ) : null}
+                    {galleryTemplates.length ? (
+                      <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
+                        {galleryTemplates.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setPrompt(item.prompt);
+                              setImageWorkflow("text-to-image");
+                              setProvider("chatgpt-image");
+                              setReferenceImagesText("");
+                              setReferenceImageFiles([]);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                              trackEvent("gallery_template_applied", { gallery_id: item.id, model: item.model, surface: "studio" }, accessToken);
+                            }}
+                            className="mb-4 block w-full break-inside-avoid overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-white text-left shadow-[0_14px_42px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_60px_rgba(15,23,42,0.12)]"
+                          >
+                            <img
+                              src={item.thumbnailUrl || item.imageUrl}
+                              alt={item.title}
+                              className="w-full bg-[#f2f6fb] object-cover"
+                              loading="lazy"
+                            />
+                            <div className="p-4">
+                              <p className="line-clamp-1 text-sm font-semibold text-[#202633]">{item.title}</p>
+                              <p className="mt-2 line-clamp-3 text-xs leading-5 text-[#7a8496]">{item.prompt}</p>
+                              <div className="mt-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98a2b3]">
+                                <span>{item.category}</span>
+                                <span>{item.model || "Prompt"}</span>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : !galleryTemplateNote ? (
+                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {[1, 2, 3, 4, 5, 6].map((item) => (
+                          <div key={item} className="h-56 animate-pulse rounded-[1.35rem] border border-black/[0.04] bg-white/60" />
+                        ))}
+                      </div>
+                    ) : null}
+                  </section>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1915,7 +2229,7 @@ function StudioContent() {
                     if (mode === "image") {
                       setReferenceImagesText(
                         !hasCompletedCreation && nextProvider === "nano-banana-image"
-                          ? NANO_BANANA_EDIT_REFERENCE_TEXT
+                          ? ""
                           : ""
                       );
                       setReferenceImageFiles([]);
