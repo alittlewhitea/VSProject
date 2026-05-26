@@ -54,6 +54,14 @@ function hasReferenceImages(body: GenerateRequest) {
   return body.mode === "image" && Array.isArray(body.imageUrls) && body.imageUrls.some((url) => typeof url === "string" && url.trim());
 }
 
+function hasInputImages(body: GenerateRequest) {
+  return Array.isArray(body.imageUrls) && body.imageUrls.some((url) => typeof url === "string" && url.trim());
+}
+
+function firstInputImage(body: GenerateRequest) {
+  return Array.isArray(body.imageUrls) ? body.imageUrls.find((url) => typeof url === "string" && url.trim())?.trim() || null : null;
+}
+
 function getModelId(mode: GenerateMode, provider: string, editImage = false): string | null {
   const keyByProvider: Record<string, string | undefined> = {
     "chatgpt-image": editImage
@@ -66,8 +74,12 @@ function getModelId(mode: GenerateMode, provider: string, editImage = false): st
       : process.env.FAL_MODEL_IMAGE_NANO_BANANA || "fal-ai/nano-banana-2",
     "nano-banana-edit": process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit",
     "recraft-image": process.env.FAL_MODEL_IMAGE_RECRAFT,
-    "seedance-video": process.env.FAL_MODEL_VIDEO_SEEDANCE,
-    "kling-video": process.env.FAL_MODEL_VIDEO_KLING,
+    "seedance-video": editImage
+      ? process.env.FAL_MODEL_VIDEO_SEEDANCE_I2V || "bytedance/seedance-2.0/image-to-video"
+      : process.env.FAL_MODEL_VIDEO_SEEDANCE,
+    "kling-video": editImage
+      ? process.env.FAL_MODEL_VIDEO_KLING_I2V || "fal-ai/kling-video/v3/pro/image-to-video"
+      : process.env.FAL_MODEL_VIDEO_KLING,
     "veo-video": process.env.FAL_MODEL_VIDEO_VEO,
     "grok-video": process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/text-to-video"
   };
@@ -105,6 +117,16 @@ function getFalImageSize(ratio: string, imageSize?: string) {
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
+  if (body.mode === "video" && (body.provider === "seedance-video" || body.provider === "kling-video") && hasInputImages(body)) {
+    const duration = Number.parseInt(body.duration, 10);
+    return {
+      prompt,
+      image_url: firstInputImage(body),
+      duration: Number.isInteger(duration) && duration > 0 ? duration : 6,
+      aspect_ratio: VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9"
+    };
+  }
+
   if (body.provider === "grok-video") {
     const duration = Number.parseInt(body.duration, 10);
     return {
@@ -177,7 +199,12 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
 
   return {
     mode: body.mode,
-    workflow: body.mode === "image" && imageUrls.length ? "image-to-image" : body.imageWorkflow || "text-to-image",
+    workflow:
+      body.mode === "image" && imageUrls.length
+        ? "image-to-image"
+        : body.mode === "video" && imageUrls.length
+          ? "image-to-video"
+          : body.imageWorkflow || (body.mode === "video" ? "text-to-video" : "text-to-image"),
     provider: body.provider,
     model_id: modelId,
     ratio: body.ratio,
@@ -271,7 +298,7 @@ export async function POST(request: Request) {
       }
     }
     const falKey = process.env.FAL_KEY;
-    const modelId = getModelId(body.mode, body.provider, hasReferenceImages(body));
+    const modelId = getModelId(body.mode, body.provider, hasInputImages(body));
     const taskId = generationTaskId(body.idempotencyKey);
 
     const admin = createSupabaseAdminClient();

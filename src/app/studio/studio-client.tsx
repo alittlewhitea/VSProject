@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { TopNav } from "../../components/top-nav";
 import { AppButton } from "../../components/ui/button";
 import { trackEvent } from "../../lib/analytics";
 import { CREDIT_LOW_BALANCE_THRESHOLD, estimateGenerationCredits } from "../../lib/model-pricing";
@@ -34,6 +33,7 @@ type StudioLoginDraft = {
   mode: "image" | "video";
   provider: string;
   imageWorkflow: "text-to-image" | "image-to-image";
+  videoWorkflow?: "text-to-video" | "image-to-video";
   ratio: string;
   imageSize: string;
   referenceImagesText: string;
@@ -44,6 +44,8 @@ type StudioLoginDraft = {
   duration: string;
   prompt: string;
 };
+
+type StudioWorkflow = "text-to-image" | "image-to-image" | "text-to-video" | "image-to-video";
 
 const SESSION_TASKS_KEY = "nova_session_tasks";
 const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
@@ -85,6 +87,109 @@ const IMAGE_SIZE_PRESETS = [
 const DEFAULT_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1"];
 const GROK_VIDEO_RATIO_OPTIONS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"];
 const GROK_VIDEO_RESOLUTION_OPTIONS = ["720p", "480p"];
+
+const PROVIDER_META: Record<
+  string,
+  {
+    label: string;
+    shortLabel: string;
+    speed: string;
+    quality: string;
+    bestFor: string;
+  }
+> = {
+  "chatgpt-image": {
+    label: "GPT Image 2",
+    shortLabel: "GPT Image 2",
+    speed: "Balanced",
+    quality: "Highest text fidelity",
+    bestFor: "Ads, infographics, product visuals, readable typography"
+  },
+  "nano-banana-image": {
+    label: "Nano Banana 2",
+    shortLabel: "Nano Banana 2",
+    speed: "Fast",
+    quality: "Strong editing",
+    bestFor: "Reference edits, character/product continuity, image remixing"
+  },
+  "flux-image": {
+    label: "FLUX Schnell",
+    shortLabel: "Schnell",
+    speed: "Fastest",
+    quality: "Draft",
+    bestFor: "Cheap ideation, quick style exploration, prompt drafts"
+  },
+  "flux-dev": {
+    label: "FLUX Dev",
+    shortLabel: "Dev",
+    speed: "Medium",
+    quality: "Better composition",
+    bestFor: "Higher quality drafts and refined visual concepts"
+  },
+  "seedance-video": {
+    label: "Seedance 2.0",
+    shortLabel: "Seedance",
+    speed: "Medium",
+    quality: "Cinematic motion",
+    bestFor: "Prompt-led video and image-to-video motion tests"
+  },
+  "kling-video": {
+    label: "Kling v3 Pro",
+    shortLabel: "Kling",
+    speed: "Medium",
+    quality: "Premium motion",
+    bestFor: "Image-to-video with stronger camera movement"
+  },
+  "veo-video": {
+    label: "Veo",
+    shortLabel: "Veo",
+    speed: "Slower",
+    quality: "Premium",
+    bestFor: "High-end video experiments when available"
+  },
+  "grok-video": {
+    label: "Grok Imagine Video",
+    shortLabel: "Grok",
+    speed: "Fast",
+    quality: "Expressive",
+    bestFor: "Fast text-to-video ideas and social clips"
+  }
+};
+
+const WORKFLOW_META: Record<
+  StudioWorkflow,
+  {
+    label: string;
+    description: string;
+    recommendedProvider: string;
+    providers: string[];
+  }
+> = {
+  "text-to-image": {
+    label: "Text to Image",
+    description: "Create a new image from a prompt.",
+    recommendedProvider: "chatgpt-image",
+    providers: ["chatgpt-image", "nano-banana-image", "flux-image", "flux-dev"]
+  },
+  "image-to-image": {
+    label: "Image to Image",
+    description: "Upload references and edit, restyle, or extend them.",
+    recommendedProvider: "nano-banana-image",
+    providers: ["nano-banana-image", "chatgpt-image"]
+  },
+  "text-to-video": {
+    label: "Text to Video",
+    description: "Turn a written scene into a short video.",
+    recommendedProvider: "grok-video",
+    providers: ["grok-video", "seedance-video", "veo-video"]
+  },
+  "image-to-video": {
+    label: "Image to Video",
+    description: "Animate a reference image into a short video.",
+    recommendedProvider: "seedance-video",
+    providers: ["seedance-video", "kling-video"]
+  }
+};
 
 const PROMPT_PRESETS = [
   "Anime key visual of a young cyberpunk courier standing on a rainy neon street, reflective puddles, glowing shop signs, dramatic rim light, cinematic composition, highly detailed",
@@ -305,6 +410,17 @@ function isProviderAllowedForMode(provider: string | null, mode: "image" | "vide
     : ["seedance-video", "kling-video", "veo-video", "grok-video"].includes(provider);
 }
 
+function workflowForMode(mode: "image" | "video", workflow: string | null): StudioWorkflow {
+  if (mode === "image") return workflow === "image-to-image" ? "image-to-image" : "text-to-image";
+  return workflow === "image-to-video" ? "image-to-video" : "text-to-video";
+}
+
+function providerForWorkflow(workflow: StudioWorkflow, requestedProvider?: string | null) {
+  const meta = WORKFLOW_META[workflow];
+  if (requestedProvider && meta.providers.includes(requestedProvider)) return requestedProvider;
+  return meta.recommendedProvider;
+}
+
 function taskProgress(task: Pick<TaskItem, "status" | "createdAt" | "type" | "provider">, duration: string) {
   if (task.status === "Completed") return 100;
   if (task.status === "Failed") return 100;
@@ -319,19 +435,24 @@ function StudioContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const mode = sp.get("mode") === "image" ? "image" : "video";
+  const isAppsHome = sp.get("view") === "home" || (!sp.get("mode") && !sp.get("workflow"));
   const providerFromUrl = sp.get("provider");
-  const initialProvider = (isProviderAllowedForMode(providerFromUrl, mode)
-    ? providerFromUrl === "nano-banana-edit"
-      ? "nano-banana-image"
-      : providerFromUrl
-    : mode === "image"
-      ? "chatgpt-image"
-      : "seedance-video") as string;
-  const initialImageWorkflow = sp.get("workflow") === "image-to-image" ? "image-to-image" : "text-to-image";
+  const initialWorkflow = workflowForMode(mode, sp.get("workflow"));
+  const initialProvider = providerForWorkflow(
+    initialWorkflow,
+    isProviderAllowedForMode(providerFromUrl, mode)
+      ? providerFromUrl === "nano-banana-edit"
+        ? "nano-banana-image"
+        : providerFromUrl
+      : null
+  );
+  const initialImageWorkflow = initialWorkflow === "image-to-image" ? "image-to-image" : "text-to-image";
+  const initialVideoWorkflow = initialWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
   const initialReferenceUrl = sp.get("reference");
   const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider));
   const [provider, setProvider] = useState(initialProvider);
   const [imageWorkflow, setImageWorkflow] = useState<"text-to-image" | "image-to-image">(initialImageWorkflow);
+  const [videoWorkflow, setVideoWorkflow] = useState<"text-to-video" | "image-to-video">(initialVideoWorkflow);
   const [ratio, setRatio] = useState(mode === "image" ? "1:1" : "16:9");
   const [imageSize, setImageSize] = useState("default_4_3");
   const [referenceImagesText, setReferenceImagesText] = useState(() =>
@@ -361,6 +482,7 @@ function StudioContent() {
   const [creditNote, setCreditNote] = useState("");
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loginDraftNonce, setLoginDraftNonce] = useState(0);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
@@ -415,23 +537,22 @@ function StudioContent() {
   }, []);
 
   useEffect(() => {
-    const key = `${mode}:${provider}:${imageWorkflow}`;
+    const workflow = mode === "image" ? imageWorkflow : videoWorkflow;
+    const key = `${mode}:${provider}:${workflow}`;
     if (trackedStudioViewRef.current === key) return;
     trackedStudioViewRef.current = key;
-    trackEvent("studio_view", { mode, provider, workflow: imageWorkflow, signed_in: Boolean(accessToken) }, accessToken);
-  }, [accessToken, imageWorkflow, mode, provider]);
+    trackEvent("studio_view", { mode, provider, workflow, signed_in: Boolean(accessToken) }, accessToken);
+  }, [accessToken, imageWorkflow, mode, provider, videoWorkflow]);
 
   useEffect(() => {
-    const workflowParam = sp.get("workflow") === "image-to-image" ? "image-to-image" : "text-to-image";
+    const workflowParam = workflowForMode(mode, sp.get("workflow"));
     const providerParam = sp.get("provider");
-    setImageWorkflow(mode === "image" ? workflowParam : "text-to-image");
-    const nextProvider = (isProviderAllowedForMode(providerParam, mode)
-      ? providerParam
-      : mode === "image" && workflowParam === "image-to-image"
-        ? "nano-banana-image"
-        : mode === "image"
-        ? "chatgpt-image"
-        : "seedance-video") as string;
+    setImageWorkflow(mode === "image" && workflowParam === "image-to-image" ? "image-to-image" : "text-to-image");
+    setVideoWorkflow(mode === "video" && workflowParam === "image-to-video" ? "image-to-video" : "text-to-video");
+    const nextProvider = providerForWorkflow(
+      workflowParam,
+      isProviderAllowedForMode(providerParam, mode) ? providerParam : null
+    );
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
     const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
     setRatio(mode === "image" ? ratioFromImageSize(nextImageSize) : "16:9");
@@ -632,21 +753,8 @@ function StudioContent() {
   }, [tasks, userId]);
 
   const options = useMemo(
-    () =>
-      mode === "image"
-        ? [
-            { value: "chatgpt-image", label: "GPT Image 2" },
-            { value: "nano-banana-image", label: "Nano Banana 2" },
-            { value: "flux-image", label: "FLUX Schnell" },
-            { value: "flux-dev", label: "FLUX Dev" }
-          ]
-        : [
-            { value: "seedance-video", label: "Seedance 2.0 Text-to-Video (fal)" },
-            { value: "kling-video", label: "Kling (fal)" },
-            { value: "veo-video", label: "Veo (fal)" },
-            { value: "grok-video", label: "Grok Imagine Video Text-to-Video (fal)" }
-          ],
-    [mode]
+    () => WORKFLOW_META[mode === "image" ? imageWorkflow : videoWorkflow].providers.map((value) => ({ value, label: PROVIDER_META[value]?.label || value })),
+    [imageWorkflow, mode, videoWorkflow]
   );
 
   const referenceImageUrls = [
@@ -656,6 +764,8 @@ function StudioContent() {
       .filter(Boolean),
     ...referenceImageFiles
   ].slice(0, 14);
+  const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : videoWorkflow;
+  const activeWorkflowMeta = WORKFLOW_META[activeWorkflow];
 
   const estCredits = estimateGenerationCredits({
     mode,
@@ -669,6 +779,9 @@ function StudioContent() {
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const estimatedSeconds = estimateTaskSeconds(mode, provider, duration);
   const isPromptValid = prompt.trim().length >= 8;
+  const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "image-to-video";
+  const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
+  const canSubmit = isPromptValid && hasRequiredReference;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const hasCompletedCreation = completedTasks.length > 0;
@@ -700,6 +813,82 @@ function StudioContent() {
     );
   }, [hasCompletedCreation]);
 
+  function applyWorkflow(nextWorkflow: StudioWorkflow) {
+    const nextMode = nextWorkflow === "text-to-image" || nextWorkflow === "image-to-image" ? "image" : "video";
+    const nextProvider = providerForWorkflow(nextWorkflow, provider);
+    if (nextMode === "image") {
+      setImageWorkflow(nextWorkflow as "text-to-image" | "image-to-image");
+      if (nextWorkflow === "image-to-image" && !hasCompletedCreation) {
+        setReferenceImagesText((current) => current || NANO_BANANA_EDIT_REFERENCE_TEXT);
+      } else if (nextWorkflow === "text-to-image") {
+        setReferenceImagesText("");
+        setReferenceImageFiles([]);
+      }
+    } else {
+      setVideoWorkflow(nextWorkflow as "text-to-video" | "image-to-video");
+      if (nextWorkflow === "text-to-video") {
+        setReferenceImagesText("");
+        setReferenceImageFiles([]);
+      }
+    }
+    setProvider(nextProvider);
+    const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
+    setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
+    const nextImageSize = nextMode === "image" ? defaultImageSizeForProvider(nextProvider) : imageSize;
+    if (nextMode === "image") {
+      setImageSize(nextImageSize);
+      setRatio(ratioFromImageSize(nextImageSize));
+    } else {
+      setRatio("16:9");
+      setDuration("6s");
+    }
+    trackEvent("studio_workflow_selected", { mode: nextMode, workflow: nextWorkflow, provider: nextProvider }, accessToken);
+    const params = new URLSearchParams(sp.toString());
+    params.set("mode", nextMode);
+    params.set("workflow", nextWorkflow);
+    params.set("provider", nextProvider);
+    if (nextMode === "image") {
+      params.set("imageSize", nextImageSize);
+      params.set("ratio", ratioFromImageSize(nextImageSize));
+    } else {
+      params.delete("imageSize");
+      params.set("ratio", "16:9");
+    }
+    router.replace(`/studio?${params.toString()}`, { scroll: false });
+  }
+
+  function applyProvider(nextProvider: string) {
+    trackEvent("studio_model_selected", { mode, provider: nextProvider, workflow: activeWorkflow }, accessToken);
+    setProvider(nextProvider);
+    const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
+    setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
+    if (mode === "image") {
+      setReferenceImagesText(!hasCompletedCreation && activeWorkflow === "image-to-image" ? NANO_BANANA_EDIT_REFERENCE_TEXT : "");
+      setReferenceImageFiles([]);
+      const nextImageSize = defaultImageSizeForProvider(nextProvider);
+      setImageSize(nextImageSize);
+      setRatio(ratioFromImageSize(nextImageSize));
+      const params = new URLSearchParams(sp.toString());
+      params.set("mode", "image");
+      params.set("workflow", activeWorkflow);
+      params.set("provider", nextProvider);
+      params.set("imageSize", nextImageSize);
+      params.set("ratio", ratioFromImageSize(nextImageSize));
+      router.replace(`/studio?${params.toString()}`, { scroll: false });
+    } else {
+      const params = new URLSearchParams(sp.toString());
+      params.set("mode", "video");
+      params.set("workflow", activeWorkflow);
+      params.set("provider", nextProvider);
+      if (nextProvider === "grok-video") {
+        params.set("resolution", videoResolution);
+      } else {
+        params.delete("resolution");
+      }
+      router.replace(`/studio?${params.toString()}`, { scroll: false });
+    }
+  }
+
   async function handleReferenceFiles(files: FileList | null) {
     if (!files?.length) return;
     const nextFiles = await Promise.all(
@@ -717,9 +906,21 @@ function StudioContent() {
         )
     );
     setReferenceImageFiles((prev) => [...prev, ...nextFiles].slice(0, 4));
+    if (mode === "image" && imageWorkflow !== "image-to-image") {
+      setImageWorkflow("image-to-image");
+      if (!WORKFLOW_META["image-to-image"].providers.includes(provider)) {
+        setProvider(WORKFLOW_META["image-to-image"].recommendedProvider);
+      }
+    }
+    if (mode === "video" && videoWorkflow !== "image-to-video") {
+      setVideoWorkflow("image-to-video");
+      if (!WORKFLOW_META["image-to-video"].providers.includes(provider)) {
+        setProvider(WORKFLOW_META["image-to-video"].recommendedProvider);
+      }
+    }
     trackEvent(
       "studio_reference_uploaded",
-      { mode, provider, workflow: "image-to-image", files: nextFiles.length, total_references: referenceImageUrls.length + nextFiles.length },
+      { mode, provider, workflow: activeWorkflow, files: nextFiles.length, total_references: referenceImageUrls.length + nextFiles.length },
       accessToken
     );
   }
@@ -745,6 +946,7 @@ function StudioContent() {
       mode,
       provider,
       imageWorkflow,
+      videoWorkflow,
       ratio,
       imageSize,
       referenceImagesText,
@@ -766,6 +968,7 @@ function StudioContent() {
     autoSubmitLoginDraftRef.current = draft.autoSubmit;
     setProvider(draft.provider === "nano-banana-edit" ? "nano-banana-image" : draft.provider);
     setImageWorkflow(draft.imageWorkflow);
+    setVideoWorkflow(draft.videoWorkflow || "text-to-video");
     setRatio(draft.ratio);
     setImageSize(draft.imageSize);
     setReferenceImagesText(draft.referenceImagesText);
@@ -782,7 +985,7 @@ function StudioContent() {
   }, [accessToken, authReady]);
 
   async function handleGenerate() {
-    if (!isPromptValid || isSubmitting) {
+    if (!canSubmit || isSubmitting) {
       return;
     }
 
@@ -791,7 +994,7 @@ function StudioContent() {
       {
         mode,
         provider,
-        workflow: mode === "image" && referenceImageUrls.length ? "image-to-image" : imageWorkflow,
+        workflow: activeWorkflow,
         estimated_credits: estCredits,
         signed_in: Boolean(accessToken),
         has_references: referenceImageUrls.length > 0
@@ -815,7 +1018,7 @@ function StudioContent() {
       if (!liveToken) {
         trackEvent(
           "generate_login_required",
-          { mode, provider, workflow: mode === "image" && referenceImageUrls.length ? "image-to-image" : imageWorkflow },
+          { mode, provider, workflow: activeWorkflow },
           accessToken
         );
         const next = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?mode=image&workflow=text-to-image";
@@ -838,14 +1041,17 @@ function StudioContent() {
         duration,
         prompt,
         imageSize: mode === "image" ? imageSize : undefined,
-        imageUrls: mode === "image" && imageWorkflow === "image-to-image" ? referenceImageUrls : undefined,
+        imageUrls:
+          (mode === "image" && referenceImageUrls.length > 0) || (mode === "video" && videoWorkflow === "image-to-video")
+            ? referenceImageUrls
+            : undefined,
         resolution:
-          mode === "image" && imageWorkflow === "image-to-image"
+          mode === "image" && referenceImageUrls.length > 0
             ? editResolution
             : mode === "video" && provider === "grok-video"
               ? videoResolution
               : undefined,
-        outputFormat: mode === "image" && imageWorkflow === "image-to-image" ? outputFormat : undefined
+        outputFormat: mode === "image" && referenceImageUrls.length > 0 ? outputFormat : undefined
       };
       const fingerprint = createIdempotencyFingerprint({
         ...requestPayload,
@@ -1120,29 +1326,424 @@ function StudioContent() {
   }
 
   return (
-    <main className="bg-grid min-h-screen pb-14">
-      <div className="mx-auto max-w-7xl px-4 pt-4 md:px-8 md:pt-5">
-        <TopNav />
+    <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10 text-[#1f2430]">
+      <div className="pointer-events-none absolute left-[18%] top-10 h-72 w-72 rounded-full bg-[#bde0fe]/30 blur-3xl" />
+      <div className="pointer-events-none absolute right-[14%] top-6 h-80 w-80 rounded-full bg-[#ffc8dd]/24 blur-3xl" />
+      <div className="mx-auto max-w-[1540px] px-4 pt-4 md:px-8 md:pt-5">
+        <header className="hidden">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="text-3xl font-semibold tracking-tight text-white">
+              dreamface
+            </Link>
+            <nav className="hidden items-center gap-5 text-sm text-white/48 lg:flex">
+              <Link className="transition hover:text-white" href="/#products">Products</Link>
+              <Link className="transition hover:text-white" href="/#providers">Providers</Link>
+              <Link className="transition hover:text-white" href="/gallery">Gallery</Link>
+              <Link className="transition hover:text-white" href="/#platform">Platform</Link>
+              <Link className="transition hover:text-white" href="/#pricing">Pricing</Link>
+            </nav>
+          </div>
+          <div className="flex items-center gap-2">
+            {accessToken ? (
+              <>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const supabase = createBrowserSupabaseClient();
+                    await supabase.auth.signOut();
+                  }}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/[0.06] hover:text-white"
+                >
+                  Sign out
+                </button>
+                <Link href="/creations" className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/[0.06] hover:text-white">
+                  Creations
+                </Link>
+                <Link href="/billing" className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/[0.06] hover:text-white">
+                  Billing
+                </Link>
+              </>
+            ) : (
+              <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/[0.06] hover:text-white">
+                Sign in
+              </Link>
+            )}
+            <Link href="/studio?mode=image&workflow=text-to-image" className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#111827] shadow-[0_12px_28px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5">
+              Open Studio
+            </Link>
+          </div>
+        </header>
         {!authReady ? (
-          <section className="rounded-2xl border border-black/10 bg-white/90 p-6 text-sm text-[#4f5a6d]">
+          <section className="mb-4 rounded-2xl border border-black/[0.06] bg-white/82 p-6 text-sm text-[#667085] shadow-sm">
             Checking your session...
           </section>
         ) : null}
 
-        <section className="sticky top-3 z-40 mb-4 rounded-3xl border-2 border-[#1d1d1f]/15 bg-gradient-to-r from-[#eef4ff]/95 via-white/95 to-[#eefaf8]/95 p-4 shadow-[0_14px_32px_rgba(18,22,33,0.14)] backdrop-blur md:mb-5 md:p-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#4f5f77]">Studio Mode Switch</p>
-              <p className="mt-1 text-sm font-medium text-[#415067]">Choose generation type before creating tasks.</p>
+        <section className="relative min-h-[calc(100vh-2rem)] overflow-hidden rounded-[2.25rem] border border-black/[0.06] bg-white/72 shadow-[0_32px_120px_rgba(71,85,105,0.14)] backdrop-blur-2xl">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
+          <div className="grid min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
+            <aside className="hidden border-r border-black/[0.06] bg-white/64 px-3 py-5 lg:flex lg:flex-col lg:items-center">
+              <Link href="/" className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
+                DF
+              </Link>
+              <nav className="mt-9 flex flex-1 flex-col items-center gap-4">
+                {[
+                  { label: "Home", href: "/studio?view=home" },
+                  { label: "Image", href: "/studio?mode=image&workflow=text-to-image" },
+                  { label: "Video", href: "/studio?mode=video&workflow=text-to-video" },
+                  { label: "Gallery", href: "/gallery" },
+                  { label: "Projects", href: "/creations" }
+                ].map((item) => {
+                  const active =
+                    (item.label === "Home" && isAppsHome) ||
+                    (!isAppsHome && item.label === "Image" && mode === "image") ||
+                    (!isAppsHome && item.label === "Video" && mode === "video");
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className={`group flex w-full flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold transition ${
+                        active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#6b7280] hover:bg-black/[0.035] hover:text-[#202633]"
+                      }`}
+                    >
+                      <span className={`grid h-8 w-8 place-items-center rounded-xl border text-sm ${
+                        active ? "border-[#bae6fd] bg-white text-[#0ea5e9]" : "border-black/[0.06] bg-white/70 text-[#667085]"
+                      }`}>
+                        {item.label.slice(0, 1)}
+                      </span>
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+              <Link href="/billing" className="grid h-10 w-10 place-items-center rounded-2xl bg-[#ecfeff] text-sm font-semibold text-[#06b6d4]">
+                {creditBalance === null ? "-" : String(Math.min(creditBalance, 99))}
+              </Link>
+            </aside>
+
+            <div className="relative px-4 py-5 md:px-8 lg:px-12">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Link href="/" aria-label="Back to site" className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-lg font-semibold text-transparent shadow-sm">
+                    ←
+                  </Link>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">DreamFace Apps</p>
+                    <h1 className="text-2xl font-semibold tracking-tight text-[#202633] md:text-3xl">
+                      {isAppsHome ? "Creative AI Toolkit" : mode === "image" ? "AI Image Generator" : "AI Video Generator"}
+                    </h1>
+                    <p className="mt-1 text-sm text-[#8b95a7]">
+                      {isAppsHome
+                        ? "Image, video, audio, and cleanup tools in one production workspace."
+                        : mode === "image"
+                          ? "Create image assets from text, references, or both in one focused workspace."
+                          : "Create AI-generated motion from prompts or animate a reference image."}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href="/billing" className="rounded-2xl border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#485164] shadow-[0_10px_28px_rgba(15,23,42,0.08)]">
+                    {creditBalance === null ? "--" : creditBalance.toLocaleString()} credits
+                  </Link>
+                  {accessToken ? (
+                    <Link href="/creations" className="rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)]">
+                      Creations
+                    </Link>
+                  ) : (
+                    <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)]">
+                      Sign in
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              {isAppsHome ? (
+                <div className="mx-auto mt-12 max-w-6xl">
+                  <div className="relative overflow-hidden rounded-[2rem] border border-[#93c5fd]/45 bg-[linear-gradient(100deg,rgba(189,224,254,0.84),rgba(255,200,221,0.50),rgba(187,247,208,0.72))] px-8 py-8 text-center shadow-[0_24px_80px_rgba(56,189,248,0.14)]">
+                    <div className="pointer-events-none absolute -left-12 top-0 h-40 w-40 rounded-full bg-white/55 blur-3xl" />
+                    <div className="pointer-events-none absolute -right-10 bottom-0 h-44 w-44 rounded-full bg-white/45 blur-3xl" />
+                    <p className="relative text-xs font-semibold uppercase tracking-[0.18em] text-[#64748b]">DreamFace AI Toolkit</p>
+                    <h2 className="relative mt-2 text-4xl font-semibold tracking-tight text-[#202633] md:text-5xl">
+                      Create images, video, audio, and clean assets in one place.
+                    </h2>
+                    <p className="relative mx-auto mt-3 max-w-2xl text-base leading-7 text-[#667085]">
+                      Powered by production-grade model routing inspired by fal.ai workflows, built for fast campaign assets and creator output.
+                    </p>
+                    <Link
+                      href="/studio?mode=image&workflow=text-to-image"
+                      className="relative mt-6 inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#202633] shadow-[0_12px_32px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5"
+                    >
+                      Start creating
+                    </Link>
+                  </div>
+
+                  <div className="mt-9 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    {[
+                      {
+                        title: "Text to Image",
+                        body: "Generate polished ads, posters, product shots, thumbnails, and concept visuals from a prompt.",
+                        icon: "TI",
+                        href: "/studio?mode=image&workflow=text-to-image",
+                        accent: "from-[#dbeafe] to-[#ecfeff]"
+                      },
+                      {
+                        title: "Image to Image",
+                        body: "Upload references to restyle, edit, extend, or keep product and character continuity.",
+                        icon: "II",
+                        href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
+                        accent: "from-[#fce7f3] to-[#eff6ff]"
+                      },
+                      {
+                        title: "Text to Video",
+                        body: "Turn scene ideas into short motion clips for social, ads, storyboards, and B-roll.",
+                        icon: "TV",
+                        href: "/studio?mode=video&workflow=text-to-video",
+                        accent: "from-[#ede9fe] to-[#e0f2fe]"
+                      },
+                      {
+                        title: "Image to Video",
+                        body: "Animate a product, portrait, or reference frame with camera motion and cinematic timing.",
+                        icon: "IV",
+                        href: "/studio?mode=video&workflow=image-to-video",
+                        accent: "from-[#dcfce7] to-[#dbeafe]"
+                      },
+                      {
+                        title: "Enhance & Cleanup",
+                        body: "Upscale owned images, improve clarity, and remove unwanted marks or distractions.",
+                        icon: "EC",
+                        href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
+                        accent: "from-[#fff7ed] to-[#fce7f3]"
+                      },
+                      {
+                        title: "Text to Audio",
+                        body: "Generate music beds, sound design ideas, and short audio prompts for creative assets.",
+                        icon: "TA",
+                        href: "/studio?mode=video&workflow=text-to-video",
+                        accent: "from-[#fef9c3] to-[#dcfce7]"
+                      }
+                    ].map((app) => (
+                      <Link
+                        key={app.title}
+                        href={app.href}
+                        className="group relative min-h-[210px] overflow-hidden rounded-[2rem] border border-black/[0.05] bg-white/70 p-7 text-left shadow-[0_18px_52px_rgba(15,23,42,0.07)] backdrop-blur transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_26px_70px_rgba(15,23,42,0.10)]"
+                      >
+                        <div className={`absolute inset-0 bg-gradient-to-br ${app.accent} opacity-55 transition group-hover:opacity-80`} />
+                        <div className="relative grid h-14 w-14 place-items-center rounded-2xl bg-white text-sm font-black text-[#0ea5e9] shadow-sm">
+                          {app.icon}
+                        </div>
+                        <h3 className="relative mt-6 text-xl font-semibold tracking-tight text-[#202633]">{app.title}</h3>
+                        <p className="relative mt-3 max-w-[280px] text-sm font-medium leading-6 text-[#7a8496]">{app.body}</p>
+                        <span className="relative mt-5 inline-flex text-sm font-semibold text-[#0ea5e9]">Open tool →</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className={`mx-auto mt-16 max-w-5xl text-center ${isAppsHome ? "hidden" : ""}`}>
+                <h2 className="text-4xl font-semibold tracking-tight text-[#202633] md:text-5xl">
+                  What will you create today?
+                </h2>
+                <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+                  {mode === "image" ? (
+                    <button
+                      type="button"
+                      onClick={() => applyWorkflow(referenceImageUrls.length ? "image-to-image" : "text-to-image")}
+                      className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#354052] shadow-sm"
+                    >
+                      Image Studio · Text + Reference
+                    </button>
+                  ) : (
+                    (["text-to-video", "image-to-video"] as StudioWorkflow[]).map((workflow) => {
+                      const active = activeWorkflow === workflow;
+                      return (
+                        <button
+                          key={workflow}
+                          type="button"
+                          onClick={() => applyWorkflow(workflow)}
+                          className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                            active
+                              ? "border-[#bae6fd] bg-[#e8f7ff] text-[#0284c7] shadow-sm"
+                              : "border-black/[0.06] bg-white/78 text-[#667085] hover:bg-white hover:text-[#202633]"
+                          }`}
+                        >
+                          {WORKFLOW_META[workflow].label}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="mt-7 overflow-hidden rounded-[2rem] border border-black/[0.06] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.12)]">
+                  <div className="p-5 text-left md:p-7">
+                    <textarea
+                      rows={5}
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      className="min-h-[154px] w-full resize-none bg-transparent text-lg leading-8 text-[#202633] outline-none placeholder:text-[#a2aabc]"
+                      placeholder={
+                        mode === "image"
+                          ? "Type your prompt to create images. Add a reference with + when you want image-to-image..."
+                          : activeWorkflow === "image-to-video"
+                            ? "Describe how the uploaded image should move, the camera feel, and final mood..."
+                            : "Type your prompt to create AI video footage..."
+                      }
+                    />
+                    {referenceImageUrls.length ? (
+                      <div className="mt-4 border-t border-black/[0.06] pt-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8791a3]">
+                            {referenceImageUrls.length} reference {referenceImageUrls.length === 1 ? "image" : "images"}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReferenceImagesText("");
+                              setReferenceImageFiles([]);
+                              if (mode === "image") setImageWorkflow("text-to-image");
+                              if (mode === "video") setVideoWorkflow("text-to-video");
+                            }}
+                            className="rounded-full border border-black/[0.06] bg-white px-3 py-1 text-xs font-semibold text-[#667085] hover:bg-[#f8fafc]"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {referenceImageUrls.slice(0, 8).map((url, index) => (
+                            <div key={`${url.slice(0, 32)}-${index}`} className="h-16 w-16 overflow-hidden rounded-2xl bg-[#f2f6fb] shadow-sm">
+                              <img src={url} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 border-t border-black/[0.06] bg-[#fbfcff] px-5 py-4 md:px-7">
+                    <label
+                      title="Add reference images"
+                      className="grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-black/[0.08] bg-white text-xl font-light text-[#475467] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      +
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
+                      />
+                    </label>
+                    <div className="h-7 w-px bg-black/[0.08]" />
+                    <select
+                      value={provider}
+                      onChange={(e) => applyProvider(e.target.value)}
+                      className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#485164] outline-none transition hover:bg-[#f8fafc]"
+                    >
+                      {options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {PROVIDER_META[option.value]?.label || option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {mode === "image" ? (
+                      <select
+                        value={imageSize}
+                        onChange={(e) => {
+                          trackEvent("studio_size_selected", { mode, provider, image_size: e.target.value, ratio: ratioFromImageSize(e.target.value) }, accessToken);
+                          setImageSize(e.target.value);
+                          setRatio(ratioFromImageSize(e.target.value));
+                        }}
+                        className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none"
+                      >
+                        {IMAGE_SIZE_PRESETS.map((preset) => (
+                          <option key={preset.value} value={preset.value}>
+                            {preset.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <>
+                        <select value={duration} onChange={(e) => setDuration(e.target.value)} className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none">
+                          <option value="6s">6s</option>
+                          <option value="8s">8s</option>
+                          <option value="10s">10s</option>
+                        </select>
+                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none">
+                          {videoRatioOptions.map((item) => (
+                            <option key={item} value={item}>{item}</option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+                    <span className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085]">
+                      {estCredits} credits
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleGenerate}
+                      disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                      className="ml-auto min-h-11 rounded-full bg-[#171a22] px-7 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(23,26,34,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(23,26,34,0.26)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isSubmitting ? "Creating..." : accessToken ? "Generate" : "Sign in to Generate"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  {(mode === "image"
+                    ? ["Product campaign", "Social ad", "Brand poster", "Reference edit"]
+                    : activeWorkflow === "image-to-video"
+                      ? ["Camera push-in", "Product reveal", "Cinematic loop", "Social motion"]
+                      : ["UGC-style ad", "Dynamic camera move", "Multi-scene cut", "B-roll footage"]
+                  ).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setPrompt((current) => current || item)}
+                      className="rounded-full border border-black/[0.06] bg-white/74 px-4 py-2 text-sm font-medium text-[#667085] shadow-sm transition hover:bg-white hover:text-[#202633]"
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-10 grid gap-4 text-left md:grid-cols-3">
+                  {[
+                    { title: "Model routing", body: PROVIDER_META[provider]?.bestFor || providerNote },
+                    { title: "Canvas", body: mode === "image" ? `${selectedImageSize.label} · ${selectedImageSize.dimensions}` : `${duration} · ${ratio}` },
+                    { title: "History", body: activeTasks.length ? `${activeTasks.length} running task${activeTasks.length > 1 ? "s" : ""}` : "Results save to Creations automatically" }
+                  ].map((card) => (
+                    <div key={card.title} className="rounded-[1.5rem] border border-black/[0.06] bg-white/62 p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">{card.title}</p>
+                      <p className="mt-3 text-sm font-semibold leading-6 text-[#3d4657]">{card.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="inline-flex rounded-2xl border border-black/10 bg-white p-1.5">
+          </div>
+        </section>
+
+        <section className="hidden sticky top-3 z-40 mb-4 rounded-[1.35rem] border border-white/10 bg-[#151922]/78 px-3 py-2 shadow-[0_16px_48px_rgba(0,0,0,0.22)] backdrop-blur-2xl">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-sm font-semibold text-[#a2d2ff]">
+                DF
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-white">DreamFace Studio</p>
+                <p className="text-xs text-white/46">{activeWorkflowMeta.label} / {PROVIDER_META[provider]?.label || provider}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-xl border border-white/10 bg-white/[0.05] p-1">
               <Link
                 href="/studio?mode=image&workflow=text-to-image"
                 onClick={() => trackEvent("studio_mode_selected", { mode: "image" }, accessToken)}
-                className={`rounded-xl px-6 py-2.5 text-base font-semibold transition ${
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   mode === "image"
-                    ? "bg-[#1c6be1] text-white shadow-[0_8px_18px_rgba(28,107,225,0.35)]"
-                    : "text-[#4c5a70] hover:bg-[#f1f6ff]"
+                    ? "bg-white text-[#111827] shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
+                    : "text-white/55 hover:bg-white/[0.08] hover:text-white"
                 }`}
               >
                 Image Studio
@@ -1150,60 +1751,157 @@ function StudioContent() {
               <Link
                 href="/studio?mode=video&workflow=text-to-video"
                 onClick={() => trackEvent("studio_mode_selected", { mode: "video" }, accessToken)}
-                className={`rounded-xl px-6 py-2.5 text-base font-semibold transition ${
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   mode === "video"
-                    ? "bg-[#0c7a71] text-white shadow-[0_8px_18px_rgba(12,122,113,0.35)]"
-                    : "text-[#4c5a70] hover:bg-[#eefaf8]"
+                    ? "bg-white text-[#111827] shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
+                    : "text-white/55 hover:bg-white/[0.08] hover:text-white"
                 }`}
               >
                 Video Studio
+              </Link>
+              </div>
+              <Link href="/billing" className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-semibold text-white/80">
+                {creditBalance === null ? "--" : creditBalance.toLocaleString()} credits
               </Link>
             </div>
           </div>
         </section>
 
-        <section className="hero-sheen relative overflow-hidden rounded-[2rem] border border-black/5 bg-gradient-to-b from-white to-[#f7f9fd] p-6 shadow-[0_24px_60px_rgba(13,18,35,0.08)] md:p-9">
-          <div className="orb left-5 top-5 h-14 w-14 bg-[#bad8ff]" />
-          <div className="orb bottom-5 right-6 h-16 w-16 bg-[#d9cbff]" />
-          <div className="flex flex-wrap items-end justify-between gap-5">
+        <section className="hidden relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.045] p-5 shadow-[0_18px_58px_rgba(0,0,0,0.18)] backdrop-blur-xl md:p-6">
+          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.14em] text-[#6e6e73]">Studio</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-                {mode === "image" ? "Image Generation Workspace" : "Video Generation Workspace"}
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/42">{mode === "image" ? "AI Image Studio" : "AI Video Studio"}</p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                {mode === "image" ? "Create campaign-ready visuals from one prompt." : "Generate production-ready motion assets."}
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5c6374] sm:text-base">
-                Switch providers without changing workflow. Tune quality, cost, and delivery speed in one consistent interface.
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/50">
+                Pick a workflow, choose the right model, preview cost clearly, and keep every result connected to your creation history.
               </p>
             </div>
-            <div className="glass rounded-2xl px-4 py-3 text-right">
-              <p className="text-xs uppercase tracking-[0.14em] text-[#637084]">Available credits</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight">
-                {creditBalance === null ? "--" : creditBalance.toLocaleString()}
-              </p>
-              {creditNote ? <p className="mt-1 max-w-[220px] text-xs leading-5 text-[#667084]">{creditNote}</p> : null}
-              <div className="mt-3 flex justify-end">
-                <Link href="/billing" className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-[#1d1d1f]">
-                  Top up
-                </Link>
+            <div className="grid min-w-[230px] grid-cols-2 gap-2">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-3 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.12em] text-white/36">Credits</p>
+                <p className="mt-1 text-xl font-semibold text-white">{creditBalance === null ? "--" : creditBalance.toLocaleString()}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-3 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.12em] text-white/36">Estimate</p>
+                <p className="mt-1 text-xl font-semibold text-[#a2d2ff]">{estCredits}</p>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="mt-8 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-          <article className="card tone-blue rounded-3xl p-6 md:p-7">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-2xl font-semibold tracking-tight">Create Task</h2>
+        <section className="hidden mt-5 grid gap-5 xl:grid-cols-[minmax(420px,0.84fr)_minmax(0,1.16fr)]">
+          <article className="relative flex min-h-[calc(100vh-220px)] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.24)] backdrop-blur-xl md:p-5">
+            <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <div className="pointer-events-none absolute -right-16 top-28 h-48 w-48 rounded-full bg-[#5d8cff]/8 blur-3xl" />
+            <div className="pointer-events-none absolute -left-16 bottom-28 h-56 w-56 rounded-full bg-[#b38cff]/7 blur-3xl" />
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/36">Creation console</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-white">{activeWorkflowMeta.label}</h2>
+              </div>
               <p
-                className={`chip rounded-full px-3 py-1 text-xs ${
-                  hasEnoughCredits ? "text-[#4f596b]" : "border-[#b03439]/20 bg-[#fff1f2] text-[#b03439]"
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm ${
+                  hasEnoughCredits ? "border-white/10 bg-white/[0.06] text-white/62" : "border-[#ff7b87]/25 bg-[#ff5161]/10 text-[#ffb3ba]"
                 }`}
               >
-                Estimated {estCredits} credits
+                {estCredits} credits
               </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.045] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <div className="grid grid-cols-2 gap-1">
+                {(mode === "image" ? ["text-to-image", "image-to-image"] : ["text-to-video", "image-to-video"]).map((workflow) => {
+                  const meta = WORKFLOW_META[workflow as StudioWorkflow];
+                  const active = activeWorkflow === workflow;
+                  return (
+                    <button
+                      key={workflow}
+                      type="button"
+                      onClick={() => applyWorkflow(workflow as StudioWorkflow)}
+                      className={`rounded-xl px-3 py-2.5 text-left transition duration-200 ${
+                        active
+                          ? "bg-white text-[#111827] shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                          : "text-white/45 hover:bg-white/[0.055] hover:text-white/78"
+                      }`}
+                    >
+                      <span className="block text-sm font-semibold">{meta.label}</span>
+                      <span className={`mt-1 block truncate text-xs ${active ? "text-[#647185]" : "text-white/32"}`}>{meta.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/38">Model capability</p>
+                  <p className="mt-1 text-sm text-white/42">Choose the model personality for this creation.</p>
+                </div>
+                <span className="hidden rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold text-white/50 shadow-sm sm:inline-flex">
+                  {activeWorkflowMeta.label}
+                </span>
+              </div>
+              <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+                {options.map((option) => {
+                  const meta = PROVIDER_META[option.value] || {
+                    label: option.label,
+                    shortLabel: option.label,
+                    speed: "Standard",
+                    quality: "Balanced",
+                    bestFor: "General generation"
+                  };
+                  const active = provider === option.value;
+                  const modelCredits = estimateGenerationCredits({
+                    mode,
+                    provider: option.value,
+                    imageSize,
+                    duration,
+                    hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "image-to-video",
+                    resolution: mode === "image" ? editResolution : videoResolution
+                  });
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => applyProvider(option.value)}
+                      className={`group relative min-w-[235px] overflow-hidden rounded-[1.35rem] border p-4 text-left transition duration-300 ${
+                        active
+                          ? "border-[#7ca7ff]/35 bg-[linear-gradient(145deg,rgba(255,255,255,0.13),rgba(255,255,255,0.065))] shadow-[0_18px_48px_rgba(40,88,180,0.22),0_0_0_1px_rgba(255,255,255,0.06)_inset]"
+                          : "border-white/10 bg-white/[0.045] shadow-[0_10px_28px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:border-white/16 hover:bg-white/[0.07]"
+                      }`}
+                    >
+                      <div className={`pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent ${active ? "via-[#9bbcff]/70" : "via-white/12"} to-transparent`} />
+                      <div className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full blur-2xl transition ${active ? "bg-[#6ea8ff]/20 opacity-100" : "bg-[#6ea8ff]/0 opacity-0 group-hover:opacity-40"}`} />
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <span className={`relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-sm font-semibold ${
+                            active ? "bg-[#1c6be1] text-white shadow-[0_12px_28px_rgba(28,107,225,0.30)]" : "bg-white/[0.06] text-white/55"
+                          }`}>
+                            {meta.shortLabel.slice(0, 2)}
+                          </span>
+                          <div>
+                          <p className="text-base font-semibold text-white">{meta.label}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.12em] text-white/38">
+                            {meta.speed} / {meta.quality}
+                          </p>
+                          </div>
+                        </div>
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${active ? "bg-white/[0.10] text-[#bde0fe] shadow-sm" : "bg-white/[0.055] text-white/42"}`}>
+                          {modelCredits} credits
+                        </span>
+                      </div>
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-white/48">{meta.bestFor}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="hidden">
               <label className="block">
                 <span className="text-sm text-[#5f6779]">Provider API</span>
                 <select
@@ -1297,7 +1995,7 @@ function StudioContent() {
               </label>
             </div>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="hidden">
               <label className="block">
                 <span className="text-sm text-[#5f6779]">{mode === "image" && provider === "nano-banana-image" ? "Resolution" : "Duration"}</span>
                 {mode === "image" && provider === "nano-banana-image" ? (
@@ -1372,11 +2070,250 @@ function StudioContent() {
               )}
             </div>
 
-            <label className="mt-4 block">
+            <div className="mb-4 grid gap-2 rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_30px_rgba(0,0,0,0.12)] sm:grid-cols-4">
+              <label className="block rounded-2xl bg-white/[0.045] px-3 py-2 shadow-sm transition hover:bg-white/[0.07]">
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/35">
+                  {mode === "image" ? "Canvas" : "Ratio"}
+                </span>
+                {mode === "image" ? (
+                  <select
+                    value={imageSize}
+                    onChange={(e) => {
+                      trackEvent("studio_size_selected", { mode, provider, image_size: e.target.value, ratio: ratioFromImageSize(e.target.value) }, accessToken);
+                      setImageSize(e.target.value);
+                      setRatio(ratioFromImageSize(e.target.value));
+                    }}
+                    className="mt-1 w-full bg-transparent text-sm font-semibold text-white outline-none"
+                  >
+                    {IMAGE_SIZE_PRESETS.map((preset) => (
+                      <option key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <select
+                    value={ratio}
+                    onChange={(e) => setRatio(e.target.value)}
+                    className="mt-1 w-full bg-transparent text-sm font-semibold text-white outline-none"
+                  >
+                    {videoRatioOptions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </label>
+              <div className="rounded-2xl bg-white/[0.045] px-3 py-2 shadow-sm">
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/35">Quality</span>
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {mode === "image" && provider === "nano-banana-image" ? editResolution : mode === "video" ? videoResolution : "High"}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white/[0.045] px-3 py-2 shadow-sm">
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/35">Output</span>
+                <p className="mt-1 text-sm font-semibold text-white">{mode === "video" ? duration : "1 image"}</p>
+              </div>
+              <div className="rounded-2xl bg-[#1c6be1] px-3 py-2 text-white shadow-[0_12px_24px_rgba(28,107,225,0.22)]">
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/70">Cost</span>
+                <p className="mt-1 text-sm font-semibold">{estCredits} credits</p>
+              </div>
+            </div>
+
+            <label className="block">
+              <span className="flex items-center justify-between text-sm font-semibold text-white/78">
+                <span>Prompt</span>
+                <span className="text-xs font-medium text-white/35">Scene / subject / style / constraints</span>
+              </span>
+              <div className="group relative mt-2 overflow-hidden rounded-[1.6rem] bg-[linear-gradient(135deg,rgba(162,210,255,0.32),rgba(255,255,255,0.08),rgba(205,180,219,0.20))] p-px shadow-[0_20px_50px_rgba(0,0,0,0.24)] transition duration-300 focus-within:shadow-[0_26px_70px_rgba(35,90,190,0.24)]">
+                <div className="absolute inset-0 opacity-0 blur-xl transition group-focus-within:opacity-60" style={{ background: "radial-gradient(circle at 18% 0%, rgba(108,150,255,0.24), transparent 36%), radial-gradient(circle at 80% 10%, rgba(162,119,255,0.20), transparent 38%)" }} />
+                <div className="relative rounded-[1.55rem] bg-[#111722]/92 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-18px_45px_rgba(28,107,225,0.035)] backdrop-blur">
+                <div className="flex items-start gap-3">
+                  {mode === "image" || activeWorkflow === "image-to-video" ? (
+                    <label
+                      title="Add reference images"
+                      className="grid h-12 w-12 shrink-0 cursor-pointer place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-2xl font-light text-[#bde0fe] shadow-[0_12px_28px_rgba(0,0,0,0.20)] transition hover:bg-white/[0.10]"
+                    >
+                      +
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
+                      />
+                    </label>
+                  ) : null}
+                  <textarea
+                    rows={mode === "image" ? 7 : 8}
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    className="min-h-[220px] w-full resize-none bg-transparent px-1 py-2 text-base leading-7 text-white placeholder:text-white/32 outline-none"
+                    placeholder="Describe the image you want to create. Add the subject, mood, lighting, camera feel, composition, materials, text details, and what to avoid..."
+                  />
+                </div>
+                {(mode === "image" || activeWorkflow === "image-to-video") && referenceImageUrls.length ? (
+                  <div className="mt-3 border-t border-white/10 pt-3">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/42">
+                        {referenceImageUrls.length} reference {referenceImageUrls.length === 1 ? "image" : "images"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReferenceImagesText("");
+                          setReferenceImageFiles([]);
+                        }}
+                        className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold text-white/58"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                      {referenceImageUrls.slice(0, 8).map((url, index) => (
+                        <div key={`${url.slice(0, 32)}-${index}`} className="aspect-square overflow-hidden rounded-xl bg-white/[0.06]">
+                          <img src={url} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                </div>
+              </div>
+            </label>
+
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] shadow-[0_10px_26px_rgba(0,0,0,0.10)]">
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen((value) => !value)}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+              >
+                <span>
+                  <span className="block text-sm font-semibold text-white/82">Advanced settings</span>
+                  <span className="mt-1 block text-xs text-white/38">
+                    {mode === "image" ? `${selectedImageSize.label} / ${outputFormat.toUpperCase()}` : `${duration} / ${ratio}`}
+                  </span>
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-sm font-semibold text-white/52">
+                  {advancedOpen ? "Hide" : "Show"}
+                </span>
+              </button>
+              {advancedOpen ? (
+                <div className="grid gap-4 border-t border-white/10 p-4 md:grid-cols-2">
+                  {mode === "image" ? (
+                    <label className="block">
+                      <span className="text-sm text-white/50">Output Size</span>
+                      <select
+                        value={imageSize}
+                        onChange={(e) => {
+                          trackEvent("studio_size_selected", { mode, provider, image_size: e.target.value, ratio: ratioFromImageSize(e.target.value) }, accessToken);
+                          setImageSize(e.target.value);
+                          setRatio(ratioFromImageSize(e.target.value));
+                          const params = new URLSearchParams(sp.toString());
+                          params.set("mode", "image");
+                          params.set("workflow", activeWorkflow);
+                          params.set("provider", provider);
+                          params.set("imageSize", e.target.value);
+                          params.set("ratio", ratioFromImageSize(e.target.value));
+                          router.replace(`/studio?${params.toString()}`, { scroll: false });
+                        }}
+                        className="motion-smooth mt-2 w-full rounded-xl border border-white/10 bg-white/[0.06] p-3 text-white outline-none focus:border-[#77a8e8]"
+                      >
+                        {IMAGE_SIZE_PRESETS.map((preset) => (
+                          <option key={preset.value} value={preset.value}>
+                            {preset.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : (
+                    <label className="block">
+                      <span className="text-sm text-white/50">Aspect Ratio</span>
+                      <select
+                        value={ratio}
+                        onChange={(e) => {
+                          trackEvent("studio_size_selected", { mode, provider, ratio: e.target.value }, accessToken);
+                          setRatio(e.target.value);
+                        }}
+                        className="motion-smooth mt-2 w-full rounded-xl border border-white/10 bg-white/[0.06] p-3 text-white outline-none focus:border-[#77a8e8]"
+                      >
+                        {videoRatioOptions.map((item) => (
+                          <option key={item} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
+                  {mode === "image" && provider === "nano-banana-image" ? (
+                    <label className="block">
+                      <span className="text-sm text-white/50">Resolution</span>
+                      <select
+                        value={editResolution}
+                        onChange={(e) => setEditResolution(e.target.value)}
+                        className="motion-smooth mt-2 w-full rounded-xl border border-white/10 bg-white/[0.06] p-3 text-white outline-none focus:border-[#77a8e8]"
+                      >
+                        <option value="0.5K">0.5K</option>
+                        <option value="1K">1K</option>
+                        <option value="2K">2K</option>
+                        <option value="4K">4K</option>
+                      </select>
+                    </label>
+                  ) : mode === "video" ? (
+                    <label className="block">
+                      <span className="text-sm text-white/50">Duration</span>
+                      <select
+                        value={duration}
+                        onChange={(e) => setDuration(e.target.value)}
+                        className="motion-smooth mt-2 w-full rounded-xl border border-white/10 bg-white/[0.06] p-3 text-white outline-none focus:border-[#77a8e8]"
+                      >
+                        <option value="6s">6 seconds</option>
+                        <option value="8s">8 seconds</option>
+                        <option value="10s">10 seconds</option>
+                      </select>
+                    </label>
+                  ) : (
+                    <label className="block">
+                      <span className="text-sm text-white/50">Output Format</span>
+                      <select
+                        value={outputFormat}
+                        onChange={(e) => setOutputFormat(e.target.value)}
+                        className="motion-smooth mt-2 w-full rounded-xl border border-white/10 bg-white/[0.06] p-3 text-white outline-none focus:border-[#77a8e8]"
+                      >
+                        <option value="png">PNG</option>
+                        <option value="jpeg">JPEG</option>
+                        <option value="webp">WEBP</option>
+                      </select>
+                    </label>
+                  )}
+
+                  {mode === "video" && provider === "grok-video" ? (
+                    <label className="block">
+                      <span className="text-sm text-white/50">Resolution</span>
+                      <select
+                        value={videoResolution}
+                        onChange={(e) => setVideoResolution(e.target.value)}
+                        className="motion-smooth mt-2 w-full rounded-xl border border-white/10 bg-white/[0.06] p-3 text-white outline-none focus:border-[#77a8e8]"
+                      >
+                        {GROK_VIDEO_RESOLUTION_OPTIONS.map((item) => (
+                          <option key={item} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <label className="hidden">
               <span className="text-sm text-[#5f6779]">Prompt</span>
               <div className="mt-2 rounded-2xl border border-black/10 bg-white/95 p-3 shadow-sm focus-within:border-[#77a8e8]">
                 <div className="flex items-start gap-3">
-                  {mode === "image" ? (
+                  {mode === "image" || activeWorkflow === "image-to-video" ? (
                     <label
                       title="Add reference images"
                       className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-xl border border-black/10 bg-[#f4f8ff] text-2xl font-light text-[#1d1d1f] transition hover:bg-[#e8f1ff]"
@@ -1428,31 +2365,41 @@ function StudioContent() {
               </div>
             </label>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <AppButton variant="primary" onClick={handleGenerate} disabled={!isPromptValid || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}>
-                {isSubmitting ? "Generating..." : accessToken ? `Generate - ${estCredits} credits` : "Sign in to Generate"}
-              </AppButton>
+            <div className="sticky bottom-0 -mx-4 mt-auto border-t border-white/10 bg-[#10131a]/82 px-4 pt-4 shadow-[0_-20px_48px_rgba(0,0,0,0.24)] backdrop-blur-xl md:-mx-5 md:px-5">
               <AppButton
-                variant="secondary"
+                variant="primary"
+                onClick={handleGenerate}
+                disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                className="min-h-[64px] w-full rounded-[1.35rem] bg-gradient-to-br from-[#1c6be1] to-[#3f86ff] text-base shadow-[0_18px_42px_rgba(28,107,225,0.34),0_0_0_1px_rgba(255,255,255,0.14)_inset] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_26px_60px_rgba(28,107,225,0.42)] active:translate-y-0 active:shadow-[0_16px_34px_rgba(28,107,225,0.34)]"
+              >
+                {isSubmitting ? "Creating..." : accessToken ? `Generate / ${estCredits} credits` : "Sign in to Generate"}
+              </AppButton>
+              <button
+                type="button"
                 onClick={() => {
                   const preset = PROMPT_PRESETS[Math.floor(Math.random() * PROMPT_PRESETS.length)];
                   setPrompt(preset);
                 }}
                 disabled={isSubmitting}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-semibold text-white/68 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Random Prompt
-              </AppButton>
+              </button>
             </div>
-            <p className="mt-3 text-sm text-[#647185]">
-              {isPromptValid ? "Prompt looks good. Ready to generate." : "Use at least 8 characters in your prompt."}
+            <p className="mt-3 text-sm text-white/46">
+              {!isPromptValid
+                ? "Use at least 8 characters in your prompt."
+                : !hasRequiredReference
+                  ? "Add at least one reference image for this workflow."
+                  : "Prompt looks good. Ready to generate."}
             </p>
-            <p className="mt-2 text-xs text-[#6c7789]">{providerNote}</p>
+            <p className="mt-2 text-xs text-white/35">{providerNote}</p>
             {accessToken && !hasEnoughCredits ? (
-              <p className="mt-2 rounded-xl border border-[#b03439]/20 bg-[#fff1f2] px-3 py-2 text-xs font-semibold text-[#b03439]">
+              <p className="mt-2 rounded-xl border border-[#ff7b87]/25 bg-[#ff5161]/10 px-3 py-2 text-xs font-semibold text-[#ffb3ba]">
                 Your balance is below this estimate. Top up before generating.
               </p>
             ) : accessToken && lowBalanceAfterGeneration ? (
-              <p className="mt-2 rounded-xl border border-[#d8b85d]/30 bg-[#fff8df] px-3 py-2 text-xs font-semibold text-[#705d1d]">
+              <p className="mt-2 rounded-xl border border-[#f5d061]/20 bg-[#f5d061]/10 px-3 py-2 text-xs font-semibold text-[#f5d989]">
                 Low balance warning: this job would leave fewer than {CREDIT_LOW_BALANCE_THRESHOLD} credits.
               </p>
             ) : null}
@@ -1460,10 +2407,10 @@ function StudioContent() {
               <p
                 className={`mt-2 text-sm ${
                   statusTone === "ok"
-                    ? "text-[#197a46]"
+                    ? "text-[#7dd7a8]"
                     : statusTone === "error"
-                      ? "text-[#b03439]"
-                      : "text-[#4f5a6d]"
+                      ? "text-[#ff9aa4]"
+                      : "text-white/48"
                 }`}
               >
                 {statusText}
@@ -1472,23 +2419,42 @@ function StudioContent() {
           </article>
 
           <div className="grid gap-5">
-            <article className="card rounded-3xl p-6">
-              <div className="flex items-start justify-between gap-3">
+            <article className="relative min-h-[calc(100vh-220px)] overflow-hidden rounded-[2.1rem] border border-white/10 bg-[radial-gradient(circle_at_18%_0%,rgba(92,136,255,0.16),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(154,119,255,0.10),transparent_28%),linear-gradient(145deg,#0b0f18_0%,#111827_52%,#080d16_100%)] p-5 text-white shadow-[0_36px_96px_rgba(0,0,0,0.38)] md:p-6">
+              <div className="pointer-events-none absolute inset-0 opacity-[0.045]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "18px 18px" }} />
+              <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+              <div className="pointer-events-none absolute -right-20 top-20 h-72 w-72 rounded-full bg-[#6f7cff]/8 blur-3xl" />
+              <div className="pointer-events-none absolute -left-16 bottom-10 h-72 w-72 rounded-full bg-[#5fa8ff]/8 blur-3xl" />
+              <div className="relative flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-xl font-semibold tracking-tight">Current Preview</h3>
-                  <p className="mt-1 text-xs text-[#667084]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/42">Immersive preview</p>
+                  <h3 className="mt-1 text-2xl font-semibold tracking-tight">Creation Stage</h3>
+                  <p className="mt-1 text-xs text-white/50">
                     {mode === "image"
-                      ? `${selectedImageSize.label} · ${selectedImageSize.dimensions}`
+                      ? `${selectedImageSize.label} / ${selectedImageSize.dimensions}`
                       : `${ratio} preview frame`}
                   </p>
                 </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.08] px-3 py-2 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur">
+                  <p className="text-[11px] uppercase tracking-[0.12em] text-white/45">Selected</p>
+                  <p className="mt-1 max-w-[180px] truncate text-sm font-semibold">{PROVIDER_META[provider]?.label || provider}</p>
+                </div>
               </div>
               {modelPreviewUrl ? (
-                <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
+                <div className="relative mt-6 rounded-[1.8rem] border border-white/10 bg-white/[0.045] p-4 shadow-[0_30px_76px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur">
+                  <div className="absolute -inset-8 -z-0 rounded-full bg-[#5f8fff]/12 blur-3xl" />
+                  <div className="absolute -bottom-10 right-12 -z-0 h-32 w-48 rounded-full bg-[#8a72ff]/7 blur-3xl" />
                   <div
-                    className="relative overflow-hidden rounded-lg border border-black/10 bg-[#f6f7fb]"
+                    className="relative z-10 overflow-hidden rounded-[1.45rem] border border-white/10 bg-[#111827] shadow-[0_30px_80px_rgba(0,0,0,0.42),0_0_56px_rgba(94,141,255,0.08),inset_0_1px_0_rgba(255,255,255,0.08)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_38px_95px_rgba(0,0,0,0.48),0_0_64px_rgba(94,141,255,0.10)]"
                     style={{ aspectRatio: previewAspectRatio }}
                   >
+                    <div
+                      className="absolute inset-0 opacity-35"
+                      style={{
+                        backgroundImage:
+                          "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
+                        backgroundSize: "36px 36px"
+                      }}
+                    />
                     {isModelPreviewVideo ? (
                       <video
                         src={modelPreviewUrl}
@@ -1497,16 +2463,16 @@ function StudioContent() {
                         muted
                         playsInline
                         controls
-                        className="h-full w-full object-cover opacity-95"
+                        className="relative h-full w-full object-cover opacity-95"
                       />
                     ) : (
                       <img
                         src={modelPreviewUrl}
                         alt={`${provider} example preview`}
-                        className="h-full w-full object-cover opacity-95"
+                        className="relative h-full w-full object-cover opacity-95"
                       />
                     )}
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 text-white">
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/32 to-transparent p-5 text-white">
                       <p className="text-sm font-semibold">
                         {provider === "flux-image"
                           ? "FLUX Schnell sample"
@@ -1525,24 +2491,48 @@ function StudioContent() {
                   </div>
                 </div>
               ) : (
-                <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
+                <div className="relative mt-6 rounded-[1.8rem] border border-white/10 bg-white/[0.045] p-4 shadow-[0_30px_76px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur">
                   <div
-                    className="grid place-items-center rounded-lg border border-dashed border-black/15 bg-[#f6f7fb]"
+                    className="relative grid place-items-center overflow-hidden rounded-[1.45rem] border border-dashed border-white/15 bg-[#111827] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
                     style={{ aspectRatio: previewAspectRatio }}
                   >
-                    <p className="text-sm text-[#667084]">No preview yet. Generate your first task to see output here.</p>
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        backgroundImage:
+                          "radial-gradient(circle at 50% 0%, rgba(92,136,255,0.18), transparent 35%), radial-gradient(circle at 82% 18%, rgba(154,119,255,0.10), transparent 30%), linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)",
+                        backgroundSize: "100% 100%, 34px 34px, 34px 34px"
+                      }}
+                    />
+                    <div className="relative max-w-sm px-6 text-center">
+                      <div className="mx-auto mb-4 h-12 w-12 rounded-2xl border border-white/10 bg-white/[0.08] shadow-[0_16px_40px_rgba(28,107,225,0.20)]" />
+                      <p className="text-base font-semibold text-white">Canvas ready</p>
+                      <p className="mt-2 text-sm leading-6 text-white/58">Describe the visual on the left. The first render lands here as a focused creation stage.</p>
+                    </div>
                   </div>
                 </div>
               )}
+              <div className="relative mt-5 grid gap-2 sm:grid-cols-3">
+                {[
+                  { label: "Model", value: PROVIDER_META[provider]?.shortLabel || provider },
+                  { label: mode === "image" ? "Size" : "Ratio", value: mode === "image" ? selectedImageSize.label : ratio },
+                  { label: "Credits", value: `${estCredits}` }
+                ].map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.055] px-3 py-2 backdrop-blur">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-white/40">{item.label}</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-white/90">{item.value}</p>
+                  </div>
+                ))}
+              </div>
             </article>
 
-            <article className="card tone-violet rounded-3xl p-6">
-              <h3 className="text-xl font-semibold tracking-tight">Wait Estimate</h3>
-              <p className="mt-3 text-sm leading-7 text-[#576173]">
+            <article className="hidden rounded-[1.5rem] border border-black/8 bg-white/90 p-5 shadow-[0_16px_36px_rgba(20,30,55,0.08)]">
+              <h3 className="text-base font-semibold tracking-tight">Queue estimate</h3>
+              <p className="mt-2 text-sm leading-6 text-[#576173]">
                 This setup usually takes about <span className="font-semibold text-[#1d1d1f]">{formatDuration(estimatedSeconds)}</span>.
                 Tasks keep running after you leave this page.
               </p>
-              <div className="mt-4 rounded-xl border border-black/10 bg-white/90 p-4">
+              <div className="mt-3 rounded-xl border border-black/10 bg-[#f8fbff] p-4">
                 <div className="mb-2 flex items-center justify-between text-xs text-[#667084]">
                   <span>{latestActiveTask ? `${latestActiveTask.status} task` : "Ready to submit"}</span>
                   <span>{latestActiveTask ? `${latestActiveProgress}%` : formatDuration(estimatedSeconds)}</span>
@@ -1559,9 +2549,9 @@ function StudioContent() {
               </div>
             </article>
 
-            <article className="card tone-peach rounded-3xl p-6">
-              <h3 className="text-xl font-semibold tracking-tight">Cost Preview</h3>
-              <p className="mt-3 text-sm leading-7 text-[#535d6e]">
+            <article className="hidden rounded-[1.5rem] border border-black/8 bg-white/90 p-5 shadow-[0_16px_36px_rgba(20,30,55,0.08)]">
+              <h3 className="text-base font-semibold tracking-tight">Cost preview</h3>
+              <p className="mt-2 text-sm leading-6 text-[#535d6e]">
                 Current provider and settings estimate <span className="font-semibold text-[#1d1d1f]">{estCredits} credits</span> for this generation.
               </p>
               <div className="mt-4 grid grid-cols-3 gap-2">
@@ -1580,7 +2570,7 @@ function StudioContent() {
           </div>
         </section>
 
-        <section className="mt-8 grid gap-5 lg:grid-cols-2">
+        <section className="hidden mt-8 grid gap-5 lg:grid-cols-2">
           <article className="card rounded-3xl p-6">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-2xl font-semibold tracking-tight">Recent Tasks</h3>
@@ -1711,3 +2701,4 @@ export function StudioPageClient() {
     </Suspense>
   );
 }
+
