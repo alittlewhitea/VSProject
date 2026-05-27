@@ -7,7 +7,7 @@ type HomeHeroCarouselProps = {
   images?: string[];
 };
 
-const HERO_VIDEO_SRC = "/videos/Dreamface_home_ios.mp4";
+const HERO_VIDEO_SRC = "https://media.dreamface.io/videos/Dreamface_home_ios.mp4";
 
 function ArrowIcon() {
   return (
@@ -67,7 +67,6 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
                 loop
                 playsInline
                 preload="metadata"
-                poster="/images/gpt_image2.png"
               />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(255,255,255,0.45),transparent_28%),linear-gradient(180deg,transparent_54%,rgba(255,255,255,0.18))]" />
             </div>
@@ -82,7 +81,6 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
               loop
               playsInline
               preload="metadata"
-              poster="/images/gpt_image2.png"
             />
           </div>
         </div>

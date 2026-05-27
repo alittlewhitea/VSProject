@@ -196,7 +196,7 @@ export default async function HomePage() {
               <div className="relative">
                 <div className="overflow-hidden rounded-[2rem] bg-white shadow-[0_28px_80px_rgba(16,27,48,0.16)]">
                   <video
-                    src="/videos/Text_to_Video.webm"
+                    src="https://media.dreamface.io/videos/Text_to_Video.webm"
                     className="aspect-[16/9] w-full object-contain"
                     autoPlay
                     muted
@@ -238,7 +238,7 @@ export default async function HomePage() {
               <div className="relative min-h-[510px]">
                 <div className="absolute left-[18%] top-8 z-20 w-[34%] rotate-[-6deg] overflow-hidden rounded-xl border-[10px] border-white bg-white shadow-[0_18px_45px_rgba(16,27,48,0.16)]">
                   <video
-                    src="/videos/Image_to_Video.mp4"
+                    src="https://media.dreamface.io/videos/Image_to_Video.mp4"
                     className="aspect-[4/3] w-full object-cover"
                     autoPlay
                     muted
@@ -261,7 +261,7 @@ export default async function HomePage() {
                 </div>
                 <div className="ml-auto mt-20 w-[70%] overflow-hidden rounded-[2rem] bg-[#e8edf3] shadow-[0_28px_80px_rgba(16,27,48,0.18)]">
                   <video
-                    src="/videos/Image_to_Video.mp4"
+                    src="https://media.dreamface.io/videos/Image_to_Video.mp4"
                     className="aspect-[16/10] w-full object-cover"
                     autoPlay
                     muted
