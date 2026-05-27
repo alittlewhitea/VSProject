@@ -289,7 +289,7 @@ export function CreationDetailClient({ taskId }: { taskId: string }) {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
     if (response.ok) {
-      router.push("/creations");
+      router.push("/studio?view=projects");
       return;
     }
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -302,8 +302,11 @@ export function CreationDetailClient({ taskId }: { taskId: string }) {
         <TopNav />
 
         <section className="hero-sheen rounded-[2rem] border border-black/5 bg-gradient-to-b from-white to-[#f7f9fd] p-6 shadow-[0_24px_60px_rgba(13,18,35,0.08)] md:p-8">
-          <Link href="/creations" className="text-sm font-semibold text-[#52647f]">
-            Back to Creations
+          <Link
+            href={task ? `/studio?view=projects&taskId=${encodeURIComponent(task.id)}` : "/studio?view=projects"}
+            className="inline-flex items-center rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(29,29,31,0.18)] transition hover:-translate-y-0.5"
+          >
+            Back to Projects
           </Link>
           <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -343,7 +346,7 @@ export function CreationDetailClient({ taskId }: { taskId: string }) {
                 )
               ) : (
                 <div className="grid min-h-[520px] place-items-center rounded-2xl bg-[#eef2f7] p-8 text-center text-sm text-[#667084]">
-                  No output yet. Refresh this page after the provider finishes the task.
+                  No output yet. The studio Projects page now keeps this task live while it runs.
                 </div>
               )}
             </article>

@@ -93,11 +93,11 @@ export function TopNav() {
                 Sign out
               </button>
               <Link
-                href="/creations"
-                onClick={() => trackEvent("nav_clicked", { item: "creations", target: "/creations" })}
+                href="/studio?view=projects"
+                onClick={() => trackEvent("nav_clicked", { item: "projects", target: "/studio?view=projects" })}
                 className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
               >
-                Creations
+                Projects
               </Link>
               <Link
                 href="/billing"

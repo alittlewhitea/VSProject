@@ -514,10 +514,10 @@ export default function CreationsPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Link
-                        href={`/creations/${encodeURIComponent(selectedTask.id)}`}
+                        href={`/studio?view=projects&taskId=${encodeURIComponent(selectedTask.id)}`}
                         className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
                       >
-                        Open detail
+                        Open in Projects
                       </Link>
                       <button
                         type="button"

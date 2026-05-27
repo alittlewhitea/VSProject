@@ -25,6 +25,12 @@ type TaskItem = {
   statusUrl?: string | null;
   responseUrl?: string | null;
   mediaUrl?: string | null;
+  updatedAt?: string | null;
+  settings?: Record<string, unknown> | null;
+  chargedCredits?: number;
+  refundedCredits?: number;
+  refundStatus?: "refunded" | "not_refunded" | "not_applicable";
+  failureReason?: string | null;
 };
 
 type StudioLoginDraft = {
@@ -364,6 +370,60 @@ function formatDuration(seconds: number) {
   return rest ? `${minutes}m ${rest}s` : `${minutes}m`;
 }
 
+function formatTaskDate(value?: string | null) {
+  if (!value) return "Just now";
+  try {
+    return new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function providerLabel(provider?: string) {
+  return provider ? PROVIDER_META[provider]?.label || provider : "Auto routed";
+}
+
+function taskTitle(task: TaskItem) {
+  if (task.title) return task.title;
+  const promptTitle = task.prompt?.trim().split(/\s+/).slice(0, 8).join(" ");
+  return promptTitle || `${providerLabel(task.provider)} ${task.type}`;
+}
+
+function statusPillClass(status: TaskStatus) {
+  if (status === "Completed") return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+  if (status === "Failed") return "bg-rose-50 text-rose-700 ring-rose-100";
+  if (status === "Running") return "bg-sky-50 text-sky-700 ring-sky-100";
+  return "bg-amber-50 text-amber-700 ring-amber-100";
+}
+
+function studioProjectHref(taskId?: string) {
+  return `/studio?view=projects${taskId ? `&taskId=${encodeURIComponent(taskId)}` : ""}`;
+}
+
+function regenerateHref(task: TaskItem) {
+  const mode = task.type === "Image" ? "image" : "video";
+  const workflow = task.type === "Image" ? "text-to-image" : "text-to-video";
+  const params = new URLSearchParams({ mode, workflow });
+  if (task.provider) params.set("provider", task.provider);
+  if (task.prompt) params.set("prompt", task.prompt);
+  return `/studio?${params.toString()}`;
+}
+
+function useAsReferenceHref(task: TaskItem) {
+  const params = new URLSearchParams({
+    mode: task.type === "Image" ? "image" : "video",
+    workflow: task.type === "Image" ? "image-to-image" : "image-to-video"
+  });
+  if (task.mediaUrl) params.set("reference", task.mediaUrl);
+  if (task.prompt) params.set("prompt", task.prompt);
+  return `/studio?${params.toString()}`;
+}
+
 function getImageSizePreset(value: string) {
   return IMAGE_SIZE_PRESETS.find((preset) => preset.value === value) || IMAGE_SIZE_PRESETS[0];
 }
@@ -431,7 +491,9 @@ function StudioContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const mode = sp.get("mode") === "image" ? "image" : "video";
-  const isAppsHome = sp.get("view") === "home" || (!sp.get("mode") && !sp.get("workflow"));
+  const view = sp.get("view");
+  const isProjectsView = view === "projects";
+  const isAppsHome = view === "home" || (!view && !sp.get("mode") && !sp.get("workflow"));
   const providerFromUrl = sp.get("provider");
   const initialWorkflow = workflowForMode(mode, sp.get("workflow"));
   const initialProvider = providerForWorkflow(
@@ -653,6 +715,12 @@ function StudioContent() {
             raw_result?: unknown;
             title?: string | null;
             is_favorite?: boolean;
+            request_settings?: Record<string, unknown> | null;
+            charged_credits?: number;
+            refunded_credits?: number;
+            refund_status?: "refunded" | "not_refunded" | "not_applicable";
+            failure_reason?: string | null;
+            updated_at?: string | null;
           }>;
           storageWarning?: string;
         };
@@ -676,7 +744,13 @@ function StudioContent() {
           createdAt: t.created_at,
           statusUrl: t.status_url || null,
           responseUrl: t.response_url || null,
-          mediaUrl: t.output_url || pickMediaUrl(t.raw_result) || null
+          mediaUrl: t.output_url || pickMediaUrl(t.raw_result) || null,
+          updatedAt: t.updated_at || null,
+          settings: t.request_settings || null,
+          chargedCredits: t.charged_credits,
+          refundedCredits: t.refunded_credits,
+          refundStatus: t.refund_status,
+          failureReason: t.failure_reason || null
         }));
         const sessionTasks = readSessionTasks(userId);
         setTasks(mergeTasks(remoteTasks, sessionTasks));
@@ -807,6 +881,10 @@ function StudioContent() {
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const hasCompletedCreation = completedTasks.length > 0;
   const failedTasks = tasks.filter((task) => task.status === "Failed");
+  const selectedProjectId = sp.get("taskId");
+  const selectedProjectTask = selectedProjectId
+    ? tasks.find((task) => task.id === selectedProjectId) || tasks[0] || null
+    : tasks[0] || null;
   const latestActiveTask = activeTasks[0] || null;
   const latestActiveProgress = latestActiveTask ? taskProgress(latestActiveTask, duration) : 0;
   const selectedImageSize = getImageSizePreset(imageSize);
@@ -825,7 +903,7 @@ function StudioContent() {
           ? "Grok Imagine Video supports prompt, duration, aspect ratio, and 480p/720p output resolution."
           : "Use clear subject, style, composition, and constraints for better instruction following.";
   const videoRatioOptions = provider === "grok-video" ? GROK_VIDEO_RATIO_OPTIONS : DEFAULT_VIDEO_RATIO_OPTIONS;
-  const showTextToImageTemplates = !isAppsHome && mode === "image" && imageWorkflow === "text-to-image";
+  const showTextToImageTemplates = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "text-to-image";
   const providerSettingsLabel =
     provider === "chatgpt-image"
       ? `${imageQuality} quality / ${outputFormat.toUpperCase()} / ${numImages} image${numImages > 1 ? "s" : ""}`
@@ -1206,9 +1284,12 @@ function StudioContent() {
         transport: payload.transport,
         createdAt: new Date().toISOString(),
         statusUrl: payload.statusUrl || null,
-        responseUrl: payload.responseUrl || null
+        responseUrl: payload.responseUrl || null,
+        settings: requestPayload,
+        failureReason: payload.failureReason || null
       };
       setTasks((prev) => [queuedTask, ...prev.filter((task) => task.id !== queuedTask.id)]);
+      router.push(`/studio?view=projects&mode=${mode}&taskId=${encodeURIComponent(payload.taskId)}`);
       trackEvent(
         "generation_queued",
         {
@@ -1238,11 +1319,6 @@ function StudioContent() {
         setStatusText(payload.failureReason || "This existing task has already failed. Credits should be visible in the refund ledger.");
         return;
       }
-      if (mode === "image") {
-        router.push(`/creations/${encodeURIComponent(payload.taskId)}`);
-        return;
-      }
-
       if (payload.transport === "mock") {
         const updateMockStatus = async (mockStatus: "completed" | "failed") => {
           const response = await fetch(
@@ -1283,7 +1359,7 @@ function StudioContent() {
           );
           clearCompletedWorkbench();
           setStatusTone("ok");
-          setStatusText("Generation completed. Your result is now in Recent Tasks.");
+          setStatusText("Generation completed. Your result is now in Projects.");
           trackEvent("generation_completed", { mode, provider, task_id: payload.taskId, transport: "mock" }, liveToken);
         }
       } else {
@@ -1348,7 +1424,7 @@ function StudioContent() {
           );
           clearCompletedWorkbench();
           setStatusTone("ok");
-          setStatusText("Generation completed via fal.ai. Your result is now in Recent Tasks.");
+          setStatusText("Generation completed via fal.ai. Your result is now in Projects.");
           trackEvent("generation_completed", { mode, provider, task_id: payload.taskId, transport: "real" }, liveToken);
         } else {
           setTasks((prev) =>
@@ -1358,7 +1434,7 @@ function StudioContent() {
           setStatusText(
             finalStatus
               ? "fal.ai task did not complete successfully. Credits are refunded automatically when the provider failure is confirmed."
-              : "Task status was not confirmed in time. Open Creations to refresh status, refund, and retry details."
+              : "Task status was not confirmed in time. Open Projects to refresh status, refund, and retry details."
           );
           trackEvent("generation_failed", { mode, provider, task_id: payload.taskId, transport: "real", final_status: finalStatus || "timeout" }, liveToken);
         }
@@ -1444,8 +1520,8 @@ function StudioContent() {
                 >
                   Sign out
                 </button>
-                <Link href="/creations" className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/[0.06] hover:text-white">
-                  Creations
+                <Link href="/studio?view=projects" className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/[0.06] hover:text-white">
+                  Projects
                 </Link>
                 <Link href="/billing" className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/[0.06] hover:text-white">
                   Billing
@@ -1480,12 +1556,13 @@ function StudioContent() {
                   { label: "Image", href: "/studio?mode=image&workflow=text-to-image" },
                   { label: "Video", href: "/studio?mode=video&workflow=text-to-video" },
                   { label: "Gallery", href: "/gallery" },
-                  { label: "Projects", href: "/creations" }
+                  { label: "Projects", href: "/studio?view=projects" }
                 ].map((item) => {
                   const active =
                     (item.label === "Home" && isAppsHome) ||
-                    (!isAppsHome && item.label === "Image" && mode === "image") ||
-                    (!isAppsHome && item.label === "Video" && mode === "video");
+                    (item.label === "Projects" && isProjectsView) ||
+                    (!isAppsHome && !isProjectsView && item.label === "Image" && mode === "image") ||
+                    (!isAppsHome && !isProjectsView && item.label === "Video" && mode === "video");
                   if (item.label === "Image") {
                     return (
                       <div key={item.label} className="group relative w-full">
@@ -1565,10 +1642,12 @@ function StudioContent() {
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">DreamFace Apps</p>
                     <h1 className="text-2xl font-semibold tracking-tight text-[#202633] md:text-3xl">
-                      {isAppsHome ? "Creative AI Toolkit" : mode === "image" ? "AI Image Generator" : "AI Video Generator"}
+                      {isProjectsView ? "Projects" : isAppsHome ? "Creative AI Toolkit" : mode === "image" ? "AI Image Generator" : "AI Video Generator"}
                     </h1>
                     <p className="mt-1 text-sm text-[#8b95a7]">
-                      {isAppsHome
+                      {isProjectsView
+                        ? "Manage generated assets, prompts, credits, retries, and reference reuse inside the studio."
+                        : isAppsHome
                         ? "Image, video, audio, and cleanup tools in one production workspace."
                         : mode === "image"
                           ? "Create image assets from text, references, or both in one focused workspace."
@@ -1581,8 +1660,8 @@ function StudioContent() {
                     {creditBalance === null ? "--" : creditBalance.toLocaleString()} credits
                   </Link>
                   {accessToken ? (
-                    <Link href="/creations" className="rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)]">
-                      Creations
+                    <Link href="/studio?view=projects" className="rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)]">
+                      Projects
                     </Link>
                   ) : (
                     <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)]">
@@ -1675,7 +1754,220 @@ function StudioContent() {
                 </div>
               ) : null}
 
-              <div className={`mx-auto mt-16 max-w-5xl text-center ${isAppsHome ? "hidden" : ""}`}>
+              {isProjectsView ? (
+                <div className="mx-auto mt-10 max-w-7xl">
+                  <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b95a7]">Project workspace</p>
+                      <h2 className="mt-2 text-4xl font-semibold tracking-tight text-[#202633] md:text-5xl">
+                        Creations live here.
+                      </h2>
+                      <p className="mt-3 max-w-2xl text-sm leading-6 text-[#7a8496]">
+                        New jobs appear immediately, keep updating while the provider runs, and turn into reusable assets when complete.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 rounded-[1.5rem] border border-black/[0.06] bg-white/72 p-2 shadow-sm">
+                      {[
+                        ["Active", activeTasks.length],
+                        ["Done", completedTasks.length],
+                        ["Failed", failedTasks.length]
+                      ].map(([label, value]) => (
+                        <div key={label} className="rounded-2xl bg-[#f8fbff] px-4 py-3 text-center">
+                          <p className="text-lg font-semibold text-[#202633]">{value}</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b95a7]">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {taskHistoryNote ? (
+                    <p className="mb-5 rounded-2xl border border-black/[0.06] bg-white/76 px-4 py-3 text-sm font-medium text-[#667085] shadow-sm">
+                      {taskHistoryNote}
+                    </p>
+                  ) : null}
+
+                  <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+                    <aside className="rounded-[2rem] border border-black/[0.06] bg-white/76 p-3 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div>
+                          <h3 className="text-sm font-semibold text-[#202633]">Project list</h3>
+                          <p className="text-xs font-medium text-[#8b95a7]">{tasks.length} saved task{tasks.length === 1 ? "" : "s"}</p>
+                        </div>
+                        <Link href="/studio?mode=image&workflow=text-to-image" className="rounded-full bg-[#0ea5e9] px-4 py-2 text-xs font-semibold text-white shadow-[0_12px_26px_rgba(14,165,233,0.22)]">
+                          New
+                        </Link>
+                      </div>
+                      <div className="mt-2 max-h-[680px] space-y-2 overflow-y-auto pr-1">
+                        {tasks.length ? (
+                          tasks.map((task) => {
+                            const selected = selectedProjectTask?.id === task.id;
+                            return (
+                              <Link
+                                key={task.id}
+                                href={studioProjectHref(task.id)}
+                                className={`block rounded-[1.5rem] border p-4 text-left transition ${
+                                  selected
+                                    ? "border-[#93c5fd] bg-[linear-gradient(135deg,#ffffff,#eef7ff)] shadow-[0_16px_40px_rgba(14,165,233,0.14)]"
+                                    : "border-black/[0.05] bg-white/72 hover:border-[#bae6fd] hover:bg-white"
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-[#202633]">{taskTitle(task)}</p>
+                                    <p className="mt-1 text-xs font-medium text-[#8b95a7]">
+                                      {providerLabel(task.provider)} · {formatTaskDate(task.createdAt)}
+                                    </p>
+                                  </div>
+                                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${statusPillClass(task.status)}`}>
+                                    {task.status}
+                                  </span>
+                                </div>
+                                <p className="mt-3 line-clamp-2 text-xs leading-5 text-[#7a8496]">{task.prompt || "No prompt saved for this task."}</p>
+                                <div className="mt-4 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9aa4b5]">
+                                  <span>{task.type}</span>
+                                  <span>{task.cost} credits</span>
+                                </div>
+                              </Link>
+                            );
+                          })
+                        ) : (
+                          <div className="rounded-[1.5rem] border border-dashed border-black/[0.08] bg-white/70 p-8 text-center">
+                            <p className="text-sm font-semibold text-[#202633]">No projects yet</p>
+                            <p className="mt-2 text-xs leading-5 text-[#8b95a7]">Generate an image or video and it will appear here instantly.</p>
+                          </div>
+                        )}
+                      </div>
+                    </aside>
+
+                    <section className="min-h-[680px] overflow-hidden rounded-[2rem] border border-black/[0.06] bg-[linear-gradient(135deg,#fbfdff,#f7f9fd)] p-4 shadow-[0_26px_86px_rgba(15,23,42,0.10)] md:p-6">
+                      {selectedProjectTask ? (
+                        <div className="grid h-full gap-5 lg:grid-cols-[minmax(0,1.1fr)_360px]">
+                          <article className="relative overflow-hidden rounded-[1.75rem] bg-[#111827] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_70px_rgba(15,23,42,0.22)]">
+                            <div className="pointer-events-none absolute -left-20 top-10 h-60 w-60 rounded-full bg-[#60a5fa]/20 blur-3xl" />
+                            <div className="pointer-events-none absolute -right-16 bottom-10 h-64 w-64 rounded-full bg-[#c084fc]/18 blur-3xl" />
+                            <div className="relative mb-4 flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Preview</p>
+                                <h3 className="mt-1 max-w-xl truncate text-lg font-semibold text-white">{taskTitle(selectedProjectTask)}</h3>
+                              </div>
+                              <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${statusPillClass(selectedProjectTask.status)}`}>
+                                {selectedProjectTask.status}
+                              </span>
+                            </div>
+                            <div className="relative grid min-h-[520px] place-items-center overflow-hidden rounded-[1.35rem] border border-white/10 bg-[radial-gradient(circle_at_50%_35%,rgba(96,165,250,0.16),transparent_35%),linear-gradient(180deg,#182131,#0d121d)]">
+                              {selectedProjectTask.mediaUrl ? (
+                                selectedProjectTask.type === "Video" ? (
+                                  <video src={selectedProjectTask.mediaUrl} controls className="max-h-[620px] w-full rounded-[1.2rem] object-contain" />
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewModal({ url: selectedProjectTask.mediaUrl || "", type: selectedProjectTask.type })}
+                                    className="block max-h-[620px] max-w-full overflow-hidden rounded-[1.2rem] shadow-[0_30px_90px_rgba(0,0,0,0.38)] transition hover:scale-[1.01]"
+                                  >
+                                    <img src={selectedProjectTask.mediaUrl} alt={selectedProjectTask.id} className="max-h-[620px] w-full object-contain" />
+                                  </button>
+                                )
+                              ) : (
+                                <div className="max-w-sm px-6 text-center">
+                                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-white/10 text-lg font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+                                    {selectedProjectTask.status === "Failed" ? "!" : "..."}
+                                  </div>
+                                  <p className="mt-5 text-base font-semibold text-white">
+                                    {selectedProjectTask.status === "Failed" ? "Generation did not complete" : "Provider is still creating"}
+                                  </p>
+                                  <p className="mt-2 text-sm leading-6 text-white/55">
+                                    {selectedProjectTask.status === "Failed"
+                                      ? selectedProjectTask.failureReason || "Credits are refunded automatically when the provider failure is confirmed."
+                                      : "You can stay here. This project will update automatically while the queue runs."}
+                                  </p>
+                                  {selectedProjectTask.status === "Queued" || selectedProjectTask.status === "Running" ? (
+                                    <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/10">
+                                      <div
+                                        className="h-full rounded-full bg-[linear-gradient(90deg,#38bdf8,#8b5cf6)] transition-all"
+                                        style={{ width: `${taskProgress(selectedProjectTask, duration)}%` }}
+                                      />
+                                    </div>
+                                  ) : null}
+                                </div>
+                              )}
+                            </div>
+                          </article>
+
+                          <aside className="space-y-4">
+                            <div className="rounded-[1.75rem] border border-black/[0.06] bg-white p-5 shadow-sm">
+                              <div className="flex flex-wrap gap-2">
+                                {selectedProjectTask.mediaUrl ? (
+                                  <a
+                                    href={`/api/generate/download?url=${encodeURIComponent(selectedProjectTask.mediaUrl)}&name=${encodeURIComponent(selectedProjectTask.id)}`}
+                                    className="rounded-full bg-[#202633] px-4 py-2 text-sm font-semibold text-white"
+                                  >
+                                    Download
+                                  </a>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (selectedProjectTask.prompt) navigator.clipboard.writeText(selectedProjectTask.prompt).catch(() => null);
+                                  }}
+                                  className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]"
+                                >
+                                  Copy prompt
+                                </button>
+                                <Link href={regenerateHref(selectedProjectTask)} className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]">
+                                  {selectedProjectTask.status === "Failed" ? "Retry" : "Regenerate"}
+                                </Link>
+                                {selectedProjectTask.mediaUrl ? (
+                                  <Link href={useAsReferenceHref(selectedProjectTask)} className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]">
+                                    Use reference
+                                  </Link>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="rounded-[1.75rem] border border-black/[0.06] bg-white p-5 shadow-sm">
+                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">Prompt</p>
+                              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#354052]">
+                                {selectedProjectTask.prompt || "No prompt saved for this task."}
+                              </p>
+                            </div>
+
+                            <div className="rounded-[1.75rem] border border-black/[0.06] bg-white p-5 shadow-sm">
+                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">Details</p>
+                              <dl className="mt-4 space-y-3 text-sm">
+                                {[
+                                  ["Model", providerLabel(selectedProjectTask.provider)],
+                                  ["Mode", selectedProjectTask.type],
+                                  ["Created", formatTaskDate(selectedProjectTask.createdAt)],
+                                  ["Charged", `${selectedProjectTask.chargedCredits ?? selectedProjectTask.cost} credits`],
+                                  ["Refund", selectedProjectTask.refundedCredits ? `${selectedProjectTask.refundedCredits} credits` : selectedProjectTask.refundStatus || "not_applicable"],
+                                  ["Transport", selectedProjectTask.transport || "real"]
+                                ].map(([label, value]) => (
+                                  <div key={label} className="flex items-center justify-between gap-4 border-b border-black/[0.05] pb-3 last:border-0 last:pb-0">
+                                    <dt className="font-medium text-[#8b95a7]">{label}</dt>
+                                    <dd className="text-right font-semibold text-[#202633]">{value}</dd>
+                                  </div>
+                                ))}
+                              </dl>
+                            </div>
+                          </aside>
+                        </div>
+                      ) : (
+                        <div className="grid min-h-[620px] place-items-center rounded-[1.75rem] border border-dashed border-black/[0.08] bg-white/70 text-center">
+                          <div>
+                            <p className="text-lg font-semibold text-[#202633]">Start a project</p>
+                            <p className="mt-2 text-sm text-[#8b95a7]">Your generated assets and details will be organized here.</p>
+                            <Link href="/studio?mode=image&workflow=text-to-image" className="mt-5 inline-flex rounded-full bg-[#0ea5e9] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(14,165,233,0.22)]">
+                              Create now
+                            </Link>
+                          </div>
+                        </div>
+                      )}
+                    </section>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className={`mx-auto mt-16 max-w-5xl text-center ${isAppsHome || isProjectsView ? "hidden" : ""}`}>
                 <h2 className="text-4xl font-semibold tracking-tight text-[#202633] md:text-5xl">
                   What will you create today?
                 </h2>
@@ -2125,7 +2417,7 @@ function StudioContent() {
                   {[
                     { title: "Model routing", body: PROVIDER_META[provider]?.bestFor || providerNote },
                     { title: "Canvas", body: mode === "image" ? `${selectedImageSize.label} · ${selectedImageSize.dimensions}` : `${duration} · ${ratio}` },
-                    { title: "History", body: activeTasks.length ? `${activeTasks.length} running task${activeTasks.length > 1 ? "s" : ""}` : "Results save to Creations automatically" }
+                    { title: "History", body: activeTasks.length ? `${activeTasks.length} running task${activeTasks.length > 1 ? "s" : ""}` : "Results save to Projects automatically" }
                   ].map((card) => (
                     <div key={card.title} className="rounded-[1.5rem] border border-black/[0.06] bg-white/62 p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur">
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">{card.title}</p>
@@ -3015,7 +3307,7 @@ function StudioContent() {
                   />
                 </div>
                 <p className="mt-3 text-xs leading-5 text-[#667084]">
-                  Progress is an estimate based on provider status and elapsed time. Finished results sync back into Creations.
+                  Progress is an estimate based on provider status and elapsed time. Finished results sync back into Projects.
                 </p>
               </div>
             </article>
@@ -3113,7 +3405,7 @@ function StudioContent() {
           <article className="card tone-pink rounded-3xl p-6">
             <h3 className="text-2xl font-semibold tracking-tight">Background Tasks</h3>
             <p className="mt-2 text-sm leading-7 text-[#576173]">
-              Submitted jobs are stored in your account and keep running through the provider queue. You can close the page and check Creations later.
+              Submitted jobs are stored in your account and keep running through the provider queue. You can close the page and check Projects later.
             </p>
             <div className="mt-4 grid gap-3">
               {activeTasks.slice(0, 4).map((task) => {
