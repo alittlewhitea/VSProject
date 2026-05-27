@@ -74,10 +74,232 @@ type GalleryTemplate = {
   category: string;
 };
 
+type StudioIconName =
+  | "home"
+  | "image"
+  | "video"
+  | "gallery"
+  | "projects"
+  | "sparkles"
+  | "wand"
+  | "film"
+  | "motion"
+  | "cleanup"
+  | "audio"
+  | "chevron-left"
+  | "chevron-right";
+
 const SESSION_TASKS_KEY = "nova_session_tasks";
 const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
 const GENERATION_IDEMPOTENCY_KEY_PREFIX = "nova_generation_idempotency";
 const STUDIO_LOGIN_DRAFT_KEY = "nova_studio_login_draft";
+
+const HOME_SLIDES: Array<{
+  eyebrow: string;
+  title: string;
+  accent: string;
+  body: string;
+  cta: string;
+  href: string;
+  gradient: string;
+}> = [
+  {
+    eyebrow: "New creative routing",
+    title: "Campaign visuals with",
+    accent: "GPT Image 2",
+    body: "Readable typography, product posters, and polished ad concepts from one focused image workspace.",
+    cta: "Try image studio",
+    href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image",
+    gradient: "from-[#bde0fe] via-[#e8f4ff] to-[#d8f7df]"
+  },
+  {
+    eyebrow: "Motion workspace",
+    title: "Image clips with",
+    accent: "Seedance 2",
+    body: "Animate product frames, portraits, and story scenes with image-to-video controls.",
+    cta: "Create video",
+    href: "/studio?mode=video&workflow=image-to-video",
+    gradient: "from-[#cfe8ff] via-[#e8e7ff] to-[#f4dcff]"
+  },
+  {
+    eyebrow: "DreamFace apps",
+    title: "Beyond the studio.",
+    accent: "Meet the tools.",
+    body: "Generate images, motion, cleanup, enhancement, and audio prompts from one clean dashboard.",
+    cta: "Explore apps",
+    href: "/studio?view=home",
+    gradient: "from-[#ffe1d5] via-[#f5d8e9] to-[#ecc7ff]"
+  }
+];
+
+const TOOLKIT_APPS: Array<{
+  title: string;
+  body: string;
+  icon: StudioIconName;
+  href: string;
+  accent: string;
+  iconClass: string;
+}> = [
+  {
+    title: "Text to Image",
+    body: "Generate polished ads, posters, product shots, thumbnails, and concept visuals from a prompt.",
+    icon: "sparkles",
+    href: "/studio?mode=image&workflow=text-to-image",
+    accent: "from-[#dbeafe] to-[#ecfeff]",
+    iconClass: "text-[#0ea5e9]"
+  },
+  {
+    title: "Image to Image",
+    body: "Upload references to restyle, edit, extend, or keep product and character continuity.",
+    icon: "wand",
+    href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
+    accent: "from-[#fce7f3] to-[#eff6ff]",
+    iconClass: "text-[#06b6d4]"
+  },
+  {
+    title: "Text to Video",
+    body: "Turn scene ideas into short motion clips for social, ads, storyboards, and B-roll.",
+    icon: "film",
+    href: "/studio?mode=video&workflow=text-to-video",
+    accent: "from-[#ede9fe] to-[#e0f2fe]",
+    iconClass: "text-[#8b5cf6]"
+  },
+  {
+    title: "Image to Video",
+    body: "Animate a product, portrait, or reference frame with camera motion and cinematic timing.",
+    icon: "motion",
+    href: "/studio?mode=video&workflow=image-to-video",
+    accent: "from-[#dcfce7] to-[#dbeafe]",
+    iconClass: "text-[#22c55e]"
+  },
+  {
+    title: "Enhance & Cleanup",
+    body: "Upscale owned images, improve clarity, and remove unwanted marks or distractions.",
+    icon: "cleanup",
+    href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
+    accent: "from-[#fff7ed] to-[#fce7f3]",
+    iconClass: "text-[#f97316]"
+  },
+  {
+    title: "Text to Audio",
+    body: "Generate music beds, sound design ideas, and short audio prompts for creative assets.",
+    icon: "audio",
+    href: "/studio?mode=video&workflow=text-to-video",
+    accent: "from-[#fef9c3] to-[#dcfce7]",
+    iconClass: "text-[#10b981]"
+  }
+];
+
+function StudioIcon({ name, className = "h-5 w-5" }: { name: StudioIconName; className?: string }) {
+  const common = {
+    className,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true
+  };
+
+  if (name === "home") {
+    return (
+      <svg {...common}>
+        <path d="M3 11.5 12 4l9 7.5" />
+        <path d="M5.5 10.5V20h13v-9.5" />
+        <path d="M9.5 20v-5h5v5" />
+      </svg>
+    );
+  }
+  if (name === "image") {
+    return (
+      <svg {...common}>
+        <rect x="4" y="5" width="16" height="14" rx="3" />
+        <circle cx="9" cy="10" r="1.5" />
+        <path d="m7 17 4.2-4.2a1.6 1.6 0 0 1 2.2 0L18 17" />
+      </svg>
+    );
+  }
+  if (name === "video" || name === "film") {
+    return (
+      <svg {...common}>
+        <rect x="4" y="6" width="12" height="12" rx="3" />
+        <path d="m16 10 4-2.2v8.4L16 14" />
+      </svg>
+    );
+  }
+  if (name === "gallery") {
+    return (
+      <svg {...common}>
+        <rect x="5" y="5" width="8" height="8" rx="2" />
+        <rect x="11" y="11" width="8" height="8" rx="2" />
+      </svg>
+    );
+  }
+  if (name === "projects") {
+    return (
+      <svg {...common}>
+        <path d="M4 7.5h6l2 2H20v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
+        <path d="M4 7.5V6a2 2 0 0 1 2-2h3.5l2 2H18a2 2 0 0 1 2 2v1.5" />
+      </svg>
+    );
+  }
+  if (name === "sparkles") {
+    return (
+      <svg {...common}>
+        <path d="m12 3 1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5Z" />
+        <path d="m18.5 14 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z" />
+        <path d="m5.5 13 .6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6Z" />
+      </svg>
+    );
+  }
+  if (name === "wand") {
+    return (
+      <svg {...common}>
+        <path d="m4 20 12-12" />
+        <path d="m14 6 4 4" />
+        <path d="M5 4v3" />
+        <path d="M3.5 5.5h3" />
+        <path d="M19 15v3" />
+        <path d="M17.5 16.5h3" />
+      </svg>
+    );
+  }
+  if (name === "motion") {
+    return (
+      <svg {...common}>
+        <path d="M5 6h9a5 5 0 0 1 0 10H8" />
+        <path d="m8 12 4 4-4 4" />
+        <path d="M4 10h5" />
+      </svg>
+    );
+  }
+  if (name === "cleanup") {
+    return (
+      <svg {...common}>
+        <path d="m5 19 10.5-10.5a2.1 2.1 0 0 1 3 3L8 22H5Z" />
+        <path d="m13 11 3 3" />
+        <path d="M6 5h.01" />
+        <path d="M10 3h.01" />
+        <path d="M4 9h.01" />
+      </svg>
+    );
+  }
+  if (name === "audio") {
+    return (
+      <svg {...common}>
+        <path d="M9 18V5l10-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="16" cy="16" r="3" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <path d={name === "chevron-left" ? "m15 18-6-6 6-6" : "m9 18 6-6-6-6"} />
+    </svg>
+  );
+}
 
 const IMAGE_SIZE_PRESETS = [
   { value: "default_4_3", label: "Default 4:3", dimensions: "1024 x 768", width: 1024, height: 768 },
@@ -551,10 +773,19 @@ function StudioContent() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [galleryTemplates, setGalleryTemplates] = useState<GalleryTemplate[]>([]);
   const [galleryTemplateNote, setGalleryTemplateNote] = useState("");
+  const [homeSlideIndex, setHomeSlideIndex] = useState(0);
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
   const trackedLoginSuccessRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isAppsHome) return;
+    const timer = window.setInterval(() => {
+      setHomeSlideIndex((index) => (index + 1) % HOME_SLIDES.length);
+    }, 5200);
+    return () => window.clearInterval(timer);
+  }, [isAppsHome]);
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -885,6 +1116,7 @@ function StudioContent() {
   const selectedProjectTask = selectedProjectId
     ? tasks.find((task) => task.id === selectedProjectId) || tasks[0] || null
     : tasks[0] || null;
+  const activeHomeSlide = HOME_SLIDES[homeSlideIndex % HOME_SLIDES.length];
   const latestActiveTask = activeTasks[0] || null;
   const latestActiveProgress = latestActiveTask ? taskProgress(latestActiveTask, duration) : 0;
   const selectedImageSize = getImageSizePreset(imageSize);
@@ -1552,11 +1784,11 @@ function StudioContent() {
               </Link>
               <nav className="mt-9 flex flex-1 flex-col items-center gap-4">
                 {[
-                  { label: "Home", href: "/studio?view=home" },
-                  { label: "Image", href: "/studio?mode=image&workflow=text-to-image" },
-                  { label: "Video", href: "/studio?mode=video&workflow=text-to-video" },
-                  { label: "Gallery", href: "/gallery" },
-                  { label: "Projects", href: "/studio?view=projects" }
+                  { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName },
+                  { label: "Image", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName },
+                  { label: "Video", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName },
+                  { label: "Gallery", href: "/gallery", icon: "gallery" as StudioIconName },
+                  { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName }
                 ].map((item) => {
                   const active =
                     (item.label === "Home" && isAppsHome) ||
@@ -1575,7 +1807,7 @@ function StudioContent() {
                           <span className={`grid h-8 w-8 place-items-center rounded-xl border text-sm ${
                             active ? "border-[#bae6fd] bg-white text-[#0ea5e9]" : "border-black/[0.06] bg-white/70 text-[#667085]"
                           }`}>
-                            I
+                            <StudioIcon name={item.icon} className="h-4 w-4" />
                           </span>
                           Image
                         </Link>
@@ -1621,7 +1853,7 @@ function StudioContent() {
                       <span className={`grid h-8 w-8 place-items-center rounded-xl border text-sm ${
                         active ? "border-[#bae6fd] bg-white text-[#0ea5e9]" : "border-black/[0.06] bg-white/70 text-[#667085]"
                       }`}>
-                        {item.label.slice(0, 1)}
+                        <StudioIcon name={item.icon} className="h-4 w-4" />
                       </span>
                       {item.label}
                     </Link>
@@ -1673,81 +1905,75 @@ function StudioContent() {
 
               {isAppsHome ? (
                 <div className="mx-auto mt-12 max-w-6xl">
-                  <div className="relative overflow-hidden rounded-[2rem] border border-[#93c5fd]/45 bg-[linear-gradient(100deg,rgba(189,224,254,0.84),rgba(255,200,221,0.50),rgba(187,247,208,0.72))] px-8 py-8 text-center shadow-[0_24px_80px_rgba(56,189,248,0.14)]">
-                    <div className="pointer-events-none absolute -left-12 top-0 h-40 w-40 rounded-full bg-white/55 blur-3xl" />
-                    <div className="pointer-events-none absolute -right-10 bottom-0 h-44 w-44 rounded-full bg-white/45 blur-3xl" />
-                    <p className="relative text-xs font-semibold uppercase tracking-[0.18em] text-[#64748b]">DreamFace AI Toolkit</p>
-                    <h2 className="relative mt-2 text-4xl font-semibold tracking-tight text-[#202633] md:text-5xl">
-                      Create images, video, audio, and clean assets in one place.
-                    </h2>
-                    <p className="relative mx-auto mt-3 max-w-2xl text-base leading-7 text-[#667085]">
-                      Powered by production-grade model routing inspired by fal.ai workflows, built for fast campaign assets and creator output.
-                    </p>
-                    <Link
-                      href="/studio?mode=image&workflow=text-to-image"
-                      className="relative mt-6 inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#202633] shadow-[0_12px_32px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5"
+                  <div className={`relative overflow-hidden rounded-[2.2rem] border border-white/60 bg-gradient-to-r ${activeHomeSlide.gradient} px-6 py-8 text-center shadow-[0_28px_90px_rgba(56,189,248,0.16)] md:px-10 md:py-10`}>
+                    <div className="pointer-events-none absolute -left-16 top-1/2 h-52 w-52 -translate-y-1/2 rounded-full bg-white/48 blur-3xl" />
+                    <div className="pointer-events-none absolute left-1/3 top-full h-36 w-72 -translate-y-1/2 rounded-full bg-[#bde0fe]/45 blur-3xl" />
+                    <div className="pointer-events-none absolute -right-16 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full bg-white/42 blur-3xl" />
+                    <button
+                      type="button"
+                      aria-label="Previous slide"
+                      onClick={() => setHomeSlideIndex((index) => (index + HOME_SLIDES.length - 1) % HOME_SLIDES.length)}
+                      className="absolute left-5 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/78 text-[#667085] shadow-[0_14px_34px_rgba(15,23,42,0.10)] backdrop-blur transition hover:-translate-x-0.5 hover:bg-white hover:text-[#202633]"
                     >
-                      Start creating
-                    </Link>
+                      <StudioIcon name="chevron-left" className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next slide"
+                      onClick={() => setHomeSlideIndex((index) => (index + 1) % HOME_SLIDES.length)}
+                      className="absolute right-5 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/78 text-[#667085] shadow-[0_14px_34px_rgba(15,23,42,0.10)] backdrop-blur transition hover:translate-x-0.5 hover:bg-white hover:text-[#202633]"
+                    >
+                      <StudioIcon name="chevron-right" className="h-5 w-5" />
+                    </button>
+                    <div className="relative mx-auto max-w-4xl px-12">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#64748b]">{activeHomeSlide.eyebrow}</p>
+                      <h2 className="mt-2 text-4xl font-black tracking-tight text-[#202633] md:text-5xl">
+                        {activeHomeSlide.title}{" "}
+                        <span className="bg-[linear-gradient(90deg,#0ea5e9,#14b8a6,#22c55e)] bg-clip-text text-transparent">
+                          {activeHomeSlide.accent}
+                        </span>
+                      </h2>
+                      <p className="mx-auto mt-3 max-w-2xl text-base font-medium leading-7 text-[#5f6b7d]">{activeHomeSlide.body}</p>
+                      <Link
+                        href={activeHomeSlide.href}
+                        className="mt-6 inline-flex items-center gap-3 rounded-full bg-white/88 px-5 py-3 text-sm font-semibold text-[#202633] shadow-[0_12px_32px_rgba(15,23,42,0.12)] backdrop-blur transition hover:-translate-y-0.5 hover:bg-white"
+                      >
+                        <span className="rounded-full bg-[#111827] px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white">New</span>
+                        {activeHomeSlide.cta}
+                        <StudioIcon name="chevron-right" className="h-4 w-4" />
+                      </Link>
+                      <div className="mt-6 flex justify-center gap-2">
+                        {HOME_SLIDES.map((slide, index) => (
+                          <button
+                            key={slide.eyebrow}
+                            type="button"
+                            aria-label={`Show ${slide.eyebrow}`}
+                            onClick={() => setHomeSlideIndex(index)}
+                            className={`h-2 rounded-full transition-all ${
+                              index === homeSlideIndex ? "w-8 bg-[#202633]" : "w-2 bg-white/70 hover:bg-white"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-9 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                    {[
-                      {
-                        title: "Text to Image",
-                        body: "Generate polished ads, posters, product shots, thumbnails, and concept visuals from a prompt.",
-                        icon: "TI",
-                        href: "/studio?mode=image&workflow=text-to-image",
-                        accent: "from-[#dbeafe] to-[#ecfeff]"
-                      },
-                      {
-                        title: "Image to Image",
-                        body: "Upload references to restyle, edit, extend, or keep product and character continuity.",
-                        icon: "II",
-                        href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
-                        accent: "from-[#fce7f3] to-[#eff6ff]"
-                      },
-                      {
-                        title: "Text to Video",
-                        body: "Turn scene ideas into short motion clips for social, ads, storyboards, and B-roll.",
-                        icon: "TV",
-                        href: "/studio?mode=video&workflow=text-to-video",
-                        accent: "from-[#ede9fe] to-[#e0f2fe]"
-                      },
-                      {
-                        title: "Image to Video",
-                        body: "Animate a product, portrait, or reference frame with camera motion and cinematic timing.",
-                        icon: "IV",
-                        href: "/studio?mode=video&workflow=image-to-video",
-                        accent: "from-[#dcfce7] to-[#dbeafe]"
-                      },
-                      {
-                        title: "Enhance & Cleanup",
-                        body: "Upscale owned images, improve clarity, and remove unwanted marks or distractions.",
-                        icon: "EC",
-                        href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
-                        accent: "from-[#fff7ed] to-[#fce7f3]"
-                      },
-                      {
-                        title: "Text to Audio",
-                        body: "Generate music beds, sound design ideas, and short audio prompts for creative assets.",
-                        icon: "TA",
-                        href: "/studio?mode=video&workflow=text-to-video",
-                        accent: "from-[#fef9c3] to-[#dcfce7]"
-                      }
-                    ].map((app) => (
+                    {TOOLKIT_APPS.map((app) => (
                       <Link
                         key={app.title}
                         href={app.href}
                         className="group relative min-h-[210px] overflow-hidden rounded-[2rem] border border-black/[0.05] bg-white/70 p-7 text-left shadow-[0_18px_52px_rgba(15,23,42,0.07)] backdrop-blur transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_26px_70px_rgba(15,23,42,0.10)]"
                       >
                         <div className={`absolute inset-0 bg-gradient-to-br ${app.accent} opacity-55 transition group-hover:opacity-80`} />
-                        <div className="relative grid h-14 w-14 place-items-center rounded-2xl bg-white text-sm font-black text-[#0ea5e9] shadow-sm">
-                          {app.icon}
+                        <div className={`relative grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ${app.iconClass}`}>
+                          <StudioIcon name={app.icon} className="h-7 w-7" />
                         </div>
                         <h3 className="relative mt-6 text-xl font-semibold tracking-tight text-[#202633]">{app.title}</h3>
                         <p className="relative mt-3 max-w-[280px] text-sm font-medium leading-6 text-[#7a8496]">{app.body}</p>
-                        <span className="relative mt-5 inline-flex text-sm font-semibold text-[#0ea5e9]">Open tool →</span>
+                        <span className="relative mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#0ea5e9]">
+                          Open tool <StudioIcon name="chevron-right" className="h-4 w-4" />
+                        </span>
                       </Link>
                     ))}
                   </div>
