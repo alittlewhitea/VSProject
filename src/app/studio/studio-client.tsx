@@ -43,13 +43,18 @@ type StudioLoginDraft = {
   outputFormat: string;
   duration: string;
   prompt: string;
-  imageQuality?: "low" | "medium" | "high";
+  imageQuality?: "auto" | "low" | "medium" | "high";
   numImages?: number;
   guidanceScale?: number;
   numInferenceSteps?: number;
   enableSafetyChecker?: boolean;
   acceleration?: string;
   limitGenerations?: boolean;
+  seed?: string;
+  safetyTolerance?: string;
+  systemPrompt?: string;
+  enableWebSearch?: boolean;
+  thinkingLevel?: string;
 };
 
 type StudioWorkflow = "text-to-image" | "image-to-image" | "text-to-video" | "image-to-video";
@@ -81,6 +86,7 @@ const IMAGE_SIZE_PRESETS = [
 const DEFAULT_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1"];
 const GROK_VIDEO_RATIO_OPTIONS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"];
 const GROK_VIDEO_RESOLUTION_OPTIONS = ["720p", "480p"];
+const NANO_ASPECT_RATIO_OPTIONS = ["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"];
 
 const PROVIDER_META: Record<
   string,
@@ -455,13 +461,18 @@ function StudioContent() {
   const [editResolution, setEditResolution] = useState("1K");
   const [videoResolution, setVideoResolution] = useState("720p");
   const [outputFormat, setOutputFormat] = useState("png");
-  const [imageQuality, setImageQuality] = useState<"low" | "medium" | "high">("high");
+  const [imageQuality, setImageQuality] = useState<"auto" | "low" | "medium" | "high">("high");
   const [numImages, setNumImages] = useState(1);
   const [guidanceScale, setGuidanceScale] = useState(3.5);
   const [numInferenceSteps, setNumInferenceSteps] = useState(4);
   const [enableSafetyChecker, setEnableSafetyChecker] = useState(true);
   const [acceleration, setAcceleration] = useState("none");
   const [limitGenerations, setLimitGenerations] = useState(true);
+  const [seed, setSeed] = useState("");
+  const [safetyTolerance, setSafetyTolerance] = useState("4");
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [enableWebSearch, setEnableWebSearch] = useState(false);
+  const [thinkingLevel, setThinkingLevel] = useState("");
   const [duration, setDuration] = useState(mode === "image" ? "single" : "6s");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -562,6 +573,17 @@ function StudioContent() {
     const nextImageSize = defaultImageSizeForProvider(provider);
     setImageSize(nextImageSize);
     setRatio(ratioFromImageSize(nextImageSize));
+    if (provider === "flux-image") {
+      setNumInferenceSteps(4);
+      setOutputFormat((current) => (current === "webp" ? "jpeg" : current));
+    }
+    if (provider === "flux-dev") {
+      setNumInferenceSteps(28);
+      setOutputFormat((current) => (current === "webp" ? "jpeg" : current));
+    }
+    if (provider === "nano-banana-pro") {
+      setEditResolution((current) => (current === "0.5K" ? "1K" : current));
+    }
   }, [mode, provider]);
 
   useEffect(() => {
@@ -770,7 +792,9 @@ function StudioContent() {
     hasReferences: referenceImageUrls.length > 0,
     resolution: mode === "image" ? editResolution : videoResolution,
     quality: imageQuality,
-    numImages: mode === "image" ? numImages : 1
+    numImages: mode === "image" ? numImages : 1,
+    enableWebSearch,
+    thinkingLevel
   });
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
@@ -805,10 +829,10 @@ function StudioContent() {
   const providerSettingsLabel =
     provider === "chatgpt-image"
       ? `${imageQuality} quality / ${outputFormat.toUpperCase()} / ${numImages} image${numImages > 1 ? "s" : ""}`
-      : provider === "flux-image" || provider === "flux-dev"
+    : provider === "flux-image" || provider === "flux-dev"
         ? `${numInferenceSteps} steps / guidance ${guidanceScale} / ${outputFormat.toUpperCase()}`
         : mode === "image"
-          ? `${editResolution} / ${outputFormat.toUpperCase()} / ${numImages} image${numImages > 1 ? "s" : ""}`
+          ? `${editResolution} / safety ${safetyTolerance} / ${numImages} image${numImages > 1 ? "s" : ""}`
           : "";
 
   useEffect(() => {
@@ -856,6 +880,9 @@ function StudioContent() {
       }
     }
     setProvider(nextProvider);
+    if (nextProvider === "nano-banana-image" || nextProvider === "nano-banana-pro") {
+      setRatio(nextProvider === "nano-banana-image" ? "auto" : "1:1");
+    }
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
     const nextImageSize = nextMode === "image" ? defaultImageSizeForProvider(nextProvider) : imageSize;
@@ -891,13 +918,13 @@ function StudioContent() {
       setReferenceImageFiles([]);
       const nextImageSize = defaultImageSizeForProvider(nextProvider);
       setImageSize(nextImageSize);
-      setRatio(ratioFromImageSize(nextImageSize));
+      setRatio(nextProvider === "nano-banana-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "image");
       params.set("workflow", activeWorkflow);
       params.set("provider", nextProvider);
       params.set("imageSize", nextImageSize);
-      params.set("ratio", ratioFromImageSize(nextImageSize));
+      params.set("ratio", nextProvider === "nano-banana-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
       router.replace(`/studio?${params.toString()}`, { scroll: false });
     } else {
       const params = new URLSearchParams(sp.toString());
@@ -986,7 +1013,12 @@ function StudioContent() {
       numInferenceSteps,
       enableSafetyChecker,
       acceleration,
-      limitGenerations
+      limitGenerations,
+      seed,
+      safetyTolerance,
+      systemPrompt,
+      enableWebSearch,
+      thinkingLevel
     });
   }
 
@@ -1014,6 +1046,11 @@ function StudioContent() {
     setEnableSafetyChecker(draft.enableSafetyChecker !== false);
     setAcceleration(draft.acceleration || "none");
     setLimitGenerations(draft.limitGenerations !== false);
+    setSeed(draft.seed || "");
+    setSafetyTolerance(draft.safetyTolerance || "4");
+    setSystemPrompt(draft.systemPrompt || "");
+    setEnableWebSearch(Boolean(draft.enableWebSearch));
+    setThinkingLevel(draft.thinkingLevel || "");
     setDuration(draft.duration);
     setPrompt(draft.prompt);
     setStatusTone("idle");
@@ -1071,6 +1108,7 @@ function StudioContent() {
         return;
       }
 
+      const parsedSeed = seed.trim() ? Number.parseInt(seed.trim(), 10) : undefined;
       const requestPayload = {
         mode,
         imageWorkflow: mode === "image" && referenceImageUrls.length ? "image-to-image" : imageWorkflow,
@@ -1096,7 +1134,12 @@ function StudioContent() {
         numInferenceSteps: mode === "image" ? numInferenceSteps : undefined,
         enableSafetyChecker: mode === "image" ? enableSafetyChecker : undefined,
         acceleration: mode === "image" ? acceleration : undefined,
-        limitGenerations: mode === "image" ? limitGenerations : undefined
+        limitGenerations: mode === "image" ? limitGenerations : undefined,
+        seed: mode === "image" && Number.isSafeInteger(parsedSeed) ? parsedSeed : undefined,
+        safetyTolerance: mode === "image" ? safetyTolerance : undefined,
+        systemPrompt: mode === "image" && systemPrompt.trim() ? systemPrompt.trim() : undefined,
+        enableWebSearch: mode === "image" ? enableWebSearch : undefined,
+        thinkingLevel: mode === "image" && thinkingLevel ? thinkingLevel : undefined
       };
       const fingerprint = createIdempotencyFingerprint({
         ...requestPayload,
@@ -1759,21 +1802,38 @@ function StudioContent() {
                       ))}
                     </select>
                     {mode === "image" ? (
-                      <select
-                        value={imageSize}
-                        onChange={(e) => {
-                          trackEvent("studio_size_selected", { mode, provider, image_size: e.target.value, ratio: ratioFromImageSize(e.target.value) }, accessToken);
-                          setImageSize(e.target.value);
-                          setRatio(ratioFromImageSize(e.target.value));
-                        }}
-                        className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none"
-                      >
-                        {IMAGE_SIZE_PRESETS.map((preset) => (
-                          <option key={preset.value} value={preset.value}>
-                            {preset.label}
-                          </option>
-                        ))}
-                      </select>
+                      provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
+                        <select
+                          value={ratio}
+                          onChange={(e) => {
+                            trackEvent("studio_size_selected", { mode, provider, ratio: e.target.value }, accessToken);
+                            setRatio(e.target.value);
+                          }}
+                          className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none"
+                        >
+                          {(provider === "nano-banana-pro" ? NANO_ASPECT_RATIO_OPTIONS.filter((item) => !["4:1", "1:4", "8:1", "1:8"].includes(item)) : NANO_ASPECT_RATIO_OPTIONS).map((item) => (
+                            <option key={item} value={item}>
+                              {item === "auto" ? "Auto ratio" : item}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <select
+                          value={imageSize}
+                          onChange={(e) => {
+                            trackEvent("studio_size_selected", { mode, provider, image_size: e.target.value, ratio: ratioFromImageSize(e.target.value) }, accessToken);
+                            setImageSize(e.target.value);
+                            setRatio(ratioFromImageSize(e.target.value));
+                          }}
+                          className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none"
+                        >
+                          {IMAGE_SIZE_PRESETS.map((preset) => (
+                            <option key={preset.value} value={preset.value}>
+                              {preset.label}
+                            </option>
+                          ))}
+                        </select>
+                      )
                     ) : (
                       <>
                         <select value={duration} onChange={(e) => setDuration(e.target.value)} className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none">
@@ -1810,8 +1870,8 @@ function StudioContent() {
                         {provider === "chatgpt-image" ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                             <p className="mb-2 text-xs font-semibold text-[#667085]">Quality</p>
-                            <div className="grid grid-cols-3 gap-1">
-                              {(["low", "medium", "high"] as const).map((quality) => (
+                            <div className="grid grid-cols-4 gap-1">
+                              {(["auto", "low", "medium", "high"] as const).map((quality) => (
                                 <button
                                   key={quality}
                                   type="button"
@@ -1831,7 +1891,7 @@ function StudioContent() {
                             <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                               <p className="mb-2 text-xs font-semibold text-[#667085]">Steps</p>
                               <div className="grid grid-cols-4 gap-1">
-                                {[4, 8, 16, 28].map((steps) => (
+                                {(provider === "flux-image" ? [1, 2, 4, 8, 12] : [4, 8, 16, 28, 50]).map((steps) => (
                                   <button
                                     key={steps}
                                     type="button"
@@ -1849,8 +1909,8 @@ function StudioContent() {
                               <p className="mb-2 text-xs font-semibold text-[#667085]">Guidance</p>
                               <input
                                 type="range"
-                                min="0"
-                                max="12"
+                                min="1"
+                                max="20"
                                 step="0.5"
                                 value={guidanceScale}
                                 onChange={(e) => setGuidanceScale(Number(e.target.value))}
@@ -1864,7 +1924,7 @@ function StudioContent() {
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                             <p className="mb-2 text-xs font-semibold text-[#667085]">Resolution</p>
                             <div className="grid grid-cols-4 gap-1">
-                              {["0.5K", "1K", "2K", "4K"].map((resolution) => (
+                              {(provider === "nano-banana-pro" ? ["1K", "2K", "4K"] : ["0.5K", "1K", "2K", "4K"]).map((resolution) => (
                                 <button
                                   key={resolution}
                                   type="button"
@@ -1882,7 +1942,7 @@ function StudioContent() {
                         <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                           <p className="mb-2 text-xs font-semibold text-[#667085]">Output</p>
                           <div className="grid grid-cols-3 gap-1">
-                            {["png", "jpeg", "webp"].map((format) => (
+                            {(provider === "flux-image" || provider === "flux-dev" ? ["jpeg", "png"] : ["png", "jpeg", "webp"]).map((format) => (
                               <button
                                 key={format}
                                 type="button"
@@ -1927,6 +1987,44 @@ function StudioContent() {
                             </button>
                           </div>
                         ) : null}
+                        {provider === "flux-image" || provider === "flux-dev" ? (
+                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">Acceleration</p>
+                            <div className="grid grid-cols-3 gap-1">
+                              {["none", "regular", "high"].map((item) => (
+                                <button
+                                  key={item}
+                                  type="button"
+                                  onClick={() => setAcceleration(item)}
+                                  className={`rounded-xl px-2 py-2 text-xs font-semibold capitalize transition ${
+                                    acceleration === item ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                  }`}
+                                >
+                                  {item}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
+                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">Safety tolerance</p>
+                            <div className="grid grid-cols-6 gap-1">
+                              {["1", "2", "3", "4", "5", "6"].map((item) => (
+                                <button
+                                  key={item}
+                                  type="button"
+                                  onClick={() => setSafetyTolerance(item)}
+                                  className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${
+                                    safetyTolerance === item ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                  }`}
+                                >
+                                  {item}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
                         {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                             <p className="mb-2 text-xs font-semibold text-[#667085]">Limit generations</p>
@@ -1939,6 +2037,65 @@ function StudioContent() {
                             >
                               {limitGenerations ? "On" : "Off"}
                             </button>
+                          </div>
+                        ) : null}
+                        {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
+                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">Web search</p>
+                            <button
+                              type="button"
+                              onClick={() => setEnableWebSearch((value) => !value)}
+                              className={`w-full rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                                enableWebSearch ? "bg-[#e8f7ff] text-[#0284c7]" : "bg-white text-[#667085]"
+                              }`}
+                            >
+                              {enableWebSearch ? "Enabled" : "Disabled"}
+                            </button>
+                          </div>
+                        ) : null}
+                        {provider === "nano-banana-image" ? (
+                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">Thinking</p>
+                            <div className="grid grid-cols-3 gap-1">
+                              {[
+                                { value: "", label: "Off" },
+                                { value: "minimal", label: "Minimal" },
+                                { value: "high", label: "High" }
+                              ].map((item) => (
+                                <button
+                                  key={item.value || "off"}
+                                  type="button"
+                                  onClick={() => setThinkingLevel(item.value)}
+                                  className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${
+                                    thinkingLevel === item.value ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                  }`}
+                                >
+                                  {item.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                          <p className="mb-2 text-xs font-semibold text-[#667085]">Seed</p>
+                          <input
+                            value={seed}
+                            onChange={(e) => setSeed(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
+                            placeholder="Random"
+                            inputMode="numeric"
+                            className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-xs font-semibold text-[#202633] outline-none placeholder:text-[#a2aabc]"
+                          />
+                        </div>
+                        {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
+                          <div className="lg:col-span-2 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">System prompt</p>
+                            <textarea
+                              rows={2}
+                              value={systemPrompt}
+                              onChange={(e) => setSystemPrompt(e.target.value)}
+                              placeholder="Optional model-level instruction"
+                              className="w-full resize-none rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-xs font-medium leading-5 text-[#202633] outline-none placeholder:text-[#a2aabc]"
+                            />
                           </div>
                         ) : null}
                       </div>

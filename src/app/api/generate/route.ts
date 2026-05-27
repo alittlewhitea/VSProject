@@ -26,6 +26,11 @@ type GenerateRequest = {
   enableSafetyChecker?: boolean;
   acceleration?: string;
   limitGenerations?: boolean;
+  seed?: number;
+  safetyTolerance?: string;
+  systemPrompt?: string;
+  enableWebSearch?: boolean;
+  thinkingLevel?: string;
   idempotencyKey?: string;
 };
 
@@ -110,11 +115,14 @@ const IMAGE_SIZE_PRESETS = new Set([
   "landscape_4_3",
   "landscape_16_9"
 ]);
-const EDIT_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16"]);
+const EDIT_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"]);
 const EDIT_RESOLUTIONS = new Set(["0.5K", "1K", "2K", "4K"]);
 const OUTPUT_FORMATS = new Set(["jpeg", "png", "webp"]);
-const IMAGE_QUALITIES = new Set(["low", "medium", "high"]);
+const FLUX_OUTPUT_FORMATS = new Set(["jpeg", "png"]);
+const IMAGE_QUALITIES = new Set(["auto", "low", "medium", "high"]);
 const ACCELERATION_OPTIONS = new Set(["none", "regular", "high"]);
+const SAFETY_TOLERANCES = new Set(["1", "2", "3", "4", "5", "6"]);
+const THINKING_LEVELS = new Set(["minimal", "high"]);
 const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
 const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 
@@ -128,6 +136,16 @@ function clampNumber(value: unknown, min: number, max: number, fallback: number)
   const parsed = typeof value === "number" ? value : Number.parseFloat(String(value ?? ""));
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
+}
+
+function optionalSeed(value: unknown) {
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) return undefined;
+  return parsed;
+}
+
+function cleanSystemPrompt(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, 2000) : undefined;
 }
 
 function getFalImageSize(ratio: string, imageSize?: string) {
@@ -162,58 +180,90 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
   }
 
   if (body.provider === "nano-banana-edit" || ((body.provider === "nano-banana-image" || body.provider === "nano-banana-pro") && hasReferenceImages(body))) {
-    return {
+    const input: Record<string, unknown> = {
       prompt,
       image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 14) : [],
       aspect_ratio: EDIT_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
       resolution: body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K",
       output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
       num_images: clampInt(body.numImages, 1, 4, 1),
-      limit_generations: body.limitGenerations !== false
+      safety_tolerance: body.safetyTolerance && SAFETY_TOLERANCES.has(body.safetyTolerance) ? body.safetyTolerance : "4",
+      limit_generations: body.limitGenerations !== false,
+      enable_web_search: Boolean(body.enableWebSearch)
     };
+    const seed = optionalSeed(body.seed);
+    const systemPrompt = cleanSystemPrompt(body.systemPrompt);
+    if (seed !== undefined) input.seed = seed;
+    if (systemPrompt) input.system_prompt = systemPrompt;
+    if (body.provider === "nano-banana-image" && body.thinkingLevel && THINKING_LEVELS.has(body.thinkingLevel)) {
+      input.thinking_level = body.thinkingLevel;
+    }
+    if (body.provider === "nano-banana-pro" && input.resolution === "0.5K") {
+      input.resolution = "1K";
+    }
+    return input;
   }
 
   if (body.provider === "chatgpt-image") {
+    const seed = optionalSeed(body.seed);
+    const quality = body.quality && IMAGE_QUALITIES.has(body.quality) ? body.quality : "high";
     if (hasReferenceImages(body)) {
       return {
         prompt,
         image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 16) : [],
         image_size: getFalImageSize(body.ratio, body.imageSize),
-        quality: body.quality && IMAGE_QUALITIES.has(body.quality) ? body.quality : "high",
+        quality,
         output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
-        num_images: clampInt(body.numImages, 1, 4, 1)
+        num_images: clampInt(body.numImages, 1, 4, 1),
+        ...(seed !== undefined ? { seed } : {})
       };
     }
     return {
       prompt,
       image_size: getFalImageSize(body.ratio, body.imageSize),
-      quality: body.quality && IMAGE_QUALITIES.has(body.quality) ? body.quality : "high",
+      quality,
       output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
-      num_images: clampInt(body.numImages, 1, 4, 1)
+      num_images: clampInt(body.numImages, 1, 4, 1),
+      ...(seed !== undefined ? { seed } : {})
     };
   }
 
   if (body.provider === "nano-banana-image" || body.provider === "nano-banana-pro") {
-    return {
+    const input: Record<string, unknown> = {
       prompt,
       aspect_ratio: EDIT_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
       resolution: body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K",
       output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
       num_images: clampInt(body.numImages, 1, 4, 1),
-      limit_generations: body.limitGenerations !== false
+      safety_tolerance: body.safetyTolerance && SAFETY_TOLERANCES.has(body.safetyTolerance) ? body.safetyTolerance : "4",
+      limit_generations: body.limitGenerations !== false,
+      enable_web_search: Boolean(body.enableWebSearch)
     };
+    const seed = optionalSeed(body.seed);
+    const systemPrompt = cleanSystemPrompt(body.systemPrompt);
+    if (seed !== undefined) input.seed = seed;
+    if (systemPrompt) input.system_prompt = systemPrompt;
+    if (body.provider === "nano-banana-image" && body.thinkingLevel && THINKING_LEVELS.has(body.thinkingLevel)) {
+      input.thinking_level = body.thinkingLevel;
+    }
+    if (body.provider === "nano-banana-pro" && input.resolution === "0.5K") {
+      input.resolution = "1K";
+    }
+    return input;
   }
 
   if (body.provider === "flux-image" || body.provider === "flux-dev") {
+    const seed = optionalSeed(body.seed);
     return {
       prompt,
       image_size: getFalImageSize(body.ratio, body.imageSize),
       guidance_scale: clampNumber(body.guidanceScale, 0, 20, 3.5),
-      num_inference_steps: clampInt(body.numInferenceSteps, 1, 50, body.provider === "flux-dev" ? 28 : 4),
+      num_inference_steps: clampInt(body.numInferenceSteps, 1, body.provider === "flux-dev" ? 50 : 12, body.provider === "flux-dev" ? 28 : 4),
       num_images: clampInt(body.numImages, 1, 4, 1),
       enable_safety_checker: body.enableSafetyChecker !== false,
-      output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
-      acceleration: body.acceleration && ACCELERATION_OPTIONS.has(body.acceleration) ? body.acceleration : "none"
+      output_format: body.outputFormat && FLUX_OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "jpeg",
+      acceleration: body.acceleration && ACCELERATION_OPTIONS.has(body.acceleration) ? body.acceleration : "none",
+      ...(seed !== undefined ? { seed } : {})
     };
   }
 
@@ -247,7 +297,12 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     num_inference_steps: body.numInferenceSteps || null,
     enable_safety_checker: typeof body.enableSafetyChecker === "boolean" ? body.enableSafetyChecker : null,
     acceleration: body.acceleration || null,
-    limit_generations: typeof body.limitGenerations === "boolean" ? body.limitGenerations : null
+    limit_generations: typeof body.limitGenerations === "boolean" ? body.limitGenerations : null,
+    seed: body.seed || null,
+    safety_tolerance: body.safetyTolerance || null,
+    system_prompt: cleanSystemPrompt(body.systemPrompt) || null,
+    enable_web_search: typeof body.enableWebSearch === "boolean" ? body.enableWebSearch : null,
+    thinking_level: body.thinkingLevel || null
   };
 }
 
@@ -327,7 +382,9 @@ export async function POST(request: Request) {
       hasReferences: imageUrls.length > 0,
       resolution: body.resolution,
       quality: body.quality,
-      numImages: body.numImages
+      numImages: body.numImages,
+      enableWebSearch: body.enableWebSearch,
+      thinkingLevel: body.thinkingLevel
     });
     if (body.mode === "image" && body.provider === "nano-banana-edit") {
       if (!imageUrls.length) {

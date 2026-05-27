@@ -224,6 +224,8 @@ export async function estimateGenerationCreditsWithLivePricing(input: {
   resolution?: string | null;
   quality?: string | null;
   numImages?: number | null;
+  enableWebSearch?: boolean | null;
+  thinkingLevel?: string | null;
 }) {
   const endpointId = endpointForProvider(input.provider, input.hasReferences);
   const livePricing = endpointId ? await getFalModelPricing(endpointId) : null;

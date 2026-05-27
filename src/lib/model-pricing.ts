@@ -10,6 +10,8 @@ export type GenerationEstimateInput = {
   falUnitPriceUsd?: number | null;
   quality?: "low" | "medium" | "high" | string | null;
   numImages?: number | null;
+  enableWebSearch?: boolean | null;
+  thinkingLevel?: string | null;
 };
 
 export type ModelPricingRow = {
@@ -89,10 +91,18 @@ function secondsFromDuration(duration?: string | null) {
 }
 
 function nanoBananaCredits(resolution?: string | null, isPro = false) {
-  const base = isPro ? 24 : 14;
+  const base = isPro ? 26 : 14;
+  if (!isPro && resolution === "0.5K") return Math.ceil(base * 0.75);
   if (resolution === "4K") return base * 2;
   if (resolution === "2K") return Math.ceil(base * 1.5);
   return base;
+}
+
+function nanoFeatureCredits(input: Pick<GenerationEstimateInput, "enableWebSearch" | "thinkingLevel">) {
+  let credits = 0;
+  if (input.enableWebSearch) credits += creditsFromFalUsd(0.015, 3);
+  if (input.thinkingLevel === "high") credits += creditsFromFalUsd(0.002, 1);
+  return credits;
 }
 
 function creditsFromFalUsd(amountUsd: number, minimumCredits: number) {
@@ -130,14 +140,14 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
       if (dynamicImagePrice) {
         return creditsFromFalUsd(input.resolution === "4K" ? dynamicImagePrice * 2 : dynamicImagePrice, 10);
       }
-      return nanoBananaCredits(input.resolution) * multiplier;
+      return (nanoBananaCredits(input.resolution) + nanoFeatureCredits(input)) * multiplier;
     }
 
     if (input.provider === "nano-banana-pro" || input.provider === "nano-banana-pro-edit") {
       if (dynamicImagePrice) {
         return creditsFromFalUsd(input.resolution === "4K" ? dynamicImagePrice * 2 : dynamicImagePrice, 18);
       }
-      return nanoBananaCredits(input.resolution, true) * multiplier;
+      return (nanoBananaCredits(input.resolution, true) + nanoFeatureCredits(input)) * multiplier;
     }
 
     if (input.provider === "flux-image") {
