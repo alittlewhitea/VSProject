@@ -1,61 +1,19 @@
-import Link from "next/link";
-import fs from "node:fs/promises";
-import path from "node:path";
+﻿import Link from "next/link";
 import { HomeHeroCarousel } from "../components/home-hero-carousel";
 import { PageAnalytics } from "../components/page-analytics";
 import { Reveal } from "../components/reveal";
 import { TopNav } from "../components/top-nav";
 import { AppButton } from "../components/ui/button";
 import { CREDIT_PACKS, formatUsd } from "../lib/billing";
-import { galleryItemPath, mapGalleryRow } from "../lib/gallery";
-import { fetchPublishedGalleryItems } from "../lib/gallery-server";
 import { LEGAL_DOCUMENTS } from "../lib/legal";
 
-const imageProviders = ["ChatGPT Image 2", "Flux 2", "Recraft Pro"];
-const videoProviders = ["Seedance 2.0", "Kling 3.0", "Veo 3.1"];
-const heroImageModels = [
-  "GPT Image 2",
-  "GPT Image 1.5",
-  "Nano Banana 2",
-  "Nano Banana Pro",
-  "Seedream 4.0",
-  "FLUX.2 max",
-  "MAI-Image-2",
-  "Imagen 4 Ultra",
-  "Qwen Image Max"
-];
-const heroVideoModels = [
-  "Seedance 2.0",
-  "Kling 3.0 Omni",
-  "Kling 3.0 Pro",
-  "Veo 3.1",
-  "Veo 3.1 Fast",
-  "Sora 2",
-  "grok-imagine-video",
-  "PixVerse V6",
-  "Wan 2.6"
-];
-const useCases = [
-  {
-    title: "Performance Marketing",
-    desc: "Generate ad variants across image and video for rapid A/B iteration."
-  },
-  {
-    title: "Product Storytelling",
-    desc: "Create launch visuals and motion trailers from one content prompt."
-  },
-  {
-    title: "Creative Operations",
-    desc: "Standardize provider routing and reduce manual handoffs for teams."
-  }
-];
 const plans = [
   { name: "Trial Credits", price: "Free", note: "For new accounts", credits: "120 signup credits included", href: "/studio?mode=image&workflow=text-to-image" },
   ...CREDIT_PACKS.map((pack) => ({
     name: pack.name,
     price: formatUsd(pack.amountCents),
     note: pack.id === "studio" ? "Best value" : "Top up when needed",
-    credits: `${pack.credits.toLocaleString()} credits · ${pack.idealFor}`,
+    credits: `${pack.credits.toLocaleString()} credits 路 ${pack.idealFor}`,
     href: "/billing"
   }))
 ];
@@ -65,8 +23,16 @@ const faqs = [
     a: "DreamFace is an AI creative studio for generating images and videos in one workspace. Creators can move from prompt ideas to AI image generation, AI image editing, and AI video tasks while keeping models, credits, history, and outputs organized."
   },
   {
+    q: "What are AI video generators?",
+    a: "AI video generators are tools that turn prompts, images, scripts, or reference assets into video clips with AI. They can help creators produce social videos, product demos, B-roll, and marketing visuals without traditional filming or advanced editing skills."
+  },
+  {
+    q: "What is the best AI video generator for marketers and creators?",
+    a: "The best AI video generator depends on your workflow, model preferences, budget, and output style. DreamFace is built for creators and marketers who want image generation, image editing, text-to-video, image-to-video, credit estimates, and project history in one workspace."
+  },
+  {
     q: "Which AI generation tools are available in DreamFace?",
-    a: "DreamFace currently focuses on an AI image generator and an AI video generator. The image studio supports text-to-image and image-to-image creation, while the video studio supports text-to-video workflows across selected models."
+    a: "DreamFace includes tools for text-to-image, image-to-image, text-to-video, image-to-video, photo enhancement workflows, and reusable project history. The studio is designed around choosing what you want to create first, then routing to a suitable AI model."
   },
   {
     q: "Does DreamFace support text-to-image and image-to-image?",
@@ -74,15 +40,43 @@ const faqs = [
   },
   {
     q: "Does DreamFace support text-to-video and image-to-video?",
-    a: "DreamFace currently exposes text-to-video generation in Video Studio. Image-to-video is a related AI video workflow we can add as model coverage expands, so the product stays clear about what is available now."
+    a: "Yes. DreamFace separates text-to-video and image-to-video workflows so you can either describe a scene from scratch or animate a reference image. Available settings and quality depend on the selected video model."
+  },
+  {
+    q: "What types of input can I use to create AI videos in DreamFace?",
+    a: "You can start from a text prompt, a reference image, or a short creative brief. For image-to-video, upload or paste an image reference and describe motion, camera style, subject behavior, and the final mood."
+  },
+  {
+    q: "Can I create AI videos using a reference image?",
+    a: "Yes. Image-to-video workflows let you use a product shot, portrait, character image, or visual concept as the starting frame. DreamFace then sends the reference and prompt to the selected model to generate motion."
+  },
+  {
+    q: "How do I create an AI video of myself?",
+    a: "Use a clear reference image or source clip that you have rights to use, then describe the motion, scene, and style you want. DreamFace can help route image-to-video jobs, but you should only upload likenesses you own or have permission to use."
+  },
+  {
+    q: "Can I make AI videos for TikTok, ads, or social media?",
+    a: "Yes. DreamFace is designed for short-form creative work such as social clips, product teasers, ad concepts, thumbnails, and campaign assets. You can generate visuals, save outputs to Projects, and reuse prompts or references for new variations."
   },
   {
     q: "Which AI models can I use?",
     a: "Model options depend on the workflow. Image creation includes providers such as GPT Image 2, Nano Banana 2, and FLUX Schnell, and video creation includes routed providers such as Seedance, Kling, Veo, and Grok Imagine Video."
   },
   {
+    q: "How long does it take to generate an AI video?",
+    a: "Generation time depends on the provider queue, duration, resolution, and model. Short clips can often complete in a few minutes, while heavier video jobs may take longer. DreamFace keeps the task visible in Projects while it runs."
+  },
+  {
+    q: "Can I create AI videos without editing experience?",
+    a: "Yes. DreamFace is built around simple creative inputs: choose a workflow, write a prompt, add a reference if needed, select model options, and generate. You do not need timeline editing experience to start producing AI video clips."
+  },
+  {
     q: "Can I see generation cost before I create?",
     a: "Yes. DreamFace uses credits and shows the estimated credit cost on the generation action before a task is submitted. Billing and creation history keep purchases, balances, and generation tasks easier to trace."
+  },
+  {
+    q: "Is DreamFace free to try?",
+    a: "New accounts receive signup credits so they can test supported generation workflows. Paid credit packs are available when you need more image or video generations."
   },
   {
     q: "What happens if an AI generation task fails?",
@@ -94,7 +88,15 @@ const faqs = [
   },
   {
     q: "Does DreamFace include AI music or AI voice generation?",
-    a: "Not on the current homepage workflow. DreamFace is centered on AI image generation and AI video generation today, rather than presenting an AI music generator or AI voice generator that is not ready in the studio."
+    a: "DreamFace is focused on visual generation first, with image and video workflows available in the studio. Audio and voice-related tools may appear as product coverage expands, but current availability depends on the live workspace."
+  },
+  {
+    q: "Can AI videos replace traditional video production?",
+    a: "AI videos can replace traditional production for many early creative, marketing, testing, training, and social workflows. For high-stakes shoots, talent usage, brand approvals, and regulated industries, teams should still review outputs carefully before publishing."
+  },
+  {
+    q: "Is DreamFace secure and ethical for AI video generation?",
+    a: "DreamFace is designed to keep projects, prompts, credits, and outputs organized in your account. You are responsible for using inputs lawfully, respecting likeness rights, avoiding misleading impersonation, and following the terms of the selected model provider."
   },
   {
     q: "Can I use generated content in client or commercial projects?",
@@ -115,27 +117,7 @@ const homeFaqJsonLd = {
   }))
 };
 
-const HERO_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif"]);
-
-async function getHeroImages() {
-  try {
-    const imageDir = path.join(process.cwd(), "public", "images");
-    const files = await fs.readdir(imageDir);
-    return files
-      .filter((file) => HERO_IMAGE_EXTENSIONS.has(path.extname(file).toLowerCase()))
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-      .map((file) => `/images/${encodeURIComponent(file)}`);
-  } catch {
-    return [];
-  }
-}
-
 export default async function HomePage() {
-  const heroImages = await getHeroImages();
-  const galleryItems = (await fetchPublishedGalleryItems({ limit: 8, featuredFirst: true }).catch(() => []))
-    .map(mapGalleryRow)
-    .slice(0, 8);
-
   return (
     <main className="bg-grid pb-16">
       <PageAnalytics eventName="home_view" />
@@ -147,301 +129,179 @@ export default async function HomePage() {
         <TopNav />
 
         <Reveal>
-          <HomeHeroCarousel images={heroImages} />
+          <HomeHeroCarousel />
         </Reveal>
 
         <Reveal>
-          <section className="hidden relative overflow-hidden rounded-[2.25rem] border border-black/5 bg-[#f7f9fc] shadow-[0_32px_90px_rgba(35,51,89,0.16)]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(62,130,246,0.16),transparent_30%),radial-gradient(circle_at_84%_16%,rgba(23,169,154,0.14),transparent_28%),linear-gradient(135deg,#ffffff_0%,#f8fbff_45%,#f7fffb_100%)]" />
-            <div className="relative grid min-h-[680px] gap-8 px-5 py-8 md:px-10 md:py-12 lg:grid-cols-[0.98fr_1.02fr] lg:items-center">
-              <div className="max-w-2xl">
-                <div className="inline-flex flex-wrap gap-2 rounded-full border border-black/10 bg-white/76 p-1.5 shadow-[0_12px_30px_rgba(23,35,61,0.08)] backdrop-blur">
-                  <span className="rounded-full bg-[#1d1d1f] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white">Image</span>
-                  <span className="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#35756e]">Video</span>
-                  <span className="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#725da6]">Voiceover</span>
-                </div>
+          <section id="products" className="section-shell mt-20 border-t border-black/10 pt-20 md:mt-24 md:pt-24">
+            <div className="mx-auto max-w-5xl text-center">
+              <h2 className="text-[clamp(3rem,5.7vw,6.8rem)] font-black leading-[0.96] tracking-[-0.055em] text-[#171719]">
+                AI Video creation just became
+                <span className="block">your <span className="text-[#989898]">superpower</span></span>
+              </h2>
+              <p className="mx-auto mt-8 max-w-3xl text-xl font-medium leading-8 text-[#5c5f66]">
+                Create training, marketing, sales, and internal content from a single workspace with enterprise-grade control and creator-friendly tools.
+              </p>
+            </div>
 
-                <p className="mt-10 text-sm font-semibold uppercase tracking-[0.16em] text-[#687386]">DreamFace AI Creative Studio</p>
-                <h1 className="mt-5 text-5xl font-semibold leading-[0.96] tracking-tight text-[#101827] sm:text-6xl md:text-7xl">
-                  Turn ideas into campaign-ready AI visuals.
-                </h1>
-                <p className="mt-6 max-w-xl text-base leading-7 text-[#53627b] sm:text-lg sm:leading-8">
-                  Create images, videos, and voiceover-ready assets from one clean studio. Route work across leading models, keep tasks running in the background, and manage every result in your account.
+            <div className="mx-auto mt-24 grid max-w-[1260px] gap-5 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                { title: "Text to Video", href: "/studio?mode=video&workflow=text-to-video" },
+                { title: "Photo to Video", href: "/studio?mode=video&workflow=image-to-video" },
+                { title: "Product Ads", href: "/studio?mode=image&workflow=text-to-image" },
+                { title: "UGC ads", href: "/studio?mode=video&workflow=text-to-video" },
+                { title: "AI Models", href: "/studio?view=home" }
+              ].map((item) => (
+                <Link
+                  key={item.title}
+                  href={item.href}
+                  className="group flex min-h-[138px] flex-col items-center justify-center rounded-[1.7rem] bg-[#f1f1f1] px-5 py-7 text-center transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-[0_22px_55px_rgba(18,22,33,0.1)]"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="mb-4 h-6 w-6 text-[#121214]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 5.5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2Z" />
+                    <path d="m7 3 1.4 2.5M12 3l1.4 2.5M17 3l1.4 2.5" />
+                  </svg>
+                  <span className="text-xl font-black tracking-[-0.04em] text-[#171719]">{item.title}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </Reveal>
+
+        <Reveal>
+          <section className="section-shell mt-24 border-t border-black/10 pt-24 md:mt-28 md:pt-28">
+            <div className="grid items-center gap-14 lg:grid-cols-[0.86fr_1.14fr]">
+              <div className="max-w-xl">
+                <p className="inline-flex items-center gap-2 text-2xl font-black tracking-[-0.04em] text-[#11bff3]">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 5.5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2Z" />
+                    <path d="m7 3 1.4 2.5M12 3l1.4 2.5M17 3l1.4 2.5" />
+                  </svg>
+                  Text to Video
                 </p>
-
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link
-                    href="/studio?mode=image&workflow=text-to-image"
-                    className="inline-flex items-center justify-center rounded-full bg-[#1d1d1f] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-black/15 transition-transform duration-150 active:scale-[0.98]"
-                  >
-                    Open Studio
-                  </Link>
-                  <Link
-                    href="/gallery"
-                    className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-semibold text-[#1d1d1f] shadow-sm transition-transform duration-150 active:scale-[0.98]"
-                  >
-                    Explore prompts
-                  </Link>
-                </div>
-
-                <div className="mt-9 grid gap-3 sm:grid-cols-3">
-                  {[
-                    { value: "No subscription", label: "Credits-based wallet" },
-                    { value: "Background tasks", label: "Close the page safely" },
-                    { value: "Refund visible", label: "Failed jobs are traceable" }
-                  ].map((item) => (
-                    <div key={item.value} className="rounded-2xl border border-black/10 bg-white/72 p-4 backdrop-blur">
-                      <p className="text-sm font-semibold text-[#172033]">{item.value}</p>
-                      <p className="mt-1 text-xs leading-5 text-[#667084]">{item.label}</p>
-                    </div>
-                  ))}
-                </div>
+                <h3 className="mt-5 text-[clamp(2.3rem,3.7vw,4.6rem)] font-black leading-[1.02] tracking-[-0.055em] text-[#141416]">
+                  Turn text into video with AI
+                </h3>
+                <p className="mt-6 text-xl font-medium leading-9 text-[#292d35]">
+                  Create complete AI videos from a script using text to video AI. Describe the scene, pacing, voice, camera motion, and output style, then generate polished video clips for explainers, ads, sales, onboarding, or social content.
+                </p>
+                <Link
+                  href="/studio?mode=video&workflow=text-to-video"
+                  className="mt-10 inline-flex items-center justify-center rounded-xl bg-[#10bff3] px-6 py-4 text-xl font-black tracking-[-0.04em] text-[#071116] shadow-[0_18px_36px_rgba(16,191,243,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#00afe6]"
+                >
+                  Get Started For Free <span className="ml-3">-&gt;</span>
+                </Link>
               </div>
 
-              <div className="relative min-h-[540px]">
-                <div className="absolute left-4 top-4 z-10 rounded-2xl border border-black/10 bg-white/86 px-4 py-3 shadow-[0_16px_38px_rgba(23,35,61,0.13)] backdrop-blur">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#667084]">Live routing</p>
-                  <p className="mt-1 text-sm font-semibold text-[#172033]">GPT Image 2 · Seedance · Kling</p>
+              <div className="relative min-h-[500px]">
+                <div className="absolute left-[10%] top-8 z-20 inline-flex items-center gap-3 rounded-full border-2 border-[#004350] bg-[#bdefff] px-4 py-2 text-lg font-black text-[#07414b] shadow-sm">
+                  <span className="h-8 w-8 overflow-hidden rounded-full bg-gradient-to-br from-[#ffc8dd] to-[#a2d2ff]" />
+                  Jennifer
                 </div>
-
-                <div className="absolute right-2 top-20 grid w-[76%] grid-cols-2 gap-3 sm:right-8">
-                  {(galleryItems.length ? galleryItems.slice(0, 4) : []).map((item, index) => (
-                    <Link
-                      key={item.id}
-                      href={galleryItemPath(item)}
-                      className={`group overflow-hidden rounded-[1.5rem] border border-white/70 bg-white shadow-[0_22px_50px_rgba(23,35,61,0.16)] ${
-                        index === 1 ? "translate-y-10" : index === 2 ? "-translate-y-3" : ""
-                      }`}
-                    >
-                      <div className="aspect-[4/5] overflow-hidden bg-[#eef2f7]">
-                        <img
-                          src={item.thumbnailUrl || item.imageUrl}
-                          alt={item.title}
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
-                        />
-                      </div>
-                    </Link>
-                  ))}
-                  {!galleryItems.length
-                    ? ["Image task", "Video scene", "Product shot", "Campaign asset"].map((label, index) => (
-                        <div
-                          key={label}
-                          className={`aspect-[4/5] rounded-[1.5rem] border border-white/70 bg-gradient-to-br from-white via-[#edf4ff] to-[#eefaf6] p-4 shadow-[0_22px_50px_rgba(23,35,61,0.16)] ${
-                            index === 1 ? "translate-y-10" : index === 2 ? "-translate-y-3" : ""
-                          }`}
-                        >
-                          <p className="text-sm font-semibold text-[#172033]">{label}</p>
-                        </div>
-                      ))
-                    : null}
-                </div>
-
-                <div className="absolute bottom-8 left-0 right-0 mx-auto max-w-md rounded-[1.5rem] border border-black/10 bg-white/88 p-4 shadow-[0_22px_55px_rgba(23,35,61,0.14)] backdrop-blur">
-                  <div className="flex items-center justify-between gap-3">
+                <div className="absolute left-[10%] top-28 z-20 w-[54%] rounded-2xl border-2 border-[#004350] bg-[#bdefff] p-5 shadow-[0_20px_45px_rgba(7,50,60,0.12)]">
+                  <div className="flex items-center gap-4">
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-[#063f49] text-white">
+                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+                        <path d="M8 5.5v13l10-6.5-10-6.5Z" />
+                      </svg>
+                    </span>
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-[#667084]">Generation queue</p>
-                      <p className="mt-1 text-sm font-semibold text-[#172033]">DreamFace keeps work running after you leave</p>
+                      <p className="text-lg font-black text-[#073c45]">Custom voice - Voice 1</p>
+                      <p className="mt-1 text-sm font-semibold text-[#47707a]">Middle-aged, smooth, conversational...</p>
                     </div>
-                    <span className="rounded-full bg-[#eefaf3] px-3 py-1 text-xs font-semibold text-[#197a46]">Synced</span>
                   </div>
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e6ebf4]">
-                    <div className="h-full w-[72%] rounded-full bg-[#17a99a]" />
+                </div>
+                <div className="absolute left-[10%] top-56 z-20 w-[54%] rounded-2xl border-2 border-[#004350] bg-[#bdefff] p-5 text-[#063f49] shadow-[0_20px_45px_rgba(7,50,60,0.12)]">
+                  <p className="text-base font-black">Script</p>
+                  <div className="mt-3 space-y-3 text-sm font-medium leading-6">
+                    <p>Open with the problem, then show the product in motion.</p>
+                    <p className="border-t border-[#7ec8d8] pt-3">Add quick proof points, a simple offer, and a confident closing line.</p>
+                    <p className="border-t border-[#7ec8d8] pt-3">Keep the rhythm clean, cinematic, and social-ready.</p>
                   </div>
+                </div>
+                <div className="ml-auto w-[46%] overflow-hidden rounded-[2rem] bg-[#e8edf3] shadow-[0_28px_80px_rgba(16,27,48,0.18)]">
+                  <video
+                    src="/videos/Text_to_Video.webm"
+                    className="aspect-[9/14] h-full w-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                  />
                 </div>
               </div>
             </div>
           </section>
         </Reveal>
 
-        <section className="mx-auto mt-5 w-full max-w-6xl min-w-0">
-          <div className="rounded-[1.5rem] border border-black/10 bg-white/78 p-3 shadow-[0_16px_42px_rgba(83,111,170,0.09)] backdrop-blur">
-            <div className="mb-2 flex items-center justify-between gap-3 px-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#607088]">Supported Model Routing</p>
-              <p className="text-[11px] text-[#8a94a6]">Image + Video</p>
-            </div>
-            <div className="model-ticker relative min-w-0 overflow-hidden py-1">
-              <div className="model-ticker-track flex w-max gap-2">
-                {[...heroImageModels.map((model) => ({ model, type: "Image" })), ...heroVideoModels.map((model) => ({ model, type: "Video" })), ...heroImageModels.map((model) => ({ model, type: "Image" })), ...heroVideoModels.map((model) => ({ model, type: "Video" }))].map((item, index) => (
-                  <span
-                    key={`${item.type}-${item.model}-${index}`}
-                    className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold shadow-sm ${
-                      item.type === "Image"
-                        ? "border-[#d7e5ff] bg-[#f8fbff] text-[#365b86]"
-                        : "border-[#cbeee8] bg-[#f7fffb] text-[#35756e]"
-                    }`}
-                  >
-                    {item.type}: {item.model}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {galleryItems.length ? (
-          <section id="products" className="section-shell mt-14 md:mt-20">
-            <Reveal>
-              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-[#7c7c84]">Prompt Gallery</p>
-                  <h3 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-                    Start from proven visual prompts
-                  </h3>
-                </div>
-                <Link href="/gallery" className="text-sm font-semibold text-[#1d1d1f]">
-                  Browse gallery -&gt;
+        <Reveal>
+          <section className="section-shell mt-24 border-t border-black/10 pt-24 md:mt-28 md:pt-28">
+            <div className="grid items-center gap-14 lg:grid-cols-[0.86fr_1.14fr]">
+              <div className="max-w-xl">
+                <p className="inline-flex items-center gap-2 text-2xl font-black tracking-[-0.04em] text-[#11bff3]">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 5.5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2Z" />
+                    <path d="m7 3 1.4 2.5M12 3l1.4 2.5M17 3l1.4 2.5" />
+                  </svg>
+                  Photo to Video
+                </p>
+                <h3 className="mt-5 text-[clamp(2.3rem,3.7vw,4.6rem)] font-black leading-[1.02] tracking-[-0.055em] text-[#141416]">
+                  Transform Photos into Videos
+                </h3>
+                <p className="mt-6 text-xl font-medium leading-9 text-[#292d35]">
+                  Turn any image into a video in seconds. Upload an image, add a script or motion prompt, and transform it into a dynamic AI-generated video with natural movement, smooth pacing, and export-ready framing.
+                </p>
+                <Link
+                  href="/studio?mode=video&workflow=image-to-video"
+                  className="mt-10 inline-flex items-center justify-center rounded-xl bg-[#10bff3] px-6 py-4 text-xl font-black tracking-[-0.04em] text-[#071116] shadow-[0_18px_36px_rgba(16,191,243,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#00afe6]"
+                >
+                  Get Started For Free <span className="ml-3">-&gt;</span>
                 </Link>
               </div>
-            </Reveal>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {galleryItems.map((item, index) => (
-                <Reveal key={item.id} delayMs={index * 45}>
-                  <Link
-                    href={galleryItemPath(item)}
-                    className="card group block h-full overflow-hidden rounded-2xl bg-white"
-                  >
-                    <div className="aspect-[4/5] overflow-hidden bg-[#eef2f7]">
-                      <img
-                        src={item.thumbnailUrl || item.imageUrl}
-                        alt={item.title}
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="rounded-full border border-black/10 bg-[#f8fbff] px-2.5 py-1 text-[11px] font-semibold text-[#4c5a70]">
-                          {item.category}
-                        </span>
-                        <span className="text-[11px] uppercase tracking-[0.12em] text-[#8792a5]">{item.model}</span>
-                      </div>
-                      <h4 className="mt-3 line-clamp-2 text-base font-semibold tracking-tight">{item.title}</h4>
-                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#667084]">{item.prompt}</p>
-                    </div>
-                  </Link>
-                </Reveal>
-              ))}
+              <div className="relative min-h-[510px]">
+                <div className="absolute left-[18%] top-8 z-20 w-[34%] rotate-[-6deg] overflow-hidden rounded-xl border-[10px] border-white bg-white shadow-[0_18px_45px_rgba(16,27,48,0.16)]">
+                  <video
+                    src="/videos/Image_to_Video.mp4"
+                    className="aspect-[4/3] w-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                  />
+                </div>
+                <div className="absolute right-0 top-24 z-20 inline-flex items-center gap-4 rounded-2xl border-2 border-[#004350] bg-[#bdefff] px-5 py-4 text-[#073c45] shadow-[0_18px_42px_rgba(7,50,60,0.12)]">
+                  <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#063f49] text-white">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 5h14v14H5z" />
+                      <path d="M9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9zM13 13h2v2h-2z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-lg font-black">Photo to Video</p>
+                    <p className="text-sm font-semibold text-[#47707a]">Turn photo and script into talking video</p>
+                  </div>
+                </div>
+                <div className="ml-auto mt-20 w-[70%] overflow-hidden rounded-[2rem] bg-[#e8edf3] shadow-[0_28px_80px_rgba(16,27,48,0.18)]">
+                  <video
+                    src="/videos/Image_to_Video.mp4"
+                    className="aspect-[16/10] w-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                  />
+                </div>
+                <div className="absolute bottom-20 right-[13%] z-30 grid h-16 w-16 place-items-center rounded-full bg-[#10bff3] text-2xl font-black text-[#071116] shadow-[0_18px_36px_rgba(16,191,243,0.32)]">
+                  ||
+                </div>
+              </div>
             </div>
           </section>
-        ) : null}
-
-        <section className="section-shell mt-14 grid gap-5 md:mt-20 md:grid-cols-2">
-          <Reveal delayMs={50}>
-            <article className="card tone-violet motion-smooth lift-soft rounded-3xl p-8">
-              <p className="text-xs uppercase tracking-[0.16em] text-[#7c7c84]">Product 01</p>
-              <h2 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Image Studio</h2>
-              <p className="mt-4 text-[15px] leading-7 text-[#6e6e73]">
-                Prompt-to-image generation with fast iteration loops, style consistency, and export-ready assets.
-              </p>
-            </article>
-          </Reveal>
-          <Reveal delayMs={120}>
-            <article className="card tone-blue motion-smooth lift-soft rounded-3xl p-8">
-              <p className="text-xs uppercase tracking-[0.16em] text-[#7c7c84]">Product 02</p>
-              <h2 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Video Studio</h2>
-              <p className="mt-4 text-[15px] leading-7 text-[#6e6e73]">
-                Text-to-video and image-to-video generation with asynchronous jobs and reliable task tracking.
-              </p>
-            </article>
-          </Reveal>
-        </section>
-
-        <section className="section-shell mt-10 grid gap-4 md:mt-12 md:grid-cols-4">
-          {[
-            { k: "Active teams", v: "1,900+" },
-            { k: "Monthly generations", v: "8.4M" },
-            { k: "Average queue", v: "< 18s" },
-            { k: "Provider uptime", v: "99.95%" }
-          ].map((x) => (
-            <div key={x.k} className="card motion-smooth lift-soft rounded-2xl bg-white/92 px-5 py-5 text-center">
-              <p className="text-xs uppercase tracking-[0.14em] text-[#7c7c84]">{x.k}</p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight">{x.v}</p>
-            </div>
-          ))}
-        </section>
-
-        <section id="providers" className="section-shell mt-14 md:mt-20">
-          <Reveal>
-            <div className="mb-6 flex items-end justify-between">
-              <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">Provider Selection</h3>
-              <Link href="/studio?mode=image&workflow=text-to-image" className="text-sm font-semibold text-[#1d1d1f]">
-                See all in studio -&gt;
-              </Link>
-            </div>
-          </Reveal>
-
-          <div className="grid gap-5 lg:grid-cols-2">
-            <Reveal delayMs={40}>
-              <article className="card tone-blue motion-smooth lift-soft rounded-3xl p-7">
-                <p className="text-xs uppercase tracking-[0.16em] text-[#7c7c84]">Image APIs</p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {imageProviders.map((x) => (
-                    <div key={x} className="rounded-xl border border-black/10 bg-white/90 px-4 py-4 shadow-[0_8px_18px_rgba(18,22,33,0.06)]">
-                      <p className="text-lg font-semibold">{x}</p>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            </Reveal>
-
-            <Reveal delayMs={100}>
-              <article className="card tone-mint motion-smooth lift-soft rounded-3xl p-7">
-                <p className="text-xs uppercase tracking-[0.16em] text-[#7c7c84]">Video APIs</p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {videoProviders.map((x) => (
-                    <div key={x} className="rounded-xl border border-black/10 bg-white/90 px-4 py-4 shadow-[0_8px_18px_rgba(18,22,33,0.06)]">
-                      <p className="text-lg font-semibold">{x}</p>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            </Reveal>
-          </div>
-        </section>
-
-        <section className="section-shell mt-14 md:mt-20">
-          <Reveal>
-            <div className="mb-6 flex items-end justify-between">
-              <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">Built for real workflows</h3>
-              <p className="hidden text-sm text-[#6e6e73] md:block">Three common launch scenarios.</p>
-            </div>
-          </Reveal>
-          <div className="grid gap-5 md:grid-cols-3">
-            {useCases.map((u, i) => (
-              <Reveal key={u.title} delayMs={i * 70}>
-                <article className={`card motion-smooth lift-soft rounded-2xl p-7 ${i === 0 ? "tone-peach" : i === 1 ? "tone-violet" : "tone-mint"}`}>
-                  <h4 className="text-2xl font-semibold tracking-tight">{u.title}</h4>
-                  <p className="mt-3 text-sm leading-7 text-[#565b6a]">{u.desc}</p>
-                </article>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
-        <section id="platform" className="section-shell mt-14 md:mt-20">
-          <Reveal>
-            <div className="card motion-smooth lift-soft rounded-3xl p-8 md:p-10">
-              <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">Built for production teams.</h3>
-              <div className="mt-6 grid gap-3 md:grid-cols-2">
-                {[
-                  "Model routing by quality and cost",
-                  "Credits forecasting before generation",
-                  "Async queue with status visibility",
-                  "Unified UX across image and video"
-                ].map((x) => (
-                  <div key={x} className="chip rounded-xl px-4 py-3 text-sm text-[#4e5260]">
-                    {x}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8">
-                <AppButton href="/studio?mode=image&workflow=text-to-image" variant="dark">Start Building</AppButton>
-              </div>
-            </div>
-          </Reveal>
-        </section>
-
+        </Reveal>
         <section className="section-shell mt-14 md:mt-20" id="pricing">
           <Reveal>
             <div className="mb-6 flex items-end justify-between">
@@ -544,3 +404,4 @@ export default async function HomePage() {
     </main>
   );
 }
+
