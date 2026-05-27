@@ -193,36 +193,11 @@ export default async function HomePage() {
                 </Link>
               </div>
 
-              <div className="relative min-h-[500px]">
-                <div className="absolute left-[10%] top-8 z-20 inline-flex items-center gap-3 rounded-full border-2 border-[#004350] bg-[#bdefff] px-4 py-2 text-lg font-black text-[#07414b] shadow-sm">
-                  <span className="h-8 w-8 overflow-hidden rounded-full bg-gradient-to-br from-[#ffc8dd] to-[#a2d2ff]" />
-                  Jennifer
-                </div>
-                <div className="absolute left-[10%] top-28 z-20 w-[54%] rounded-2xl border-2 border-[#004350] bg-[#bdefff] p-5 shadow-[0_20px_45px_rgba(7,50,60,0.12)]">
-                  <div className="flex items-center gap-4">
-                    <span className="grid h-12 w-12 place-items-center rounded-full bg-[#063f49] text-white">
-                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
-                        <path d="M8 5.5v13l10-6.5-10-6.5Z" />
-                      </svg>
-                    </span>
-                    <div>
-                      <p className="text-lg font-black text-[#073c45]">Custom voice - Voice 1</p>
-                      <p className="mt-1 text-sm font-semibold text-[#47707a]">Middle-aged, smooth, conversational...</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute left-[10%] top-56 z-20 w-[54%] rounded-2xl border-2 border-[#004350] bg-[#bdefff] p-5 text-[#063f49] shadow-[0_20px_45px_rgba(7,50,60,0.12)]">
-                  <p className="text-base font-black">Script</p>
-                  <div className="mt-3 space-y-3 text-sm font-medium leading-6">
-                    <p>Open with the problem, then show the product in motion.</p>
-                    <p className="border-t border-[#7ec8d8] pt-3">Add quick proof points, a simple offer, and a confident closing line.</p>
-                    <p className="border-t border-[#7ec8d8] pt-3">Keep the rhythm clean, cinematic, and social-ready.</p>
-                  </div>
-                </div>
-                <div className="ml-auto w-[46%] overflow-hidden rounded-[2rem] bg-[#e8edf3] shadow-[0_28px_80px_rgba(16,27,48,0.18)]">
+              <div className="relative">
+                <div className="overflow-hidden rounded-[2rem] bg-white shadow-[0_28px_80px_rgba(16,27,48,0.16)]">
                   <video
                     src="/videos/Text_to_Video.webm"
-                    className="aspect-[9/14] h-full w-full object-cover"
+                    className="aspect-[16/9] w-full object-contain"
                     autoPlay
                     muted
                     loop
