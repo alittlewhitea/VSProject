@@ -1,212 +1,89 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { trackEvent } from "../lib/analytics";
 
 type HomeHeroCarouselProps = {
   images?: string[];
 };
 
-type HeroSlide = {
-  eyebrow: string;
-  title: string;
-  accent: string;
-  body: string;
-  href: string;
-  action: string;
-  gradient: string;
-  accentGradient: string;
-  tools: Array<{ label: string; body: string; icon: string; href: string }>;
-};
-
 const HERO_VIDEO_SRC = "/videos/Dreamface_home_ios.mp4";
 
-const SLIDES: HeroSlide[] = [
-  {
-    eyebrow: "DreamFace AI Studio",
-    title: "Create campaign assets with",
-    accent: "one AI workspace.",
-    body: "Generate images, edit references, animate frames, and keep every result organized in Projects.",
-    href: "/studio?view=home",
-    action: "Explore apps",
-    gradient: "from-[#c7eaff] via-[#e8f3ff] to-[#d8f7df]",
-    accentGradient: "from-[#0ea5e9] via-[#14b8a6] to-[#22c55e]",
-    tools: [
-      { label: "Text to Image", body: "Product posters, ads, thumbnails", icon: "TI", href: "/studio?mode=image&workflow=text-to-image" },
-      { label: "Image to Image", body: "Reference edits and restyles", icon: "II", href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image" },
-      { label: "Image to Video", body: "Animate products and portraits", icon: "IV", href: "/studio?mode=video&workflow=image-to-video" }
-    ]
-  },
-  {
-    eyebrow: "Model routing",
-    title: "GPT Image 2, FLUX, and",
-    accent: "Seedance are ready.",
-    body: "Pick the job you want to create. DreamFace routes the model, shows credits, and keeps the task running.",
-    href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image",
-    action: "Try it now",
-    gradient: "from-[#d8e7ff] via-[#ece8ff] to-[#f5dcff]",
-    accentGradient: "from-[#8b5cf6] via-[#0ea5e9] to-[#06b6d4]",
-    tools: [
-      { label: "GPT Image 2", body: "Readable typography and layouts", icon: "G2", href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image" },
-      { label: "FLUX Schnell", body: "Fast prompt drafts", icon: "FX", href: "/studio?mode=image&workflow=text-to-image&provider=flux-image" },
-      { label: "Seedance 2", body: "Short AI video scenes", icon: "S2", href: "/studio?mode=video&workflow=image-to-video" }
-    ]
-  },
-  {
-    eyebrow: "Creation projects",
-    title: "Every output stays",
-    accent: "reusable.",
-    body: "Download, copy prompts, retry, use as reference, and inspect credits from a single project workspace.",
-    href: "/studio?view=projects",
-    action: "Open projects",
-    gradient: "from-[#ffe1d5] via-[#f5d8e9] to-[#ecc7ff]",
-    accentGradient: "from-[#fb7185] via-[#f97316] to-[#8b5cf6]",
-    tools: [
-      { label: "Prompt reuse", body: "Copy and remix prior results", icon: "PR", href: "/studio?view=projects" },
-      { label: "Refund trail", body: "Charges and failures stay visible", icon: "RT", href: "/studio?view=projects" },
-      { label: "Reference flow", body: "Use outputs as new inputs", icon: "RF", href: "/studio?view=projects" }
-    ]
-  }
-];
-
-function ArrowIcon({ direction }: { direction: "left" | "right" }) {
+function ArrowIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d={direction === "left" ? "m15 18-6-6 6-6" : "m9 18 6-6-6-6"} />
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h13" />
+      <path d="m13 6 6 6-6 6" />
     </svg>
   );
 }
 
 export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
-  const [active, setActive] = useState(0);
-  const slide = SLIDES[active];
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setActive((current) => (current + 1) % SLIDES.length);
-    }, 6500);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  function showPrevious() {
-    setActive((current) => (current - 1 + SLIDES.length) % SLIDES.length);
-  }
-
-  function showNext() {
-    setActive((current) => (current + 1) % SLIDES.length);
-  }
-
   return (
-    <section className="relative">
-      <div className="overflow-hidden rounded-[2.25rem] border border-black/[0.06] bg-white shadow-[0_32px_90px_rgba(35,51,89,0.14)]">
-        <div className="relative overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#fbfcff_58%,#f8fbff_100%)] px-5 py-7 sm:px-8 md:px-12 lg:px-16">
-          <div className="pointer-events-none absolute left-[12%] top-6 h-72 w-72 rounded-full bg-[#bde0fe]/38 blur-3xl" />
-          <div className="pointer-events-none absolute right-[10%] top-4 h-72 w-72 rounded-full bg-[#ffc8dd]/28 blur-3xl" />
-          <div className="pointer-events-none absolute inset-x-0 top-28 h-44 bg-[linear-gradient(90deg,transparent,rgba(125,211,252,0.22),rgba(244,194,255,0.20),transparent)] blur-2xl" />
+    <section className="relative min-h-[760px] overflow-hidden rounded-[2.5rem] bg-white">
+      <div className="pointer-events-none absolute -right-16 top-24 h-[620px] w-[620px] rounded-full bg-[radial-gradient(circle,rgba(189,224,254,0.52),rgba(255,200,221,0.18)_46%,transparent_70%)] blur-2xl" />
+      <div className="pointer-events-none absolute bottom-0 left-1/2 h-44 w-[760px] -translate-x-1/2 rounded-full bg-[#bde0fe]/20 blur-3xl" />
 
-          <div className={`relative overflow-hidden rounded-[2rem] border border-white/70 bg-gradient-to-r ${slide.gradient} px-6 py-8 text-center shadow-[0_22px_70px_rgba(45,65,115,0.12)] md:px-12 md:py-9`}>
-            <button
-              type="button"
-              aria-label="Previous hero slide"
-              onClick={showPrevious}
-              className="absolute left-5 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/78 text-[#667085] shadow-[0_12px_28px_rgba(18,22,33,0.12)] backdrop-blur transition hover:-translate-x-0.5 hover:bg-white hover:text-[#202633]"
+      <div className="relative grid min-h-[760px] items-center gap-10 px-0 py-10 lg:grid-cols-[0.94fr_1.06fr]">
+        <div className="max-w-4xl pt-8 lg:pt-20">
+          <h1 className="text-[clamp(4rem,7.1vw,8.2rem)] font-black leading-[0.92] tracking-[-0.055em] text-[#2f2f32]">
+            Turn your ideas into
+            <span className="block text-[#11bff3]">videos in minutes</span>
+          </h1>
+          <p className="mt-9 max-w-2xl text-xl font-medium leading-8 text-[#3f4148]">
+            Go from script, image, presentation, or prompt to finished creative. No cameras, no crew, no editing skills required.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Link
+              href="/auth?next=%2Fstudio%3Fview%3Dhome"
+              onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/auth", item: "google_signup" })}
+              className="inline-flex h-14 items-center gap-3 rounded-md border border-black/10 bg-white px-5 text-base font-semibold text-[#2f2f32] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <ArrowIcon direction="left" />
-            </button>
-            <button
-              type="button"
-              aria-label="Next hero slide"
-              onClick={showNext}
-              className="absolute right-5 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/78 text-[#667085] shadow-[0_12px_28px_rgba(18,22,33,0.12)] backdrop-blur transition hover:translate-x-0.5 hover:bg-white hover:text-[#202633]"
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-lg font-black text-[#4285f4]">G</span>
+              Continue with Google
+            </Link>
+            <Link
+              href="/studio?view=home"
+              onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/studio?view=home", item: "get_started" })}
+              className="inline-flex h-14 items-center gap-3 rounded-xl bg-[#08bdf2] px-7 text-base font-black text-[#08232d] shadow-[0_18px_38px_rgba(8,189,242,0.22)] transition hover:-translate-y-0.5 hover:bg-[#15c8fa]"
             >
-              <ArrowIcon direction="right" />
-            </button>
-
-            <div className="relative mx-auto max-w-5xl px-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#64748b]">{slide.eyebrow}</p>
-              <h1 className="mx-auto mt-2 max-w-4xl text-4xl font-black leading-tight tracking-tight text-[#202633] md:text-6xl">
-                {slide.title}{" "}
-                <span className={`bg-gradient-to-r ${slide.accentGradient} bg-clip-text text-transparent`}>{slide.accent}</span>
-              </h1>
-              <p className="mx-auto mt-3 max-w-2xl text-base font-medium leading-7 text-[#5f6b7d] md:text-lg">{slide.body}</p>
-              <Link
-                href={slide.href}
-                onClick={() => trackEvent("hero_slide_clicked", { slide: slide.eyebrow, target: slide.href, index: active })}
-                className="mt-6 inline-flex items-center gap-3 rounded-full bg-white/88 px-5 py-3 text-sm font-semibold text-[#202633] shadow-[0_12px_32px_rgba(15,23,42,0.12)] backdrop-blur transition hover:-translate-y-0.5 hover:bg-white"
-              >
-                <span className="rounded-full bg-[#111827] px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white">New</span>
-                {slide.action}
-                <ArrowIcon direction="right" />
-              </Link>
-            </div>
+              Get Started for Free
+              <ArrowIcon />
+            </Link>
           </div>
+        </div>
 
-          <div className="relative mx-auto mt-10 grid max-w-6xl gap-7 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
-            <div className="grid gap-5 md:grid-cols-3 lg:grid-cols-1">
-              {slide.tools.map((tool) => (
-                <Link
-                  key={tool.label}
-                  href={tool.href}
-                  onClick={() => trackEvent("hero_slide_clicked", { slide: slide.eyebrow, target: tool.href, item: tool.label, index: active })}
-                  className="group rounded-[1.75rem] border border-black/[0.04] bg-[#f8fafc]/76 p-6 text-left shadow-[0_18px_48px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_28px_70px_rgba(15,23,42,0.09)]"
-                >
-                  <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-sm font-black text-[#0ea5e9] shadow-sm transition group-hover:scale-105">
-                    {tool.icon}
-                  </div>
-                  <h3 className="mt-5 text-xl font-semibold tracking-tight text-[#202633]">{tool.label}</h3>
-                  <p className="mt-3 text-sm font-medium leading-6 text-[#7a8496]">{tool.body}</p>
-                </Link>
-              ))}
-            </div>
-
-            <div className="relative">
-              <div className="pointer-events-none absolute -inset-8 rounded-[3rem] bg-[radial-gradient(circle_at_50%_20%,rgba(14,165,233,0.18),transparent_42%),radial-gradient(circle_at_80%_80%,rgba(168,85,247,0.14),transparent_38%)] blur-xl" />
-              <div className="relative overflow-hidden rounded-[2.25rem] border border-black/[0.06] bg-white p-3 shadow-[0_32px_100px_rgba(35,51,89,0.18)]">
-                <div className="overflow-hidden rounded-[1.75rem] bg-[#0f172a]">
-                  <video
-                    key={HERO_VIDEO_SRC}
-                    src={HERO_VIDEO_SRC}
-                    className="aspect-[16/10] h-full w-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                    poster="/images/gpt_image2.png"
-                  />
-                </div>
-                <div className="absolute left-7 top-7 rounded-full border border-white/30 bg-white/82 px-4 py-2 text-xs font-semibold text-[#202633] shadow-[0_12px_28px_rgba(15,23,42,0.12)] backdrop-blur">
-                  Live studio preview
-                </div>
-                <div className="absolute bottom-7 left-7 right-7 rounded-[1.35rem] border border-white/30 bg-white/86 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8791a3]">Generation flow</p>
-                      <p className="mt-1 text-sm font-semibold text-[#202633]">Prompt, create, save to Projects</p>
-                    </div>
-                    <span className="rounded-full bg-[#ecfeff] px-3 py-1 text-xs font-semibold text-[#0891b2]">Synced</span>
-                  </div>
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e6ebf4]">
-                    <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-[#38bdf8] via-[#14b8a6] to-[#8b5cf6]" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 flex justify-center gap-2">
-            {SLIDES.map((item, index) => (
-              <button
-                key={`${item.eyebrow}-dot`}
-                type="button"
-                aria-label={`Show hero slide ${index + 1}`}
-                onClick={() => setActive(index)}
-                className={`h-2.5 rounded-full transition-all ${
-                  index === active ? "w-10 bg-[#202633]" : "w-2.5 bg-[#c6ccd8] hover:bg-[#7f8797]"
-                }`}
+        <div className="relative min-h-[560px] lg:min-h-[680px]">
+          <div className="pointer-events-none absolute left-[10%] top-[8%] h-[540px] w-[540px] rounded-[7rem] bg-[linear-gradient(135deg,rgba(125,255,193,0.35),rgba(56,189,248,0.20),rgba(244,194,255,0.28))] blur-2xl" />
+          <div className="absolute left-[8%] top-[11%] h-[560px] w-[560px] rotate-[-16deg] overflow-hidden rounded-[7.2rem] border border-white/70 bg-white/30 shadow-[0_42px_100px_rgba(15,23,42,0.18)] backdrop-blur">
+            <div className="absolute inset-0 rounded-[7.2rem] bg-[linear-gradient(135deg,rgba(134,239,172,0.42),rgba(125,211,252,0.22),rgba(255,200,221,0.32))]" />
+            <div className="absolute inset-[18px] overflow-hidden rounded-[6.3rem] border border-white/70 bg-[#eaf8ff] shadow-[inset_0_0_46px_rgba(255,255,255,0.85)]">
+              <video
+                src={HERO_VIDEO_SRC}
+                className="h-full w-full rotate-[16deg] scale-[1.32] object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                poster="/images/gpt_image2.png"
               />
-            ))}
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(255,255,255,0.45),transparent_28%),linear-gradient(180deg,transparent_54%,rgba(255,255,255,0.18))]" />
+            </div>
+          </div>
+
+          <div className="absolute right-[2%] top-[25%] h-[430px] w-[150px] rotate-[12deg] overflow-hidden rounded-[3rem] border border-white/70 bg-white/40 shadow-[0_30px_70px_rgba(15,23,42,0.16)] backdrop-blur">
+            <video
+              src={HERO_VIDEO_SRC}
+              className="h-full w-full scale-[1.55] object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster="/images/gpt_image2.png"
+            />
           </div>
         </div>
       </div>

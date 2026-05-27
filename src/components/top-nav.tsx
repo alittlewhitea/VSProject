@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,9 +23,7 @@ export function TopNav() {
     let mounted = true;
     const supabase = createBrowserSupabaseClient();
     supabase.auth.getUser().then(({ data }) => {
-      if (mounted) {
-        setEmail(data.user?.email ?? null);
-      }
+      if (mounted) setEmail(data.user?.email ?? null);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user?.email ?? null);
@@ -60,75 +58,60 @@ export function TopNav() {
 
   return (
     <header
-      className={`sticky top-4 z-20 mb-10 rounded-2xl border px-5 py-3 transition-all duration-300 ${
+      className={`sticky top-4 z-20 mb-8 rounded-[2rem] border px-6 py-4 transition-all duration-300 md:px-8 ${
         scrolled
-          ? "border-black/10 bg-white/92 shadow-xl shadow-black/10 backdrop-blur"
-          : "border-black/8 bg-white/78 shadow-lg shadow-black/5"
+          ? "border-[#b6c8ff] bg-white/94 shadow-xl shadow-black/10 backdrop-blur"
+          : "border-[#a8d8ff] bg-white/86 shadow-lg shadow-black/5"
       }`}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/" onClick={() => trackEvent("nav_clicked", { item: "logo", target: "/" })} className="text-3xl font-semibold tracking-tight sm:text-4xl">
+      <div className="flex items-center justify-between gap-5">
+        <div className="flex min-w-0 items-center gap-8 lg:gap-10">
+          <Link href="/" onClick={() => trackEvent("nav_clicked", { item: "logo", target: "/" })} className="shrink-0 text-2xl font-black leading-none tracking-tight sm:text-3xl">
             dreamface
           </Link>
-          <nav className="hidden gap-6 text-sm text-[#4b4b54] lg:flex">
-            <a onClick={() => trackEvent("nav_clicked", { item: "products", target: "/#products" })} className={pathname === "/" && active === "products" ? "font-semibold text-[#111]" : ""} href="/#products">Products</a>
-            <a onClick={() => trackEvent("nav_clicked", { item: "providers", target: "/#providers" })} className={pathname === "/" && active === "providers" ? "font-semibold text-[#111]" : ""} href="/#providers">Providers</a>
-            <Link onClick={() => trackEvent("nav_clicked", { item: "gallery", target: "/gallery" })} className={pathname?.startsWith("/gallery") ? "font-semibold text-[#111]" : ""} href="/gallery">Gallery</Link>
-            <a onClick={() => trackEvent("nav_clicked", { item: "platform", target: "/#platform" })} className={pathname === "/" && active === "platform" ? "font-semibold text-[#111]" : ""} href="/#platform">Platform</a>
-            <a onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/#pricing" })} className={pathname === "/" && active === "pricing" ? "font-semibold text-[#111]" : ""} href="/#pricing">Pricing</a>
+          <span className="hidden h-7 w-px bg-black/12 lg:block" />
+          <nav className="hidden gap-7 whitespace-nowrap text-base font-bold text-[#2f2f32] lg:flex">
+            <a onClick={() => trackEvent("nav_clicked", { item: "products", target: "/#products" })} className={pathname === "/" && active === "products" ? "text-[#111]" : ""} href="/#products">Products</a>
+            <a onClick={() => trackEvent("nav_clicked", { item: "providers", target: "/#providers" })} className={pathname === "/" && active === "providers" ? "text-[#111]" : ""} href="/#providers">Providers</a>
+            <Link onClick={() => trackEvent("nav_clicked", { item: "gallery", target: "/gallery" })} className={pathname?.startsWith("/gallery") ? "text-[#111]" : ""} href="/gallery">Gallery</Link>
+            <a onClick={() => trackEvent("nav_clicked", { item: "platform", target: "/#platform" })} className={pathname === "/" && active === "platform" ? "text-[#111]" : ""} href="/#platform">Platform</a>
+            <a onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/#pricing" })} className={pathname === "/" && active === "pricing" ? "text-[#111]" : ""} href="/#pricing">Pricing</a>
           </nav>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           {email ? (
             <>
-              <p className="hidden text-xs text-[#5f6779] md:block">{email}</p>
+              <p className="hidden max-w-[180px] truncate text-xs font-semibold text-[#5f6779] xl:block">{email}</p>
               <button
                 onClick={async () => {
                   const supabase = createBrowserSupabaseClient();
                   await supabase.auth.signOut();
                 }}
-                className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
+                className="rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f]"
               >
                 Sign out
               </button>
-              <Link
-                href="/studio?view=projects"
-                onClick={() => trackEvent("nav_clicked", { item: "projects", target: "/studio?view=projects" })}
-                className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
-              >
+              <Link href="/studio?view=projects" onClick={() => trackEvent("nav_clicked", { item: "projects", target: "/studio?view=projects" })} className="rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f]">
                 Projects
               </Link>
-              <Link
-                href="/billing"
-                onClick={() => trackEvent("nav_clicked", { item: "billing", target: "/billing" })}
-                className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
-              >
+              <Link href="/billing" onClick={() => trackEvent("nav_clicked", { item: "billing", target: "/billing" })} className="rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f]">
                 Billing
               </Link>
-              <Link
-                href="/studio?mode=image&workflow=text-to-image"
-                onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?mode=image&workflow=text-to-image" })}
-                className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white transition-transform duration-150 active:scale-[0.97]"
-              >
+              <Link href="/studio?mode=image&workflow=text-to-image" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?mode=image&workflow=text-to-image" })} className="rounded-2xl bg-[#0b0b0d] px-5 py-2.5 text-sm font-black text-white transition-transform duration-150 active:scale-[0.97]">
                 Open Studio
               </Link>
             </>
           ) : (
             <>
-              <Link
-                href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image"
-                onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })}
-                className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[#1d1d1f]"
-              >
+              <span className="hidden items-center gap-2 text-sm font-black text-[#073b3a] md:inline-flex">
+                <span aria-hidden="true">EN</span>
+              </span>
+              <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
                 Sign in
               </Link>
-              <Link
-                href="/studio?mode=image&workflow=text-to-image"
-                onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?mode=image&workflow=text-to-image" })}
-                className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white transition-transform duration-150 active:scale-[0.97]"
-              >
+              <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="inline-flex items-center gap-2 rounded-2xl bg-[#0b0b0d] px-5 py-2.5 text-sm font-black text-white transition-transform duration-150 active:scale-[0.97]">
                 Open Studio
+                <span aria-hidden="true">-&gt;</span>
               </Link>
             </>
           )}

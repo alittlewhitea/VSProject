@@ -40,7 +40,7 @@ export const metadata = {
 export default function AboutPage() {
   return (
     <main className="bg-grid min-h-screen pb-14">
-      <div className="mx-auto max-w-7xl px-4 pt-4 md:px-8 md:pt-5">
+      <div className="mx-auto max-w-[1540px] px-4 pt-4 md:px-8 md:pt-5">
         <TopNav />
 
         <section className="rounded-[2rem] border border-black/5 bg-white/92 p-6 shadow-[0_24px_60px_rgba(13,18,35,0.08)] md:p-10">

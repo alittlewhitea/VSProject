@@ -82,7 +82,7 @@ export function GalleryDetailClient({ itemId }: { itemId: string }) {
 
   return (
     <main className="bg-grid min-h-screen pb-14">
-      <div className="mx-auto max-w-7xl px-4 pt-4 md:px-8 md:pt-5">
+      <div className="mx-auto max-w-[1540px] px-4 pt-4 md:px-8 md:pt-5">
         <TopNav />
 
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

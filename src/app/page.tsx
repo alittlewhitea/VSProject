@@ -143,7 +143,7 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqJsonLd) }}
       />
-      <div className="mx-auto max-w-7xl px-4 pt-4 md:px-8 md:pt-5">
+      <div className="mx-auto max-w-[1540px] px-4 pt-4 md:px-8 md:pt-5">
         <TopNav />
 
         <Reveal>
