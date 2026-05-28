@@ -1803,9 +1803,9 @@ function StudioContent() {
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
           <div className="grid min-h-[calc(100vh-1rem)] lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
             <aside className="hidden border-r border-black/[0.06] bg-white/64 px-3 py-5 lg:flex lg:flex-col lg:items-center">
-              <Link href="/studio?view=home" aria-label="Studio home" className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
+              <a href="https://dreamface.io" aria-label="DreamFace home" className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
                 DF
-              </Link>
+              </a>
               <nav className="mt-9 flex flex-1 flex-col items-center gap-4">
                 {[
                   { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName },
@@ -1883,8 +1883,8 @@ function StudioContent() {
                   );
                 })}
               </nav>
-              <Link href="/billing" className="grid h-10 w-10 place-items-center rounded-2xl bg-[#ecfeff] text-sm font-semibold text-[#06b6d4]">
-                {creditBalance === null ? "-" : String(Math.min(creditBalance, 99))}
+              <Link href="/billing" className="flex w-full items-center justify-center rounded-2xl bg-[#ecfeff] px-2 py-2 text-[11px] font-semibold text-[#06b6d4]">
+                Billing
               </Link>
             </aside>
 
@@ -1930,9 +1930,9 @@ function StudioContent() {
                         type="button"
                         aria-label="Close studio menu"
                         onClick={() => setMobileStudioMenuOpen(false)}
-                        className="fixed inset-0 z-[55] cursor-default bg-[#101828]/12 backdrop-blur-[2px] lg:hidden"
+                        className="fixed inset-0 z-[55] cursor-default bg-transparent lg:hidden"
                       />
-                      <div className="fixed left-3 right-3 top-16 z-[60] rounded-[1.25rem] border border-black/[0.08] bg-white/96 p-2 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:right-auto sm:w-72 lg:hidden">
+                      <div className="fixed left-4 top-[4.45rem] z-[60] w-[min(17rem,calc(100vw-2rem))] rounded-[1.15rem] border border-black/[0.08] bg-white p-1.5 shadow-[0_18px_52px_rgba(15,23,42,0.20)] lg:hidden">
                         {[
                           { label: "Studio Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
                           { label: "Image Studio", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
@@ -1943,11 +1943,11 @@ function StudioContent() {
                             key={item.label}
                             href={item.href}
                             onClick={() => setMobileStudioMenuOpen(false)}
-                            className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition ${
+                            className={`flex items-center gap-3 rounded-[1rem] px-2.5 py-2.5 text-sm font-semibold transition ${
                               item.active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#485164] hover:bg-[#f6f9fc] hover:text-[#202633]"
                             }`}
                           >
-                            <span className={`grid h-9 w-9 place-items-center rounded-xl border ${
+                            <span className={`grid h-8 w-8 place-items-center rounded-xl border ${
                               item.active ? "border-[#bae6fd] bg-white text-[#0ea5e9]" : "border-black/[0.06] bg-white/80 text-[#667085]"
                             }`}>
                               <StudioIcon name={item.icon} className="h-4 w-4" />
