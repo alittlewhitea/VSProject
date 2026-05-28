@@ -63,6 +63,12 @@ create table if not exists public.user_credit_accounts (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.signup_ip_claims (
+  ip_hash text primary key,
+  user_id uuid not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.credit_ledger (
   id bigserial primary key,
   user_id uuid not null,
@@ -139,7 +145,7 @@ begin
   end if;
 
   insert into public.user_credit_accounts (user_id, balance, free_granted)
-  values (p_user_id, 120, true)
+  values (p_user_id, 0, false)
   on conflict (user_id) do nothing;
 
   select user_credit_accounts.balance
@@ -221,6 +227,7 @@ create index if not exists credit_purchases_user_id_created_at_idx
   on public.credit_purchases (user_id, created_at desc);
 
 alter table public.user_credit_accounts enable row level security;
+alter table public.signup_ip_claims enable row level security;
 alter table public.credit_ledger enable row level security;
 alter table public.credit_purchases enable row level security;
 

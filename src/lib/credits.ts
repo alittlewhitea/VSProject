@@ -1,8 +1,13 @@
+import { createHmac } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const SIGNUP_BONUS_CREDITS = 120;
 
 type CreditAccount = { user_id: string; balance: number; free_granted: boolean };
+type EnsureCreditAccountOptions = {
+  signupBonusCredits?: number;
+  signupBonusReferenceId?: string | null;
+};
 type CreditApplyResult = {
   balance: number;
   ledger_id: number | string | null;
@@ -64,20 +69,81 @@ export function getDevCreditLedger(userId: string) {
   return devCreditLedger.get(userId) || [];
 }
 
-export async function ensureCreditAccount(admin: SupabaseClient, userId: string) {
+export function getRequestIp(headers: Headers) {
+  const candidates = [
+    headers.get("cf-connecting-ip"),
+    headers.get("x-real-ip"),
+    headers.get("x-forwarded-for")?.split(",")[0],
+    headers.get("forwarded")?.match(/for="?([^;,"]+)/i)?.[1]
+  ];
+  return candidates.map((value) => value?.trim()).find(Boolean) || null;
+}
+
+function signupIpSecret() {
+  return process.env.SIGNUP_IP_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_URL || "local-signup-ip-secret";
+}
+
+function hashSignupIp(ip: string) {
+  return createHmac("sha256", signupIpSecret()).update(ip.trim().toLowerCase()).digest("hex");
+}
+
+export async function claimSignupBonusForIp(admin: SupabaseClient, userId: string, ip: string | null) {
+  if (!ip) {
+    return { allowed: false, ipHash: null, duplicateUserId: null };
+  }
+
+  const ipHash = hashSignupIp(ip);
+  const { error } = await admin.from("signup_ip_claims").insert({
+    ip_hash: ipHash,
+    user_id: userId
+  });
+
+  if (!error) {
+    return { allowed: true, ipHash, duplicateUserId: null };
+  }
+
+  if (error.code !== "23505") {
+    throw error;
+  }
+
+  const { data, error: selectError } = await admin
+    .from("signup_ip_claims")
+    .select("user_id")
+    .eq("ip_hash", ipHash)
+    .maybeSingle();
+
+  if (selectError) {
+    throw selectError;
+  }
+
+  const duplicateUserId = typeof data?.user_id === "string" ? data.user_id : null;
+  return {
+    allowed: duplicateUserId === userId,
+    ipHash,
+    duplicateUserId
+  };
+}
+
+export async function getCreditAccount(admin: SupabaseClient, userId: string) {
+  const { data, error } = await admin
+    .from("user_credit_accounts")
+    .select("user_id, balance, free_granted")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as CreditAccount | null) || null;
+}
+
+export async function ensureCreditAccount(admin: SupabaseClient, userId: string, options: EnsureCreditAccountOptions = {}) {
+  const signupBonusCredits = Math.max(0, Math.trunc(options.signupBonusCredits || 0));
   try {
-    const { data: existing, error: selectError } = await admin
-      .from("user_credit_accounts")
-      .select("user_id, balance, free_granted")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (selectError) {
-      throw selectError;
-    }
-
+    const existing = await getCreditAccount(admin, userId);
     if (existing) {
-      return existing as CreditAccount;
+      return existing;
     }
 
     const { data, error } = await admin
@@ -85,8 +151,8 @@ export async function ensureCreditAccount(admin: SupabaseClient, userId: string)
       .upsert(
         {
           user_id: userId,
-          balance: SIGNUP_BONUS_CREDITS,
-          free_granted: true
+          balance: signupBonusCredits,
+          free_granted: signupBonusCredits > 0
         },
         { onConflict: "user_id", ignoreDuplicates: true }
       )
@@ -110,11 +176,14 @@ export async function ensureCreditAccount(admin: SupabaseClient, userId: string)
       return selected as CreditAccount;
     }
 
-    await admin.from("credit_ledger").insert({
-      user_id: userId,
-      amount: SIGNUP_BONUS_CREDITS,
-      reason: "signup_bonus"
-    });
+    if (signupBonusCredits > 0) {
+      await admin.from("credit_ledger").insert({
+        user_id: userId,
+        amount: signupBonusCredits,
+        reason: "signup_bonus",
+        reference_id: options.signupBonusReferenceId || null
+      });
+    }
 
     return data as CreditAccount;
   } catch (error) {

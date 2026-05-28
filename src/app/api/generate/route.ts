@@ -3,7 +3,15 @@ import { randomUUID } from "node:crypto";
 import { getUserFromBearerToken } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { fetchFal } from "../../../lib/fal-fetch";
-import { ensureCreditAccount, refundCredits, spendCredits } from "../../../lib/credits";
+import {
+  claimSignupBonusForIp,
+  ensureCreditAccount,
+  getCreditAccount,
+  getRequestIp,
+  refundCredits,
+  SIGNUP_BONUS_CREDITS,
+  spendCredits
+} from "../../../lib/credits";
 import { estimateGenerationCreditsWithLivePricing } from "../../../lib/fal-pricing";
 
 type GenerateMode = "image" | "video";
@@ -31,6 +39,7 @@ type GenerateRequest = {
   systemPrompt?: string;
   enableWebSearch?: boolean;
   thinkingLevel?: string;
+  generateAudio?: boolean;
   idempotencyKey?: string;
 };
 
@@ -124,7 +133,9 @@ const ACCELERATION_OPTIONS = new Set(["none", "regular", "high"]);
 const SAFETY_TOLERANCES = new Set(["1", "2", "3", "4", "5", "6"]);
 const THINKING_LEVELS = new Set(["minimal", "high"]);
 const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
+const SEEDANCE_VIDEO_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
 const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
+const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p"]);
 
 function clampInt(value: unknown, min: number, max: number, fallback: number) {
   const parsed = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
@@ -159,13 +170,27 @@ function getFalImageSize(ratio: string, imageSize?: string) {
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
-  if (body.mode === "video" && (body.provider === "seedance-video" || body.provider === "kling-video") && hasInputImages(body)) {
+  if (body.mode === "video" && body.provider === "seedance-video" && hasInputImages(body)) {
     const duration = Number.parseInt(body.duration, 10);
     return {
       prompt,
       image_url: firstInputImage(body),
-      duration: Number.isInteger(duration) && duration > 0 ? duration : 6,
-      aspect_ratio: VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9"
+      duration: String(Number.isInteger(duration) && duration >= 4 && duration <= 15 ? duration : 6),
+      resolution: body.resolution && SEEDANCE_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
+      aspect_ratio: SEEDANCE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
+      generate_audio: Boolean(body.generateAudio)
+    };
+  }
+
+  if (body.mode === "video" && body.provider === "kling-video" && hasInputImages(body)) {
+    const duration = Number.parseInt(body.duration, 10);
+    return {
+      prompt,
+      start_image_url: firstInputImage(body),
+      duration: String(Number.isInteger(duration) && duration >= 3 && duration <= 15 ? duration : 5),
+      generate_audio: Boolean(body.generateAudio),
+      negative_prompt: "blur, distort, and low quality",
+      cfg_scale: 0.5
     };
   }
 
@@ -302,7 +327,8 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     safety_tolerance: body.safetyTolerance || null,
     system_prompt: cleanSystemPrompt(body.systemPrompt) || null,
     enable_web_search: typeof body.enableWebSearch === "boolean" ? body.enableWebSearch : null,
-    thinking_level: body.thinkingLevel || null
+    thinking_level: body.thinkingLevel || null,
+    generate_audio: typeof body.generateAudio === "boolean" ? body.generateAudio : null
   };
 }
 
@@ -355,6 +381,21 @@ async function returnExistingTask(
   });
 }
 
+async function ensureRequestCreditAccount(
+  admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  userId: string,
+  request: Request
+) {
+  const existingAccount = await getCreditAccount(admin, userId);
+  if (existingAccount) return existingAccount;
+
+  const signupClaim = await claimSignupBonusForIp(admin, userId, getRequestIp(request.headers));
+  return ensureCreditAccount(admin, userId, {
+    signupBonusCredits: signupClaim.allowed ? SIGNUP_BONUS_CREDITS : 0,
+    signupBonusReferenceId: signupClaim.ipHash
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const user = await getUserFromBearerToken(request.headers.get("authorization"));
@@ -384,7 +425,8 @@ export async function POST(request: Request) {
       quality: body.quality,
       numImages: body.numImages,
       enableWebSearch: body.enableWebSearch,
-      thinkingLevel: body.thinkingLevel
+      thinkingLevel: body.thinkingLevel,
+      generateAudio: body.generateAudio
     });
     if (body.mode === "image" && body.provider === "nano-banana-edit") {
       if (!imageUrls.length) {
@@ -399,7 +441,7 @@ export async function POST(request: Request) {
     if (!admin) {
       return NextResponse.json({ error: "Server auth storage is not configured." }, { status: 500 });
     }
-    const creditAccount = await ensureCreditAccount(admin, user.id);
+    const creditAccount = await ensureRequestCreditAccount(admin, user.id, request);
     if (creditAccount.balance < estimatedCredits) {
       return NextResponse.json(
         { error: `Not enough credits. This task needs ${estimatedCredits} credits, but your balance is ${creditAccount.balance}.` },

@@ -12,6 +12,7 @@ export type GenerationEstimateInput = {
   numImages?: number | null;
   enableWebSearch?: boolean | null;
   thinkingLevel?: string | null;
+  generateAudio?: boolean | null;
 };
 
 export type ModelPricingRow = {
@@ -171,21 +172,16 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
   const dynamicSecondPrice = typeof input.falUnitPriceUsd === "number" ? input.falUnitPriceUsd : null;
 
   if (input.provider === "seedance-video") {
-    if (dynamicSecondPrice) {
-      return creditsFromFalUsd(dynamicSecondPrice * seconds, seconds * 35);
-    }
-    return seconds * 50;
+    const secondPrice = input.resolution === "1080p" ? 0.682 : 0.3034;
+    return creditsFromFalUsd(secondPrice * seconds, seconds * 35);
   }
 
   if (input.provider === "kling-video") {
-    if (dynamicSecondPrice) {
-      return creditsFromFalUsd(dynamicSecondPrice * seconds, seconds * 16);
-    }
-    return seconds * 20;
+    return creditsFromFalUsd((input.generateAudio ? 0.168 : 0.112) * seconds, seconds * 16);
   }
 
   if (input.provider === "grok-video") {
-    return seconds >= 10 ? 68 : seconds >= 8 ? 56 : 42;
+    return creditsFromFalUsd((input.resolution === "480p" ? 0.05 : 0.07) * seconds, seconds * 8);
   }
 
   if (input.provider === "veo-video") {
@@ -265,9 +261,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Image to Video",
     endpointId: "bytedance/seedance-2.0/image-to-video",
-    falBasis: "fal lists Seedance 2.0 image-to-video around $0.3024 per second.",
+    falBasis: "fal lists Seedance 2.0 image-to-video at $0.3034/s for 720p and $0.682/s for 1080p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-video", duration: "6s" }),
-    unitNote: "50 credits/sec"
+    unitNote: "51 credits/sec at 720p"
   },
   {
     provider: "kling-video",
@@ -275,9 +271,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Image to Video",
     endpointId: "fal-ai/kling-video/v3/pro/image-to-video",
-    falBasis: "fal lists Kling v3 Pro image-to-video around $0.112 per second without audio.",
+    falBasis: "fal lists Kling v3 Pro image-to-video at $0.112/s without audio and $0.168/s with native audio.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "kling-video", duration: "6s" }),
-    unitNote: "20 credits/sec"
+    unitNote: "19 credits/sec without audio"
   },
   {
     provider: "grok-video",
@@ -285,8 +281,8 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Text to Video",
     endpointId: "xai/grok-imagine-video/text-to-video",
-    falBasis: "Internal preview pricing for short Grok text-to-video jobs.",
+    falBasis: "fal lists Grok Imagine Video at $0.05/s for 480p and $0.07/s for 720p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "grok-video", duration: "6s" }),
-    unitNote: "42-68 credits"
+    unitNote: "9-12 credits/sec"
   }
 ];

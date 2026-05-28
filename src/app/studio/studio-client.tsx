@@ -46,6 +46,7 @@ type StudioLoginDraft = {
   referenceImageFiles: string[];
   editResolution: string;
   videoResolution: string;
+  generateAudio?: boolean;
   outputFormat: string;
   duration: string;
   prompt: string;
@@ -331,8 +332,12 @@ const IMAGE_SIZE_PRESETS = [
 ];
 
 const DEFAULT_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1"];
+const SEEDANCE_VIDEO_RATIO_OPTIONS = ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"];
+const KLING_VIDEO_RATIO_OPTIONS = ["source"];
 const GROK_VIDEO_RATIO_OPTIONS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"];
 const GROK_VIDEO_RESOLUTION_OPTIONS = ["720p", "480p"];
+const SEEDANCE_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p", "480p"];
+const VIDEO_DURATION_OPTIONS = ["3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s"];
 const NANO_ASPECT_RATIO_OPTIONS = ["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"];
 
 const PROVIDER_META: Record<
@@ -435,13 +440,13 @@ const WORKFLOW_META: Record<
     label: "Text to Video",
     description: "Turn a written scene into a short video.",
     recommendedProvider: "grok-video",
-    providers: ["grok-video", "seedance-video", "veo-video"]
+    providers: ["grok-video"]
   },
   "image-to-video": {
     label: "Image to Video",
     description: "Animate a reference image into a short video.",
-    recommendedProvider: "seedance-video",
-    providers: ["seedance-video", "kling-video"]
+    recommendedProvider: "kling-video",
+    providers: ["kling-video", "seedance-video"]
   }
 };
 
@@ -763,8 +768,9 @@ function StudioContent() {
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
   const [editResolution, setEditResolution] = useState("1K");
   const [videoResolution, setVideoResolution] = useState("720p");
+  const [generateAudio, setGenerateAudio] = useState(false);
   const [outputFormat, setOutputFormat] = useState("png");
-  const [imageQuality, setImageQuality] = useState<"auto" | "low" | "medium" | "high">("high");
+  const [imageQuality, setImageQuality] = useState<"auto" | "low" | "medium" | "high">("low");
   const [numImages, setNumImages] = useState(1);
   const [guidanceScale, setGuidanceScale] = useState(3.5);
   const [numInferenceSteps, setNumInferenceSteps] = useState(4);
@@ -926,7 +932,7 @@ function StudioContent() {
     }
 
     const durationParam = sp.get("duration");
-    if (durationParam && (mode === "image" ? durationParam === "single" : ["6s", "8s", "10s"].includes(durationParam))) {
+    if (durationParam && (mode === "image" ? durationParam === "single" : VIDEO_DURATION_OPTIONS.includes(durationParam))) {
       setDuration(durationParam);
     }
 
@@ -1047,6 +1053,7 @@ function StudioContent() {
         const payload = (await response.json()) as {
           balance?: number | null;
           signupBonusCredits?: number;
+          signupBonusBlockedByIp?: boolean;
           storageWarning?: string;
           error?: string;
         };
@@ -1068,7 +1075,9 @@ function StudioContent() {
           );
         } else {
           setCreditNote(
-            typeof payload.signupBonusCredits === "number"
+            payload.signupBonusBlockedByIp
+              ? "This network has already used the free trial credits. Purchased credits can still be used normally."
+              : typeof payload.signupBonusCredits === "number"
               ? `New accounts receive ${payload.signupBonusCredits} free credits.`
               : ""
           );
@@ -1120,6 +1129,7 @@ function StudioContent() {
     duration,
     hasReferences: referenceImageUrls.length > 0,
     resolution: mode === "image" ? editResolution : videoResolution,
+    generateAudio: mode === "video" ? generateAudio : false,
     quality: imageQuality,
     numImages: mode === "image" ? numImages : 1,
     enableWebSearch,
@@ -1157,8 +1167,24 @@ function StudioContent() {
         ? "GPT Image 2 supports preset output sizes. The preview frame updates to match the selected canvas."
         : provider === "grok-video"
           ? "Grok Imagine Video supports prompt, duration, aspect ratio, and 480p/720p output resolution."
+          : provider === "seedance-video"
+            ? "Seedance 2 image-to-video supports 480p, 720p, 1080p, 4-15 second clips, source/end frame motion, and optional synchronized audio."
+            : provider === "kling-video"
+              ? "Kling v3 Pro image-to-video uses a start image, 3-15 second duration, cinematic motion, and optional native audio."
           : "Use clear subject, style, composition, and constraints for better instruction following.";
-  const videoRatioOptions = provider === "grok-video" ? GROK_VIDEO_RATIO_OPTIONS : DEFAULT_VIDEO_RATIO_OPTIONS;
+  const videoRatioOptions = provider === "grok-video"
+    ? GROK_VIDEO_RATIO_OPTIONS
+    : provider === "seedance-video"
+      ? SEEDANCE_VIDEO_RATIO_OPTIONS
+      : provider === "kling-video"
+        ? KLING_VIDEO_RATIO_OPTIONS
+        : DEFAULT_VIDEO_RATIO_OPTIONS;
+  const videoDurationOptions = provider === "seedance-video"
+    ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 4)
+    : VIDEO_DURATION_OPTIONS;
+  const videoResolutionOptions = provider === "seedance-video" ? SEEDANCE_VIDEO_RESOLUTION_OPTIONS : GROK_VIDEO_RESOLUTION_OPTIONS;
+  const showVideoResolutionControl = mode === "video" && (provider === "grok-video" || provider === "seedance-video");
+  const showVideoAudioControl = mode === "video" && (provider === "seedance-video" || provider === "kling-video");
   const showTextToImageTemplates = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "text-to-image";
   const providerSettingsLabel =
     provider === "chatgpt-image"
@@ -1167,7 +1193,7 @@ function StudioContent() {
         ? `${numInferenceSteps} steps / guidance ${guidanceScale} / ${outputFormat.toUpperCase()}`
         : mode === "image"
           ? `${editResolution} / safety ${safetyTolerance} / ${numImages} image${numImages > 1 ? "s" : ""}`
-          : "";
+          : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / audio on" : " / audio off" : ""}`;
 
   useEffect(() => {
     if (!showTextToImageTemplates) return;
@@ -1206,6 +1232,7 @@ function StudioContent() {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
       }
+      setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
     } else {
       setVideoWorkflow(nextWorkflow as "text-to-video" | "image-to-video");
       if (nextWorkflow === "text-to-video") {
@@ -1252,6 +1279,7 @@ function StudioContent() {
       setReferenceImageFiles([]);
       const nextImageSize = defaultImageSizeForProvider(nextProvider);
       setImageSize(nextImageSize);
+      setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
       setRatio(nextProvider === "nano-banana-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "image");
@@ -1261,11 +1289,17 @@ function StudioContent() {
       params.set("ratio", nextProvider === "nano-banana-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
       router.replace(`/studio?${params.toString()}`, { scroll: false });
     } else {
+      const nextRatio = nextProvider === "kling-video" ? "source" : ratio === "source" ? "auto" : ratio;
+      if (nextProvider === "seedance-video" && Number.parseInt(duration, 10) < 4) {
+        setDuration("4s");
+      }
+      setRatio(nextRatio);
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "video");
       params.set("workflow", activeWorkflow);
       params.set("provider", nextProvider);
-      if (nextProvider === "grok-video") {
+      params.set("ratio", nextRatio);
+      if (nextProvider === "grok-video" || nextProvider === "seedance-video") {
         params.set("resolution", videoResolution);
       } else {
         params.delete("resolution");
@@ -1338,6 +1372,7 @@ function StudioContent() {
       referenceImageFiles,
       editResolution,
       videoResolution,
+      generateAudio,
       outputFormat,
       duration,
       prompt,
@@ -1372,6 +1407,7 @@ function StudioContent() {
     setReferenceImageFiles(Array.isArray(draft.referenceImageFiles) ? draft.referenceImageFiles : []);
     setEditResolution(draft.editResolution);
     setVideoResolution(draft.videoResolution);
+    setGenerateAudio(Boolean(draft.generateAudio));
     setOutputFormat(draft.outputFormat);
     setImageQuality(draft.imageQuality || "high");
     setNumImages(draft.numImages || 1);
@@ -1458,9 +1494,10 @@ function StudioContent() {
         resolution:
           mode === "image"
             ? editResolution
-            : mode === "video" && provider === "grok-video"
+            : mode === "video" && (provider === "grok-video" || provider === "seedance-video")
               ? videoResolution
               : undefined,
+        generateAudio: mode === "video" ? generateAudio : undefined,
         outputFormat: mode === "image" ? outputFormat : undefined,
         quality: mode === "image" ? imageQuality : undefined,
         numImages: mode === "image" ? numImages : undefined,
@@ -1990,6 +2027,11 @@ function StudioContent() {
                   )}
                 </div>
               </div>
+              {creditNote ? (
+                <p className="mt-3 rounded-2xl border border-black/[0.06] bg-white/76 px-4 py-3 text-xs font-semibold text-[#667085] shadow-sm">
+                  {creditNote}
+                </p>
+              ) : null}
 
               {isAppsHome ? (
                 <div className="mx-auto mt-7 max-w-6xl md:mt-12">
@@ -2444,13 +2486,13 @@ function StudioContent() {
                     ) : (
                       <>
                         <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
-                          <option value="6s">6s</option>
-                          <option value="8s">8s</option>
-                          <option value="10s">10s</option>
-                        </select>
-                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
-                          {videoRatioOptions.map((item) => (
+                          {videoDurationOptions.map((item) => (
                             <option key={item} value={item}>{item}</option>
+                          ))}
+                        </select>
+                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={provider === "kling-video"} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none disabled:opacity-70 sm:w-auto">
+                          {videoRatioOptions.map((item) => (
+                            <option key={item} value={item}>{item === "source" ? "Source image" : item}</option>
                           ))}
                         </select>
                       </>
@@ -3173,11 +3215,12 @@ function StudioContent() {
                   <select
                     value={ratio}
                     onChange={(e) => setRatio(e.target.value)}
-                    className="mt-1 w-full bg-transparent text-sm font-semibold text-white outline-none"
+                    disabled={provider === "kling-video"}
+                    className="mt-1 w-full bg-transparent text-sm font-semibold text-white outline-none disabled:opacity-70"
                   >
                     {videoRatioOptions.map((item) => (
                       <option key={item} value={item}>
-                        {item}
+                        {item === "source" ? "Source image" : item}
                       </option>
                     ))}
                   </select>
@@ -3318,7 +3361,7 @@ function StudioContent() {
                       >
                         {videoRatioOptions.map((item) => (
                           <option key={item} value={item}>
-                            {item}
+                            {item === "source" ? "Source image" : item}
                           </option>
                         ))}
                       </select>
@@ -3347,9 +3390,9 @@ function StudioContent() {
                         onChange={(e) => setDuration(e.target.value)}
                         className="motion-smooth mt-2 w-full rounded-xl border border-white/10 bg-white/[0.06] p-3 text-white outline-none focus:border-[#77a8e8]"
                       >
-                        <option value="6s">6 seconds</option>
-                        <option value="8s">8 seconds</option>
-                        <option value="10s">10 seconds</option>
+                        {videoDurationOptions.map((item) => (
+                          <option key={item} value={item}>{Number.parseInt(item, 10)} seconds</option>
+                        ))}
                       </select>
                     </label>
                   ) : (
@@ -3367,7 +3410,7 @@ function StudioContent() {
                     </label>
                   )}
 
-                  {mode === "video" && provider === "grok-video" ? (
+                  {showVideoResolutionControl ? (
                     <label className="block">
                       <span className="text-sm text-white/50">Resolution</span>
                       <select
@@ -3375,12 +3418,26 @@ function StudioContent() {
                         onChange={(e) => setVideoResolution(e.target.value)}
                         className="motion-smooth mt-2 w-full rounded-xl border border-white/10 bg-white/[0.06] p-3 text-white outline-none focus:border-[#77a8e8]"
                       >
-                        {GROK_VIDEO_RESOLUTION_OPTIONS.map((item) => (
+                        {videoResolutionOptions.map((item) => (
                           <option key={item} value={item}>
                             {item}
                           </option>
                         ))}
                       </select>
+                    </label>
+                  ) : null}
+                  {showVideoAudioControl ? (
+                    <label className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.05] p-3">
+                      <span>
+                        <span className="block text-sm font-semibold text-white/72">Native audio</span>
+                        <span className="mt-1 block text-xs text-white/38">Adds provider-generated sound when supported.</span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={generateAudio}
+                        onChange={(e) => setGenerateAudio(e.target.checked)}
+                        className="h-5 w-5"
+                      />
                     </label>
                   ) : null}
                 </div>

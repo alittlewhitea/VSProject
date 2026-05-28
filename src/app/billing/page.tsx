@@ -117,12 +117,16 @@ function BillingContent() {
         balance?: number | null;
         ledger?: LedgerEntry[];
         purchases?: PurchaseEntry[];
+        signupBonusBlockedByIp?: boolean;
         storageWarning?: string;
       };
       if (typeof payload.balance === "number") setBalance(payload.balance);
       if (Array.isArray(payload.ledger)) setLedger(payload.ledger);
       if (Array.isArray(payload.purchases)) setPurchases(payload.purchases);
       if (payload.storageWarning) setMessage(payload.storageWarning);
+      else if (payload.signupBonusBlockedByIp) {
+        setMessage("This network has already used the free trial credits. Purchased credits can still be used normally.");
+      }
       return payload;
     } catch {
       setMessage("Credit balance is temporarily unavailable.");

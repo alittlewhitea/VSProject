@@ -4,9 +4,12 @@ import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import {
   addCredits,
   addDevCredits,
+  claimSignupBonusForIp,
   ensureCreditAccount,
+  getCreditAccount,
   getDevCreditAccount,
   getDevCreditLedger,
+  getRequestIp,
   listCreditLedger,
   SIGNUP_BONUS_CREDITS
 } from "../../../lib/credits";
@@ -39,7 +42,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Credit storage is not configured." }, { status: 500 });
     }
 
-    const account = await withTimeout(ensureCreditAccount(admin, user.id), CREDIT_TIMEOUT_MS);
+    const existingAccount = await withTimeout(getCreditAccount(admin, user.id), CREDIT_TIMEOUT_MS);
+    const signupClaim = existingAccount
+      ? null
+      : await withTimeout(claimSignupBonusForIp(admin, user.id, getRequestIp(request.headers)), CREDIT_TIMEOUT_MS);
+    const account = existingAccount || await withTimeout(
+      ensureCreditAccount(admin, user.id, {
+        signupBonusCredits: signupClaim?.allowed ? SIGNUP_BONUS_CREDITS : 0,
+        signupBonusReferenceId: signupClaim?.ipHash
+      }),
+      CREDIT_TIMEOUT_MS
+    );
     const ledger = await withTimeout(listCreditLedger(admin, user.id), CREDIT_TIMEOUT_MS).catch(() => []);
     const { data: purchases } = await withTimeout<CreditPurchasesResult>(
       admin
@@ -53,6 +66,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       balance: account.balance,
       freeGranted: account.free_granted,
+      signupBonusAllowed: account.free_granted || Boolean(signupClaim?.allowed),
+      signupBonusBlockedByIp: !account.free_granted && signupClaim ? !signupClaim.allowed : false,
       ledger,
       purchases: purchases || [],
       signupBonusCredits: SIGNUP_BONUS_CREDITS
