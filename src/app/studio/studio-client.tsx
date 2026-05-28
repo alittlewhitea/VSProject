@@ -1077,8 +1077,6 @@ function StudioContent() {
           setCreditNote(
             payload.signupBonusBlockedByIp
               ? "This network has already used the free trial credits. Purchased credits can still be used normally."
-              : typeof payload.signupBonusCredits === "number"
-              ? `New accounts receive ${payload.signupBonusCredits} free credits.`
               : ""
           );
         }
@@ -2171,7 +2169,7 @@ function StudioContent() {
                                   <div className="min-w-0">
                                     <p className="truncate text-sm font-semibold text-[#202633]">{taskTitle(task)}</p>
                                     <p className="mt-1 text-xs font-medium text-[#8b95a7]">
-                                      {providerLabel(task.provider)} 路 {formatTaskDate(task.createdAt)}
+                                      {providerLabel(task.provider)} / {formatTaskDate(task.createdAt)}
                                     </p>
                                   </div>
                                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${statusPillClass(task.status)}`}>
@@ -2354,7 +2352,7 @@ function StudioContent() {
                       onClick={() => applyWorkflow(referenceImageUrls.length ? "image-to-image" : "text-to-image")}
                       className="hidden rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#354052] shadow-sm"
                     >
-                      Image Studio 路 Text + Reference
+                      Image Studio / Text + Reference
                     </button>
                     </>
                   ) : (
@@ -2495,6 +2493,13 @@ function StudioContent() {
                             <option key={item} value={item}>{item === "source" ? "Source image" : item}</option>
                           ))}
                         </select>
+                        {showVideoResolutionControl ? (
+                          <select value={videoResolution} onChange={(e) => setVideoResolution(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
+                            {videoResolutionOptions.map((item) => (
+                              <option key={item} value={item}>{item}</option>
+                            ))}
+                          </select>
+                        ) : null}
                       </>
                     )}
                     <span className="rounded-full border border-black/[0.06] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#667085] sm:py-2">
@@ -2773,7 +2778,7 @@ function StudioContent() {
                 <div className="mt-10 grid gap-4 text-left md:grid-cols-3">
                   {[
                     { title: "Model routing", body: PROVIDER_META[provider]?.bestFor || providerNote },
-                    { title: "Canvas", body: mode === "image" ? `${selectedImageSize.label} 路 ${selectedImageSize.dimensions}` : `${duration} 路 ${ratio}` },
+                    { title: "Canvas", body: mode === "image" ? `${selectedImageSize.label} / ${selectedImageSize.dimensions}` : `${duration} / ${ratio === "source" ? "source image" : ratio}` },
                     { title: "History", body: activeTasks.length ? `${activeTasks.length} running task${activeTasks.length > 1 ? "s" : ""}` : "Results save to Projects automatically" }
                   ].map((card) => (
                     <div key={card.title} className="rounded-[1.5rem] border border-black/[0.06] bg-white/62 p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur">
