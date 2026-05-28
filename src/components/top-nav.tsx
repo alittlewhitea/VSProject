@@ -97,7 +97,7 @@ export function TopNav() {
               <Link href="/billing" onClick={() => trackEvent("nav_clicked", { item: "billing", target: "/billing" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
                 Billing
               </Link>
-              <Link href="/studio?mode=image&workflow=text-to-image" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?mode=image&workflow=text-to-image" })} className="rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
+              <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
                 <span className="sm:hidden">Studio</span>
                 <span className="hidden sm:inline">Open Studio</span>
               </Link>
@@ -110,7 +110,7 @@ export function TopNav() {
               <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
                 Sign in
               </Link>
-              <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="inline-flex items-center gap-2 rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
+              <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="inline-flex items-center gap-2 rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
                 <span className="sm:hidden">Studio</span>
                 <span className="hidden sm:inline">Open Studio</span>
                 <span aria-hidden="true" className="hidden sm:inline">-&gt;</span>

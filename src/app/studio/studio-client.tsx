@@ -1811,7 +1811,6 @@ function StudioContent() {
                   { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName },
                   { label: "Image", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName },
                   { label: "Video", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName },
-                  { label: "Gallery", href: "/gallery", icon: "gallery" as StudioIconName },
                   { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName }
                 ].map((item) => {
                   const active =
@@ -1918,7 +1917,7 @@ function StudioContent() {
                       aria-label={mobileStudioMenuOpen ? "Close studio menu" : "Open studio menu"}
                       aria-expanded={mobileStudioMenuOpen}
                       onClick={() => setMobileStudioMenuOpen((open) => !open)}
-                      className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-[#202633] shadow-sm transition hover:bg-[#f8fbff] lg:hidden"
+                      className="relative z-[65] grid h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-[#202633] shadow-sm transition hover:bg-[#f8fbff] lg:hidden"
                     >
                       <StudioIcon name={mobileStudioMenuOpen ? "x" : "menu"} className="h-5 w-5" />
                     </button>
@@ -1926,14 +1925,19 @@ function StudioContent() {
                       <StudioIcon name="home" className="h-5 w-5" />
                     </Link>
                     {mobileStudioMenuOpen ? (
-                      <div className="absolute left-0 top-12 z-[60] w-64 rounded-[1.25rem] border border-black/[0.08] bg-white/96 p-2 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl lg:hidden">
+                      <>
+                      <button
+                        type="button"
+                        aria-label="Close studio menu"
+                        onClick={() => setMobileStudioMenuOpen(false)}
+                        className="fixed inset-0 z-[55] cursor-default bg-[#101828]/12 backdrop-blur-[2px] lg:hidden"
+                      />
+                      <div className="fixed left-3 right-3 top-16 z-[60] rounded-[1.25rem] border border-black/[0.08] bg-white/96 p-2 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:right-auto sm:w-72 lg:hidden">
                         {[
                           { label: "Studio Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
                           { label: "Image Studio", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
                           { label: "Video Studio", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
-                          { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView },
-                          { label: "Gallery", href: "/gallery", icon: "gallery" as StudioIconName, active: false },
-                          { label: "Billing", href: "/billing", icon: "sparkles" as StudioIconName, active: false }
+                          { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView }
                         ].map((item) => (
                           <Link
                             key={item.label}
@@ -1952,6 +1956,7 @@ function StudioContent() {
                           </Link>
                         ))}
                       </div>
+                      </>
                     ) : null}
                   </div>
                   <div>
@@ -2064,24 +2069,24 @@ function StudioContent() {
               ) : null}
 
               {isProjectsView ? (
-                <div className="mx-auto mt-10 max-w-7xl">
-                  <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div className="mx-auto mt-5 max-w-7xl md:mt-10">
+                  <div className="mb-4 flex flex-col gap-4 md:mb-6 md:flex-row md:items-end md:justify-between">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b95a7]">Project workspace</p>
-                      <h2 className="mt-2 text-4xl font-semibold tracking-tight text-[#202633] md:text-5xl">
+                      <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#202633] md:text-5xl">
                         Creations live here.
                       </h2>
-                      <p className="mt-3 max-w-2xl text-sm leading-6 text-[#7a8496]">
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#7a8496] md:mt-3">
                         New jobs appear immediately, keep updating while the provider runs, and turn into reusable assets when complete.
                       </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 rounded-[1.5rem] border border-black/[0.06] bg-white/72 p-2 shadow-sm">
+                    <div className="grid grid-cols-3 gap-2 rounded-[1.5rem] border border-black/[0.06] bg-white/72 p-2 shadow-sm md:min-w-[300px]">
                       {[
                         ["Active", activeTasks.length],
                         ["Done", completedTasks.length],
                         ["Failed", failedTasks.length]
                       ].map(([label, value]) => (
-                        <div key={label} className="rounded-2xl bg-[#f8fbff] px-4 py-3 text-center">
+                          <div key={label} className="rounded-2xl bg-[#f8fbff] px-3 py-2.5 text-center md:px-4 md:py-3">
                           <p className="text-lg font-semibold text-[#202633]">{value}</p>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b95a7]">{label}</p>
                         </div>
@@ -2095,8 +2100,8 @@ function StudioContent() {
                     </p>
                   ) : null}
 
-                  <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
-                    <aside className="rounded-[2rem] border border-black/[0.06] bg-white/76 p-3 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+                  <div className="grid gap-4 md:gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+                    <aside className="order-2 rounded-[1.5rem] border border-black/[0.06] bg-white/76 p-3 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl md:rounded-[2rem] xl:order-1">
                       <div className="flex items-center justify-between px-3 py-2">
                         <div>
                           <h3 className="text-sm font-semibold text-[#202633]">Project list</h3>
@@ -2106,7 +2111,7 @@ function StudioContent() {
                           New
                         </Link>
                       </div>
-                      <div className="mt-2 max-h-[680px] space-y-2 overflow-y-auto pr-1">
+                      <div className="mt-2 max-h-[360px] space-y-2 overflow-y-auto pr-1 md:max-h-[520px] xl:max-h-[680px]">
                         {tasks.length ? (
                           tasks.map((task) => {
                             const selected = selectedProjectTask?.id === task.id;
@@ -2148,32 +2153,32 @@ function StudioContent() {
                       </div>
                     </aside>
 
-                    <section className="min-h-[680px] overflow-hidden rounded-[2rem] border border-black/[0.06] bg-[linear-gradient(135deg,#fbfdff,#f7f9fd)] p-4 shadow-[0_26px_86px_rgba(15,23,42,0.10)] md:p-6">
+                    <section className="order-1 overflow-hidden rounded-[1.5rem] border border-black/[0.06] bg-[linear-gradient(135deg,#fbfdff,#f7f9fd)] p-3 shadow-[0_26px_86px_rgba(15,23,42,0.10)] md:rounded-[2rem] md:p-6 xl:order-2 xl:min-h-[680px]">
                       {selectedProjectTask ? (
-                        <div className="grid h-full gap-5 lg:grid-cols-[minmax(0,1.1fr)_360px]">
-                          <article className="relative overflow-hidden rounded-[1.75rem] bg-[#111827] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_70px_rgba(15,23,42,0.22)]">
+                        <div className="grid h-full gap-4 lg:grid-cols-[minmax(0,1.1fr)_360px] lg:gap-5">
+                          <article className="relative overflow-hidden rounded-[1.25rem] bg-[#111827] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_70px_rgba(15,23,42,0.22)] md:rounded-[1.75rem] md:p-4">
                             <div className="pointer-events-none absolute -left-20 top-10 h-60 w-60 rounded-full bg-[#60a5fa]/20 blur-3xl" />
                             <div className="pointer-events-none absolute -right-16 bottom-10 h-64 w-64 rounded-full bg-[#c084fc]/18 blur-3xl" />
                             <div className="relative mb-4 flex items-center justify-between gap-3">
                               <div>
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Preview</p>
-                                <h3 className="mt-1 max-w-xl truncate text-lg font-semibold text-white">{taskTitle(selectedProjectTask)}</h3>
+                                <h3 className="mt-1 max-w-xl truncate text-base font-semibold text-white md:text-lg">{taskTitle(selectedProjectTask)}</h3>
                               </div>
                               <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${statusPillClass(selectedProjectTask.status)}`}>
                                 {selectedProjectTask.status}
                               </span>
                             </div>
-                            <div className="relative grid min-h-[520px] place-items-center overflow-hidden rounded-[1.35rem] border border-white/10 bg-[radial-gradient(circle_at_50%_35%,rgba(96,165,250,0.16),transparent_35%),linear-gradient(180deg,#182131,#0d121d)]">
+                            <div className="relative grid min-h-[300px] place-items-center overflow-hidden rounded-[1.1rem] border border-white/10 bg-[radial-gradient(circle_at_50%_35%,rgba(96,165,250,0.16),transparent_35%),linear-gradient(180deg,#182131,#0d121d)] sm:min-h-[380px] md:min-h-[520px] md:rounded-[1.35rem]">
                               {selectedProjectTask.mediaUrl ? (
                                 selectedProjectTask.type === "Video" ? (
-                                  <video src={selectedProjectTask.mediaUrl} controls className="max-h-[620px] w-full rounded-[1.2rem] object-contain" />
+                                  <video src={selectedProjectTask.mediaUrl} controls className="max-h-[420px] w-full rounded-[1.2rem] object-contain md:max-h-[620px]" />
                                 ) : (
                                   <button
                                     type="button"
                                     onClick={() => setPreviewModal({ url: selectedProjectTask.mediaUrl || "", type: selectedProjectTask.type })}
-                                    className="block max-h-[620px] max-w-full overflow-hidden rounded-[1.2rem] shadow-[0_30px_90px_rgba(0,0,0,0.38)] transition hover:scale-[1.01]"
+                                    className="block max-h-[420px] max-w-full overflow-hidden rounded-[1.2rem] shadow-[0_30px_90px_rgba(0,0,0,0.38)] transition hover:scale-[1.01] md:max-h-[620px]"
                                   >
-                                    <img src={selectedProjectTask.mediaUrl} alt={selectedProjectTask.id} className="max-h-[620px] w-full object-contain" />
+                                    <img src={selectedProjectTask.mediaUrl} alt={selectedProjectTask.id} className="max-h-[420px] w-full object-contain md:max-h-[620px]" />
                                   </button>
                                 )
                               ) : (
@@ -2202,7 +2207,7 @@ function StudioContent() {
                             </div>
                           </article>
 
-                          <aside className="space-y-4">
+                          <aside className="space-y-3 md:space-y-4">
                             <div className="rounded-[1.75rem] border border-black/[0.06] bg-white p-5 shadow-sm">
                               <div className="flex flex-wrap gap-2">
                                 {selectedProjectTask.mediaUrl ? (
