@@ -125,7 +125,7 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqJsonLd) }}
       />
-      <div className="mx-auto max-w-[1540px] px-4 pt-4 md:px-8 md:pt-5">
+      <div className="mx-auto max-w-[1540px] px-3 pt-3 sm:px-4 sm:pt-4 md:px-8 md:pt-5">
         <TopNav />
 
         <Reveal>
@@ -133,18 +133,18 @@ export default async function HomePage() {
         </Reveal>
 
         <Reveal>
-          <section id="products" className="section-shell mt-20 border-t border-black/10 pt-20 md:mt-24 md:pt-24">
+          <section id="products" className="section-shell mt-14 border-t border-black/10 pt-14 md:mt-24 md:pt-24">
             <div className="mx-auto max-w-5xl text-center">
-              <h2 className="text-[clamp(3rem,5.7vw,6.8rem)] font-black leading-[0.96] tracking-[-0.055em] text-[#171719]">
+              <h2 className="text-[clamp(2.55rem,12vw,4.8rem)] font-black leading-[0.96] tracking-[-0.055em] text-[#171719] md:text-[clamp(3rem,5.7vw,6.8rem)]">
                 AI Video creation just became
                 <span className="block">your <span className="text-[#989898]">superpower</span></span>
               </h2>
-              <p className="mx-auto mt-8 max-w-3xl text-xl font-medium leading-8 text-[#5c5f66]">
+              <p className="mx-auto mt-5 max-w-3xl text-base font-medium leading-7 text-[#5c5f66] sm:text-lg md:mt-8 md:text-xl md:leading-8">
                 Create training, marketing, sales, and internal content from a single workspace with enterprise-grade control and creator-friendly tools.
               </p>
             </div>
 
-            <div className="mx-auto mt-24 grid max-w-[1260px] gap-5 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="mx-auto mt-10 grid max-w-[1260px] grid-cols-2 gap-3 sm:mt-16 sm:gap-5 lg:mt-24 lg:grid-cols-5">
               {[
                 { title: "Text to Video", href: "/studio?mode=video&workflow=text-to-video" },
                 { title: "Photo to Video", href: "/studio?mode=video&workflow=image-to-video" },
@@ -155,13 +155,13 @@ export default async function HomePage() {
                 <Link
                   key={item.title}
                   href={item.href}
-                  className="group flex min-h-[138px] flex-col items-center justify-center rounded-[1.7rem] bg-[#f1f1f1] px-5 py-7 text-center transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-[0_22px_55px_rgba(18,22,33,0.1)]"
+                  className="group flex min-h-[112px] flex-col items-center justify-center rounded-[1.25rem] bg-[#f1f1f1] px-4 py-5 text-center transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-[0_22px_55px_rgba(18,22,33,0.1)] sm:min-h-[138px] sm:rounded-[1.7rem] sm:px-5 sm:py-7"
                 >
                   <svg aria-hidden="true" viewBox="0 0 24 24" className="mb-4 h-6 w-6 text-[#121214]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 5.5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2Z" />
                     <path d="m7 3 1.4 2.5M12 3l1.4 2.5M17 3l1.4 2.5" />
                   </svg>
-                  <span className="text-xl font-black tracking-[-0.04em] text-[#171719]">{item.title}</span>
+                  <span className="text-base font-black tracking-[-0.04em] text-[#171719] sm:text-xl">{item.title}</span>
                 </Link>
               ))}
             </div>
@@ -169,32 +169,32 @@ export default async function HomePage() {
         </Reveal>
 
         <Reveal>
-          <section className="section-shell mt-24 border-t border-black/10 pt-24 md:mt-28 md:pt-28">
-            <div className="grid items-center gap-14 lg:grid-cols-[0.86fr_1.14fr]">
+          <section className="section-shell mt-16 border-t border-black/10 pt-16 md:mt-28 md:pt-28">
+            <div className="grid items-center gap-9 lg:grid-cols-[0.86fr_1.14fr] lg:gap-14">
               <div className="max-w-xl">
-                <p className="inline-flex items-center gap-2 text-2xl font-black tracking-[-0.04em] text-[#11bff3]">
+                <p className="inline-flex items-center gap-2 text-xl font-black tracking-[-0.04em] text-[#11bff3] sm:text-2xl">
                   <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 5.5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2Z" />
                     <path d="m7 3 1.4 2.5M12 3l1.4 2.5M17 3l1.4 2.5" />
                   </svg>
                   Text to Video
                 </p>
-                <h3 className="mt-5 text-[clamp(2.3rem,3.7vw,4.6rem)] font-black leading-[1.02] tracking-[-0.055em] text-[#141416]">
+                <h3 className="mt-4 text-[clamp(2.35rem,10vw,3.8rem)] font-black leading-[1.02] tracking-[-0.055em] text-[#141416] md:text-[clamp(2.3rem,3.7vw,4.6rem)]">
                   Turn text into video with AI
                 </h3>
-                <p className="mt-6 text-xl font-medium leading-9 text-[#292d35]">
+                <p className="mt-5 text-base font-medium leading-7 text-[#292d35] sm:text-lg sm:leading-8 md:text-xl md:leading-9">
                   Create complete AI videos from a script using text to video AI. Describe the scene, pacing, voice, camera motion, and output style, then generate polished video clips for explainers, ads, sales, onboarding, or social content.
                 </p>
                 <Link
                   href="/studio?mode=video&workflow=text-to-video"
-                  className="mt-10 inline-flex items-center justify-center rounded-xl bg-[#10bff3] px-6 py-4 text-xl font-black tracking-[-0.04em] text-[#071116] shadow-[0_18px_36px_rgba(16,191,243,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#00afe6]"
+                  className="mt-7 inline-flex w-full items-center justify-center rounded-xl bg-[#10bff3] px-6 py-4 text-base font-black tracking-[-0.04em] text-[#071116] shadow-[0_18px_36px_rgba(16,191,243,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#00afe6] sm:w-auto sm:text-xl md:mt-10"
                 >
                   Get Started For Free <span className="ml-3">-&gt;</span>
                 </Link>
               </div>
 
               <div className="relative">
-                <div className="overflow-hidden rounded-[2rem] bg-white shadow-[0_28px_80px_rgba(16,27,48,0.16)]">
+                <div className="overflow-hidden rounded-[1.4rem] bg-white shadow-[0_22px_55px_rgba(16,27,48,0.14)] sm:rounded-[2rem] sm:shadow-[0_28px_80px_rgba(16,27,48,0.16)]">
                   <video
                     src="https://media.dreamface.io/videos/Text_to_Video.webm"
                     className="aspect-[16/9] w-full object-contain"
@@ -211,32 +211,32 @@ export default async function HomePage() {
         </Reveal>
 
         <Reveal>
-          <section className="section-shell mt-24 border-t border-black/10 pt-24 md:mt-28 md:pt-28">
-            <div className="grid items-center gap-14 lg:grid-cols-[0.86fr_1.14fr]">
+          <section className="section-shell mt-16 border-t border-black/10 pt-16 md:mt-28 md:pt-28">
+            <div className="grid items-center gap-9 lg:grid-cols-[0.86fr_1.14fr] lg:gap-14">
               <div className="max-w-xl">
-                <p className="inline-flex items-center gap-2 text-2xl font-black tracking-[-0.04em] text-[#11bff3]">
+                <p className="inline-flex items-center gap-2 text-xl font-black tracking-[-0.04em] text-[#11bff3] sm:text-2xl">
                   <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 5.5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10a2 2 0 0 1 2-2Z" />
                     <path d="m7 3 1.4 2.5M12 3l1.4 2.5M17 3l1.4 2.5" />
                   </svg>
                   Photo to Video
                 </p>
-                <h3 className="mt-5 text-[clamp(2.3rem,3.7vw,4.6rem)] font-black leading-[1.02] tracking-[-0.055em] text-[#141416]">
+                <h3 className="mt-4 text-[clamp(2.35rem,10vw,3.8rem)] font-black leading-[1.02] tracking-[-0.055em] text-[#141416] md:text-[clamp(2.3rem,3.7vw,4.6rem)]">
                   Transform Photos into Videos
                 </h3>
-                <p className="mt-6 text-xl font-medium leading-9 text-[#292d35]">
+                <p className="mt-5 text-base font-medium leading-7 text-[#292d35] sm:text-lg sm:leading-8 md:text-xl md:leading-9">
                   Turn any image into a video in seconds. Upload an image, add a script or motion prompt, and transform it into a dynamic AI-generated video with natural movement, smooth pacing, and export-ready framing.
                 </p>
                 <Link
                   href="/studio?mode=video&workflow=image-to-video"
-                  className="mt-10 inline-flex items-center justify-center rounded-xl bg-[#10bff3] px-6 py-4 text-xl font-black tracking-[-0.04em] text-[#071116] shadow-[0_18px_36px_rgba(16,191,243,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#00afe6]"
+                  className="mt-7 inline-flex w-full items-center justify-center rounded-xl bg-[#10bff3] px-6 py-4 text-base font-black tracking-[-0.04em] text-[#071116] shadow-[0_18px_36px_rgba(16,191,243,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#00afe6] sm:w-auto sm:text-xl md:mt-10"
                 >
                   Get Started For Free <span className="ml-3">-&gt;</span>
                 </Link>
               </div>
 
-              <div className="relative min-h-[510px]">
-                <div className="absolute left-[18%] top-8 z-20 w-[34%] rotate-[-6deg] overflow-hidden rounded-xl border-[10px] border-white bg-white shadow-[0_18px_45px_rgba(16,27,48,0.16)]">
+              <div className="relative min-h-[360px] sm:min-h-[510px]">
+                <div className="absolute left-0 top-4 z-20 w-[40%] rotate-[-6deg] overflow-hidden rounded-xl border-[7px] border-white bg-white shadow-[0_18px_45px_rgba(16,27,48,0.16)] sm:left-[18%] sm:top-8 sm:w-[34%] sm:border-[10px]">
                   <video
                     src="https://media.dreamface.io/videos/Image_to_Video.mp4"
                     className="aspect-[4/3] w-full object-cover"
@@ -247,19 +247,19 @@ export default async function HomePage() {
                     preload="metadata"
                   />
                 </div>
-                <div className="absolute right-0 top-24 z-20 inline-flex items-center gap-4 rounded-2xl border-2 border-[#004350] bg-[#bdefff] px-5 py-4 text-[#073c45] shadow-[0_18px_42px_rgba(7,50,60,0.12)]">
-                  <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#063f49] text-white">
+                <div className="absolute right-0 top-10 z-20 hidden max-w-[78%] items-center gap-3 rounded-2xl border-2 border-[#004350] bg-[#bdefff] px-3 py-3 text-[#073c45] shadow-[0_18px_42px_rgba(7,50,60,0.12)] sm:inline-flex sm:top-24 sm:gap-4 sm:px-5 sm:py-4">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#063f49] text-white sm:h-12 sm:w-12">
                     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M5 5h14v14H5z" />
                       <path d="M9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9zM13 13h2v2h-2z" />
                     </svg>
                   </span>
                   <div>
-                    <p className="text-lg font-black">Photo to Video</p>
-                    <p className="text-sm font-semibold text-[#47707a]">Turn photo and script into talking video</p>
+                    <p className="text-sm font-black sm:text-lg">Photo to Video</p>
+                    <p className="text-xs font-semibold text-[#47707a] sm:text-sm">Turn photo and script into talking video</p>
                   </div>
                 </div>
-                <div className="ml-auto mt-20 w-[70%] overflow-hidden rounded-[2rem] bg-[#e8edf3] shadow-[0_28px_80px_rgba(16,27,48,0.18)]">
+                <div className="ml-auto mt-16 w-[84%] overflow-hidden rounded-[1.5rem] bg-[#e8edf3] shadow-[0_24px_60px_rgba(16,27,48,0.16)] sm:mt-20 sm:w-[70%] sm:rounded-[2rem] sm:shadow-[0_28px_80px_rgba(16,27,48,0.18)]">
                   <video
                     src="https://media.dreamface.io/videos/Image_to_Video.mp4"
                     className="aspect-[16/10] w-full object-cover"
@@ -270,7 +270,7 @@ export default async function HomePage() {
                     preload="metadata"
                   />
                 </div>
-                <div className="absolute bottom-20 right-[13%] z-30 grid h-16 w-16 place-items-center rounded-full bg-[#10bff3] text-2xl font-black text-[#071116] shadow-[0_18px_36px_rgba(16,191,243,0.32)]">
+                <div className="absolute bottom-14 right-[13%] z-30 hidden h-12 w-12 place-items-center rounded-full bg-[#10bff3] text-lg font-black text-[#071116] shadow-[0_18px_36px_rgba(16,191,243,0.32)] sm:grid sm:bottom-20 sm:h-16 sm:w-16 sm:text-2xl">
                   ||
                 </div>
               </div>

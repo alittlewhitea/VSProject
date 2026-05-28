@@ -21,6 +21,7 @@ body {
   background: linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
   color: var(--text);
   font-family: "SF Pro Text", "Inter", "Segoe UI", sans-serif;
+  overflow-x: hidden;
   scroll-behavior: smooth;
 }
 

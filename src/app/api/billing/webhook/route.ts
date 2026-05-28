@@ -38,6 +38,10 @@ export async function POST(request: Request) {
   const userId = session.metadata?.userId;
   const packId = session.metadata?.packId || "unknown";
   const credits = Number(session.metadata?.credits || 0);
+  if (session.payment_status !== "paid") {
+    return NextResponse.json({ received: true, payment_status: session.payment_status });
+  }
+
   if (!userId || !Number.isInteger(credits) || credits <= 0) {
     return NextResponse.json({ error: "Stripe session metadata is missing credit details." }, { status: 400 });
   }

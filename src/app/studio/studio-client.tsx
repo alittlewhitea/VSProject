@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -1725,7 +1725,7 @@ function StudioContent() {
     <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10 text-[#1f2430]">
       <div className="pointer-events-none absolute left-[18%] top-10 h-72 w-72 rounded-full bg-[#bde0fe]/30 blur-3xl" />
       <div className="pointer-events-none absolute right-[14%] top-6 h-80 w-80 rounded-full bg-[#ffc8dd]/24 blur-3xl" />
-      <div className="mx-auto max-w-[1540px] px-4 pt-4 md:px-8 md:pt-5">
+      <div className="mx-auto max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5">
         <header className="hidden">
           <div className="flex items-center gap-6">
             <Link href="/" className="text-3xl font-semibold tracking-tight text-white">
@@ -1775,9 +1775,9 @@ function StudioContent() {
           </section>
         ) : null}
 
-        <section className="relative min-h-[calc(100vh-2rem)] overflow-hidden rounded-[2.25rem] border border-black/[0.06] bg-white/72 shadow-[0_32px_120px_rgba(71,85,105,0.14)] backdrop-blur-2xl">
+        <section className="relative min-h-[calc(100vh-1rem)] overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-white/72 shadow-[0_20px_60px_rgba(71,85,105,0.10)] backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-[0_32px_120px_rgba(71,85,105,0.14)]">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
-          <div className="grid min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
+          <div className="grid min-h-[calc(100vh-1rem)] lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
             <aside className="hidden border-r border-black/[0.06] bg-white/64 px-3 py-5 lg:flex lg:flex-col lg:items-center">
               <Link href="/" className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
                 DF
@@ -1865,18 +1865,38 @@ function StudioContent() {
               </Link>
             </aside>
 
-            <div className="relative px-4 py-5 md:px-8 lg:px-12">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <Link href="/" aria-label="Back to site" className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-lg font-semibold text-transparent shadow-sm">
-                    ←
+            <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-4 gap-1 rounded-[1.4rem] border border-black/[0.08] bg-white/90 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl lg:hidden">
+              {[
+                { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
+                { label: "Image", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
+                { label: "Video", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
+                { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView }
+              ].map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`flex flex-col items-center justify-center gap-1 rounded-[1rem] px-2 py-2 text-[11px] font-semibold transition ${
+                    item.active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#667085]"
+                  }`}
+                >
+                  <StudioIcon name={item.icon} className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            <div className="relative px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12">
+              <div className="flex items-start justify-between gap-3 md:items-center md:gap-4">
+                <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
+                  <Link href="/" aria-label="Back to site" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/[0.08] bg-white text-lg font-semibold text-[#202633] shadow-sm md:h-10 md:w-10">
+                    &larr;
                   </Link>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">DreamFace Apps</p>
-                    <h1 className="text-2xl font-semibold tracking-tight text-[#202633] md:text-3xl">
+                    <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7] sm:block">DreamFace Apps</p>
+                    <h1 className="truncate text-lg font-semibold tracking-tight text-[#202633] sm:text-xl md:text-3xl">
                       {isProjectsView ? "Projects" : isAppsHome ? "Creative AI Toolkit" : mode === "image" ? "AI Image Generator" : "AI Video Generator"}
                     </h1>
-                    <p className="mt-1 text-sm text-[#8b95a7]">
+                    <p className="mt-1 hidden text-sm text-[#8b95a7] sm:block">
                       {isProjectsView
                         ? "Manage generated assets, prompts, credits, retries, and reference reuse inside the studio."
                         : isAppsHome
@@ -1887,16 +1907,16 @@ function StudioContent() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Link href="/billing" className="rounded-2xl border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#485164] shadow-[0_10px_28px_rgba(15,23,42,0.08)]">
+                <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                  <Link href="/billing" className="rounded-full border border-black/[0.06] bg-white px-3 py-2 text-xs font-semibold text-[#485164] shadow-[0_10px_28px_rgba(15,23,42,0.08)] md:rounded-2xl md:px-4 md:text-sm">
                     {creditBalance === null ? "--" : creditBalance.toLocaleString()} credits
                   </Link>
                   {accessToken ? (
-                    <Link href="/studio?view=projects" className="rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)]">
+                    <Link href="/studio?view=projects" className="hidden rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] sm:inline-flex">
                       Projects
                     </Link>
                   ) : (
-                    <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)]">
+                    <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="rounded-full bg-[#202633] px-3 py-2 text-xs font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] md:rounded-2xl md:px-4 md:text-sm">
                       Sign in
                     </Link>
                   )}
@@ -1904,8 +1924,8 @@ function StudioContent() {
               </div>
 
               {isAppsHome ? (
-                <div className="mx-auto mt-12 max-w-6xl">
-                  <div className={`relative overflow-hidden rounded-[2.2rem] border border-white/60 bg-gradient-to-r ${activeHomeSlide.gradient} px-6 py-8 text-center shadow-[0_28px_90px_rgba(56,189,248,0.16)] md:px-10 md:py-10`}>
+                <div className="mx-auto mt-7 max-w-6xl md:mt-12">
+                  <div className={`relative overflow-hidden rounded-[1.5rem] border border-white/60 bg-gradient-to-r ${activeHomeSlide.gradient} px-4 py-7 text-center shadow-[0_22px_64px_rgba(56,189,248,0.14)] md:rounded-[2.2rem] md:px-10 md:py-10 md:shadow-[0_28px_90px_rgba(56,189,248,0.16)]`}>
                     <div className="pointer-events-none absolute -left-16 top-1/2 h-52 w-52 -translate-y-1/2 rounded-full bg-white/48 blur-3xl" />
                     <div className="pointer-events-none absolute left-1/3 top-full h-36 w-72 -translate-y-1/2 rounded-full bg-[#bde0fe]/45 blur-3xl" />
                     <div className="pointer-events-none absolute -right-16 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full bg-white/42 blur-3xl" />
@@ -1913,7 +1933,7 @@ function StudioContent() {
                       type="button"
                       aria-label="Previous slide"
                       onClick={() => setHomeSlideIndex((index) => (index + HOME_SLIDES.length - 1) % HOME_SLIDES.length)}
-                      className="absolute left-5 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/78 text-[#667085] shadow-[0_14px_34px_rgba(15,23,42,0.10)] backdrop-blur transition hover:-translate-x-0.5 hover:bg-white hover:text-[#202633]"
+                      className="absolute left-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/78 text-[#667085] shadow-[0_14px_34px_rgba(15,23,42,0.10)] backdrop-blur transition hover:-translate-x-0.5 hover:bg-white hover:text-[#202633] md:left-5 md:h-12 md:w-12"
                     >
                       <StudioIcon name="chevron-left" className="h-5 w-5" />
                     </button>
@@ -1921,13 +1941,13 @@ function StudioContent() {
                       type="button"
                       aria-label="Next slide"
                       onClick={() => setHomeSlideIndex((index) => (index + 1) % HOME_SLIDES.length)}
-                      className="absolute right-5 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/78 text-[#667085] shadow-[0_14px_34px_rgba(15,23,42,0.10)] backdrop-blur transition hover:translate-x-0.5 hover:bg-white hover:text-[#202633]"
+                      className="absolute right-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/78 text-[#667085] shadow-[0_14px_34px_rgba(15,23,42,0.10)] backdrop-blur transition hover:translate-x-0.5 hover:bg-white hover:text-[#202633] md:right-5 md:h-12 md:w-12"
                     >
                       <StudioIcon name="chevron-right" className="h-5 w-5" />
                     </button>
-                    <div className="relative mx-auto max-w-4xl px-12">
+                    <div className="relative mx-auto max-w-4xl px-8 md:px-12">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#64748b]">{activeHomeSlide.eyebrow}</p>
-                      <h2 className="mt-2 text-4xl font-black tracking-tight text-[#202633] md:text-5xl">
+                      <h2 className="mt-2 text-3xl font-black tracking-tight text-[#202633] md:text-5xl">
                         {activeHomeSlide.title}{" "}
                         <span className="bg-[linear-gradient(90deg,#0ea5e9,#14b8a6,#22c55e)] bg-clip-text text-transparent">
                           {activeHomeSlide.accent}
@@ -1958,18 +1978,18 @@ function StudioContent() {
                     </div>
                   </div>
 
-                  <div className="mt-9 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-5 grid gap-3 md:mt-9 md:grid-cols-2 md:gap-5 xl:grid-cols-3">
                     {TOOLKIT_APPS.map((app) => (
                       <Link
                         key={app.title}
                         href={app.href}
-                        className="group relative min-h-[210px] overflow-hidden rounded-[2rem] border border-black/[0.05] bg-white/70 p-7 text-left shadow-[0_18px_52px_rgba(15,23,42,0.07)] backdrop-blur transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_26px_70px_rgba(15,23,42,0.10)]"
+                        className="group relative min-h-[160px] overflow-hidden rounded-[1.5rem] border border-black/[0.05] bg-white/70 p-5 text-left shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_26px_70px_rgba(15,23,42,0.10)] md:min-h-[210px] md:rounded-[2rem] md:p-7"
                       >
                         <div className={`absolute inset-0 bg-gradient-to-br ${app.accent} opacity-55 transition group-hover:opacity-80`} />
                         <div className={`relative grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ${app.iconClass}`}>
                           <StudioIcon name={app.icon} className="h-7 w-7" />
                         </div>
-                        <h3 className="relative mt-6 text-xl font-semibold tracking-tight text-[#202633]">{app.title}</h3>
+                        <h3 className="relative mt-4 text-lg font-semibold tracking-tight text-[#202633] md:mt-6 md:text-xl">{app.title}</h3>
                         <p className="relative mt-3 max-w-[280px] text-sm font-medium leading-6 text-[#7a8496]">{app.body}</p>
                         <span className="relative mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#0ea5e9]">
                           Open tool <StudioIcon name="chevron-right" className="h-4 w-4" />
@@ -2041,7 +2061,7 @@ function StudioContent() {
                                   <div className="min-w-0">
                                     <p className="truncate text-sm font-semibold text-[#202633]">{taskTitle(task)}</p>
                                     <p className="mt-1 text-xs font-medium text-[#8b95a7]">
-                                      {providerLabel(task.provider)} · {formatTaskDate(task.createdAt)}
+                                      {providerLabel(task.provider)} 路 {formatTaskDate(task.createdAt)}
                                     </p>
                                   </div>
                                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${statusPillClass(task.status)}`}>
@@ -2193,14 +2213,14 @@ function StudioContent() {
                 </div>
               ) : null}
 
-              <div className={`mx-auto mt-16 max-w-5xl text-center ${isAppsHome || isProjectsView ? "hidden" : ""}`}>
-                <h2 className="text-4xl font-semibold tracking-tight text-[#202633] md:text-5xl">
+              <div className={`mx-auto mt-5 max-w-5xl text-center md:mt-16 ${isAppsHome || isProjectsView ? "hidden" : ""}`}>
+                <h2 className="hidden text-3xl font-semibold tracking-tight text-[#202633] sm:block md:text-5xl">
                   What will you create today?
                 </h2>
-                <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+                <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:mt-5 md:mt-7">
                   {mode === "image" ? (
                     <>
-                      <div className="inline-flex rounded-full border border-black/[0.06] bg-white/82 p-1 shadow-sm">
+                      <div className="grid w-full max-w-[380px] grid-cols-2 rounded-full border border-black/[0.06] bg-white/82 p-1 shadow-sm sm:inline-flex sm:w-auto sm:max-w-none">
                         {(["text-to-image", "image-to-image"] as StudioWorkflow[]).map((workflow) => {
                           const active = imageWorkflow === workflow;
                           return (
@@ -2208,7 +2228,7 @@ function StudioContent() {
                               key={workflow}
                               type="button"
                               onClick={() => applyWorkflow(workflow)}
-                              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                              className={`rounded-full px-4 py-2.5 text-sm font-semibold transition sm:py-2 ${
                                 active
                                   ? "bg-[#202633] text-white shadow-[0_10px_24px_rgba(32,38,51,0.16)]"
                                   : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
@@ -2224,7 +2244,7 @@ function StudioContent() {
                       onClick={() => applyWorkflow(referenceImageUrls.length ? "image-to-image" : "text-to-image")}
                       className="hidden rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#354052] shadow-sm"
                     >
-                      Image Studio · Text + Reference
+                      Image Studio 路 Text + Reference
                     </button>
                     </>
                   ) : (
@@ -2248,13 +2268,13 @@ function StudioContent() {
                   )}
                 </div>
 
-                <div className="mt-7 overflow-hidden rounded-[2rem] border border-black/[0.06] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.12)]">
+                <div className="mt-4 overflow-hidden rounded-[1.7rem] border border-black/[0.06] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.09)] sm:mt-5 md:mt-7 md:rounded-[2rem] md:shadow-[0_28px_80px_rgba(15,23,42,0.12)]">
                   <div className="p-5 text-left md:p-7">
                     <textarea
                       rows={5}
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      className="min-h-[154px] w-full resize-none bg-transparent text-lg leading-8 text-[#202633] outline-none placeholder:text-[#a2aabc]"
+                      className="min-h-[190px] w-full resize-none bg-transparent text-[17px] leading-8 text-[#202633] outline-none placeholder:text-[#98a3b8] sm:min-h-[132px] sm:text-base sm:leading-7 md:min-h-[154px] md:text-lg md:leading-8"
                       placeholder={
                         mode === "image"
                           ? "Type your prompt to create images. Add a reference with + when you want image-to-image..."
@@ -2293,12 +2313,13 @@ function StudioContent() {
                     ) : null}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 border-t border-black/[0.06] bg-[#fbfcff] px-5 py-4 md:px-7">
+                  <div className="grid grid-cols-2 gap-2.5 border-t border-black/[0.06] bg-[#fbfcff] px-5 py-4 sm:flex sm:flex-wrap sm:items-center md:px-7">
                     <label
                       title="Add reference images"
-                      className="grid h-10 w-10 cursor-pointer place-items-center rounded-full border border-black/[0.08] bg-white text-xl font-light text-[#475467] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      className="col-span-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-black/[0.08] bg-white text-sm font-semibold text-[#475467] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:grid sm:h-10 sm:w-10 sm:place-items-center sm:rounded-full sm:text-xl sm:font-light"
                     >
-                      +
+                      <span className="text-xl font-light leading-none">+</span>
+                      <span className="sm:hidden">Reference image</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -2307,11 +2328,11 @@ function StudioContent() {
                         onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
                       />
                     </label>
-                    <div className="h-7 w-px bg-black/[0.08]" />
+                    <div className="hidden h-7 w-px bg-black/[0.08] sm:block" />
                     <select
                       value={provider}
                       onChange={(e) => applyProvider(e.target.value)}
-                      className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#485164] outline-none transition hover:bg-[#f8fafc]"
+                      className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#485164] outline-none transition hover:bg-[#f8fafc] sm:w-auto"
                     >
                       {options.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -2327,7 +2348,7 @@ function StudioContent() {
                             trackEvent("studio_size_selected", { mode, provider, ratio: e.target.value }, accessToken);
                             setRatio(e.target.value);
                           }}
-                          className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none"
+                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
                         >
                           {(provider === "nano-banana-pro" ? NANO_ASPECT_RATIO_OPTIONS.filter((item) => !["4:1", "1:4", "8:1", "1:8"].includes(item)) : NANO_ASPECT_RATIO_OPTIONS).map((item) => (
                             <option key={item} value={item}>
@@ -2343,7 +2364,7 @@ function StudioContent() {
                             setImageSize(e.target.value);
                             setRatio(ratioFromImageSize(e.target.value));
                           }}
-                          className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none"
+                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
                         >
                           {IMAGE_SIZE_PRESETS.map((preset) => (
                             <option key={preset.value} value={preset.value}>
@@ -2354,26 +2375,26 @@ function StudioContent() {
                       )
                     ) : (
                       <>
-                        <select value={duration} onChange={(e) => setDuration(e.target.value)} className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none">
+                        <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
                           <option value="6s">6s</option>
                           <option value="8s">8s</option>
                           <option value="10s">10s</option>
                         </select>
-                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none">
+                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
                           {videoRatioOptions.map((item) => (
                             <option key={item} value={item}>{item}</option>
                           ))}
                         </select>
                       </>
                     )}
-                    <span className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085]">
+                    <span className="rounded-full border border-black/[0.06] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#667085] sm:py-2">
                       {estCredits} credits
                     </span>
                     <button
                       type="button"
                       onClick={handleGenerate}
                       disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
-                      className="ml-auto min-h-11 rounded-full bg-[#171a22] px-7 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(23,26,34,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(23,26,34,0.26)] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="col-span-2 min-h-12 rounded-full bg-[#171a22] px-7 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(23,26,34,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(23,26,34,0.26)] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:min-h-11"
                     >
                       {isSubmitting ? "Creating..." : accessToken ? "Generate" : "Sign in to Generate"}
                     </button>
@@ -2642,7 +2663,7 @@ function StudioContent() {
                 <div className="mt-10 grid gap-4 text-left md:grid-cols-3">
                   {[
                     { title: "Model routing", body: PROVIDER_META[provider]?.bestFor || providerNote },
-                    { title: "Canvas", body: mode === "image" ? `${selectedImageSize.label} · ${selectedImageSize.dimensions}` : `${duration} · ${ratio}` },
+                    { title: "Canvas", body: mode === "image" ? `${selectedImageSize.label} 路 ${selectedImageSize.dimensions}` : `${duration} 路 ${ratio}` },
                     { title: "History", body: activeTasks.length ? `${activeTasks.length} running task${activeTasks.length > 1 ? "s" : ""}` : "Results save to Projects automatically" }
                   ].map((card) => (
                     <div key={card.title} className="rounded-[1.5rem] border border-black/[0.06] bg-white/62 p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur">
@@ -3690,4 +3711,5 @@ export function StudioPageClient() {
     </Suspense>
   );
 }
+
 

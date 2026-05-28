@@ -18,12 +18,17 @@ export async function POST(request: Request) {
     }
 
     const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+    const automaticTaxEnabled = process.env.STRIPE_AUTOMATIC_TAX === "true";
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       success_url: `${origin}/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/billing?checkout=cancelled`,
+      client_reference_id: user.id,
       customer_email: user.email || undefined,
+      automatic_tax: {
+        enabled: automaticTaxEnabled
+      },
       line_items: [
         {
           quantity: 1,
