@@ -86,6 +86,8 @@ type StudioIconName =
   | "motion"
   | "cleanup"
   | "audio"
+  | "menu"
+  | "x"
   | "chevron-left"
   | "chevron-right";
 
@@ -291,6 +293,23 @@ function StudioIcon({ name, className = "h-5 w-5" }: { name: StudioIconName; cla
         <path d="M9 18V5l10-2v13" />
         <circle cx="6" cy="18" r="3" />
         <circle cx="16" cy="16" r="3" />
+      </svg>
+    );
+  }
+  if (name === "menu") {
+    return (
+      <svg {...common}>
+        <path d="M4 7h16" />
+        <path d="M4 12h16" />
+        <path d="M4 17h16" />
+      </svg>
+    );
+  }
+  if (name === "x") {
+    return (
+      <svg {...common}>
+        <path d="M18 6 6 18" />
+        <path d="m6 6 12 12" />
       </svg>
     );
   }
@@ -774,10 +793,15 @@ function StudioContent() {
   const [galleryTemplates, setGalleryTemplates] = useState<GalleryTemplate[]>([]);
   const [galleryTemplateNote, setGalleryTemplateNote] = useState("");
   const [homeSlideIndex, setHomeSlideIndex] = useState(0);
+  const [mobileStudioMenuOpen, setMobileStudioMenuOpen] = useState(false);
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
   const trackedLoginSuccessRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setMobileStudioMenuOpen(false);
+  }, [isAppsHome, isProjectsView, mode]);
 
   useEffect(() => {
     if (!isAppsHome) return;
@@ -1779,7 +1803,7 @@ function StudioContent() {
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
           <div className="grid min-h-[calc(100vh-1rem)] lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
             <aside className="hidden border-r border-black/[0.06] bg-white/64 px-3 py-5 lg:flex lg:flex-col lg:items-center">
-              <Link href="/" className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
+              <Link href="/studio?view=home" aria-label="Studio home" className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
                 DF
               </Link>
               <nav className="mt-9 flex flex-1 flex-col items-center gap-4">
@@ -1888,9 +1912,48 @@ function StudioContent() {
             <div className="relative px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12">
               <div className="flex items-start justify-between gap-3 md:items-center md:gap-4">
                 <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
-                  <Link href="/" aria-label="Back to site" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-black/[0.08] bg-white text-lg font-semibold text-[#202633] shadow-sm md:h-10 md:w-10">
-                    &larr;
-                  </Link>
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      aria-label={mobileStudioMenuOpen ? "Close studio menu" : "Open studio menu"}
+                      aria-expanded={mobileStudioMenuOpen}
+                      onClick={() => setMobileStudioMenuOpen((open) => !open)}
+                      className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-[#202633] shadow-sm transition hover:bg-[#f8fbff] lg:hidden"
+                    >
+                      <StudioIcon name={mobileStudioMenuOpen ? "x" : "menu"} className="h-5 w-5" />
+                    </button>
+                    <Link href="/studio?view=home" aria-label="Studio home" className="hidden h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-[#202633] shadow-sm transition hover:bg-[#f8fbff] lg:grid">
+                      <StudioIcon name="home" className="h-5 w-5" />
+                    </Link>
+                    {mobileStudioMenuOpen ? (
+                      <div className="absolute left-0 top-12 z-[60] w-64 rounded-[1.25rem] border border-black/[0.08] bg-white/96 p-2 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl lg:hidden">
+                        {[
+                          { label: "Studio Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
+                          { label: "Image Studio", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
+                          { label: "Video Studio", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
+                          { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView },
+                          { label: "Gallery", href: "/gallery", icon: "gallery" as StudioIconName, active: false },
+                          { label: "Billing", href: "/billing", icon: "sparkles" as StudioIconName, active: false }
+                        ].map((item) => (
+                          <Link
+                            key={item.label}
+                            href={item.href}
+                            onClick={() => setMobileStudioMenuOpen(false)}
+                            className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition ${
+                              item.active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#485164] hover:bg-[#f6f9fc] hover:text-[#202633]"
+                            }`}
+                          >
+                            <span className={`grid h-9 w-9 place-items-center rounded-xl border ${
+                              item.active ? "border-[#bae6fd] bg-white text-[#0ea5e9]" : "border-black/[0.06] bg-white/80 text-[#667085]"
+                            }`}>
+                              <StudioIcon name={item.icon} className="h-4 w-4" />
+                            </span>
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                   <div>
                     <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7] sm:block">DreamFace Apps</p>
                     <h1 className="truncate text-lg font-semibold tracking-tight text-[#202633] sm:text-xl md:text-3xl">
