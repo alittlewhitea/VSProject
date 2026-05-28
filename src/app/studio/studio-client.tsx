@@ -337,10 +337,12 @@ const KLING_IMAGE_VIDEO_RATIO_OPTIONS = ["source"];
 const KLING_TEXT_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1"];
 const VEO_VIDEO_RATIO_OPTIONS = ["16:9", "9:16"];
 const GROK_VIDEO_RATIO_OPTIONS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"];
+const GROK_IMAGE_VIDEO_RATIO_OPTIONS = ["auto", ...GROK_VIDEO_RATIO_OPTIONS];
 const GROK_VIDEO_RESOLUTION_OPTIONS = ["720p", "480p"];
 const SEEDANCE_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p", "480p"];
 const VEO_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p", "4k"];
 const VIDEO_DURATION_OPTIONS = ["3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s"];
+const GROK_VIDEO_DURATION_OPTIONS = ["1s", "2s", ...VIDEO_DURATION_OPTIONS];
 const VEO_VIDEO_DURATION_OPTIONS = ["4s", "6s", "8s"];
 const NANO_ASPECT_RATIO_OPTIONS = ["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"];
 
@@ -415,7 +417,7 @@ const PROVIDER_META: Record<
     shortLabel: "Grok",
     speed: "Fast",
     quality: "Expressive",
-    bestFor: "Fast text-to-video ideas and social clips"
+    bestFor: "Fast text-to-video and image-to-video ideas with 480p/720p output"
   }
 };
 
@@ -450,7 +452,7 @@ const WORKFLOW_META: Record<
     label: "Image to Video",
     description: "Animate a reference image into a short video.",
     recommendedProvider: "kling-video",
-    providers: ["kling-video", "seedance-video"]
+    providers: ["kling-video", "seedance-video", "grok-video"]
   }
 };
 
@@ -925,7 +927,7 @@ function StudioContent() {
     }
 
     const ratioParam = sp.get("ratio");
-    if (ratioParam && [...SEEDANCE_VIDEO_RATIO_OPTIONS, ...GROK_VIDEO_RATIO_OPTIONS, ...KLING_TEXT_VIDEO_RATIO_OPTIONS, ...KLING_IMAGE_VIDEO_RATIO_OPTIONS, ...VEO_VIDEO_RATIO_OPTIONS].includes(ratioParam)) {
+    if (ratioParam && [...SEEDANCE_VIDEO_RATIO_OPTIONS, ...GROK_IMAGE_VIDEO_RATIO_OPTIONS, ...KLING_TEXT_VIDEO_RATIO_OPTIONS, ...KLING_IMAGE_VIDEO_RATIO_OPTIONS, ...VEO_VIDEO_RATIO_OPTIONS].includes(ratioParam)) {
       setRatio(ratioParam);
     }
 
@@ -1168,7 +1170,7 @@ function StudioContent() {
         : provider === "chatgpt-image"
         ? "GPT Image 2 supports preset output sizes. The preview frame updates to match the selected canvas."
         : provider === "grok-video"
-          ? "Grok Imagine Video supports prompt, duration, aspect ratio, and 480p/720p output resolution."
+          ? "Grok Imagine Video supports text-to-video and image-to-video with 1-15 second clips, aspect ratio controls, and 480p/720p output resolution."
           : provider === "seedance-video"
             ? "Seedance 2 supports text-to-video and image-to-video with 480p/720p/1080p, 4-15 second clips, and optional synchronized audio."
             : provider === "kling-video"
@@ -1177,7 +1179,9 @@ function StudioContent() {
                 ? "Veo 3.1 supports prompt-led video with 4s, 6s, or 8s duration, 720p/1080p/4k output, and optional audio."
           : "Use clear subject, style, composition, and constraints for better instruction following.";
   const videoRatioOptions = provider === "grok-video"
-    ? GROK_VIDEO_RATIO_OPTIONS
+    ? activeWorkflow === "image-to-video"
+      ? GROK_IMAGE_VIDEO_RATIO_OPTIONS
+      : GROK_VIDEO_RATIO_OPTIONS
     : provider === "seedance-video"
       ? SEEDANCE_VIDEO_RATIO_OPTIONS
       : provider === "kling-video"
@@ -1192,7 +1196,9 @@ function StudioContent() {
       ? VEO_VIDEO_DURATION_OPTIONS
       : provider === "seedance-video"
         ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 4)
-        : VIDEO_DURATION_OPTIONS;
+        : provider === "grok-video"
+          ? GROK_VIDEO_DURATION_OPTIONS
+          : VIDEO_DURATION_OPTIONS;
   const videoResolutionOptions =
     provider === "seedance-video"
       ? SEEDANCE_VIDEO_RESOLUTION_OPTIONS
@@ -1321,6 +1327,8 @@ function StudioContent() {
       const nextRatio =
         nextProvider === "kling-video" && activeWorkflow === "image-to-video"
           ? "source"
+          : nextProvider === "grok-video" && activeWorkflow === "image-to-video" && ratio === "source"
+            ? "auto"
           : nextProvider === "kling-video" && !KLING_TEXT_VIDEO_RATIO_OPTIONS.includes(ratio)
             ? "16:9"
             : nextProvider === "veo-video" && !VEO_VIDEO_RATIO_OPTIONS.includes(ratio)

@@ -55,7 +55,7 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "seedance-video") return hasReferences ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
   if (provider === "kling-video") return hasReferences ? "fal-ai/kling-video/v3/pro/image-to-video" : "fal-ai/kling-video/v3/pro/text-to-video";
   if (provider === "veo-video") return "fal-ai/veo3.1";
-  if (provider === "grok-video") return "xai/grok-imagine-video/text-to-video";
+  if (provider === "grok-video") return hasReferences ? "xai/grok-imagine-video/image-to-video" : "xai/grok-imagine-video/text-to-video";
   return null;
 }
 

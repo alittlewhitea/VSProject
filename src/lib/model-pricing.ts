@@ -181,7 +181,8 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
   }
 
   if (input.provider === "grok-video") {
-    return creditsFromFalUsd((input.resolution === "480p" ? 0.05 : 0.07) * seconds, seconds * 8);
+    const imageInputPrice = input.hasReferences ? 0.002 : 0;
+    return creditsFromFalUsd((input.resolution === "480p" ? 0.05 : 0.07) * seconds + imageInputPrice, seconds * 8);
   }
 
   if (input.provider === "veo-video") {
@@ -309,6 +310,16 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal lists Grok Imagine Video at $0.05/s for 480p and $0.07/s for 720p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "grok-video", duration: "6s" }),
     unitNote: "9-12 credits/sec"
+  },
+  {
+    provider: "grok-video",
+    label: "Grok Imagine Video I2V",
+    mode: "video",
+    workflow: "Image to Video",
+    endpointId: "xai/grok-imagine-video/image-to-video",
+    falBasis: "fal lists Grok Imagine image-to-video at $0.05/s for 480p, $0.07/s for 720p, plus $0.002 for image input.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "grok-video", duration: "6s", hasReferences: true }),
+    unitNote: "9-12 credits/sec + image input"
   },
   {
     provider: "veo-video",

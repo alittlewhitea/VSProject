@@ -105,7 +105,9 @@ function getModelId(mode: GenerateMode, provider: string, editImage = false): st
       ? process.env.FAL_MODEL_VIDEO_KLING_I2V || "fal-ai/kling-video/v3/pro/image-to-video"
       : process.env.FAL_MODEL_VIDEO_KLING || "fal-ai/kling-video/v3/pro/text-to-video",
     "veo-video": process.env.FAL_MODEL_VIDEO_VEO || "fal-ai/veo3.1",
-    "grok-video": process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/text-to-video"
+    "grok-video": editImage
+      ? process.env.FAL_MODEL_VIDEO_GROK_I2V || "xai/grok-imagine-video/image-to-video"
+      : process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/text-to-video"
   };
 
   return (
@@ -133,6 +135,7 @@ const ACCELERATION_OPTIONS = new Set(["none", "regular", "high"]);
 const SAFETY_TOLERANCES = new Set(["1", "2", "3", "4", "5", "6"]);
 const THINKING_LEVELS = new Set(["minimal", "high"]);
 const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
+const GROK_IMAGE_VIDEO_ASPECT_RATIOS = new Set(["auto", "16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
 const SEEDANCE_VIDEO_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
 const KLING_TEXT_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1"]);
 const VEO_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
@@ -237,11 +240,22 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
+  if (body.mode === "video" && body.provider === "grok-video" && hasInputImages(body)) {
+    const duration = Number.parseInt(body.duration, 10);
+    return {
+      prompt,
+      image_url: firstInputImage(body),
+      duration: Number.isInteger(duration) && duration > 0 && duration <= 15 ? duration : 6,
+      aspect_ratio: GROK_IMAGE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
+      resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p"
+    };
+  }
+
   if (body.provider === "grok-video") {
     const duration = Number.parseInt(body.duration, 10);
     return {
       prompt,
-      duration: Number.isInteger(duration) && duration > 0 ? duration : 6,
+      duration: Number.isInteger(duration) && duration > 0 && duration <= 15 ? duration : 6,
       aspect_ratio: VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
       resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p"
     };
