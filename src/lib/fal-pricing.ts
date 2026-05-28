@@ -52,8 +52,9 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "nano-banana-pro-edit") return "fal-ai/nano-banana-pro/edit";
   if (provider === "flux-image") return "fal-ai/flux/schnell";
   if (provider === "flux-dev") return "fal-ai/flux/dev";
-  if (provider === "seedance-video") return "bytedance/seedance-2.0/image-to-video";
-  if (provider === "kling-video") return "fal-ai/kling-video/v3/pro/image-to-video";
+  if (provider === "seedance-video") return hasReferences ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
+  if (provider === "kling-video") return hasReferences ? "fal-ai/kling-video/v3/pro/image-to-video" : "fal-ai/kling-video/v3/pro/text-to-video";
+  if (provider === "veo-video") return "fal-ai/veo3.1";
   if (provider === "grok-video") return "xai/grok-imagine-video/text-to-video";
   return null;
 }

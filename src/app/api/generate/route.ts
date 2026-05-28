@@ -100,11 +100,11 @@ function getModelId(mode: GenerateMode, provider: string, editImage = false): st
     "recraft-image": process.env.FAL_MODEL_IMAGE_RECRAFT,
     "seedance-video": editImage
       ? process.env.FAL_MODEL_VIDEO_SEEDANCE_I2V || "bytedance/seedance-2.0/image-to-video"
-      : process.env.FAL_MODEL_VIDEO_SEEDANCE,
+      : process.env.FAL_MODEL_VIDEO_SEEDANCE || "bytedance/seedance-2.0/text-to-video",
     "kling-video": editImage
       ? process.env.FAL_MODEL_VIDEO_KLING_I2V || "fal-ai/kling-video/v3/pro/image-to-video"
-      : process.env.FAL_MODEL_VIDEO_KLING,
-    "veo-video": process.env.FAL_MODEL_VIDEO_VEO,
+      : process.env.FAL_MODEL_VIDEO_KLING || "fal-ai/kling-video/v3/pro/text-to-video",
+    "veo-video": process.env.FAL_MODEL_VIDEO_VEO || "fal-ai/veo3.1",
     "grok-video": process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/text-to-video"
   };
 
@@ -134,8 +134,12 @@ const SAFETY_TOLERANCES = new Set(["1", "2", "3", "4", "5", "6"]);
 const THINKING_LEVELS = new Set(["minimal", "high"]);
 const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
 const SEEDANCE_VIDEO_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
+const KLING_TEXT_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1"]);
+const VEO_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p"]);
+const VEO_VIDEO_RESOLUTIONS = new Set(["720p", "1080p", "4k"]);
+const VEO_VIDEO_DURATIONS = new Set(["4s", "6s", "8s"]);
 
 function clampInt(value: unknown, min: number, max: number, fallback: number) {
   const parsed = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
@@ -182,6 +186,19 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
+  if (body.mode === "video" && body.provider === "seedance-video") {
+    const duration = Number.parseInt(body.duration, 10);
+    const seed = optionalSeed(body.seed);
+    return {
+      prompt,
+      duration: String(Number.isInteger(duration) && duration >= 4 && duration <= 15 ? duration : 6),
+      resolution: body.resolution && SEEDANCE_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
+      aspect_ratio: SEEDANCE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
+      generate_audio: Boolean(body.generateAudio),
+      ...(seed !== undefined ? { seed } : {})
+    };
+  }
+
   if (body.mode === "video" && body.provider === "kling-video" && hasInputImages(body)) {
     const duration = Number.parseInt(body.duration, 10);
     return {
@@ -191,6 +208,32 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       generate_audio: Boolean(body.generateAudio),
       negative_prompt: "blur, distort, and low quality",
       cfg_scale: 0.5
+    };
+  }
+
+  if (body.mode === "video" && body.provider === "kling-video") {
+    const duration = Number.parseInt(body.duration, 10);
+    return {
+      prompt,
+      duration: String(Number.isInteger(duration) && duration >= 3 && duration <= 15 ? duration : 5),
+      generate_audio: Boolean(body.generateAudio),
+      aspect_ratio: KLING_TEXT_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
+      negative_prompt: "blur, distort, and low quality",
+      cfg_scale: 0.5
+    };
+  }
+
+  if (body.mode === "video" && body.provider === "veo-video") {
+    const seed = optionalSeed(body.seed);
+    return {
+      prompt,
+      aspect_ratio: VEO_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
+      duration: VEO_VIDEO_DURATIONS.has(body.duration) ? body.duration : "8s",
+      resolution: body.resolution && VEO_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
+      generate_audio: Boolean(body.generateAudio),
+      auto_fix: true,
+      safety_tolerance: body.safetyTolerance && SAFETY_TOLERANCES.has(body.safetyTolerance) ? body.safetyTolerance : "4",
+      ...(seed !== undefined ? { seed } : {})
     };
   }
 

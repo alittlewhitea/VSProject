@@ -185,10 +185,15 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
   }
 
   if (input.provider === "veo-video") {
-    if (dynamicSecondPrice) {
-      return creditsFromFalUsd(dynamicSecondPrice * seconds, seconds * 24);
-    }
-    return seconds * 32;
+    const baseSecondPrice =
+      input.resolution === "4k"
+        ? input.generateAudio
+          ? 0.6
+          : 0.4
+        : input.generateAudio
+          ? 0.4
+          : 0.2;
+    return creditsFromFalUsd(baseSecondPrice * seconds, seconds * 24);
   }
 
   return seconds * 20;
@@ -259,6 +264,16 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     provider: "seedance-video",
     label: "Seedance 2.0",
     mode: "video",
+    workflow: "Text to Video",
+    endpointId: "bytedance/seedance-2.0/text-to-video",
+    falBasis: "fal lists Seedance 2.0 text-to-video at $0.3034/s for 720p and $0.682/s for 1080p.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-video", duration: "6s" }),
+    unitNote: "51 credits/sec at 720p"
+  },
+  {
+    provider: "seedance-video",
+    label: "Seedance 2.0 I2V",
+    mode: "video",
     workflow: "Image to Video",
     endpointId: "bytedance/seedance-2.0/image-to-video",
     falBasis: "fal lists Seedance 2.0 image-to-video at $0.3034/s for 720p and $0.682/s for 1080p.",
@@ -268,6 +283,16 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
   {
     provider: "kling-video",
     label: "Kling v3 Pro",
+    mode: "video",
+    workflow: "Text to Video",
+    endpointId: "fal-ai/kling-video/v3/pro/text-to-video",
+    falBasis: "fal lists Kling v3 Pro text-to-video at $0.112/s without audio and $0.168/s with native audio.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "kling-video", duration: "6s" }),
+    unitNote: "19 credits/sec without audio"
+  },
+  {
+    provider: "kling-video",
+    label: "Kling v3 Pro I2V",
     mode: "video",
     workflow: "Image to Video",
     endpointId: "fal-ai/kling-video/v3/pro/image-to-video",
@@ -284,5 +309,15 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal lists Grok Imagine Video at $0.05/s for 480p and $0.07/s for 720p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "grok-video", duration: "6s" }),
     unitNote: "9-12 credits/sec"
+  },
+  {
+    provider: "veo-video",
+    label: "Veo 3.1",
+    mode: "video",
+    workflow: "Text to Video",
+    endpointId: "fal-ai/veo3.1",
+    falBasis: "fal lists Veo 3.1 at $0.20/s without audio or $0.40/s with audio for 720p/1080p; 4k costs more.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "veo-video", duration: "8s" }),
+    unitNote: "34-68 credits/sec at 720p"
   }
 ];

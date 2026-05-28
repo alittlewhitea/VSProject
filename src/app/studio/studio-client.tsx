@@ -333,11 +333,15 @@ const IMAGE_SIZE_PRESETS = [
 
 const DEFAULT_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1"];
 const SEEDANCE_VIDEO_RATIO_OPTIONS = ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"];
-const KLING_VIDEO_RATIO_OPTIONS = ["source"];
+const KLING_IMAGE_VIDEO_RATIO_OPTIONS = ["source"];
+const KLING_TEXT_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1"];
+const VEO_VIDEO_RATIO_OPTIONS = ["16:9", "9:16"];
 const GROK_VIDEO_RATIO_OPTIONS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"];
 const GROK_VIDEO_RESOLUTION_OPTIONS = ["720p", "480p"];
 const SEEDANCE_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p", "480p"];
+const VEO_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p", "4k"];
 const VIDEO_DURATION_OPTIONS = ["3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s"];
+const VEO_VIDEO_DURATION_OPTIONS = ["4s", "6s", "8s"];
 const NANO_ASPECT_RATIO_OPTIONS = ["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"];
 
 const PROVIDER_META: Record<
@@ -390,21 +394,21 @@ const PROVIDER_META: Record<
     shortLabel: "Seedance",
     speed: "Medium",
     quality: "Cinematic motion",
-    bestFor: "Prompt-led video and image-to-video motion tests"
+    bestFor: "Cinematic text-to-video and image-to-video with native audio"
   },
   "kling-video": {
     label: "Kling v3 Pro",
     shortLabel: "Kling",
     speed: "Medium",
     quality: "Premium motion",
-    bestFor: "Image-to-video with stronger camera movement"
+    bestFor: "Premium text-to-video or image-to-video with stronger camera movement"
   },
   "veo-video": {
-    label: "Veo",
-    shortLabel: "Veo",
+    label: "Veo 3.1",
+    shortLabel: "Veo 3.1",
     speed: "Slower",
     quality: "Premium",
-    bestFor: "High-end video experiments when available"
+    bestFor: "High-end prompt-led video with audio, 1080p, and 4k options"
   },
   "grok-video": {
     label: "Grok Imagine Video",
@@ -440,7 +444,7 @@ const WORKFLOW_META: Record<
     label: "Text to Video",
     description: "Turn a written scene into a short video.",
     recommendedProvider: "grok-video",
-    providers: ["grok-video"]
+    providers: ["grok-video", "kling-video", "seedance-video", "veo-video"]
   },
   "image-to-video": {
     label: "Image to Video",
@@ -921,7 +925,7 @@ function StudioContent() {
     }
 
     const ratioParam = sp.get("ratio");
-    if (ratioParam && [...GROK_VIDEO_RATIO_OPTIONS, "1:1", "4:3", "3:4", "16:9", "9:16"].includes(ratioParam)) {
+    if (ratioParam && [...SEEDANCE_VIDEO_RATIO_OPTIONS, ...GROK_VIDEO_RATIO_OPTIONS, ...KLING_TEXT_VIDEO_RATIO_OPTIONS, ...KLING_IMAGE_VIDEO_RATIO_OPTIONS, ...VEO_VIDEO_RATIO_OPTIONS].includes(ratioParam)) {
       setRatio(ratioParam);
     }
 
@@ -937,7 +941,7 @@ function StudioContent() {
     }
 
     const resolutionParam = sp.get("resolution");
-    if (resolutionParam && GROK_VIDEO_RESOLUTION_OPTIONS.includes(resolutionParam)) {
+    if (resolutionParam && [...GROK_VIDEO_RESOLUTION_OPTIONS, ...SEEDANCE_VIDEO_RESOLUTION_OPTIONS, ...VEO_VIDEO_RESOLUTION_OPTIONS].includes(resolutionParam)) {
       setVideoResolution(resolutionParam);
     }
 
@@ -1166,23 +1170,37 @@ function StudioContent() {
         : provider === "grok-video"
           ? "Grok Imagine Video supports prompt, duration, aspect ratio, and 480p/720p output resolution."
           : provider === "seedance-video"
-            ? "Seedance 2 image-to-video supports 480p, 720p, 1080p, 4-15 second clips, source/end frame motion, and optional synchronized audio."
+            ? "Seedance 2 supports text-to-video and image-to-video with 480p/720p/1080p, 4-15 second clips, and optional synchronized audio."
             : provider === "kling-video"
-              ? "Kling v3 Pro image-to-video uses a start image, 3-15 second duration, cinematic motion, and optional native audio."
+              ? "Kling v3 Pro supports 3-15 second text-to-video and image-to-video with cinematic motion and optional native audio."
+              : provider === "veo-video"
+                ? "Veo 3.1 supports prompt-led video with 4s, 6s, or 8s duration, 720p/1080p/4k output, and optional audio."
           : "Use clear subject, style, composition, and constraints for better instruction following.";
   const videoRatioOptions = provider === "grok-video"
     ? GROK_VIDEO_RATIO_OPTIONS
     : provider === "seedance-video"
       ? SEEDANCE_VIDEO_RATIO_OPTIONS
       : provider === "kling-video"
-        ? KLING_VIDEO_RATIO_OPTIONS
-        : DEFAULT_VIDEO_RATIO_OPTIONS;
-  const videoDurationOptions = provider === "seedance-video"
-    ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 4)
-    : VIDEO_DURATION_OPTIONS;
-  const videoResolutionOptions = provider === "seedance-video" ? SEEDANCE_VIDEO_RESOLUTION_OPTIONS : GROK_VIDEO_RESOLUTION_OPTIONS;
-  const showVideoResolutionControl = mode === "video" && (provider === "grok-video" || provider === "seedance-video");
-  const showVideoAudioControl = mode === "video" && (provider === "seedance-video" || provider === "kling-video");
+        ? activeWorkflow === "image-to-video"
+          ? KLING_IMAGE_VIDEO_RATIO_OPTIONS
+          : KLING_TEXT_VIDEO_RATIO_OPTIONS
+        : provider === "veo-video"
+          ? VEO_VIDEO_RATIO_OPTIONS
+          : DEFAULT_VIDEO_RATIO_OPTIONS;
+  const videoDurationOptions =
+    provider === "veo-video"
+      ? VEO_VIDEO_DURATION_OPTIONS
+      : provider === "seedance-video"
+        ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 4)
+        : VIDEO_DURATION_OPTIONS;
+  const videoResolutionOptions =
+    provider === "seedance-video"
+      ? SEEDANCE_VIDEO_RESOLUTION_OPTIONS
+      : provider === "veo-video"
+        ? VEO_VIDEO_RESOLUTION_OPTIONS
+        : GROK_VIDEO_RESOLUTION_OPTIONS;
+  const showVideoResolutionControl = mode === "video" && (provider === "grok-video" || provider === "seedance-video" || provider === "veo-video");
+  const showVideoAudioControl = mode === "video" && (provider === "seedance-video" || provider === "kling-video" || provider === "veo-video");
   const showTextToImageTemplates = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "text-to-image";
   const providerSettingsLabel =
     provider === "chatgpt-image"
@@ -1192,6 +1210,19 @@ function StudioContent() {
         : mode === "image"
           ? `${editResolution} / safety ${safetyTolerance} / ${numImages} image${numImages > 1 ? "s" : ""}`
           : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / audio on" : " / audio off" : ""}`;
+
+  useEffect(() => {
+    if (mode !== "video") return;
+    if (!videoRatioOptions.includes(ratio)) {
+      setRatio(videoRatioOptions.includes("auto") ? "auto" : videoRatioOptions[0] || "16:9");
+    }
+    if (!videoDurationOptions.includes(duration)) {
+      setDuration(provider === "veo-video" ? "8s" : videoDurationOptions[0] || "6s");
+    }
+    if (showVideoResolutionControl && !videoResolutionOptions.includes(videoResolution)) {
+      setVideoResolution(videoResolutionOptions[0] || "720p");
+    }
+  }, [duration, mode, provider, ratio, showVideoResolutionControl, videoDurationOptions, videoRatioOptions, videoResolution, videoResolutionOptions]);
 
   useEffect(() => {
     if (!showTextToImageTemplates) return;
@@ -1250,7 +1281,7 @@ function StudioContent() {
       setRatio(ratioFromImageSize(nextImageSize));
     } else {
       setRatio("16:9");
-      setDuration("6s");
+      setDuration(nextProvider === "veo-video" ? "8s" : "6s");
     }
     trackEvent("studio_workflow_selected", { mode: nextMode, workflow: nextWorkflow, provider: nextProvider }, accessToken);
     const params = new URLSearchParams(sp.toString());
@@ -1287,9 +1318,25 @@ function StudioContent() {
       params.set("ratio", nextProvider === "nano-banana-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
       router.replace(`/studio?${params.toString()}`, { scroll: false });
     } else {
-      const nextRatio = nextProvider === "kling-video" ? "source" : ratio === "source" ? "auto" : ratio;
+      const nextRatio =
+        nextProvider === "kling-video" && activeWorkflow === "image-to-video"
+          ? "source"
+          : nextProvider === "kling-video" && !KLING_TEXT_VIDEO_RATIO_OPTIONS.includes(ratio)
+            ? "16:9"
+            : nextProvider === "veo-video" && !VEO_VIDEO_RATIO_OPTIONS.includes(ratio)
+              ? "16:9"
+              : ratio === "source"
+                ? "auto"
+                : ratio;
       if (nextProvider === "seedance-video" && Number.parseInt(duration, 10) < 4) {
         setDuration("4s");
+      }
+      if (nextProvider === "veo-video" && !VEO_VIDEO_DURATION_OPTIONS.includes(duration)) {
+        setDuration("8s");
+      }
+      const nextResolution = nextProvider === "veo-video" && !VEO_VIDEO_RESOLUTION_OPTIONS.includes(videoResolution) ? "720p" : videoResolution;
+      if (nextResolution !== videoResolution) {
+        setVideoResolution("720p");
       }
       setRatio(nextRatio);
       const params = new URLSearchParams(sp.toString());
@@ -1297,8 +1344,8 @@ function StudioContent() {
       params.set("workflow", activeWorkflow);
       params.set("provider", nextProvider);
       params.set("ratio", nextRatio);
-      if (nextProvider === "grok-video" || nextProvider === "seedance-video") {
-        params.set("resolution", videoResolution);
+      if (nextProvider === "grok-video" || nextProvider === "seedance-video" || nextProvider === "veo-video") {
+        params.set("resolution", nextResolution);
       } else {
         params.delete("resolution");
       }
@@ -1492,7 +1539,7 @@ function StudioContent() {
         resolution:
           mode === "image"
             ? editResolution
-            : mode === "video" && (provider === "grok-video" || provider === "seedance-video")
+            : mode === "video" && (provider === "grok-video" || provider === "seedance-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
         generateAudio: mode === "video" ? generateAudio : undefined,
@@ -1504,7 +1551,7 @@ function StudioContent() {
         enableSafetyChecker: mode === "image" ? enableSafetyChecker : undefined,
         acceleration: mode === "image" ? acceleration : undefined,
         limitGenerations: mode === "image" ? limitGenerations : undefined,
-        seed: mode === "image" && Number.isSafeInteger(parsedSeed) ? parsedSeed : undefined,
+        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "seedance-video" || provider === "veo-video") ? parsedSeed : undefined,
         safetyTolerance: mode === "image" ? safetyTolerance : undefined,
         systemPrompt: mode === "image" && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" ? enableWebSearch : undefined,
@@ -2488,7 +2535,7 @@ function StudioContent() {
                             <option key={item} value={item}>{item}</option>
                           ))}
                         </select>
-                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={provider === "kling-video"} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none disabled:opacity-70 sm:w-auto">
+                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={provider === "kling-video" && activeWorkflow === "image-to-video"} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none disabled:opacity-70 sm:w-auto">
                           {videoRatioOptions.map((item) => (
                             <option key={item} value={item}>{item === "source" ? "Source image" : item}</option>
                           ))}
@@ -3165,7 +3212,7 @@ function StudioContent() {
                     <option value="webp">WEBP</option>
                   </select>
                 </label>
-              ) : mode === "video" && provider === "grok-video" ? (
+              ) : showVideoResolutionControl ? (
                 <label className="block">
                   <span className="text-sm text-[#5f6779]">Resolution</span>
                   <select
@@ -3180,7 +3227,7 @@ function StudioContent() {
                     }}
                     className="motion-smooth mt-2 w-full rounded-xl border border-black/10 bg-white/90 p-3 text-[#1d1d1f] outline-none focus:border-[#77a8e8]"
                   >
-                    {GROK_VIDEO_RESOLUTION_OPTIONS.map((item) => (
+                    {videoResolutionOptions.map((item) => (
                       <option key={item} value={item}>
                         {item}
                       </option>
