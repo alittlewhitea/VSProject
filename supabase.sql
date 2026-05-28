@@ -1,7 +1,7 @@
 create table if not exists public.generation_tasks (
   id text primary key,
   user_id uuid not null,
-  mode text not null check (mode in ('image', 'video')),
+  mode text not null check (mode in ('image', 'video', 'audio')),
   provider text not null,
   prompt text not null,
   status text not null check (status in ('queued', 'running', 'completed', 'failed')),
@@ -23,6 +23,11 @@ create table if not exists public.generation_tasks (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.generation_tasks
+  drop constraint if exists generation_tasks_mode_check;
+alter table public.generation_tasks
+  add constraint generation_tasks_mode_check check (mode in ('image', 'video', 'audio'));
 
 alter table public.generation_tasks
   add column if not exists title text,

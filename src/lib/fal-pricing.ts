@@ -19,7 +19,7 @@ type FalModelEndpointCache = {
 export type LiveModelPricingRow = {
   provider: string;
   label: string;
-  mode: "image" | "video";
+  mode: "image" | "video" | "audio";
   workflow: string;
   endpointId: string;
   falBasis: string;
@@ -52,10 +52,12 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "nano-banana-pro-edit") return "fal-ai/nano-banana-pro/edit";
   if (provider === "flux-image") return "fal-ai/flux/schnell";
   if (provider === "flux-dev") return "fal-ai/flux/dev";
+  if (provider === "topaz-image") return "fal-ai/topaz/upscale/image";
   if (provider === "seedance-video") return hasReferences ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
   if (provider === "kling-video") return hasReferences ? "fal-ai/kling-video/v3/pro/image-to-video" : "fal-ai/kling-video/v3/pro/text-to-video";
   if (provider === "veo-video") return "fal-ai/veo3.1";
   if (provider === "grok-video") return hasReferences ? "xai/grok-imagine-video/image-to-video" : "xai/grok-imagine-video/text-to-video";
+  if (provider === "elevenlabs-tts") return "fal-ai/elevenlabs/tts/eleven-v3";
   return null;
 }
 
@@ -75,7 +77,7 @@ function normalizeFalPricingEntry(entry: unknown): FalPricingResponse | null {
   const unitPrice = Number(data.unit_price ?? data.unitPrice ?? data.price);
   if (!Number.isFinite(unitPrice) || unitPrice <= 0) return null;
   const unit = typeof data.unit === "string" ? data.unit : null;
-  const supportedUnits = new Set(["image", "images", "second", "seconds", "megapixel", "megapixels"]);
+  const supportedUnits = new Set(["image", "images", "second", "seconds", "megapixel", "megapixels", "character", "characters"]);
   if (unit && !supportedUnits.has(unit.toLowerCase())) return null;
   return {
     unit_price: unitPrice,
@@ -217,7 +219,7 @@ export async function getFalModelPricing(endpointId: string) {
 }
 
 export async function estimateGenerationCreditsWithLivePricing(input: {
-  mode: "image" | "video";
+  mode: "image" | "video" | "audio";
   provider: string;
   imageSize?: string | null;
   duration?: string | null;
@@ -228,6 +230,7 @@ export async function estimateGenerationCreditsWithLivePricing(input: {
   enableWebSearch?: boolean | null;
   thinkingLevel?: string | null;
   generateAudio?: boolean | null;
+  promptText?: string | null;
 }) {
   const endpointId = endpointForProvider(input.provider, input.hasReferences);
   const livePricing = endpointId ? await getFalModelPricing(endpointId) : null;
@@ -248,6 +251,7 @@ export async function getLiveModelPricingRows(): Promise<LiveModelPricingRow[]> 
         duration: row.mode === "video" ? "6s" : undefined,
         imageSize: row.provider === "flux-image" ? "landscape_16_9" : "default_4_3",
         hasReferences: row.workflow.toLowerCase().includes("image to image"),
+        promptText: row.mode === "audio" ? "A 1000 character voiceover script." : undefined,
         falUnitPriceUsd: live?.unit_price ?? null
       });
 

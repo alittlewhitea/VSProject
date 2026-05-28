@@ -14,11 +14,11 @@ import {
 } from "../../../lib/credits";
 import { estimateGenerationCreditsWithLivePricing } from "../../../lib/fal-pricing";
 
-type GenerateMode = "image" | "video";
+type GenerateMode = "image" | "video" | "audio";
 
 type GenerateRequest = {
   mode: GenerateMode;
-  imageWorkflow?: "text-to-image" | "image-to-image";
+  imageWorkflow?: "text-to-image" | "image-to-image" | "enhance-cleanup";
   provider: string;
   ratio: string;
   duration: string;
@@ -40,12 +40,15 @@ type GenerateRequest = {
   enableWebSearch?: boolean;
   thinkingLevel?: string;
   generateAudio?: boolean;
+  voice?: string;
+  stability?: number;
+  textNormalization?: string;
   idempotencyKey?: string;
 };
 
 type ExistingTask = {
   id: string;
-  mode: "image" | "video";
+  mode: "image" | "video" | "audio";
   provider: string;
   status: "queued" | "running" | "completed" | "failed";
   estimated_credits: number;
@@ -63,7 +66,7 @@ function isValidBody(body: unknown): body is GenerateRequest {
 
   const payload = body as Record<string, unknown>;
   return (
-    (payload.mode === "image" || payload.mode === "video") &&
+    (payload.mode === "image" || payload.mode === "video" || payload.mode === "audio") &&
     typeof payload.provider === "string" &&
     typeof payload.ratio === "string" &&
     typeof payload.duration === "string" &&
@@ -90,6 +93,7 @@ function getModelId(mode: GenerateMode, provider: string, editImage = false): st
       : process.env.FAL_MODEL_IMAGE_CHATGPT || "openai/gpt-image-2",
     "flux-image": process.env.FAL_MODEL_IMAGE_FLUX || "fal-ai/flux/schnell",
     "flux-dev": process.env.FAL_MODEL_IMAGE_FLUX_DEV || "fal-ai/flux/dev",
+    "topaz-image": process.env.FAL_MODEL_IMAGE_TOPAZ || "fal-ai/topaz/upscale/image",
     "nano-banana-image": editImage
       ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit"
       : process.env.FAL_MODEL_IMAGE_NANO_BANANA || "fal-ai/nano-banana-2",
@@ -107,12 +111,17 @@ function getModelId(mode: GenerateMode, provider: string, editImage = false): st
     "veo-video": process.env.FAL_MODEL_VIDEO_VEO || "fal-ai/veo3.1",
     "grok-video": editImage
       ? process.env.FAL_MODEL_VIDEO_GROK_I2V || "xai/grok-imagine-video/image-to-video"
-      : process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/text-to-video"
+      : process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/text-to-video",
+    "elevenlabs-tts": process.env.FAL_MODEL_AUDIO_ELEVENLABS || "fal-ai/elevenlabs/tts/eleven-v3"
   };
 
   return (
     keyByProvider[provider] ||
-    (mode === "image" ? process.env.FAL_MODEL_IMAGE_DEFAULT : process.env.FAL_MODEL_VIDEO_DEFAULT) ||
+    (mode === "image"
+      ? process.env.FAL_MODEL_IMAGE_DEFAULT
+      : mode === "audio"
+        ? process.env.FAL_MODEL_AUDIO_DEFAULT
+        : process.env.FAL_MODEL_VIDEO_DEFAULT) ||
     null
   );
 }
@@ -134,6 +143,7 @@ const IMAGE_QUALITIES = new Set(["auto", "low", "medium", "high"]);
 const ACCELERATION_OPTIONS = new Set(["none", "regular", "high"]);
 const SAFETY_TOLERANCES = new Set(["1", "2", "3", "4", "5", "6"]);
 const THINKING_LEVELS = new Set(["minimal", "high"]);
+const TTS_TEXT_NORMALIZATION_OPTIONS = new Set(["auto", "on", "off"]);
 const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
 const GROK_IMAGE_VIDEO_ASPECT_RATIOS = new Set(["auto", "16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
 const SEEDANCE_VIDEO_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
@@ -177,6 +187,27 @@ function getFalImageSize(ratio: string, imageSize?: string) {
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
+  if (body.mode === "audio" && body.provider === "elevenlabs-tts") {
+    return {
+      text: prompt,
+      voice: typeof body.voice === "string" && body.voice.trim() ? body.voice.trim().slice(0, 80) : "Rachel",
+      stability: clampNumber(body.stability, 0, 1, 0.5),
+      apply_text_normalization: body.textNormalization && TTS_TEXT_NORMALIZATION_OPTIONS.has(body.textNormalization) ? body.textNormalization : "auto"
+    };
+  }
+
+  if (body.mode === "image" && body.provider === "topaz-image") {
+    return {
+      image_url: firstInputImage(body),
+      model: "Standard V2",
+      upscale_factor: 2,
+      output_format: body.outputFormat && new Set(["jpeg", "png"]).has(body.outputFormat) ? body.outputFormat : "jpeg",
+      subject_detection: "All",
+      face_enhancement: true,
+      face_enhancement_strength: 0.8
+    };
+  }
+
   if (body.mode === "video" && body.provider === "seedance-video" && hasInputImages(body)) {
     const duration = Number.parseInt(body.duration, 10);
     return {
@@ -364,7 +395,9 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
         ? "image-to-image"
         : body.mode === "video" && imageUrls.length
           ? "image-to-video"
-          : body.imageWorkflow || (body.mode === "video" ? "text-to-video" : "text-to-image"),
+          : body.mode === "audio"
+            ? "text-to-audio"
+            : body.imageWorkflow || (body.mode === "video" ? "text-to-video" : "text-to-image"),
     provider: body.provider,
     model_id: modelId,
     ratio: body.ratio,
@@ -385,7 +418,10 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     system_prompt: cleanSystemPrompt(body.systemPrompt) || null,
     enable_web_search: typeof body.enableWebSearch === "boolean" ? body.enableWebSearch : null,
     thinking_level: body.thinkingLevel || null,
-    generate_audio: typeof body.generateAudio === "boolean" ? body.generateAudio : null
+    generate_audio: typeof body.generateAudio === "boolean" ? body.generateAudio : null,
+    voice: body.voice || null,
+    stability: typeof body.stability === "number" ? body.stability : null,
+    text_normalization: body.textNormalization || null
   };
 }
 
@@ -483,12 +519,16 @@ export async function POST(request: Request) {
       numImages: body.numImages,
       enableWebSearch: body.enableWebSearch,
       thinkingLevel: body.thinkingLevel,
-      generateAudio: body.generateAudio
+      generateAudio: body.generateAudio,
+      promptText: prompt
     });
     if (body.mode === "image" && body.provider === "nano-banana-edit") {
       if (!imageUrls.length) {
         return NextResponse.json({ error: "Image to Image requires at least one reference image." }, { status: 400 });
       }
+    }
+    if (body.mode === "image" && body.provider === "topaz-image" && !imageUrls.length) {
+      return NextResponse.json({ error: "Enhance & Cleanup requires one image for Topaz upscale." }, { status: 400 });
     }
     const falKey = process.env.FAL_KEY;
     const modelId = getModelId(body.mode, body.provider, hasInputImages(body));

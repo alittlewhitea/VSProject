@@ -1,4 +1,4 @@
-export type PricingMode = "image" | "video";
+export type PricingMode = "image" | "video" | "audio";
 
 export type GenerationEstimateInput = {
   mode: PricingMode;
@@ -13,6 +13,7 @@ export type GenerationEstimateInput = {
   enableWebSearch?: boolean | null;
   thinkingLevel?: string | null;
   generateAudio?: boolean | null;
+  promptText?: string | null;
 };
 
 export type ModelPricingRow = {
@@ -165,7 +166,19 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
       return 12 * multiplier;
     }
 
+    if (input.provider === "topaz-image") {
+      return creditsFromFalUsd(0.08, 12) * multiplier;
+    }
+
     return 12;
+  }
+
+  if (input.mode === "audio") {
+    if (input.provider === "elevenlabs-tts") {
+      const characters = Math.max(1, input.promptText?.trim().length || 1000);
+      return creditsFromFalUsd((characters / 1000) * 0.1, 4);
+    }
+    return 8;
   }
 
   const seconds = secondsFromDuration(input.duration);
@@ -262,6 +275,16 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     unitNote: "12 credits"
   },
   {
+    provider: "topaz-image",
+    label: "Topaz Upscale",
+    mode: "image",
+    workflow: "Image enhance",
+    endpointId: "fal-ai/topaz/upscale/image",
+    falBasis: "fal lists Topaz upscale at $0.08 for a single image up to 24MP output.",
+    typicalCredits: estimateGenerationCredits({ mode: "image", provider: "topaz-image", hasReferences: true }),
+    unitNote: "14 credits"
+  },
+  {
     provider: "seedance-video",
     label: "Seedance 2.0",
     mode: "video",
@@ -320,6 +343,16 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal lists Grok Imagine image-to-video at $0.05/s for 480p, $0.07/s for 720p, plus $0.002 for image input.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "grok-video", duration: "6s", hasReferences: true }),
     unitNote: "9-12 credits/sec + image input"
+  },
+  {
+    provider: "elevenlabs-tts",
+    label: "ElevenLabs Eleven v3",
+    mode: "audio",
+    workflow: "Text to Audio",
+    endpointId: "fal-ai/elevenlabs/tts/eleven-v3",
+    falBasis: "fal lists ElevenLabs Eleven v3 text-to-speech at $0.10 per 1000 characters.",
+    typicalCredits: estimateGenerationCredits({ mode: "audio", provider: "elevenlabs-tts", promptText: "A 1000 character voiceover script." }),
+    unitNote: "17 credits / 1000 chars"
   },
   {
     provider: "veo-video",

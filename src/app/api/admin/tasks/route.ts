@@ -8,7 +8,7 @@ const TASK_SELECT =
 type TaskRow = {
   id: string;
   user_id: string;
-  mode: "image" | "video";
+  mode: "image" | "video" | "audio";
   provider: string;
   prompt: string;
   status: "queued" | "running" | "completed" | "failed";

@@ -7,6 +7,8 @@ function getExtFromContentType(contentType: string | null): string {
   if (contentType.includes("image/webp")) return "webp";
   if (contentType.includes("video/mp4")) return "mp4";
   if (contentType.includes("video/webm")) return "webm";
+  if (contentType.includes("audio/mpeg") || contentType.includes("audio/mp3")) return "mp3";
+  if (contentType.includes("audio/wav")) return "wav";
   return "bin";
 }
 
@@ -50,4 +52,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unable to download asset." }, { status: 500 });
   }
 }
-

@@ -12,7 +12,7 @@ import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
 type TaskItem = {
   id: string;
-  type: "Image" | "Video";
+  type: "Image" | "Video" | "Audio";
   status: TaskStatus;
   cost: number;
   title?: string | null;
@@ -36,7 +36,7 @@ type TaskItem = {
 type StudioLoginDraft = {
   createdAt: string;
   autoSubmit: boolean;
-  mode: "image" | "video";
+  mode: "image" | "video" | "audio";
   provider: string;
   imageWorkflow: "text-to-image" | "image-to-image";
   videoWorkflow?: "text-to-video" | "image-to-video";
@@ -64,7 +64,7 @@ type StudioLoginDraft = {
   thinkingLevel?: string;
 };
 
-type StudioWorkflow = "text-to-image" | "image-to-image" | "text-to-video" | "image-to-video";
+type StudioWorkflow = "text-to-image" | "image-to-image" | "text-to-video" | "image-to-video" | "text-to-audio";
 type GalleryTemplate = {
   id: string;
   title: string;
@@ -155,7 +155,7 @@ const TOOLKIT_APPS: Array<{
     title: "Image to Image",
     body: "Upload references to restyle, edit, extend, or keep product and character continuity.",
     icon: "wand",
-    href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
+    href: "/studio?mode=image&workflow=image-to-image&provider=topaz-image",
     accent: "from-[#fce7f3] to-[#eff6ff]",
     iconClass: "text-[#06b6d4]"
   },
@@ -185,9 +185,9 @@ const TOOLKIT_APPS: Array<{
   },
   {
     title: "Text to Audio",
-    body: "Generate music beds, sound design ideas, and short audio prompts for creative assets.",
+    body: "Generate voiceovers from scripts with natural ElevenLabs speech.",
     icon: "audio",
-    href: "/studio?mode=video&workflow=text-to-video",
+    href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts",
     accent: "from-[#fef9c3] to-[#dcfce7]",
     iconClass: "text-[#10b981]"
   }
@@ -391,6 +391,13 @@ const PROVIDER_META: Record<
     quality: "Better composition",
     bestFor: "Higher quality drafts and refined visual concepts"
   },
+  "topaz-image": {
+    label: "Topaz Upscale",
+    shortLabel: "Topaz",
+    speed: "Medium",
+    quality: "Enhance",
+    bestFor: "Enhance & Cleanup upscaling, clarity, and face enhancement from an uploaded image"
+  },
   "seedance-video": {
     label: "Seedance 2.0",
     shortLabel: "Seedance",
@@ -418,6 +425,13 @@ const PROVIDER_META: Record<
     speed: "Fast",
     quality: "Expressive",
     bestFor: "Fast text-to-video and image-to-video ideas with 480p/720p output"
+  },
+  "elevenlabs-tts": {
+    label: "ElevenLabs Eleven v3",
+    shortLabel: "Eleven v3",
+    speed: "Fast",
+    quality: "Voiceover",
+    bestFor: "Text-to-speech voiceovers from scripts with ElevenLabs voices"
   }
 };
 
@@ -440,7 +454,7 @@ const WORKFLOW_META: Record<
     label: "Image to Image",
     description: "Upload references and edit, restyle, or extend them.",
     recommendedProvider: "nano-banana-image",
-    providers: ["nano-banana-image", "chatgpt-image", "nano-banana-pro"]
+    providers: ["nano-banana-image", "topaz-image", "chatgpt-image", "nano-banana-pro"]
   },
   "text-to-video": {
     label: "Text to Video",
@@ -453,6 +467,12 @@ const WORKFLOW_META: Record<
     description: "Animate a reference image into a short video.",
     recommendedProvider: "kling-video",
     providers: ["kling-video", "seedance-video", "grok-video"]
+  },
+  "text-to-audio": {
+    label: "Text to Audio",
+    description: "Turn a written script into a voiceover.",
+    recommendedProvider: "elevenlabs-tts",
+    providers: ["elevenlabs-tts"]
   }
 };
 
@@ -588,6 +608,11 @@ function pickMediaUrl(result: unknown): string | null {
     }
   }
 
+  const image = payload.image;
+  if (image && typeof image === "object" && typeof (image as Record<string, unknown>).url === "string") {
+    return (image as Record<string, string>).url;
+  }
+
   const video = payload.video;
   if (video && typeof video === "object" && typeof (video as Record<string, unknown>).url === "string") {
     return (video as Record<string, string>).url;
@@ -601,15 +626,22 @@ function pickMediaUrl(result: unknown): string | null {
     }
   }
 
+  const audio = payload.audio;
+  if (audio && typeof audio === "object" && typeof (audio as Record<string, unknown>).url === "string") {
+    return (audio as Record<string, string>).url;
+  }
+
   return null;
 }
 
-function estimateTaskSeconds(type: "image" | "video", provider: string | undefined, duration: string) {
+function estimateTaskSeconds(type: "image" | "video" | "audio", provider: string | undefined, duration: string) {
   if (type === "image") {
+    if (provider === "topaz-image") return 150;
     if (provider === "flux-image" || provider === "flux-dev") return 120;
     if (provider === "recraft-image") return 75;
     return 90;
   }
+  if (type === "audio") return 60;
   if (duration === "10s") return 150;
   if (duration === "8s") return 125;
   return 95;
@@ -658,8 +690,8 @@ function studioProjectHref(taskId?: string) {
 }
 
 function regenerateHref(task: TaskItem) {
-  const mode = task.type === "Image" ? "image" : "video";
-  const workflow = task.type === "Image" ? "text-to-image" : "text-to-video";
+  const mode = task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video";
+  const workflow = task.type === "Image" ? "text-to-image" : task.type === "Audio" ? "text-to-audio" : "text-to-video";
   const params = new URLSearchParams({ mode, workflow });
   if (task.provider) params.set("provider", task.provider);
   if (task.prompt) params.set("prompt", task.prompt);
@@ -668,7 +700,7 @@ function regenerateHref(task: TaskItem) {
 
 function useAsReferenceHref(task: TaskItem) {
   const params = new URLSearchParams({
-    mode: task.type === "Image" ? "image" : "video",
+    mode: task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video",
     workflow: task.type === "Image" ? "image-to-image" : "image-to-video"
   });
   if (task.mediaUrl) params.set("reference", task.mediaUrl);
@@ -711,14 +743,15 @@ function defaultImageSizeForProvider(provider: string) {
   return "default_4_3";
 }
 
-function isProviderAllowedForMode(provider: string | null, mode: "image" | "video") {
+function isProviderAllowedForMode(provider: string | null, mode: "image" | "video" | "audio") {
   if (!provider) return false;
-  return mode === "image"
-    ? ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image"].includes(provider)
-    : ["seedance-video", "kling-video", "veo-video", "grok-video"].includes(provider);
+  if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image"].includes(provider);
+  if (mode === "audio") return ["elevenlabs-tts"].includes(provider);
+  return ["seedance-video", "kling-video", "veo-video", "grok-video"].includes(provider);
 }
 
-function workflowForMode(mode: "image" | "video", workflow: string | null): StudioWorkflow {
+function workflowForMode(mode: "image" | "video" | "audio", workflow: string | null): StudioWorkflow {
+  if (mode === "audio") return "text-to-audio";
   if (mode === "image") return workflow === "image-to-image" ? "image-to-image" : "text-to-image";
   return workflow === "image-to-video" ? "image-to-video" : "text-to-video";
 }
@@ -732,7 +765,7 @@ function providerForWorkflow(workflow: StudioWorkflow, requestedProvider?: strin
 function taskProgress(task: Pick<TaskItem, "status" | "createdAt" | "type" | "provider">, duration: string) {
   if (task.status === "Completed") return 100;
   if (task.status === "Failed") return 100;
-  const estimate = estimateTaskSeconds(task.type === "Image" ? "image" : "video", task.provider, duration);
+  const estimate = estimateTaskSeconds(task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video", task.provider, duration);
   const startedAt = task.createdAt ? new Date(task.createdAt).getTime() : Date.now();
   const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
   const base = task.status === "Running" ? 25 : 8;
@@ -742,7 +775,7 @@ function taskProgress(task: Pick<TaskItem, "status" | "createdAt" | "type" | "pr
 function StudioContent() {
   const router = useRouter();
   const sp = useSearchParams();
-  const mode = sp.get("mode") === "image" ? "image" : "video";
+  const mode = sp.get("mode") === "image" ? "image" : sp.get("mode") === "audio" ? "audio" : "video";
   const view = sp.get("view");
   const isProjectsView = view === "projects";
   const isAppsHome = view === "home" || (!view && !sp.get("mode") && !sp.get("workflow"));
@@ -788,7 +821,7 @@ function StudioContent() {
   const [systemPrompt, setSystemPrompt] = useState("");
   const [enableWebSearch, setEnableWebSearch] = useState(false);
   const [thinkingLevel, setThinkingLevel] = useState("");
-  const [duration, setDuration] = useState(mode === "image" ? "single" : "6s");
+  const [duration, setDuration] = useState(mode === "video" ? "6s" : "single");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [statusTone, setStatusTone] = useState<"ok" | "error" | "idle">("idle");
@@ -872,7 +905,7 @@ function StudioContent() {
   }, []);
 
   useEffect(() => {
-    const workflow = mode === "image" ? imageWorkflow : videoWorkflow;
+    const workflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : videoWorkflow;
     const key = `${mode}:${provider}:${workflow}`;
     if (trackedStudioViewRef.current === key) return;
     trackedStudioViewRef.current = key;
@@ -892,7 +925,7 @@ function StudioContent() {
     const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
     setRatio(mode === "image" ? ratioFromImageSize(nextImageSize) : "16:9");
     setImageSize(nextImageSize);
-    setDuration(mode === "image" ? "single" : "6s");
+    setDuration(mode === "video" ? "6s" : "single");
     setStatusText("");
     setStatusTone("idle");
   }, [mode, sp]);
@@ -969,7 +1002,7 @@ function StudioContent() {
         const payload = (await response.json()) as {
           tasks: Array<{
             id: string;
-            mode: "image" | "video";
+            mode: "image" | "video" | "audio";
             provider?: string;
             prompt?: string;
             status: "queued" | "running" | "completed" | "failed";
@@ -993,7 +1026,7 @@ function StudioContent() {
         };
         const remoteTasks: TaskItem[] = payload.tasks.map((t) => ({
           id: t.id,
-          type: t.mode === "image" ? "Image" : "Video",
+          type: t.mode === "image" ? "Image" : t.mode === "audio" ? "Audio" : "Video",
           status:
             t.status === "queued"
               ? "Queued"
@@ -1112,7 +1145,7 @@ function StudioContent() {
   }, [tasks, userId]);
 
   const options = useMemo(
-    () => WORKFLOW_META[mode === "image" ? imageWorkflow : videoWorkflow].providers.map((value) => ({ value, label: PROVIDER_META[value]?.label || value })),
+    () => WORKFLOW_META[mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : videoWorkflow].providers.map((value) => ({ value, label: PROVIDER_META[value]?.label || value })),
     [imageWorkflow, mode, videoWorkflow]
   );
 
@@ -1123,7 +1156,7 @@ function StudioContent() {
       .filter(Boolean),
     ...referenceImageFiles
   ].slice(0, 14);
-  const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : videoWorkflow;
+  const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : videoWorkflow;
   const activeWorkflowMeta = WORKFLOW_META[activeWorkflow];
 
   const estCredits = estimateGenerationCredits({
@@ -1137,7 +1170,8 @@ function StudioContent() {
     quality: imageQuality,
     numImages: mode === "image" ? numImages : 1,
     enableWebSearch,
-    thinkingLevel
+    thinkingLevel,
+    promptText: prompt
   });
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
@@ -1159,7 +1193,7 @@ function StudioContent() {
   const latestActiveProgress = latestActiveTask ? taskProgress(latestActiveTask, duration) : 0;
   const selectedImageSize = getImageSizePreset(imageSize);
   const videoPreviewRatio = ratio.includes(":") ? ratio.replace(":", " / ") : "16 / 9";
-  const previewAspectRatio = mode === "image" ? `${selectedImageSize.width} / ${selectedImageSize.height}` : videoPreviewRatio;
+  const previewAspectRatio = mode === "image" ? `${selectedImageSize.width} / ${selectedImageSize.height}` : mode === "audio" ? "16 / 7" : videoPreviewRatio;
   const modelPreviewUrl = hasCompletedCreation ? null : defaultPreviewForProvider(provider);
   const isModelPreviewVideo = provider === "grok-video";
   const providerNote =
@@ -1169,6 +1203,8 @@ function StudioContent() {
         ? "FLUX Dev is better for higher quality drafts when you want more refined composition than Schnell."
         : provider === "chatgpt-image"
         ? "GPT Image 2 supports preset output sizes. The preview frame updates to match the selected canvas."
+        : provider === "topaz-image"
+          ? "Topaz Upscale enhances an uploaded image with 2x upscale, clarity, and face enhancement."
         : provider === "grok-video"
           ? "Grok Imagine Video supports text-to-video and image-to-video with 1-15 second clips, aspect ratio controls, and 480p/720p output resolution."
           : provider === "seedance-video"
@@ -1177,6 +1213,8 @@ function StudioContent() {
               ? "Kling v3 Pro supports 3-15 second text-to-video and image-to-video with cinematic motion and optional native audio."
               : provider === "veo-video"
                 ? "Veo 3.1 supports prompt-led video with 4s, 6s, or 8s duration, 720p/1080p/4k output, and optional audio."
+                : provider === "elevenlabs-tts"
+                  ? "ElevenLabs Eleven v3 turns your script into an MP3 voiceover. Pricing scales by character count."
           : "Use clear subject, style, composition, and constraints for better instruction following.";
   const videoRatioOptions = provider === "grok-video"
     ? activeWorkflow === "image-to-video"
@@ -1215,6 +1253,8 @@ function StudioContent() {
         ? `${numInferenceSteps} steps / guidance ${guidanceScale} / ${outputFormat.toUpperCase()}`
         : mode === "image"
           ? `${editResolution} / safety ${safetyTolerance} / ${numImages} image${numImages > 1 ? "s" : ""}`
+          : mode === "audio"
+            ? `${prompt.trim().length || 0} chars / voice Rachel`
           : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / audio on" : " / audio off" : ""}`;
 
   useEffect(() => {
@@ -1259,7 +1299,7 @@ function StudioContent() {
   }, [hasCompletedCreation]);
 
   function applyWorkflow(nextWorkflow: StudioWorkflow) {
-    const nextMode = nextWorkflow === "text-to-image" || nextWorkflow === "image-to-image" ? "image" : "video";
+    const nextMode = nextWorkflow === "text-to-image" || nextWorkflow === "image-to-image" ? "image" : nextWorkflow === "text-to-audio" ? "audio" : "video";
     const nextProvider = providerForWorkflow(nextWorkflow, provider);
       if (nextMode === "image") {
       setImageWorkflow(nextWorkflow as "text-to-image" | "image-to-image");
@@ -1268,12 +1308,15 @@ function StudioContent() {
         setReferenceImageFiles([]);
       }
       setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
-    } else {
+    } else if (nextMode === "video") {
       setVideoWorkflow(nextWorkflow as "text-to-video" | "image-to-video");
       if (nextWorkflow === "text-to-video") {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
       }
+    } else {
+      setReferenceImagesText("");
+      setReferenceImageFiles([]);
     }
     setProvider(nextProvider);
     if (nextProvider === "nano-banana-image" || nextProvider === "nano-banana-pro") {
@@ -1285,9 +1328,12 @@ function StudioContent() {
     if (nextMode === "image") {
       setImageSize(nextImageSize);
       setRatio(ratioFromImageSize(nextImageSize));
-    } else {
+    } else if (nextMode === "video") {
       setRatio("16:9");
       setDuration(nextProvider === "veo-video" ? "8s" : "6s");
+    } else {
+      setRatio("16:9");
+      setDuration("single");
     }
     trackEvent("studio_workflow_selected", { mode: nextMode, workflow: nextWorkflow, provider: nextProvider }, accessToken);
     const params = new URLSearchParams(sp.toString());
@@ -1297,6 +1343,9 @@ function StudioContent() {
     if (nextMode === "image") {
       params.set("imageSize", nextImageSize);
       params.set("ratio", ratioFromImageSize(nextImageSize));
+    } else if (nextMode === "video") {
+      params.delete("imageSize");
+      params.set("ratio", "16:9");
     } else {
       params.delete("imageSize");
       params.set("ratio", "16:9");
@@ -1310,18 +1359,30 @@ function StudioContent() {
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
     if (mode === "image") {
-      setReferenceImagesText("");
-      setReferenceImageFiles([]);
+      if (nextProvider !== "topaz-image") {
+        setReferenceImagesText("");
+        setReferenceImageFiles([]);
+      }
+      if (nextProvider === "topaz-image") setImageWorkflow("image-to-image");
       const nextImageSize = defaultImageSizeForProvider(nextProvider);
       setImageSize(nextImageSize);
       setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
-      setRatio(nextProvider === "nano-banana-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
+      setRatio(nextProvider === "nano-banana-image" || nextProvider === "topaz-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "image");
-      params.set("workflow", activeWorkflow);
+      params.set("workflow", nextProvider === "topaz-image" ? "image-to-image" : activeWorkflow);
       params.set("provider", nextProvider);
       params.set("imageSize", nextImageSize);
-      params.set("ratio", nextProvider === "nano-banana-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
+      params.set("ratio", nextProvider === "nano-banana-image" || nextProvider === "topaz-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
+      router.replace(`/studio?${params.toString()}`, { scroll: false });
+    } else if (mode === "audio") {
+      setReferenceImagesText("");
+      setReferenceImageFiles([]);
+      const params = new URLSearchParams(sp.toString());
+      params.set("mode", "audio");
+      params.set("workflow", "text-to-audio");
+      params.set("provider", nextProvider);
+      params.delete("imageSize");
       router.replace(`/studio?${params.toString()}`, { scroll: false });
     } else {
       const nextRatio =
@@ -1503,7 +1564,7 @@ function StudioContent() {
     setStatusTone("idle");
     setStatusText("Submitting task...");
 
-    const taskType: TaskItem["type"] = mode === "image" ? "Image" : "Video";
+    const taskType: TaskItem["type"] = mode === "image" ? "Image" : mode === "audio" ? "Audio" : "Video";
     let idempotencyStorageKey: string | null = null;
     try {
       const supabase = createBrowserSupabaseClient();
@@ -1563,7 +1624,10 @@ function StudioContent() {
         safetyTolerance: mode === "image" ? safetyTolerance : undefined,
         systemPrompt: mode === "image" && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" ? enableWebSearch : undefined,
-        thinkingLevel: mode === "image" && thinkingLevel ? thinkingLevel : undefined
+        thinkingLevel: mode === "image" && thinkingLevel ? thinkingLevel : undefined,
+        voice: mode === "audio" ? "Rachel" : undefined,
+        stability: mode === "audio" ? 0.5 : undefined,
+        textNormalization: mode === "audio" ? "auto" : undefined
       };
       const fingerprint = createIdempotencyFingerprint({
         ...requestPayload,
@@ -1599,7 +1663,7 @@ function StudioContent() {
         responseUrl?: string | null;
         storageWarning?: string;
         provider?: string;
-        mode?: "image" | "video";
+        mode?: "image" | "video" | "audio";
         estimatedCredits?: number;
         balance?: number;
         duplicate?: boolean;
@@ -1901,13 +1965,15 @@ function StudioContent() {
                   { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName },
                   { label: "Image", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName },
                   { label: "Video", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName },
+                  { label: "Audio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName },
                   { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName }
                 ].map((item) => {
                   const active =
                     (item.label === "Home" && isAppsHome) ||
                     (item.label === "Projects" && isProjectsView) ||
                     (!isAppsHome && !isProjectsView && item.label === "Image" && mode === "image") ||
-                    (!isAppsHome && !isProjectsView && item.label === "Video" && mode === "video");
+                    (!isAppsHome && !isProjectsView && item.label === "Video" && mode === "video") ||
+                    (!isAppsHome && !isProjectsView && item.label === "Audio" && mode === "audio");
                   if (item.label === "Image") {
                     return (
                       <div key={item.label} className="group relative w-full">
@@ -1983,6 +2049,7 @@ function StudioContent() {
                 { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
                 { label: "Image", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
                 { label: "Video", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
+                { label: "Audio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
                 { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView }
               ].map((item) => (
                 <Link
@@ -2027,6 +2094,7 @@ function StudioContent() {
                           { label: "Studio Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
                           { label: "Image Studio", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
                           { label: "Video Studio", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
+                          { label: "Audio Studio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
                           { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView }
                         ].map((item) => (
                           <Link
@@ -2052,7 +2120,7 @@ function StudioContent() {
                   <div>
                     <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7] sm:block">DreamFace Apps</p>
                     <h1 className="truncate text-lg font-semibold tracking-tight text-[#202633] sm:text-xl md:text-3xl">
-                      {isProjectsView ? "Projects" : isAppsHome ? "Creative AI Toolkit" : mode === "image" ? "AI Image Generator" : "AI Video Generator"}
+                      {isProjectsView ? "Projects" : isAppsHome ? "Creative AI Toolkit" : mode === "image" ? "AI Image Generator" : mode === "audio" ? "AI Audio Generator" : "AI Video Generator"}
                     </h1>
                     <p className="mt-1 hidden text-sm text-[#8b95a7] sm:block">
                       {isProjectsView
@@ -2073,6 +2141,14 @@ function StudioContent() {
                     <Link href="/studio?view=projects" className="hidden rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] sm:inline-flex">
                       Projects
                     </Link>
+                  ) : mode === "audio" ? (
+                    <button
+                      type="button"
+                      onClick={() => applyWorkflow("text-to-audio")}
+                      className="rounded-full border border-[#bae6fd] bg-[#e8f7ff] px-4 py-2 text-sm font-semibold text-[#0284c7] shadow-sm"
+                    >
+                      Text to Audio
+                    </button>
                   ) : (
                     <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="rounded-full bg-[#202633] px-3 py-2 text-xs font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] md:rounded-2xl md:px-4 md:text-sm">
                       Sign in
@@ -2267,10 +2343,15 @@ function StudioContent() {
                               {selectedProjectTask.mediaUrl ? (
                                 selectedProjectTask.type === "Video" ? (
                                   <video src={selectedProjectTask.mediaUrl} controls className="max-h-[420px] w-full rounded-[1.2rem] object-contain md:max-h-[620px]" />
+                                ) : selectedProjectTask.type === "Audio" ? (
+                                  <div className="w-full max-w-xl rounded-[1.4rem] border border-white/10 bg-white/[0.08] p-6 text-white shadow-[0_30px_90px_rgba(0,0,0,0.25)]">
+                                    <p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-white/45">Voiceover</p>
+                                    <audio src={selectedProjectTask.mediaUrl} controls className="w-full" />
+                                  </div>
                                 ) : (
                                   <button
                                     type="button"
-                                    onClick={() => setPreviewModal({ url: selectedProjectTask.mediaUrl || "", type: selectedProjectTask.type })}
+                                    onClick={() => setPreviewModal({ url: selectedProjectTask.mediaUrl || "", type: "Image" })}
                                     className="block max-h-[420px] max-w-full overflow-hidden rounded-[1.2rem] shadow-[0_30px_90px_rgba(0,0,0,0.38)] transition hover:scale-[1.01] md:max-h-[620px]"
                                   >
                                     <img src={selectedProjectTask.mediaUrl} alt={selectedProjectTask.id} className="max-h-[420px] w-full object-contain md:max-h-[620px]" />
@@ -2325,7 +2406,7 @@ function StudioContent() {
                                 <Link href={regenerateHref(selectedProjectTask)} className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]">
                                   {selectedProjectTask.status === "Failed" ? "Retry" : "Regenerate"}
                                 </Link>
-                                {selectedProjectTask.mediaUrl ? (
+                                {selectedProjectTask.mediaUrl && selectedProjectTask.type !== "Audio" ? (
                                   <Link href={useAsReferenceHref(selectedProjectTask)} className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]">
                                     Use reference
                                   </Link>
@@ -2441,6 +2522,8 @@ function StudioContent() {
                       placeholder={
                         mode === "image"
                           ? "Type your prompt to create images. Add a reference with + when you want image-to-image..."
+                          : mode === "audio"
+                            ? "Type the voiceover script you want ElevenLabs to speak..."
                           : activeWorkflow === "image-to-video"
                             ? "Describe how the uploaded image should move, the camera feel, and final mood..."
                             : "Type your prompt to create AI video footage..."
@@ -2477,6 +2560,7 @@ function StudioContent() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5 border-t border-black/[0.06] bg-[#fbfcff] px-5 py-4 sm:flex sm:flex-wrap sm:items-center md:px-7">
+                    {mode !== "audio" ? (
                     <label
                       title="Add reference images"
                       className="col-span-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-black/[0.08] bg-white text-sm font-semibold text-[#475467] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:grid sm:h-10 sm:w-10 sm:place-items-center sm:rounded-full sm:text-xl sm:font-light"
@@ -2491,6 +2575,7 @@ function StudioContent() {
                         onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
                       />
                     </label>
+                    ) : null}
                     <div className="hidden h-7 w-px bg-black/[0.08] sm:block" />
                     <select
                       value={provider}
@@ -2536,6 +2621,10 @@ function StudioContent() {
                           ))}
                         </select>
                       )
+                    ) : mode === "audio" ? (
+                      <span className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] sm:w-auto">
+                        Rachel / Stability 0.5
+                      </span>
                     ) : (
                       <>
                         <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">

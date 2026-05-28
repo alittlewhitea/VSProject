@@ -10,7 +10,7 @@ type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
 
 type CreationTask = {
   id: string;
-  type: "Image" | "Video";
+  type: "Image" | "Video" | "Audio";
   status: TaskStatus;
   cost: number;
   title?: string | null;
@@ -35,7 +35,7 @@ type CreationTask = {
 
 type ApiTask = {
   id: string;
-  mode: "image" | "video";
+  mode: "image" | "video" | "audio";
   provider?: string;
   prompt?: string;
   status: "queued" | "running" | "completed" | "failed";
@@ -67,6 +67,10 @@ function pickMediaUrl(result: unknown): string | null {
     const first = payload.images[0] as Record<string, unknown>;
     if (typeof first.url === "string") return first.url;
   }
+  if (payload.image && typeof payload.image === "object") {
+    const image = payload.image as Record<string, unknown>;
+    if (typeof image.url === "string") return image.url;
+  }
   if (payload.video && typeof payload.video === "object") {
     const video = payload.video as Record<string, unknown>;
     if (typeof video.url === "string") return video.url;
@@ -74,6 +78,10 @@ function pickMediaUrl(result: unknown): string | null {
   if (Array.isArray(payload.videos) && payload.videos[0] && typeof payload.videos[0] === "object") {
     const first = payload.videos[0] as Record<string, unknown>;
     if (typeof first.url === "string") return first.url;
+  }
+  if (payload.audio && typeof payload.audio === "object") {
+    const audio = payload.audio as Record<string, unknown>;
+    if (typeof audio.url === "string") return audio.url;
   }
   return null;
 }
@@ -85,11 +93,13 @@ function providerLabel(provider?: string) {
     "nano-banana-edit": "Nano Banana 2 Edit",
     "flux-image": "FLUX Schnell",
     "flux-dev": "FLUX Dev",
+    "topaz-image": "Topaz Upscale",
     "recraft-image": "Recraft",
     "seedance-video": "Seedance",
     "kling-video": "Kling",
     "veo-video": "Veo",
-    "grok-video": "Grok Imagine Video"
+    "grok-video": "Grok Imagine Video",
+    "elevenlabs-tts": "ElevenLabs Eleven v3"
   };
   return provider ? labels[provider] || provider : "Unknown provider";
 }
@@ -119,7 +129,7 @@ function valueText(value: unknown) {
 function taskFromApi(task: ApiTask): CreationTask {
   return {
     id: task.id,
-    type: task.mode === "image" ? "Image" : "Video",
+    type: task.mode === "image" ? "Image" : task.mode === "audio" ? "Audio" : "Video",
     status:
       task.status === "queued"
         ? "Queued"
@@ -152,9 +162,9 @@ function taskFromApi(task: ApiTask): CreationTask {
 
 function regenerateHref(task: CreationTask) {
   const settings = task.settings || {};
-  const workflow = typeof settings.workflow === "string" ? settings.workflow : task.type === "Image" ? "text-to-image" : "text-to-video";
+  const workflow = typeof settings.workflow === "string" ? settings.workflow : task.type === "Image" ? "text-to-image" : task.type === "Audio" ? "text-to-audio" : "text-to-video";
   const params = new URLSearchParams({
-    mode: task.type === "Image" ? "image" : "video",
+    mode: task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video",
     workflow
   });
   if (task.prompt) params.set("prompt", task.prompt);
@@ -334,6 +344,11 @@ export function CreationDetailClient({ taskId }: { taskId: string }) {
               {task.mediaUrl ? (
                 task.type === "Video" ? (
                   <video src={task.mediaUrl} controls className="max-h-[760px] w-full rounded-2xl bg-black object-contain" />
+                ) : task.type === "Audio" ? (
+                  <div className="rounded-2xl bg-[#eef2f7] p-6">
+                    <p className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#667487]">Voiceover</p>
+                    <audio src={task.mediaUrl} controls className="w-full" />
+                  </div>
                 ) : (
                   <button
                     type="button"

@@ -11,7 +11,7 @@ type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
 
 type CreationTask = {
   id: string;
-  type: "Image" | "Video";
+  type: "Image" | "Video" | "Audio";
   status: TaskStatus;
   cost: number;
   title?: string | null;
@@ -39,7 +39,7 @@ type CreationTask = {
 
 type ApiTask = {
   id: string;
-  mode: "image" | "video";
+  mode: "image" | "video" | "audio";
   provider?: string;
   prompt?: string;
   status: "queued" | "running" | "completed" | "failed";
@@ -75,6 +75,10 @@ function pickMediaUrl(result: unknown): string | null {
     const first = payload.images[0] as Record<string, unknown>;
     if (typeof first.url === "string") return first.url;
   }
+  if (payload.image && typeof payload.image === "object") {
+    const image = payload.image as Record<string, unknown>;
+    if (typeof image.url === "string") return image.url;
+  }
   if (payload.video && typeof payload.video === "object") {
     const video = payload.video as Record<string, unknown>;
     if (typeof video.url === "string") return video.url;
@@ -82,6 +86,10 @@ function pickMediaUrl(result: unknown): string | null {
   if (Array.isArray(payload.videos) && payload.videos[0] && typeof payload.videos[0] === "object") {
     const first = payload.videos[0] as Record<string, unknown>;
     if (typeof first.url === "string") return first.url;
+  }
+  if (payload.audio && typeof payload.audio === "object") {
+    const audio = payload.audio as Record<string, unknown>;
+    if (typeof audio.url === "string") return audio.url;
   }
   return null;
 }
@@ -136,10 +144,13 @@ function providerLabel(provider?: string) {
     "nano-banana-edit": "Nano Banana 2 Edit",
     "flux-image": "FLUX Schnell",
     "flux-dev": "FLUX Dev",
+    "topaz-image": "Topaz Upscale",
     "recraft-image": "Recraft",
     "seedance-video": "Seedance",
     "kling-video": "Kling",
-    "veo-video": "Veo"
+    "veo-video": "Veo",
+    "grok-video": "Grok Imagine Video",
+    "elevenlabs-tts": "ElevenLabs Eleven v3"
   };
   return provider ? labels[provider] || provider : "Unknown provider";
 }
@@ -151,7 +162,7 @@ function taskTitle(task: CreationTask) {
 function taskFromApi(task: ApiTask): CreationTask {
   return {
     id: task.id,
-    type: task.mode === "image" ? "Image" : "Video",
+    type: task.mode === "image" ? "Image" : task.mode === "audio" ? "Audio" : "Video",
     status:
       task.status === "queued"
         ? "Queued"
@@ -187,9 +198,10 @@ function taskFromApi(task: ApiTask): CreationTask {
 
 function regenerateHref(task: CreationTask) {
   const params = new URLSearchParams({
-    mode: task.type === "Image" ? "image" : "video"
+    mode: task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video"
   });
   if (task.type === "Image") params.set("workflow", "text-to-image");
+  if (task.type === "Audio") params.set("workflow", "text-to-audio");
   if (task.prompt) params.set("prompt", task.prompt);
   if (task.provider) params.set("provider", task.provider);
   if (task.ratio) params.set("ratio", task.ratio);
@@ -472,6 +484,8 @@ export default function CreationsPage() {
                       {task.mediaUrl ? (
                         task.type === "Video" ? (
                           <video src={task.mediaUrl} className="h-full w-full object-cover" muted />
+                        ) : task.type === "Audio" ? (
+                          <span className="text-xs font-semibold text-[#667084]">Audio</span>
                         ) : (
                           <img src={task.mediaUrl} alt={task.id} className="h-full w-full object-cover" />
                         )
@@ -684,6 +698,11 @@ export default function CreationsPage() {
                   {selectedTask.mediaUrl ? (
                     selectedTask.type === "Video" ? (
                       <video src={selectedTask.mediaUrl} controls className="max-h-[680px] w-full rounded-xl bg-black object-contain" />
+                    ) : selectedTask.type === "Audio" ? (
+                      <div className="rounded-xl bg-[#eef2f7] p-6">
+                        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#667487]">Voiceover</p>
+                        <audio src={selectedTask.mediaUrl} controls className="w-full" />
+                      </div>
                     ) : (
                       <button
                         type="button"

@@ -26,7 +26,7 @@ type LedgerRow = {
 
 type TaskRow = {
   id: string;
-  mode: "image" | "video";
+  mode: "image" | "video" | "audio";
   provider?: string;
   prompt?: string;
   status: "queued" | "running" | "completed" | "failed";
@@ -92,6 +92,10 @@ function extractMediaUrl(result: unknown): string | null {
     const first = payload.images[0] as Record<string, unknown>;
     if (typeof first.url === "string") return first.url;
   }
+  if (payload.image && typeof payload.image === "object") {
+    const image = payload.image as Record<string, unknown>;
+    if (typeof image.url === "string") return image.url;
+  }
   if (payload.video && typeof payload.video === "object") {
     const video = payload.video as Record<string, unknown>;
     if (typeof video.url === "string") return video.url;
@@ -99,6 +103,10 @@ function extractMediaUrl(result: unknown): string | null {
   if (Array.isArray(payload.videos) && payload.videos[0] && typeof payload.videos[0] === "object") {
     const first = payload.videos[0] as Record<string, unknown>;
     if (typeof first.url === "string") return first.url;
+  }
+  if (payload.audio && typeof payload.audio === "object") {
+    const audio = payload.audio as Record<string, unknown>;
+    if (typeof audio.url === "string") return audio.url;
   }
   return null;
 }
