@@ -2,21 +2,45 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trackEvent } from "../lib/analytics";
 import { createBrowserSupabaseClient } from "../lib/supabase-client";
 
 export function TopNav() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
-  const [active, setActive] = useState("products");
+  const [active, setActive] = useState("platform");
   const [email, setEmail] = useState<string | null>(null);
+  const [platformMenuOpen, setPlatformMenuOpen] = useState(false);
+  const platformCloseTimerRef = useRef<number | null>(null);
+
+  function openPlatformMenu() {
+    if (platformCloseTimerRef.current) {
+      window.clearTimeout(platformCloseTimerRef.current);
+      platformCloseTimerRef.current = null;
+    }
+    setPlatformMenuOpen(true);
+  }
+
+  function schedulePlatformMenuClose() {
+    if (platformCloseTimerRef.current) window.clearTimeout(platformCloseTimerRef.current);
+    platformCloseTimerRef.current = window.setTimeout(() => {
+      setPlatformMenuOpen(false);
+      platformCloseTimerRef.current = null;
+    }, 180);
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     onScroll();
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (platformCloseTimerRef.current) window.clearTimeout(platformCloseTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -37,7 +61,7 @@ export function TopNav() {
   useEffect(() => {
     if (pathname !== "/") return;
 
-    const ids = ["products", "providers", "platform", "pricing"];
+    const ids = ["platform", "providers", "pricing"];
     const obs = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -71,10 +95,75 @@ export function TopNav() {
           </Link>
           <span className="hidden h-7 w-px bg-black/12 lg:block" />
           <nav className="hidden gap-7 whitespace-nowrap text-base font-bold text-[#2f2f32] lg:flex">
-            <a onClick={() => trackEvent("nav_clicked", { item: "products", target: "/#products" })} className={pathname === "/" && active === "products" ? "text-[#111]" : ""} href="/#products">Products</a>
+            <div onMouseEnter={openPlatformMenu} onMouseLeave={schedulePlatformMenuClose}>
+              <a
+                onClick={() => trackEvent("nav_clicked", { item: "platform", target: "/#platform" })}
+                className={`rounded-full px-4 py-2 transition ${platformMenuOpen ? "bg-[#e8f7ff]" : ""} ${pathname === "/" && active === "platform" ? "text-[#111]" : ""}`}
+                href="/#platform"
+              >
+                Platform
+              </a>
+              <div
+                onMouseEnter={openPlatformMenu}
+                onMouseLeave={schedulePlatformMenuClose}
+                className={`absolute left-6 right-6 top-full z-50 pt-2 transition duration-150 ${
+                  platformMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden rounded-[2rem] border border-[#08bff1] bg-white shadow-[0_28px_90px_rgba(15,23,42,0.16)]">
+                  <div className="grid gap-10 px-8 py-8 xl:grid-cols-[0.8fr_1.2fr]">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#303238]">Products</p>
+                      <div className="mt-6 space-y-5 border-t border-[#1dc9ff] pt-5">
+                        <Link href="/studio?view=home" className="block rounded-2xl bg-[linear-gradient(120deg,#10bff3,#a3adff_58%,#f29df7)] px-5 py-4 text-white shadow-[0_18px_38px_rgba(16,191,243,0.24)]">
+                          <span className="rounded-full border border-white/35 bg-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em]">Featured</span>
+                          <span className="mt-3 block text-xl font-black">Creative AI Toolkit</span>
+                          <span className="mt-1 block text-sm font-semibold text-white/86">Open every DreamFace workspace from one hub</span>
+                        </Link>
+                        {[
+                          ["AI Image Studio", "Create images from prompts or reference assets", "/studio?mode=image&workflow=text-to-image"],
+                          ["AI Video Studio", "Turn text or images into polished video", "/studio?mode=video&workflow=text-to-video"],
+                          ["AI Audio Generator", "Generate ElevenLabs voiceovers from scripts", "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts"],
+                          ["Projects", "Manage creations, prompts, refunds, and history", "/studio?view=projects"]
+                        ].map(([title, body, href]) => (
+                          <Link key={title} href={href} className="block rounded-2xl px-4 py-2 transition hover:bg-[#f3f8ff]">
+                            <span className="block text-lg font-black text-[#202124]">{title}</span>
+                            <span className="mt-1 block text-sm font-semibold text-[#6b7280]">{body}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#303238]">Create</p>
+                      <div className="mt-6 grid gap-x-10 gap-y-5 border-t border-[#1dc9ff] pt-7 md:grid-cols-2">
+                        {[
+                          ["Text to Image", "Generate polished ads, posters, thumbnails, and concepts", "/studio?mode=image&workflow=text-to-image"],
+                          ["Image to Image", "Edit, restyle, or extend reference images", "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image"],
+                          ["Image Enhance", "Upscale and clean up owned images", "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image"],
+                          ["Text to Video", "Turn written scenes into short motion clips", "/studio?mode=video&workflow=text-to-video"],
+                          ["Image to Video", "Animate a product, portrait, or reference frame", "/studio?mode=video&workflow=image-to-video"],
+                          ["Text to Audio", "Create natural voiceovers from scripts", "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts"]
+                        ].map(([title, body, href]) => (
+                          <Link key={title} href={href} className="block rounded-2xl px-4 py-3 transition hover:bg-[#f7fbff]">
+                            <span className="block text-lg font-black text-[#202124]">{title}</span>
+                            <span className="mt-1 block text-sm font-semibold text-[#6b7280]">{body}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <Link href="/price" className="flex items-center justify-between bg-[linear-gradient(90deg,#10bff3,#9cb3ff_58%,#f29df7)] px-8 py-5 text-white">
+                    <span>
+                      <span className="rounded-full border border-white/40 bg-white/15 px-4 py-1 text-xs font-black uppercase tracking-[0.14em]">Pay as you go</span>
+                      <span className="ml-5 text-xl font-black">Credit packs for individuals</span>
+                    </span>
+                    <span className="text-2xl font-black">-&gt;</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
             <a onClick={() => trackEvent("nav_clicked", { item: "providers", target: "/#providers" })} className={pathname === "/" && active === "providers" ? "text-[#111]" : ""} href="/#providers">Providers</a>
             <Link onClick={() => trackEvent("nav_clicked", { item: "gallery", target: "/gallery" })} className={pathname?.startsWith("/gallery") ? "text-[#111]" : ""} href="/gallery">Gallery</Link>
-            <a onClick={() => trackEvent("nav_clicked", { item: "platform", target: "/#platform" })} className={pathname === "/" && active === "platform" ? "text-[#111]" : ""} href="/#platform">Platform</a>
             <Link onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className={pathname?.startsWith("/price") || pathname?.startsWith("/billing") || (pathname === "/" && active === "pricing") ? "text-[#111]" : ""} href="/price">Pricing</Link>
           </nav>
         </div>

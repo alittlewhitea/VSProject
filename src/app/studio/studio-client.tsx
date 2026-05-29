@@ -1971,7 +1971,7 @@ function StudioContent() {
               dreamface
             </Link>
             <nav className="hidden items-center gap-5 text-sm text-white/48 lg:flex">
-              <Link className="transition hover:text-white" href="/#products">Products</Link>
+              <Link className="transition hover:text-white" href="/#platform">Platform</Link>
               <Link className="transition hover:text-white" href="/#providers">Providers</Link>
               <Link className="transition hover:text-white" href="/gallery">Gallery</Link>
               <Link className="transition hover:text-white" href="/#platform">Platform</Link>
@@ -2157,6 +2157,7 @@ function StudioContent() {
                       />
                       <div className="fixed left-4 top-[4.45rem] z-[60] w-[min(17rem,calc(100vw-2rem))] rounded-[1.15rem] border border-black/[0.08] bg-white p-1.5 shadow-[0_18px_52px_rgba(15,23,42,0.20)] lg:hidden">
                         {[
+                          { label: "DreamFace Home", href: "https://dreamface.io/", icon: "home" as StudioIconName, active: false },
                           { label: "Studio Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
                           { label: "Image Studio", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
                           { label: "Video Studio", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
@@ -2557,7 +2558,7 @@ function StudioContent() {
                       Image Studio / Text + Reference
                     </button>
                     </>
-                  ) : (
+                  ) : mode === "video" ? (
                     (["text-to-video", "image-to-video"] as StudioWorkflow[]).map((workflow) => {
                       const active = activeWorkflow === workflow;
                       return (
@@ -2575,6 +2576,8 @@ function StudioContent() {
                         </button>
                       );
                     })
+                  ) : (
+                    null
                   )}
                 </div>
 

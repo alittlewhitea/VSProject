@@ -196,14 +196,14 @@ export default async function HomePage() {
         ) : null}
 
         <Reveal>
-          <section id="products" className="section-shell mt-14 border-t border-black/10 pt-14 md:mt-24 md:pt-24">
+          <section id="platform" className="section-shell mt-14 border-t border-black/10 pt-14 md:mt-24 md:pt-24">
             <div className="mx-auto max-w-5xl text-center">
               <h2 className="text-[clamp(2.55rem,12vw,4.8rem)] font-black leading-[0.96] tracking-[-0.055em] text-[#171719] md:text-[clamp(3rem,5.7vw,6.8rem)]">
-                AI Video creation just became
-                <span className="block">your <span className="text-[#989898]">superpower</span></span>
+                Platform tools for every
+                <span className="block">creative <span className="text-[#989898]">workflow</span></span>
               </h2>
               <p className="mx-auto mt-5 max-w-3xl text-base font-medium leading-7 text-[#5c5f66] sm:text-lg md:mt-8 md:text-xl md:leading-8">
-                Create training, marketing, sales, and internal content from a single workspace with enterprise-grade control and creator-friendly tools.
+                Open the right workspace for image generation, video creation, product ads, UGC concepts, and model-powered production from one platform hub.
               </p>
             </div>
 
@@ -298,43 +298,17 @@ export default async function HomePage() {
                 </Link>
               </div>
 
-              <div className="relative min-h-[360px] sm:min-h-[510px]">
-                <div className="absolute left-0 top-4 z-20 w-[40%] rotate-[-6deg] overflow-hidden rounded-xl border-[7px] border-white bg-white shadow-[0_18px_45px_rgba(16,27,48,0.16)] sm:left-[18%] sm:top-8 sm:w-[34%] sm:border-[10px]">
+              <div className="relative">
+                <div className="overflow-hidden rounded-[1.4rem] bg-white shadow-[0_22px_55px_rgba(16,27,48,0.14)] sm:rounded-[2rem] sm:shadow-[0_28px_80px_rgba(16,27,48,0.16)]">
                   <video
                     src="https://media.dreamface.io/videos/Image_to_Video.mp4"
-                    className="aspect-[4/3] w-full object-cover"
+                    className="aspect-[16/9] w-full object-cover"
                     autoPlay
                     muted
                     loop
                     playsInline
                     preload="metadata"
                   />
-                </div>
-                <div className="absolute right-0 top-10 z-20 hidden max-w-[78%] items-center gap-3 rounded-2xl border-2 border-[#004350] bg-[#bdefff] px-3 py-3 text-[#073c45] shadow-[0_18px_42px_rgba(7,50,60,0.12)] sm:inline-flex sm:top-24 sm:gap-4 sm:px-5 sm:py-4">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#063f49] text-white sm:h-12 sm:w-12">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 5h14v14H5z" />
-                      <path d="M9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9zM13 13h2v2h-2z" />
-                    </svg>
-                  </span>
-                  <div>
-                    <p className="text-sm font-black sm:text-lg">Photo to Video</p>
-                    <p className="text-xs font-semibold text-[#47707a] sm:text-sm">Turn photo and script into talking video</p>
-                  </div>
-                </div>
-                <div className="ml-auto mt-16 w-[84%] overflow-hidden rounded-[1.5rem] bg-[#e8edf3] shadow-[0_24px_60px_rgba(16,27,48,0.16)] sm:mt-20 sm:w-[70%] sm:rounded-[2rem] sm:shadow-[0_28px_80px_rgba(16,27,48,0.18)]">
-                  <video
-                    src="https://media.dreamface.io/videos/Image_to_Video.mp4"
-                    className="aspect-[16/10] w-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                  />
-                </div>
-                <div className="absolute bottom-14 right-[13%] z-30 hidden h-12 w-12 place-items-center rounded-full bg-[#10bff3] text-lg font-black text-[#071116] shadow-[0_18px_36px_rgba(16,191,243,0.32)] sm:grid sm:bottom-20 sm:h-16 sm:w-16 sm:text-2xl">
-                  ||
                 </div>
               </div>
             </div>
@@ -344,7 +318,7 @@ export default async function HomePage() {
           <Reveal>
             <div className="mb-6 flex items-end justify-between">
               <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">Credits that never feel like a subscription</h3>
-              <Link href="/billing" className="text-sm font-semibold text-[#1d1d1f]">Open wallet -&gt;</Link>
+              <Link href="/price" className="text-sm font-semibold text-[#1d1d1f]">View price -&gt;</Link>
             </div>
           </Reveal>
           <div className="grid gap-5 md:grid-cols-3">
@@ -410,7 +384,7 @@ export default async function HomePage() {
               <p className="mt-2 text-sm text-[#506170]">Unified image + video generation infrastructure.</p>
             </div>
             <div>
-              <p className="text-sm font-semibold">Products</p>
+              <p className="text-sm font-semibold">Platform</p>
               <p className="mt-2 text-sm text-[#4f5a67]">Image Studio</p>
               <p className="text-sm text-[#4f5a67]">Video Studio</p>
             </div>
