@@ -50,7 +50,7 @@ const nextConfig = {
           }
         ]
       },
-      ...["/", "/studio", "/auth", "/billing", "/creations", "/gallery", "/admin"].map((source) => ({
+      ...["/", "/studio", "/auth", "/billing", "/price", "/creations", "/gallery", "/admin"].map((source) => ({
         source,
         headers: [
           {
@@ -63,7 +63,7 @@ const nextConfig = {
           }
         ]
       })),
-      ...["/studio/:path*", "/auth/:path*", "/billing/:path*", "/creations/:path*", "/gallery/:path*", "/admin/:path*"].map(
+      ...["/studio/:path*", "/auth/:path*", "/billing/:path*", "/price/:path*", "/creations/:path*", "/gallery/:path*", "/admin/:path*"].map(
         (source) => ({
           source,
           headers: [

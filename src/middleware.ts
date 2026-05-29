@@ -30,6 +30,7 @@ export const config = {
     "/studio",
     "/auth",
     "/billing",
+    "/price",
     "/creations",
     "/gallery",
     "/gallery/:path*",

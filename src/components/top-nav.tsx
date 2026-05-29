@@ -75,7 +75,7 @@ export function TopNav() {
             <a onClick={() => trackEvent("nav_clicked", { item: "providers", target: "/#providers" })} className={pathname === "/" && active === "providers" ? "text-[#111]" : ""} href="/#providers">Providers</a>
             <Link onClick={() => trackEvent("nav_clicked", { item: "gallery", target: "/gallery" })} className={pathname?.startsWith("/gallery") ? "text-[#111]" : ""} href="/gallery">Gallery</Link>
             <a onClick={() => trackEvent("nav_clicked", { item: "platform", target: "/#platform" })} className={pathname === "/" && active === "platform" ? "text-[#111]" : ""} href="/#platform">Platform</a>
-            <a onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/#pricing" })} className={pathname === "/" && active === "pricing" ? "text-[#111]" : ""} href="/#pricing">Pricing</a>
+            <Link onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className={pathname?.startsWith("/price") || pathname?.startsWith("/billing") || (pathname === "/" && active === "pricing") ? "text-[#111]" : ""} href="/price">Pricing</Link>
           </nav>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -94,8 +94,8 @@ export function TopNav() {
               <Link href="/studio?view=projects" onClick={() => trackEvent("nav_clicked", { item: "projects", target: "/studio?view=projects" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
                 Projects
               </Link>
-              <Link href="/billing" onClick={() => trackEvent("nav_clicked", { item: "billing", target: "/billing" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
-                Billing
+              <Link href="/price" onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
+                Pricing
               </Link>
               <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
                 <span className="sm:hidden">Studio</span>
