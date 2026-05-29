@@ -38,7 +38,7 @@ type StudioLoginDraft = {
   autoSubmit: boolean;
   mode: "image" | "video" | "audio";
   provider: string;
-  imageWorkflow: "text-to-image" | "image-to-image";
+  imageWorkflow: ImageWorkflow;
   videoWorkflow?: "text-to-video" | "image-to-video";
   ratio: string;
   imageSize: string;
@@ -47,6 +47,11 @@ type StudioLoginDraft = {
   editResolution: string;
   videoResolution: string;
   generateAudio?: boolean;
+  voice?: string;
+  stability?: number;
+  timestamps?: boolean;
+  languageCode?: string;
+  textNormalization?: string;
   outputFormat: string;
   duration: string;
   prompt: string;
@@ -64,7 +69,8 @@ type StudioLoginDraft = {
   thinkingLevel?: string;
 };
 
-type StudioWorkflow = "text-to-image" | "image-to-image" | "text-to-video" | "image-to-video" | "text-to-audio";
+type ImageWorkflow = "text-to-image" | "image-to-image" | "enhance-cleanup";
+type StudioWorkflow = ImageWorkflow | "text-to-video" | "image-to-video" | "text-to-audio";
 type GalleryTemplate = {
   id: string;
   title: string;
@@ -155,7 +161,7 @@ const TOOLKIT_APPS: Array<{
     title: "Image to Image",
     body: "Upload references to restyle, edit, extend, or keep product and character continuity.",
     icon: "wand",
-    href: "/studio?mode=image&workflow=image-to-image&provider=topaz-image",
+    href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
     accent: "from-[#fce7f3] to-[#eff6ff]",
     iconClass: "text-[#06b6d4]"
   },
@@ -179,7 +185,7 @@ const TOOLKIT_APPS: Array<{
     title: "Enhance & Cleanup",
     body: "Upscale owned images, improve clarity, and remove unwanted marks or distractions.",
     icon: "cleanup",
-    href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
+    href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image",
     accent: "from-[#fff7ed] to-[#fce7f3]",
     iconClass: "text-[#f97316]"
   },
@@ -345,6 +351,24 @@ const VIDEO_DURATION_OPTIONS = ["3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s",
 const GROK_VIDEO_DURATION_OPTIONS = ["1s", "2s", ...VIDEO_DURATION_OPTIONS];
 const VEO_VIDEO_DURATION_OPTIONS = ["4s", "6s", "8s"];
 const NANO_ASPECT_RATIO_OPTIONS = ["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"];
+const ELEVENLABS_VOICES = ["Rachel", "Aria", "Roger", "Sarah", "Laura", "Charlie", "George", "Callum", "River", "Liam", "Charlotte", "Alice", "Matilda", "Will", "Jessica", "Eric", "Chris", "Brian", "Daniel", "Lily", "Bill"];
+const ELEVENLABS_LANGUAGE_OPTIONS = [
+  { value: "", label: "Auto language" },
+  { value: "en", label: "English" },
+  { value: "zh", label: "Chinese" },
+  { value: "ja", label: "Japanese" },
+  { value: "ko", label: "Korean" },
+  { value: "es", label: "Spanish" },
+  { value: "fr", label: "French" },
+  { value: "de", label: "German" },
+  { value: "it", label: "Italian" },
+  { value: "pt", label: "Portuguese" }
+];
+const TEXT_NORMALIZATION_OPTIONS = [
+  { value: "auto", label: "Auto normalize" },
+  { value: "on", label: "Normalize on" },
+  { value: "off", label: "Normalize off" }
+];
 
 const PROVIDER_META: Record<
   string,
@@ -454,7 +478,13 @@ const WORKFLOW_META: Record<
     label: "Image to Image",
     description: "Upload references and edit, restyle, or extend them.",
     recommendedProvider: "nano-banana-image",
-    providers: ["nano-banana-image", "topaz-image", "chatgpt-image", "nano-banana-pro"]
+    providers: ["nano-banana-image", "chatgpt-image", "nano-banana-pro"]
+  },
+  "enhance-cleanup": {
+    label: "Image Enhance",
+    description: "Upscale, sharpen, and clean up an uploaded image.",
+    recommendedProvider: "topaz-image",
+    providers: ["topaz-image"]
   },
   "text-to-video": {
     label: "Text to Video",
@@ -752,7 +782,10 @@ function isProviderAllowedForMode(provider: string | null, mode: "image" | "vide
 
 function workflowForMode(mode: "image" | "video" | "audio", workflow: string | null): StudioWorkflow {
   if (mode === "audio") return "text-to-audio";
-  if (mode === "image") return workflow === "image-to-image" ? "image-to-image" : "text-to-image";
+  if (mode === "image") {
+    if (workflow === "image-to-image" || workflow === "enhance-cleanup") return workflow;
+    return "text-to-image";
+  }
   return workflow === "image-to-video" ? "image-to-video" : "text-to-video";
 }
 
@@ -789,12 +822,13 @@ function StudioContent() {
         : providerFromUrl
       : null
   );
-  const initialImageWorkflow = initialWorkflow === "image-to-image" ? "image-to-image" : "text-to-image";
+  const initialImageWorkflow: ImageWorkflow =
+    initialWorkflow === "image-to-image" || initialWorkflow === "enhance-cleanup" ? initialWorkflow : "text-to-image";
   const initialVideoWorkflow = initialWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
   const initialReferenceUrl = sp.get("reference");
   const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider));
   const [provider, setProvider] = useState(initialProvider);
-  const [imageWorkflow, setImageWorkflow] = useState<"text-to-image" | "image-to-image">(initialImageWorkflow);
+  const [imageWorkflow, setImageWorkflow] = useState<ImageWorkflow>(initialImageWorkflow);
   const [videoWorkflow, setVideoWorkflow] = useState<"text-to-video" | "image-to-video">(initialVideoWorkflow);
   const [ratio, setRatio] = useState(mode === "image" ? "1:1" : "16:9");
   const [imageSize, setImageSize] = useState("default_4_3");
@@ -808,6 +842,11 @@ function StudioContent() {
   const [editResolution, setEditResolution] = useState("1K");
   const [videoResolution, setVideoResolution] = useState("720p");
   const [generateAudio, setGenerateAudio] = useState(false);
+  const [ttsVoice, setTtsVoice] = useState("Rachel");
+  const [ttsStability, setTtsStability] = useState(0.5);
+  const [ttsTimestamps, setTtsTimestamps] = useState(false);
+  const [ttsLanguageCode, setTtsLanguageCode] = useState("");
+  const [textNormalization, setTextNormalization] = useState("auto");
   const [outputFormat, setOutputFormat] = useState("png");
   const [imageQuality, setImageQuality] = useState<"auto" | "low" | "medium" | "high">("low");
   const [numImages, setNumImages] = useState(1);
@@ -915,7 +954,11 @@ function StudioContent() {
   useEffect(() => {
     const workflowParam = workflowForMode(mode, sp.get("workflow"));
     const providerParam = sp.get("provider");
-    setImageWorkflow(mode === "image" && workflowParam === "image-to-image" ? "image-to-image" : "text-to-image");
+    setImageWorkflow(
+      mode === "image" && (workflowParam === "image-to-image" || workflowParam === "enhance-cleanup")
+        ? workflowParam
+        : "text-to-image"
+    );
     setVideoWorkflow(mode === "video" && workflowParam === "image-to-video" ? "image-to-video" : "text-to-video");
     const nextProvider = providerForWorkflow(
       workflowParam,
@@ -923,7 +966,7 @@ function StudioContent() {
     );
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
     const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
-    setRatio(mode === "image" ? ratioFromImageSize(nextImageSize) : "16:9");
+    setRatio(mode === "image" ? (nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize)) : "16:9");
     setImageSize(nextImageSize);
     setDuration(mode === "video" ? "6s" : "single");
     setStatusText("");
@@ -934,7 +977,7 @@ function StudioContent() {
     if (mode !== "image") return;
     const nextImageSize = defaultImageSizeForProvider(provider);
     setImageSize(nextImageSize);
-    setRatio(ratioFromImageSize(nextImageSize));
+    setRatio(provider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
     if (provider === "flux-image") {
       setNumInferenceSteps(4);
       setOutputFormat((current) => (current === "webp" ? "jpeg" : current));
@@ -965,7 +1008,7 @@ function StudioContent() {
     }
 
     const imageSizeParam = sp.get("imageSize");
-    if (imageSizeParam && IMAGE_SIZE_PRESETS.some((preset) => preset.value === imageSizeParam)) {
+    if (provider !== "topaz-image" && imageSizeParam && IMAGE_SIZE_PRESETS.some((preset) => preset.value === imageSizeParam)) {
       setImageSize(imageSizeParam);
       setRatio(ratioFromImageSize(imageSizeParam));
     }
@@ -982,7 +1025,8 @@ function StudioContent() {
 
     const referenceParam = sp.get("reference");
     if (mode === "image" && referenceParam) {
-      setImageWorkflow("image-to-image");
+      const referenceWorkflow = workflowForMode(mode, sp.get("workflow"));
+      setImageWorkflow(referenceWorkflow === "enhance-cleanup" ? "enhance-cleanup" : "image-to-image");
       setReferenceImagesText(referenceParam);
     }
   }, [mode, sp]);
@@ -1177,7 +1221,7 @@ function StudioContent() {
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const estimatedSeconds = estimateTaskSeconds(mode, provider, duration);
   const isPromptValid = prompt.trim().length >= 8;
-  const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "image-to-video";
+  const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
   const canSubmit = isPromptValid && hasRequiredReference;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
@@ -1254,7 +1298,7 @@ function StudioContent() {
         : mode === "image"
           ? `${editResolution} / safety ${safetyTolerance} / ${numImages} image${numImages > 1 ? "s" : ""}`
           : mode === "audio"
-            ? `${prompt.trim().length || 0} chars / voice Rachel`
+            ? `${prompt.trim().length || 0} chars / ${ttsVoice} / stability ${ttsStability.toFixed(2)}`
           : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / audio on" : " / audio off" : ""}`;
 
   useEffect(() => {
@@ -1299,10 +1343,15 @@ function StudioContent() {
   }, [hasCompletedCreation]);
 
   function applyWorkflow(nextWorkflow: StudioWorkflow) {
-    const nextMode = nextWorkflow === "text-to-image" || nextWorkflow === "image-to-image" ? "image" : nextWorkflow === "text-to-audio" ? "audio" : "video";
+    const nextMode =
+      nextWorkflow === "text-to-image" || nextWorkflow === "image-to-image" || nextWorkflow === "enhance-cleanup"
+        ? "image"
+        : nextWorkflow === "text-to-audio"
+          ? "audio"
+          : "video";
     const nextProvider = providerForWorkflow(nextWorkflow, provider);
       if (nextMode === "image") {
-      setImageWorkflow(nextWorkflow as "text-to-image" | "image-to-image");
+      setImageWorkflow(nextWorkflow as ImageWorkflow);
       if (nextWorkflow === "text-to-image") {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
@@ -1319,15 +1368,15 @@ function StudioContent() {
       setReferenceImageFiles([]);
     }
     setProvider(nextProvider);
-    if (nextProvider === "nano-banana-image" || nextProvider === "nano-banana-pro") {
-      setRatio(nextProvider === "nano-banana-image" ? "auto" : "1:1");
+    if (nextProvider === "nano-banana-image" || nextProvider === "nano-banana-pro" || nextProvider === "topaz-image") {
+      setRatio(nextProvider === "nano-banana-image" || nextProvider === "topaz-image" ? "auto" : "1:1");
     }
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
     const nextImageSize = nextMode === "image" ? defaultImageSizeForProvider(nextProvider) : imageSize;
     if (nextMode === "image") {
       setImageSize(nextImageSize);
-      setRatio(ratioFromImageSize(nextImageSize));
+      setRatio(nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
     } else if (nextMode === "video") {
       setRatio("16:9");
       setDuration(nextProvider === "veo-video" ? "8s" : "6s");
@@ -1342,7 +1391,7 @@ function StudioContent() {
     params.set("provider", nextProvider);
     if (nextMode === "image") {
       params.set("imageSize", nextImageSize);
-      params.set("ratio", ratioFromImageSize(nextImageSize));
+      params.set("ratio", nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
     } else if (nextMode === "video") {
       params.delete("imageSize");
       params.set("ratio", "16:9");
@@ -1363,14 +1412,14 @@ function StudioContent() {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
       }
-      if (nextProvider === "topaz-image") setImageWorkflow("image-to-image");
+      if (nextProvider === "topaz-image") setImageWorkflow("enhance-cleanup");
       const nextImageSize = defaultImageSizeForProvider(nextProvider);
       setImageSize(nextImageSize);
       setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
       setRatio(nextProvider === "nano-banana-image" || nextProvider === "topaz-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "image");
-      params.set("workflow", nextProvider === "topaz-image" ? "image-to-image" : activeWorkflow);
+      params.set("workflow", nextProvider === "topaz-image" ? "enhance-cleanup" : activeWorkflow);
       params.set("provider", nextProvider);
       params.set("imageSize", nextImageSize);
       params.set("ratio", nextProvider === "nano-banana-image" || nextProvider === "topaz-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
@@ -1439,7 +1488,7 @@ function StudioContent() {
         )
     );
     setReferenceImageFiles((prev) => [...prev, ...nextFiles].slice(0, 4));
-    if (mode === "image" && imageWorkflow !== "image-to-image") {
+    if (mode === "image" && imageWorkflow === "text-to-image") {
       setImageWorkflow("image-to-image");
       if (!WORKFLOW_META["image-to-image"].providers.includes(provider)) {
         setProvider(WORKFLOW_META["image-to-image"].recommendedProvider);
@@ -1487,6 +1536,11 @@ function StudioContent() {
       editResolution,
       videoResolution,
       generateAudio,
+      voice: ttsVoice,
+      stability: ttsStability,
+      timestamps: ttsTimestamps,
+      languageCode: ttsLanguageCode,
+      textNormalization,
       outputFormat,
       duration,
       prompt,
@@ -1522,6 +1576,11 @@ function StudioContent() {
     setEditResolution(draft.editResolution);
     setVideoResolution(draft.videoResolution);
     setGenerateAudio(Boolean(draft.generateAudio));
+    setTtsVoice(draft.voice || "Rachel");
+    setTtsStability(typeof draft.stability === "number" ? draft.stability : 0.5);
+    setTtsTimestamps(Boolean(draft.timestamps));
+    setTtsLanguageCode(draft.languageCode || "");
+    setTextNormalization(draft.textNormalization || "auto");
     setOutputFormat(draft.outputFormat);
     setImageQuality(draft.imageQuality || "high");
     setNumImages(draft.numImages || 1);
@@ -1595,7 +1654,7 @@ function StudioContent() {
       const parsedSeed = seed.trim() ? Number.parseInt(seed.trim(), 10) : undefined;
       const requestPayload = {
         mode,
-        imageWorkflow: mode === "image" && referenceImageUrls.length ? "image-to-image" : imageWorkflow,
+        imageWorkflow,
         provider,
         ratio,
         duration,
@@ -1625,9 +1684,11 @@ function StudioContent() {
         systemPrompt: mode === "image" && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" ? enableWebSearch : undefined,
         thinkingLevel: mode === "image" && thinkingLevel ? thinkingLevel : undefined,
-        voice: mode === "audio" ? "Rachel" : undefined,
-        stability: mode === "audio" ? 0.5 : undefined,
-        textNormalization: mode === "audio" ? "auto" : undefined
+        voice: mode === "audio" ? ttsVoice : undefined,
+        stability: mode === "audio" ? ttsStability : undefined,
+        timestamps: mode === "audio" ? ttsTimestamps : undefined,
+        languageCode: mode === "audio" && ttsLanguageCode ? ttsLanguageCode : undefined,
+        textNormalization: mode === "audio" ? textNormalization : undefined
       };
       const fingerprint = createIdempotencyFingerprint({
         ...requestPayload,
@@ -1990,7 +2051,7 @@ function StudioContent() {
                           </span>
                           Image
                         </Link>
-                        <div className="pointer-events-none absolute left-[calc(100%+0.9rem)] top-0 z-50 w-60 translate-x-2 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100">
+                        <div className="pointer-events-none absolute left-full top-0 z-50 w-64 translate-x-2 pl-3 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100">
                           <div className="rounded-3xl border border-black/[0.06] bg-white/95 p-2 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur-xl">
                             {[
                               {
@@ -2002,6 +2063,11 @@ function StudioContent() {
                                 label: "Image to Image",
                                 body: "Edit or restyle references",
                                 href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image"
+                              },
+                              {
+                                label: "Image Enhance",
+                                body: "Topaz upscale and cleanup",
+                                href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image"
                               }
                             ].map((workflowItem) => (
                               <Link
@@ -2464,8 +2530,8 @@ function StudioContent() {
                 <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:mt-5 md:mt-7">
                   {mode === "image" ? (
                     <>
-                      <div className="grid w-full max-w-[380px] grid-cols-2 rounded-full border border-black/[0.06] bg-white/82 p-1 shadow-sm sm:inline-flex sm:w-auto sm:max-w-none">
-                        {(["text-to-image", "image-to-image"] as StudioWorkflow[]).map((workflow) => {
+                      <div className="grid w-full max-w-[560px] grid-cols-3 rounded-full border border-black/[0.06] bg-white/82 p-1 shadow-sm sm:inline-flex sm:w-auto sm:max-w-none">
+                        {(["text-to-image", "image-to-image", "enhance-cleanup"] as StudioWorkflow[]).map((workflow) => {
                           const active = imageWorkflow === workflow;
                           return (
                             <button
@@ -2622,9 +2688,26 @@ function StudioContent() {
                         </select>
                       )
                     ) : mode === "audio" ? (
-                      <span className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] sm:w-auto">
-                        Rachel / Stability 0.5
-                      </span>
+                      <>
+                        <select
+                          value={ttsVoice}
+                          onChange={(e) => setTtsVoice(e.target.value)}
+                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
+                        >
+                          {ELEVENLABS_VOICES.map((voice) => (
+                            <option key={voice} value={voice}>{voice}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={ttsLanguageCode}
+                          onChange={(e) => setTtsLanguageCode(e.target.value)}
+                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
+                        >
+                          {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
+                            <option key={item.value || "auto"} value={item.value}>{item.label}</option>
+                          ))}
+                        </select>
+                      </>
                     ) : (
                       <>
                         <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
@@ -2658,7 +2741,81 @@ function StudioContent() {
                       {isSubmitting ? "Creating..." : accessToken ? "Generate" : "Sign in to Generate"}
                     </button>
                   </div>
-                  {mode === "image" ? (
+                  {mode === "audio" ? (
+                    <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">ElevenLabs settings</p>
+                        <p className="text-xs font-medium text-[#8b95a7]">{providerSettingsLabel}</p>
+                      </div>
+                      <div className="grid gap-3 lg:grid-cols-4">
+                        <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                          <span className="mb-2 block text-xs font-semibold text-[#667085]">Voice</span>
+                          <select
+                            value={ttsVoice}
+                            onChange={(e) => setTtsVoice(e.target.value)}
+                            className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none"
+                          >
+                            {ELEVENLABS_VOICES.map((voice) => (
+                              <option key={voice} value={voice}>{voice}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                          <span className="mb-2 block text-xs font-semibold text-[#667085]">Stability {ttsStability.toFixed(2)}</span>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={ttsStability}
+                            onChange={(e) => setTtsStability(Number(e.target.value))}
+                            className="w-full accent-[#202633]"
+                          />
+                        </label>
+                        <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                          <span className="mb-2 block text-xs font-semibold text-[#667085]">Language</span>
+                          <select
+                            value={ttsLanguageCode}
+                            onChange={(e) => setTtsLanguageCode(e.target.value)}
+                            className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none"
+                          >
+                            {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
+                              <option key={item.value || "auto"} value={item.value}>{item.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                          <span className="mb-2 block text-xs font-semibold text-[#667085]">Text normalization</span>
+                          <select
+                            value={textNormalization}
+                            onChange={(e) => setTextNormalization(e.target.value)}
+                            className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none"
+                          >
+                            {TEXT_NORMALIZATION_OPTIONS.map((item) => (
+                              <option key={item.value} value={item.value}>{item.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                      <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                        <label className="flex items-center justify-between gap-4 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                          <span>
+                            <span className="block text-sm font-semibold text-[#485164]">Word timestamps</span>
+                            <span className="mt-1 block text-xs text-[#8b95a7]">Ask fal to include word timing metadata with the generated audio.</span>
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={ttsTimestamps}
+                            onChange={(e) => setTtsTimestamps(e.target.checked)}
+                            className="h-5 w-5"
+                          />
+                        </label>
+                        <p className="rounded-2xl border border-black/[0.06] bg-white px-4 py-3 text-sm font-semibold text-[#667085]">
+                          {(prompt.trim().length || 0).toLocaleString()} chars / $0.10 per 1K
+                        </p>
+                      </div>
+                    </div>
+                  ) : mode === "image" ? (
                     <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">Model settings</p>
@@ -3081,8 +3238,8 @@ function StudioContent() {
             </div>
 
             <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.045] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <div className="grid grid-cols-2 gap-1">
-                {(mode === "image" ? ["text-to-image", "image-to-image"] : ["text-to-video", "image-to-video"]).map((workflow) => {
+              <div className={`grid gap-1 ${mode === "image" ? "grid-cols-3" : "grid-cols-2"}`}>
+                {(mode === "image" ? ["text-to-image", "image-to-image", "enhance-cleanup"] : ["text-to-video", "image-to-video"]).map((workflow) => {
                   const meta = WORKFLOW_META[workflow as StudioWorkflow];
                   const active = activeWorkflow === workflow;
                   return (
@@ -3129,7 +3286,7 @@ function StudioContent() {
                     provider: option.value,
                     imageSize,
                     duration,
-                    hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "image-to-video",
+                    hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video",
                     resolution: mode === "image" ? editResolution : videoResolution
                   });
                   return (

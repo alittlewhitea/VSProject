@@ -5,6 +5,8 @@ import { Reveal } from "../components/reveal";
 import { TopNav } from "../components/top-nav";
 import { AppButton } from "../components/ui/button";
 import { CREDIT_PACKS, formatUsd } from "../lib/billing";
+import { galleryItemPath, mapGalleryRow } from "../lib/gallery";
+import { fetchPublishedGalleryItems } from "../lib/gallery-server";
 import { LEGAL_DOCUMENTS } from "../lib/legal";
 
 const plans = [
@@ -118,6 +120,10 @@ const homeFaqJsonLd = {
 };
 
 export default async function HomePage() {
+  const galleryItems = await fetchPublishedGalleryItems({ limit: 8, featuredFirst: true })
+    .then((rows) => rows.map(mapGalleryRow))
+    .catch(() => []);
+
   return (
     <main className="bg-grid pb-16">
       <PageAnalytics eventName="home_view" />
@@ -131,6 +137,63 @@ export default async function HomePage() {
         <Reveal>
           <HomeHeroCarousel />
         </Reveal>
+
+        {galleryItems.length ? (
+          <Reveal>
+            <section className="section-shell mt-14 border-t border-black/10 pt-14 md:mt-24 md:pt-24">
+              <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between md:mb-10">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#637084]">Prompt Gallery</p>
+                  <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#171719] sm:text-4xl md:text-5xl">
+                    Explore creator-ready AI visuals
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5c6374] sm:text-base">
+                    Browse reusable prompts, model examples, and curated references before opening the studio.
+                  </p>
+                </div>
+                <Link
+                  href="/gallery"
+                  className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-black tracking-[-0.02em] text-white shadow-[0_14px_30px_rgba(13,18,35,0.16)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#343438]"
+                >
+                  View More <span className="ml-2">-&gt;</span>
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                {galleryItems.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={galleryItemPath(item)}
+                    className="card group overflow-hidden rounded-2xl bg-white"
+                  >
+                    <div className="aspect-[4/3] overflow-hidden bg-[#eef2f7]">
+                      <img
+                        src={item.thumbnailUrl || item.imageUrl}
+                        alt={item.title}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="p-3 sm:p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate rounded-full border border-black/10 bg-[#f8fbff] px-2.5 py-1 text-[10px] font-semibold text-[#4c5a70] sm:text-[11px]">
+                          {item.category}
+                        </span>
+                        <span className="hidden shrink-0 text-[10px] uppercase tracking-[0.12em] text-[#8792a5] sm:inline">
+                          {item.model}
+                        </span>
+                      </div>
+                      <h3 className="mt-3 line-clamp-1 text-sm font-semibold tracking-tight text-[#1d1d1f] sm:text-base">
+                        {item.title}
+                      </h3>
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#687386]">{item.prompt}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          </Reveal>
+        ) : null}
 
         <Reveal>
           <section id="products" className="section-shell mt-14 border-t border-black/10 pt-14 md:mt-24 md:pt-24">

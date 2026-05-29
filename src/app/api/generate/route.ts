@@ -42,6 +42,8 @@ type GenerateRequest = {
   generateAudio?: boolean;
   voice?: string;
   stability?: number;
+  timestamps?: boolean;
+  languageCode?: string;
   textNormalization?: string;
   idempotencyKey?: string;
 };
@@ -176,6 +178,10 @@ function cleanSystemPrompt(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, 2000) : undefined;
 }
 
+function cleanLanguageCode(value: unknown) {
+  return typeof value === "string" && /^[a-z]{2}$/i.test(value.trim()) ? value.trim().toLowerCase() : undefined;
+}
+
 function getFalImageSize(ratio: string, imageSize?: string) {
   if (imageSize === "default_4_3") return "landscape_4_3";
   if (imageSize && IMAGE_SIZE_PRESETS.has(imageSize)) return imageSize;
@@ -188,10 +194,13 @@ function getFalImageSize(ratio: string, imageSize?: string) {
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
   if (body.mode === "audio" && body.provider === "elevenlabs-tts") {
+    const languageCode = cleanLanguageCode(body.languageCode);
     return {
       text: prompt,
       voice: typeof body.voice === "string" && body.voice.trim() ? body.voice.trim().slice(0, 80) : "Rachel",
       stability: clampNumber(body.stability, 0, 1, 0.5),
+      timestamps: Boolean(body.timestamps),
+      ...(languageCode ? { language_code: languageCode } : {}),
       apply_text_normalization: body.textNormalization && TTS_TEXT_NORMALIZATION_OPTIONS.has(body.textNormalization) ? body.textNormalization : "auto"
     };
   }
@@ -421,6 +430,8 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     generate_audio: typeof body.generateAudio === "boolean" ? body.generateAudio : null,
     voice: body.voice || null,
     stability: typeof body.stability === "number" ? body.stability : null,
+    timestamps: typeof body.timestamps === "boolean" ? body.timestamps : null,
+    language_code: cleanLanguageCode(body.languageCode) || null,
     text_normalization: body.textNormalization || null
   };
 }
