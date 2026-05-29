@@ -309,6 +309,17 @@ function BillingContent() {
               <p className="mt-1 text-sm text-[#667084]">credits</p>
               <p className="mt-4 min-h-[56px] text-sm leading-7 text-[#535d6e]">{pack.description}</p>
               <p className="mt-3 rounded-2xl border border-black/10 bg-white/80 px-3 py-2 text-xs leading-5 text-[#5f6779]">{pack.idealFor}</p>
+              <div className="mt-4 grid gap-2">
+                {pack.examples.map((example) => (
+                  <div key={`${pack.id}-${example.label}`} className="flex items-center justify-between gap-3 rounded-2xl border border-black/10 bg-white/75 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[#1d1d1f]">{example.label}</p>
+                      <p className="mt-0.5 truncate text-[11px] text-[#7a8494]">{example.note}</p>
+                    </div>
+                    <p className="shrink-0 rounded-full bg-[#f3f8ff] px-2.5 py-1 text-xs font-black text-[#2563eb]">{example.count}</p>
+                  </div>
+                ))}
+              </div>
               <div className="mt-6">
                 <AppButton
                   variant="dark"

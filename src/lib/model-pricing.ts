@@ -28,7 +28,7 @@ export type ModelPricingRow = {
 };
 
 export const CREDIT_LOW_BALANCE_THRESHOLD = 300;
-export const CREDIT_MARKUP_MULTIPLIER = 1.12;
+export const CREDIT_MARKUP_MULTIPLIER = 1.65;
 export const CREDIT_USD_TO_CREDITS = 150;
 
 const GPT_IMAGE_2_TEXT_HIGH_USD: Record<string, number> = {
@@ -78,13 +78,13 @@ function countMultiplier(numImages?: number | null) {
 }
 
 const FLUX_SCHNELL_BY_SIZE: Record<string, number> = {
-  default_4_3: 6,
-  landscape_4_3: 6,
-  landscape_16_9: 6,
-  square_hd: 6,
-  square: 4,
-  portrait_4_3: 6,
-  portrait_16_9: 6
+  default_4_3: 8,
+  landscape_4_3: 8,
+  landscape_16_9: 8,
+  square_hd: 8,
+  square: 5,
+  portrait_4_3: 8,
+  portrait_16_9: 8
 };
 
 function secondsFromDuration(duration?: string | null) {
@@ -93,7 +93,7 @@ function secondsFromDuration(duration?: string | null) {
 }
 
 function nanoBananaCredits(resolution?: string | null, isPro = false) {
-  const base = isPro ? 26 : 14;
+  const base = isPro ? 38 : 20;
   if (!isPro && resolution === "0.5K") return Math.ceil(base * 0.75);
   if (resolution === "4K") return base * 2;
   if (resolution === "2K") return Math.ceil(base * 1.5);
@@ -163,7 +163,7 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
       if (dynamicImagePrice) {
         return creditsFromFalUsd(dynamicImagePrice, 8);
       }
-      return 12 * multiplier;
+      return 16 * multiplier;
     }
 
     if (input.provider === "topaz-image") {
