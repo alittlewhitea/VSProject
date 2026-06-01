@@ -810,12 +810,19 @@ function isAvatarProvider(provider: string) {
 }
 
 function isProbablyUrl(value: string) {
+  if (/^data:audio\//i.test(value.trim())) return true;
   try {
     const parsed = new URL(value.trim());
     return parsed.protocol === "https:" || parsed.protocol === "http:";
   } catch {
     return false;
   }
+}
+
+function shortInputValue(value: string) {
+  if (!value.trim()) return "";
+  if (value.startsWith("data:")) return "Uploaded local file";
+  return value;
 }
 
 function isProviderAllowedForMode(provider: string | null, mode: "image" | "video" | "audio") {
@@ -1585,6 +1592,24 @@ function StudioContent() {
       { mode, provider, workflow: activeWorkflow, files: nextFiles.length, total_references: referenceImageUrls.length + nextFiles.length },
       accessToken
     );
+  }
+
+  async function handleAvatarAudioFile(file: File | null | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("audio/")) {
+      setStatusTone("error");
+      setStatusText("Please choose an audio file for AI Avatar.");
+      return;
+    }
+    const value = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Audio file could not be read."));
+      reader.readAsDataURL(file);
+    });
+    setAvatarAudioUrl(value);
+    setStatusTone("idle");
+    setStatusText(`${file.name} is ready for the Avatar audio input.`);
   }
 
   function clearCompletedWorkbench() {
@@ -2723,6 +2748,89 @@ function StudioContent() {
                     ) : null}
                     {isAvatarWorkflow ? (
                       <div className="mt-4 border-t border-black/[0.06] pt-4">
+                        <div
+                          className="mb-4 rounded-2xl border border-dashed border-[#cbd5e1] bg-[#fbfdff] p-4"
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText("Image file could not be read."));
+                          }}
+                        >
+                          <div className="mb-2 flex items-center justify-between gap-3">
+                            <span className="text-sm font-semibold text-[#202633]">Image URL<span className="text-[#2563eb]">*</span></span>
+                            <span className="rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-semibold text-[#2563eb]">Avatar image</span>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                            <input
+                              value={referenceImagesText}
+                              onChange={(event) => setReferenceImagesText(event.target.value)}
+                              placeholder="https://.../avatar.jpg"
+                              className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                            />
+                            <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-black/[0.08] bg-white px-5 text-sm font-semibold text-[#202633] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                              Choose...
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText("Image file could not be read."))}
+                              />
+                            </label>
+                          </div>
+                          <p className="mt-3 text-xs leading-5 text-[#667085]">
+                            Hint: paste an image URL or choose an image file. Accepted file types: jpg, jpeg, png, webp, gif, avif.
+                          </p>
+                          {referenceImageUrls.length ? (
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {referenceImageUrls.slice(0, 4).map((url, index) => (
+                                <div key={`${url.slice(0, 32)}-${index}`} className="relative h-24 w-24 overflow-hidden rounded-2xl border-2 border-[#7c3aed] bg-[#f2f6fb] shadow-sm">
+                                  <img src={url} alt={`Avatar input ${index + 1}`} className="h-full w-full object-cover" />
+                                  <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-[#7c3aed] text-xs font-black text-white">✓</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div
+                          className="mb-4 rounded-2xl border border-dashed border-[#cbd5e1] bg-[#fbfdff] p-4"
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            handleAvatarAudioFile(event.dataTransfer.files?.[0]).catch(() => setStatusText("Audio file could not be read."));
+                          }}
+                        >
+                          <div className="mb-2 flex items-center justify-between gap-3">
+                            <span className="text-sm font-semibold text-[#202633]">Audio URL<span className="text-[#2563eb]">*</span></span>
+                            <span className="rounded-full bg-[#f0fdf4] px-3 py-1 text-xs font-semibold text-[#16a34a]">Voiceover</span>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                            <input
+                              value={shortInputValue(avatarAudioUrl)}
+                              onChange={(event) => setAvatarAudioUrl(event.target.value)}
+                              placeholder="https://.../voiceover.mp3"
+                              className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                            />
+                            <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-black/[0.08] bg-white px-5 text-sm font-semibold text-[#202633] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                              Choose...
+                              <input
+                                type="file"
+                                accept="audio/*,.mp3,.ogg,.wav,.m4a,.aac"
+                                className="hidden"
+                                onChange={(event) => handleAvatarAudioFile(event.target.files?.[0]).catch(() => setStatusText("Audio file could not be read."))}
+                              />
+                            </label>
+                          </div>
+                          <p className="mt-3 text-xs leading-5 text-[#667085]">
+                            Hint: paste an audio URL or choose an audio file. Accepted file types: mp3, ogg, wav, m4a, aac.
+                          </p>
+                          {avatarAudioUrl ? (
+                            <div className="mt-3 rounded-xl border border-black/[0.06] bg-white p-3">
+                              <audio src={avatarAudioUrl} controls className="h-9 w-full" />
+                            </div>
+                          ) : null}
+                        </div>
+
                         {(avatarNeedsImage || avatarNeedsAudio) ? (
                           <div className="mb-4 grid gap-3 md:grid-cols-2">
                             {avatarNeedsImage ? (
@@ -2749,7 +2857,7 @@ function StudioContent() {
                             ) : null}
                           </div>
                         ) : null}
-                        <label className="block">
+                        <label className="hidden">
                           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8791a3]">Voiceover audio URL</span>
                           <input
                             value={avatarAudioUrl}
@@ -3745,6 +3853,75 @@ function StudioContent() {
                 ) : null}
                 {isAvatarWorkflow ? (
                   <div className="mt-3 border-t border-white/10 pt-3">
+                    <div
+                      className="mb-3 rounded-2xl border border-dashed border-white/14 bg-white/[0.045] p-3"
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText("Image file could not be read."));
+                      }}
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold text-white/82">Image URL<span className="text-[#93c5fd]">*</span></span>
+                        <span className="rounded-full bg-[#1d4ed8]/25 px-2.5 py-1 text-[11px] font-semibold text-[#bfdbfe]">Avatar image</span>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                        <input
+                          value={referenceImagesText}
+                          onChange={(event) => setReferenceImagesText(event.target.value)}
+                          placeholder="https://.../avatar.jpg"
+                          className="min-h-11 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold text-white outline-none placeholder:text-white/28 focus:border-[#77a8e8]"
+                        />
+                        <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] px-4 text-sm font-semibold text-white/82 transition hover:bg-white/[0.12]">
+                          Choose...
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText("Image file could not be read."))}
+                          />
+                        </label>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-white/38">
+                        Drag, choose, or paste a URL. Accepted: jpg, jpeg, png, webp, gif, avif.
+                      </p>
+                    </div>
+
+                    <div
+                      className="mb-3 rounded-2xl border border-dashed border-white/14 bg-white/[0.045] p-3"
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        handleAvatarAudioFile(event.dataTransfer.files?.[0]).catch(() => setStatusText("Audio file could not be read."));
+                      }}
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold text-white/82">Audio URL<span className="text-[#93c5fd]">*</span></span>
+                        <span className="rounded-full bg-[#15803d]/25 px-2.5 py-1 text-[11px] font-semibold text-[#bbf7d0]">Voiceover</span>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                        <input
+                          value={shortInputValue(avatarAudioUrl)}
+                          onChange={(event) => setAvatarAudioUrl(event.target.value)}
+                          placeholder="https://.../voiceover.mp3"
+                          className="min-h-11 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold text-white outline-none placeholder:text-white/28 focus:border-[#77a8e8]"
+                        />
+                        <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] px-4 text-sm font-semibold text-white/82 transition hover:bg-white/[0.12]">
+                          Choose...
+                          <input
+                            type="file"
+                            accept="audio/*,.mp3,.ogg,.wav,.m4a,.aac"
+                            className="hidden"
+                            onChange={(event) => handleAvatarAudioFile(event.target.files?.[0]).catch(() => setStatusText("Audio file could not be read."))}
+                          />
+                        </label>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-white/38">
+                        Drag, choose, or paste a URL. Accepted: mp3, ogg, wav, m4a, aac.
+                      </p>
+                      {avatarAudioUrl ? <audio src={avatarAudioUrl} controls className="mt-3 h-9 w-full" /> : null}
+                    </div>
+
                     {(avatarNeedsImage || avatarNeedsAudio) ? (
                       <div className="mb-3 grid gap-2">
                         {avatarNeedsImage ? (
@@ -3769,7 +3946,7 @@ function StudioContent() {
                         ) : null}
                       </div>
                     ) : null}
-                    <label className="block">
+                    <label className="hidden">
                       <span className="text-xs font-semibold uppercase tracking-[0.12em] text-white/42">Voiceover audio URL</span>
                       <input
                         value={avatarAudioUrl}

@@ -90,6 +90,10 @@ function firstInputImage(body: GenerateRequest) {
   return Array.isArray(body.imageUrls) ? body.imageUrls.find((url) => typeof url === "string" && url.trim())?.trim() || null : null;
 }
 
+function isValidAudioInput(value: unknown) {
+  return typeof value === "string" && (/^https?:\/\//i.test(value.trim()) || /^data:audio\//i.test(value.trim()));
+}
+
 function getModelId(mode: GenerateMode, provider: string, editImage = false): string | null {
   const keyByProvider: Record<string, string | undefined> = {
     "chatgpt-image": editImage
@@ -560,7 +564,7 @@ export async function POST(request: Request) {
       if (!imageUrls.length) {
         return NextResponse.json({ error: "AI Avatar requires one avatar reference image." }, { status: 400 });
       }
-      if (typeof body.audioUrl !== "string" || !/^https?:\/\//i.test(body.audioUrl.trim())) {
+      if (!isValidAudioInput(body.audioUrl)) {
         return NextResponse.json({ error: "AI Avatar requires a valid voiceover audio URL." }, { status: 400 });
       }
     }
