@@ -561,37 +561,51 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId")?.trim();
 
+  let accountsQuery = admin
+    .from("user_credit_accounts")
+    .select("user_id,balance,free_granted,created_at,updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(userId ? 1 : 100);
+  let ledgerQuery = admin
+    .from("credit_ledger")
+    .select("id,user_id,amount,reason,reference_id,created_at")
+    .order("created_at", { ascending: false })
+    .limit(userId ? 300 : RECENT_LIMIT);
+  let purchasesQuery = admin
+    .from("credit_purchases")
+    .select("id,user_id,stripe_checkout_id,pack_id,credits,amount_cents,currency,status,created_at,updated_at")
+    .order("created_at", { ascending: false })
+    .limit(userId ? 300 : RECENT_LIMIT);
+  let tasksQuery = admin
+    .from("generation_tasks")
+    .select(
+      "id,user_id,mode,provider,prompt,status,estimated_credits,transport,provider_request_id,output_url,failure_code,failure_reason,created_at,updated_at"
+    )
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(userId ? 300 : RECENT_LIMIT);
+  let analyticsQuery = admin
+    .from("analytics_events")
+    .select("event_name,user_id,anonymous_id,session_id,properties,created_at")
+    .gte("created_at", daysAgoIso(7))
+    .order("created_at", { ascending: false })
+    .limit(600);
+
+  if (userId) {
+    accountsQuery = accountsQuery.eq("user_id", userId);
+    ledgerQuery = ledgerQuery.eq("user_id", userId);
+    purchasesQuery = purchasesQuery.eq("user_id", userId);
+    tasksQuery = tasksQuery.eq("user_id", userId);
+    analyticsQuery = analyticsQuery.eq("user_id", userId);
+  }
+
   const [authUsersResult, accountsResult, ledgerResult, purchasesResult, tasksResult, analyticsResult] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 100 }),
-    admin
-      .from("user_credit_accounts")
-      .select("user_id,balance,free_granted,created_at,updated_at")
-      .order("updated_at", { ascending: false })
-      .limit(100),
-    admin
-      .from("credit_ledger")
-      .select("id,user_id,amount,reason,reference_id,created_at")
-      .order("created_at", { ascending: false })
-      .limit(RECENT_LIMIT),
-    admin
-      .from("credit_purchases")
-      .select("id,user_id,stripe_checkout_id,pack_id,credits,amount_cents,currency,status,created_at,updated_at")
-      .order("created_at", { ascending: false })
-      .limit(RECENT_LIMIT),
-    admin
-      .from("generation_tasks")
-      .select(
-        "id,user_id,mode,provider,prompt,status,estimated_credits,transport,provider_request_id,output_url,failure_code,failure_reason,created_at,updated_at"
-      )
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(RECENT_LIMIT),
-    admin
-      .from("analytics_events")
-      .select("event_name,user_id,anonymous_id,session_id,properties,created_at")
-      .gte("created_at", daysAgoIso(7))
-      .order("created_at", { ascending: false })
-      .limit(600)
+    accountsQuery,
+    ledgerQuery,
+    purchasesQuery,
+    tasksQuery,
+    analyticsQuery
   ]);
 
   if (authUsersResult.error) return NextResponse.json({ error: authUsersResult.error.message }, { status: 500 });

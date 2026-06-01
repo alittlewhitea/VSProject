@@ -182,6 +182,14 @@ function countryLabel(user: AdminUser) {
   return `${user.countryName || user.countryCode} (${user.countryCode})`;
 }
 
+function countValues(values: string[]) {
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    counts.set(value || "unknown", (counts.get(value || "unknown") || 0) + 1);
+  }
+  return Object.fromEntries([...counts.entries()].sort((a, b) => b[1] - a[1]));
+}
+
 export default function AdminHomePage() {
   const router = useRouter();
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
@@ -317,6 +325,30 @@ export default function AdminHomePage() {
   const countries = analytics?.countries || [];
   const analyticsSummary = analytics?.summary;
   const criticalFindingCount = findings.filter((finding) => finding.severity === "critical").reduce((sum, finding) => sum + finding.count, 0);
+  const selectedUser = filterUserId.trim() ? users[0] || null : null;
+  const selectedCompletedPurchases = purchases.filter((purchase) => purchase.status === "completed");
+  const selectedUserStats = useMemo(() => {
+    const completed = tasks.filter((task) => task.status === "completed").length;
+    const failed = tasks.filter((task) => task.status === "failed").length;
+    const running = tasks.filter((task) => task.status === "queued" || task.status === "running").length;
+    const creditsSpent = Math.abs(ledger.filter((entry) => entry.amount < 0).reduce((sum, entry) => sum + entry.amount, 0));
+    const creditsRefunded = ledger.filter((entry) => entry.reason === "generation_refund").reduce((sum, entry) => sum + entry.amount, 0);
+    const creditsPurchased = selectedCompletedPurchases.reduce((sum, purchase) => sum + purchase.credits, 0);
+    const revenueCents = selectedCompletedPurchases.reduce((sum, purchase) => sum + purchase.amount_cents, 0);
+
+    return {
+      completed,
+      failed,
+      running,
+      creditsSpent,
+      creditsRefunded,
+      creditsPurchased,
+      revenueCents,
+      byMode: countValues(tasks.map((task) => task.mode)),
+      byProvider: countValues(tasks.map((task) => task.provider)),
+      byStatus: countValues(tasks.map((task) => task.status))
+    };
+  }, [ledger, selectedCompletedPurchases, tasks]);
 
   return (
     <main className="min-h-screen bg-[#f7f7f8] text-[#1d1d1f]">
@@ -405,6 +437,71 @@ export default function AdminHomePage() {
             </div>
           ) : null}
         </section>
+
+        {filterUserId.trim() ? (
+          <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.14em] text-[#86868b]">User detail</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight">{selectedUser?.email || "Selected user"}</h2>
+                <p className="mt-2 break-all text-xs text-[#86868b]">{filterUserId.trim()}</p>
+                {selectedUser ? (
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#4f5a6d]">
+                    <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">Country: {countryLabel(selectedUser)}</span>
+                    <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">Created: {formatDate(selectedUser.createdAt)}</span>
+                    <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">Last sign-in: {formatDate(selectedUser.lastSignInAt)}</span>
+                    <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">Balance: {selectedUser.balance.toLocaleString()} credits</span>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-[#86868b]">{loading ? "Loading selected user..." : "No auth user was found for this id."}</p>
+                )}
+              </div>
+              <AppButton
+                variant="secondary"
+                onClick={() => {
+                  setFilterUserId("");
+                  setAdjustUserId("");
+                  if (token) loadOps(token, "");
+                }}
+                disabled={loading}
+              >
+                Clear user
+              </AppButton>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                ["Creations", tasks.length.toLocaleString()],
+                ["Completed", selectedUserStats.completed.toLocaleString()],
+                ["Running", selectedUserStats.running.toLocaleString()],
+                ["Failed", selectedUserStats.failed.toLocaleString()],
+                ["Credits spent", selectedUserStats.creditsSpent.toLocaleString()],
+                ["Credits refunded", selectedUserStats.creditsRefunded.toLocaleString()],
+                ["Credits purchased", selectedUserStats.creditsPurchased.toLocaleString()],
+                ["Revenue", formatUsd(selectedUserStats.revenueCents, selectedCompletedPurchases[0]?.currency || "usd")]
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl border border-black/10 bg-[#fbfbfd] p-4">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[#86868b]">{label}</p>
+                  <p className="mt-2 text-2xl font-semibold">{value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-3">
+              <AnalyticsBreakdown title="Creation type" values={selectedUserStats.byMode} />
+              <AnalyticsBreakdown title="Model usage" values={selectedUserStats.byProvider} />
+              <AnalyticsBreakdown title="Task status" values={selectedUserStats.byStatus} />
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-black/10 bg-[#fbfbfd] p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold">Recent creations</p>
+                <span className="text-xs text-[#86868b]">Latest {Math.min(tasks.length, 8)} of {tasks.length}</span>
+              </div>
+              <TaskList tasks={tasks.slice(0, 8)} loading={loading} />
+            </div>
+          </section>
+        ) : null}
 
         <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">

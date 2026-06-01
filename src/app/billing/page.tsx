@@ -218,6 +218,7 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
   const [refreshingCredits, setRefreshingCredits] = useState(false);
   const [pricingRows, setPricingRows] = useState<PricingGuideRow[]>(MODEL_PRICING_ROWS);
   const trackedLoginSuccessRef = useRef<string | null>(null);
+  const trackedCheckoutSuccessRef = useRef<string | null>(null);
   const checkoutState = searchParams.get("checkout");
   const checkoutSessionId = searchParams.get("session_id");
 
@@ -294,7 +295,6 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
     if (!accessToken) return undefined;
 
     if (checkoutState === "success") {
-      trackEvent("checkout_success", { stripe_checkout_id: checkoutSessionId || null }, accessToken);
       setMessage("Payment completed. Refreshing your balance from Stripe confirmation...");
       let attempts = 0;
       const timer = window.setInterval(async () => {
@@ -303,6 +303,24 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
         const matchingPurchase = payload?.purchases?.find(
           (purchase) => !checkoutSessionId || purchase.stripe_checkout_id === checkoutSessionId
         );
+        if (matchingPurchase?.status === "completed") {
+          const trackingKey = matchingPurchase.stripe_checkout_id || String(matchingPurchase.id);
+          if (trackedCheckoutSuccessRef.current !== trackingKey) {
+            trackedCheckoutSuccessRef.current = trackingKey;
+            trackEvent(
+              "checkout_success",
+              {
+                stripe_checkout_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || null,
+                pack_id: matchingPurchase.pack_id,
+                credits: matchingPurchase.credits,
+                amount_cents: matchingPurchase.amount_cents,
+                value: matchingPurchase.amount_cents / 100,
+                currency: (matchingPurchase.currency || "usd").toUpperCase()
+              },
+              accessToken
+            );
+          }
+        }
         if (matchingPurchase?.status === "completed" || attempts >= 8) {
           window.clearInterval(timer);
           setMessage(

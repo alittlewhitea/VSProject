@@ -51,6 +51,10 @@ Common parameters pushed to `dataLayer`:
 - `pack_id`
 - `credits`
 - `amount_cents`
+- `value`
+- `currency`
 - `stripe_checkout_id`
+
+`checkout_success` is sent after the Stripe purchase is confirmed in DreamFace, and includes `value` in major currency units plus `currency` for GA4 conversion value reporting.
 
 The same events are mirrored into `public.analytics_events` through `/api/analytics/track` and displayed in the admin funnel panel.
