@@ -193,6 +193,14 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
     return creditsFromFalUsd((input.generateAudio ? 0.168 : 0.112) * seconds, seconds * 16);
   }
 
+  if (input.provider === "kling-avatar-standard") {
+    return creditsFromFalUsd(0.0562 * seconds, seconds * 10);
+  }
+
+  if (input.provider === "kling-avatar-pro") {
+    return creditsFromFalUsd(0.115 * seconds, seconds * 18);
+  }
+
   if (input.provider === "grok-video") {
     const imageInputPrice = input.hasReferences ? 0.002 : 0;
     return creditsFromFalUsd((input.resolution === "480p" ? 0.05 : 0.07) * seconds + imageInputPrice, seconds * 8);
@@ -323,6 +331,26 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal lists Kling v3 Pro image-to-video at $0.112/s without audio and $0.168/s with native audio.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "kling-video", duration: "6s" }),
     unitNote: "19 credits/sec without audio"
+  },
+  {
+    provider: "kling-avatar-standard",
+    label: "Kling AI Avatar v2 Standard",
+    mode: "video",
+    workflow: "AI Avatar",
+    endpointId: "fal-ai/kling-video/ai-avatar/v2/standard",
+    falBasis: "fal lists Kling AI Avatar v2 Standard at $0.0562/s.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "kling-avatar-standard", duration: "6s", hasReferences: true }),
+    unitNote: "10 credits/sec"
+  },
+  {
+    provider: "kling-avatar-pro",
+    label: "Kling AI Avatar v2 Pro",
+    mode: "video",
+    workflow: "AI Avatar",
+    endpointId: "fal-ai/kling-video/ai-avatar/v2/pro",
+    falBasis: "fal lists Kling AI Avatar v2 Pro at $0.115/s.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "kling-avatar-pro", duration: "6s", hasReferences: true }),
+    unitNote: "19 credits/sec"
   },
   {
     provider: "grok-video",

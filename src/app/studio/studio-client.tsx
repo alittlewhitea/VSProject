@@ -39,11 +39,12 @@ type StudioLoginDraft = {
   mode: "image" | "video" | "audio";
   provider: string;
   imageWorkflow: ImageWorkflow;
-  videoWorkflow?: "text-to-video" | "image-to-video";
+  videoWorkflow?: VideoWorkflow;
   ratio: string;
   imageSize: string;
   referenceImagesText: string;
   referenceImageFiles: string[];
+  avatarAudioUrl?: string;
   editResolution: string;
   videoResolution: string;
   generateAudio?: boolean;
@@ -70,7 +71,8 @@ type StudioLoginDraft = {
 };
 
 type ImageWorkflow = "text-to-image" | "image-to-image" | "enhance-cleanup";
-type StudioWorkflow = ImageWorkflow | "text-to-video" | "image-to-video" | "text-to-audio";
+type VideoWorkflow = "avatar-video" | "text-to-video" | "image-to-video";
+type StudioWorkflow = ImageWorkflow | VideoWorkflow | "text-to-audio";
 type GalleryTemplate = {
   id: string;
   title: string;
@@ -149,6 +151,14 @@ const TOOLKIT_APPS: Array<{
   accent: string;
   iconClass: string;
 }> = [
+  {
+    title: "AI Avatar",
+    body: "Create talking avatar videos from one character image and an audio URL with Kling Avatar v2.",
+    icon: "video",
+    href: "/studio?mode=video&workflow=avatar-video&provider=kling-avatar-standard",
+    accent: "from-[#dff7ff] via-[#eef2ff] to-[#f7e8ff]",
+    iconClass: "text-[#2563eb]"
+  },
   {
     title: "Text to Image",
     body: "Generate polished ads, posters, product shots, thumbnails, and concept visuals from a prompt.",
@@ -436,6 +446,20 @@ const PROVIDER_META: Record<
     quality: "Premium motion",
     bestFor: "Premium text-to-video or image-to-video with stronger camera movement"
   },
+  "kling-avatar-standard": {
+    label: "Kling AI Avatar v2 Standard",
+    shortLabel: "Avatar Std",
+    speed: "Medium",
+    quality: "Avatar video",
+    bestFor: "Talking avatar videos from a character image and voiceover audio URL"
+  },
+  "kling-avatar-pro": {
+    label: "Kling AI Avatar v2 Pro",
+    shortLabel: "Avatar Pro",
+    speed: "Slower",
+    quality: "Premium avatar",
+    bestFor: "Higher fidelity talking avatar videos for realistic people, characters, animals, and stylized hosts"
+  },
   "veo-video": {
     label: "Veo 3.1",
     shortLabel: "Veo 3.1",
@@ -485,6 +509,12 @@ const WORKFLOW_META: Record<
     description: "Upscale, sharpen, and clean up an uploaded image.",
     recommendedProvider: "topaz-image",
     providers: ["topaz-image"]
+  },
+  "avatar-video": {
+    label: "AI Avatar",
+    description: "Create a talking avatar video from one image and an audio URL.",
+    recommendedProvider: "kling-avatar-standard",
+    providers: ["kling-avatar-standard", "kling-avatar-pro"]
   },
   "text-to-video": {
     label: "Text to Video",
@@ -753,7 +783,9 @@ function ratioFromImageSize(value: string) {
 }
 
 function defaultPromptForProvider(provider: string) {
-  void provider;
+  if (provider === "kling-avatar-standard" || provider === "kling-avatar-pro") {
+    return "Natural talking avatar performance with steady eye contact, expressive but realistic facial motion, clean lip sync, and polished presenter framing.";
+  }
   return "";
 }
 
@@ -773,11 +805,24 @@ function defaultImageSizeForProvider(provider: string) {
   return "default_4_3";
 }
 
+function isAvatarProvider(provider: string) {
+  return provider === "kling-avatar-standard" || provider === "kling-avatar-pro";
+}
+
+function isProbablyUrl(value: string) {
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 function isProviderAllowedForMode(provider: string | null, mode: "image" | "video" | "audio") {
   if (!provider) return false;
   if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image"].includes(provider);
   if (mode === "audio") return ["elevenlabs-tts"].includes(provider);
-  return ["seedance-video", "kling-video", "veo-video", "grok-video"].includes(provider);
+  return ["seedance-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
 }
 
 function workflowForMode(mode: "image" | "video" | "audio", workflow: string | null): StudioWorkflow {
@@ -786,6 +831,7 @@ function workflowForMode(mode: "image" | "video" | "audio", workflow: string | n
     if (workflow === "image-to-image" || workflow === "enhance-cleanup") return workflow;
     return "text-to-image";
   }
+  if (workflow === "avatar-video") return "avatar-video";
   return workflow === "image-to-video" ? "image-to-video" : "text-to-video";
 }
 
@@ -824,21 +870,23 @@ function StudioContent() {
   );
   const initialImageWorkflow: ImageWorkflow =
     initialWorkflow === "image-to-image" || initialWorkflow === "enhance-cleanup" ? initialWorkflow : "text-to-image";
-  const initialVideoWorkflow = initialWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
+  const initialVideoWorkflow: VideoWorkflow =
+    initialWorkflow === "avatar-video" || initialWorkflow === "image-to-video" ? initialWorkflow : "text-to-video";
   const initialReferenceUrl = sp.get("reference");
   const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider));
   const [provider, setProvider] = useState(initialProvider);
   const [imageWorkflow, setImageWorkflow] = useState<ImageWorkflow>(initialImageWorkflow);
-  const [videoWorkflow, setVideoWorkflow] = useState<"text-to-video" | "image-to-video">(initialVideoWorkflow);
+  const [videoWorkflow, setVideoWorkflow] = useState<VideoWorkflow>(initialVideoWorkflow);
   const [ratio, setRatio] = useState(mode === "image" ? "1:1" : "16:9");
   const [imageSize, setImageSize] = useState("default_4_3");
   const [referenceImagesText, setReferenceImagesText] = useState(() =>
-    mode === "image" &&
+    (mode === "image" || mode === "video") &&
     initialReferenceUrl
       ? initialReferenceUrl
       : ""
   );
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
+  const [avatarAudioUrl, setAvatarAudioUrl] = useState(sp.get("audioUrl") || "");
   const [editResolution, setEditResolution] = useState("1K");
   const [videoResolution, setVideoResolution] = useState("720p");
   const [generateAudio, setGenerateAudio] = useState(false);
@@ -959,7 +1007,11 @@ function StudioContent() {
         ? workflowParam
         : "text-to-image"
     );
-    setVideoWorkflow(mode === "video" && workflowParam === "image-to-video" ? "image-to-video" : "text-to-video");
+    setVideoWorkflow(
+      mode === "video" && (workflowParam === "avatar-video" || workflowParam === "image-to-video")
+        ? workflowParam
+        : "text-to-video"
+    );
     const nextProvider = providerForWorkflow(
       workflowParam,
       isProviderAllowedForMode(providerParam, mode) ? providerParam : null
@@ -1202,6 +1254,10 @@ function StudioContent() {
   ].slice(0, 14);
   const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : videoWorkflow;
   const activeWorkflowMeta = WORKFLOW_META[activeWorkflow];
+  const isAvatarWorkflow = activeWorkflow === "avatar-video";
+  const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
+  const avatarNeedsAudio = isAvatarWorkflow && !isProbablyUrl(avatarAudioUrl);
+  const hasRequiredAvatarAudio = !isAvatarWorkflow || isProbablyUrl(avatarAudioUrl);
 
   const estCredits = estimateGenerationCredits({
     mode,
@@ -1221,9 +1277,9 @@ function StudioContent() {
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const estimatedSeconds = estimateTaskSeconds(mode, provider, duration);
   const isPromptValid = prompt.trim().length >= 8;
-  const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video";
+  const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
-  const canSubmit = isPromptValid && hasRequiredReference;
+  const canSubmit = isPromptValid && hasRequiredReference && hasRequiredAvatarAudio;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const hasCompletedCreation = completedTasks.length > 0;
@@ -1249,6 +1305,10 @@ function StudioContent() {
         ? "GPT Image 2 supports preset output sizes. The preview frame updates to match the selected canvas."
         : provider === "topaz-image"
           ? "Topaz Upscale enhances an uploaded image with 2x upscale, clarity, and face enhancement."
+        : provider === "kling-avatar-standard"
+          ? "Kling AI Avatar v2 Standard creates talking avatar videos from one avatar image and a voiceover audio URL."
+        : provider === "kling-avatar-pro"
+          ? "Kling AI Avatar v2 Pro is the premium avatar endpoint for realistic people, animals, cartoons, and stylized characters."
         : provider === "grok-video"
           ? "Grok Imagine Video supports text-to-video and image-to-video with 1-15 second clips, aspect ratio controls, and 480p/720p output resolution."
           : provider === "seedance-video"
@@ -1260,13 +1320,15 @@ function StudioContent() {
                 : provider === "elevenlabs-tts"
                   ? "ElevenLabs Eleven v3 turns your script into an MP3 voiceover. Pricing scales by character count."
           : "Use clear subject, style, composition, and constraints for better instruction following.";
-  const videoRatioOptions = provider === "grok-video"
+  const videoRatioOptions = isAvatarProvider(provider)
+    ? ["source"]
+    : provider === "grok-video"
     ? activeWorkflow === "image-to-video"
       ? GROK_IMAGE_VIDEO_RATIO_OPTIONS
       : GROK_VIDEO_RATIO_OPTIONS
     : provider === "seedance-video"
       ? SEEDANCE_VIDEO_RATIO_OPTIONS
-      : provider === "kling-video"
+        : provider === "kling-video"
         ? activeWorkflow === "image-to-video"
           ? KLING_IMAGE_VIDEO_RATIO_OPTIONS
           : KLING_TEXT_VIDEO_RATIO_OPTIONS
@@ -1278,7 +1340,9 @@ function StudioContent() {
       ? VEO_VIDEO_DURATION_OPTIONS
       : provider === "seedance-video"
         ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 4)
-        : provider === "grok-video"
+      : isAvatarProvider(provider)
+        ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 3)
+      : provider === "grok-video"
           ? GROK_VIDEO_DURATION_OPTIONS
           : VIDEO_DURATION_OPTIONS;
   const videoResolutionOptions =
@@ -1288,7 +1352,7 @@ function StudioContent() {
         ? VEO_VIDEO_RESOLUTION_OPTIONS
         : GROK_VIDEO_RESOLUTION_OPTIONS;
   const showVideoResolutionControl = mode === "video" && (provider === "grok-video" || provider === "seedance-video" || provider === "veo-video");
-  const showVideoAudioControl = mode === "video" && (provider === "seedance-video" || provider === "kling-video" || provider === "veo-video");
+  const showVideoAudioControl = mode === "video" && !isAvatarProvider(provider) && (provider === "seedance-video" || provider === "kling-video" || provider === "veo-video");
   const showTextToImageTemplates = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "text-to-image";
   const providerSettingsLabel =
     provider === "chatgpt-image"
@@ -1299,7 +1363,9 @@ function StudioContent() {
           ? `${editResolution} / safety ${safetyTolerance} / ${numImages} image${numImages > 1 ? "s" : ""}`
           : mode === "audio"
             ? `${prompt.trim().length || 0} chars / ${ttsVoice} / stability ${ttsStability.toFixed(2)}`
-          : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / audio on" : " / audio off" : ""}`;
+          : isAvatarWorkflow
+            ? `${duration} estimate / audio URL required`
+            : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / audio on" : " / audio off" : ""}`;
 
   useEffect(() => {
     if (mode !== "video") return;
@@ -1358,14 +1424,16 @@ function StudioContent() {
       }
       setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
     } else if (nextMode === "video") {
-      setVideoWorkflow(nextWorkflow as "text-to-video" | "image-to-video");
+      setVideoWorkflow(nextWorkflow as VideoWorkflow);
       if (nextWorkflow === "text-to-video") {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
+        setAvatarAudioUrl("");
       }
     } else {
       setReferenceImagesText("");
       setReferenceImageFiles([]);
+      setAvatarAudioUrl("");
     }
     setProvider(nextProvider);
     if (nextProvider === "nano-banana-image" || nextProvider === "nano-banana-pro" || nextProvider === "topaz-image") {
@@ -1378,7 +1446,7 @@ function StudioContent() {
       setImageSize(nextImageSize);
       setRatio(nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
     } else if (nextMode === "video") {
-      setRatio("16:9");
+      setRatio(nextWorkflow === "avatar-video" ? "source" : "16:9");
       setDuration(nextProvider === "veo-video" ? "8s" : "6s");
     } else {
       setRatio("16:9");
@@ -1394,7 +1462,7 @@ function StudioContent() {
       params.set("ratio", nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
     } else if (nextMode === "video") {
       params.delete("imageSize");
-      params.set("ratio", "16:9");
+      params.set("ratio", nextWorkflow === "avatar-video" ? "source" : "16:9");
     } else {
       params.delete("imageSize");
       params.set("ratio", "16:9");
@@ -1435,7 +1503,9 @@ function StudioContent() {
       router.replace(`/studio?${params.toString()}`, { scroll: false });
     } else {
       const nextRatio =
-        nextProvider === "kling-video" && activeWorkflow === "image-to-video"
+        isAvatarProvider(nextProvider)
+          ? "source"
+        : nextProvider === "kling-video" && activeWorkflow === "image-to-video"
           ? "source"
           : nextProvider === "grok-video" && activeWorkflow === "image-to-video" && ratio === "source"
             ? "auto"
@@ -1471,6 +1541,16 @@ function StudioContent() {
     }
   }
 
+  function startAvatarImageGuide() {
+    applyWorkflow("text-to-image");
+    setPrompt("Professional front-facing presenter avatar portrait, clean background, natural expression, sharp facial details, studio lighting, realistic but friendly, centered composition for talking avatar video.");
+  }
+
+  function startAvatarAudioGuide() {
+    applyWorkflow("text-to-audio");
+    setPrompt("Hi, welcome to DreamFace. I am your AI avatar presenter, ready to introduce your product, tell your story, or deliver a polished social video message.");
+  }
+
   async function handleReferenceFiles(files: FileList | null) {
     if (!files?.length) return;
     const nextFiles = await Promise.all(
@@ -1494,7 +1574,7 @@ function StudioContent() {
         setProvider(WORKFLOW_META["image-to-image"].recommendedProvider);
       }
     }
-    if (mode === "video" && videoWorkflow !== "image-to-video") {
+    if (mode === "video" && videoWorkflow !== "image-to-video" && videoWorkflow !== "avatar-video") {
       setVideoWorkflow("image-to-video");
       if (!WORKFLOW_META["image-to-video"].providers.includes(provider)) {
         setProvider(WORKFLOW_META["image-to-video"].recommendedProvider);
@@ -1533,6 +1613,7 @@ function StudioContent() {
       imageSize,
       referenceImagesText,
       referenceImageFiles,
+      avatarAudioUrl,
       editResolution,
       videoResolution,
       generateAudio,
@@ -1573,6 +1654,7 @@ function StudioContent() {
     setImageSize(draft.imageSize);
     setReferenceImagesText(draft.referenceImagesText);
     setReferenceImageFiles(Array.isArray(draft.referenceImageFiles) ? draft.referenceImageFiles : []);
+    setAvatarAudioUrl(draft.avatarAudioUrl || "");
     setEditResolution(draft.editResolution);
     setVideoResolution(draft.videoResolution);
     setGenerateAudio(Boolean(draft.generateAudio));
@@ -1655,15 +1737,17 @@ function StudioContent() {
       const requestPayload = {
         mode,
         imageWorkflow,
+        videoWorkflow,
         provider,
         ratio,
         duration,
         prompt,
         imageSize: mode === "image" ? imageSize : undefined,
         imageUrls:
-          (mode === "image" && referenceImageUrls.length > 0) || (mode === "video" && videoWorkflow === "image-to-video")
+          (mode === "image" && referenceImageUrls.length > 0) || (mode === "video" && (videoWorkflow === "image-to-video" || videoWorkflow === "avatar-video"))
             ? referenceImageUrls
             : undefined,
+        audioUrl: mode === "video" && videoWorkflow === "avatar-video" ? avatarAudioUrl.trim() : undefined,
         resolution:
           mode === "image"
             ? editResolution
@@ -1693,7 +1777,8 @@ function StudioContent() {
       const fingerprint = createIdempotencyFingerprint({
         ...requestPayload,
         prompt: prompt.trim(),
-        imageUrls: referenceImageUrls
+        imageUrls: referenceImageUrls,
+        audioUrl: avatarAudioUrl.trim()
       });
       const idempotency = getPersistentIdempotency(userId, fingerprint);
       idempotencyStorageKey = idempotency.storageKey;
@@ -2024,6 +2109,7 @@ function StudioContent() {
               <nav className="mt-9 flex flex-1 flex-col items-center gap-4">
                 {[
                   { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName },
+                  { label: "Avatar", href: "/studio?mode=video&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName },
                   { label: "Image", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName },
                   { label: "Video", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName },
                   { label: "Audio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName },
@@ -2031,6 +2117,7 @@ function StudioContent() {
                 ].map((item) => {
                   const active =
                     (item.label === "Home" && isAppsHome) ||
+                    (!isAppsHome && !isProjectsView && item.label === "Avatar" && activeWorkflow === "avatar-video") ||
                     (item.label === "Projects" && isProjectsView) ||
                     (!isAppsHome && !isProjectsView && item.label === "Image" && mode === "image") ||
                     (!isAppsHome && !isProjectsView && item.label === "Video" && mode === "video") ||
@@ -2159,6 +2246,7 @@ function StudioContent() {
                         {[
                           { label: "DreamFace Home", href: "https://dreamface.io/", icon: "home" as StudioIconName, active: false },
                           { label: "Studio Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
+                          { label: "AI Avatar", href: "/studio?mode=video&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && activeWorkflow === "avatar-video" },
                           { label: "Image Studio", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
                           { label: "Video Studio", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
                           { label: "Audio Studio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
@@ -2285,13 +2373,20 @@ function StudioContent() {
                   </div>
 
                   <div className="mt-5 grid gap-3 md:mt-9 md:grid-cols-2 md:gap-5 xl:grid-cols-3">
-                    {TOOLKIT_APPS.map((app) => (
+                    {TOOLKIT_APPS.map((app, index) => (
                       <Link
                         key={app.title}
                         href={app.href}
-                        className="group relative min-h-[160px] overflow-hidden rounded-[1.5rem] border border-black/[0.05] bg-white/70 p-5 text-left shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_26px_70px_rgba(15,23,42,0.10)] md:min-h-[210px] md:rounded-[2rem] md:p-7"
+                        className={`group relative min-h-[160px] overflow-hidden rounded-[1.5rem] border bg-white/70 p-5 text-left shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_26px_70px_rgba(15,23,42,0.10)] md:min-h-[210px] md:rounded-[2rem] md:p-7 ${
+                          index === 0 ? "border-[#93c5fd] md:col-span-2 xl:col-span-3" : "border-black/[0.05]"
+                        }`}
                       >
                         <div className={`absolute inset-0 bg-gradient-to-br ${app.accent} opacity-55 transition group-hover:opacity-80`} />
+                        {index === 0 ? (
+                          <span className="relative mb-4 inline-flex rounded-full bg-[#202633] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-white">
+                            Featured Avatar
+                          </span>
+                        ) : null}
                         <div className={`relative grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ${app.iconClass}`}>
                           <StudioIcon name={app.icon} className="h-7 w-7" />
                         </div>
@@ -2559,7 +2654,7 @@ function StudioContent() {
                     </button>
                     </>
                   ) : mode === "video" ? (
-                    (["text-to-video", "image-to-video"] as StudioWorkflow[]).map((workflow) => {
+                    (["avatar-video", "text-to-video", "image-to-video"] as StudioWorkflow[]).map((workflow) => {
                       const active = activeWorkflow === workflow;
                       return (
                         <button
@@ -2593,7 +2688,7 @@ function StudioContent() {
                           ? "Type your prompt to create images. Add a reference with + when you want image-to-image..."
                           : mode === "audio"
                             ? "Type the voiceover script you want ElevenLabs to speak..."
-                          : activeWorkflow === "image-to-video"
+                          : activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video"
                             ? "Describe how the uploaded image should move, the camera feel, and final mood..."
                             : "Type your prompt to create AI video footage..."
                       }
@@ -2610,7 +2705,7 @@ function StudioContent() {
                               setReferenceImagesText("");
                               setReferenceImageFiles([]);
                               if (mode === "image") setImageWorkflow("text-to-image");
-                              if (mode === "video") setVideoWorkflow("text-to-video");
+                              if (mode === "video" && !isAvatarWorkflow) setVideoWorkflow("text-to-video");
                             }}
                             className="rounded-full border border-black/[0.06] bg-white px-3 py-1 text-xs font-semibold text-[#667085] hover:bg-[#f8fafc]"
                           >
@@ -2624,6 +2719,45 @@ function StudioContent() {
                             </div>
                           ))}
                         </div>
+                      </div>
+                    ) : null}
+                    {isAvatarWorkflow ? (
+                      <div className="mt-4 border-t border-black/[0.06] pt-4">
+                        {(avatarNeedsImage || avatarNeedsAudio) ? (
+                          <div className="mb-4 grid gap-3 md:grid-cols-2">
+                            {avatarNeedsImage ? (
+                              <button
+                                type="button"
+                                onClick={startAvatarImageGuide}
+                                className="rounded-2xl border border-[#bfdbfe] bg-[#eff6ff] p-4 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                              >
+                                <span className="text-xs font-black uppercase tracking-[0.12em] text-[#2563eb]">Need an avatar image?</span>
+                                <span className="mt-2 block text-sm font-semibold text-[#202633]">Create a presenter portrait first</span>
+                                <span className="mt-1 block text-xs leading-5 text-[#667085]">Generate a clean front-facing character or host image, then use it here as the avatar reference.</span>
+                              </button>
+                            ) : null}
+                            {avatarNeedsAudio ? (
+                              <button
+                                type="button"
+                                onClick={startAvatarAudioGuide}
+                                className="rounded-2xl border border-[#bbf7d0] bg-[#f0fdf4] p-4 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                              >
+                                <span className="text-xs font-black uppercase tracking-[0.12em] text-[#16a34a]">Need voiceover audio?</span>
+                                <span className="mt-2 block text-sm font-semibold text-[#202633]">Generate an ElevenLabs voiceover</span>
+                                <span className="mt-1 block text-xs leading-5 text-[#667085]">Create the script audio in Text to Audio, then paste the output MP3 URL back into this Avatar workflow.</span>
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        <label className="block">
+                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8791a3]">Voiceover audio URL</span>
+                          <input
+                            value={avatarAudioUrl}
+                            onChange={(event) => setAvatarAudioUrl(event.target.value)}
+                            placeholder="https://.../voiceover.mp3"
+                            className="mt-2 w-full rounded-2xl border border-black/[0.08] bg-white px-4 py-3 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                          />
+                        </label>
                       </div>
                     ) : null}
                   </div>
@@ -2718,7 +2852,7 @@ function StudioContent() {
                             <option key={item} value={item}>{item}</option>
                           ))}
                         </select>
-                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={provider === "kling-video" && activeWorkflow === "image-to-video"} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none disabled:opacity-70 sm:w-auto">
+                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={(provider === "kling-video" && activeWorkflow === "image-to-video") || isAvatarWorkflow} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none disabled:opacity-70 sm:w-auto">
                           {videoRatioOptions.map((item) => (
                             <option key={item} value={item}>{item === "source" ? "Source image" : item}</option>
                           ))}
@@ -3064,7 +3198,7 @@ function StudioContent() {
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
                   {(mode === "image"
                     ? ["Product campaign", "Social ad", "Brand poster", "Reference edit"]
-                    : activeWorkflow === "image-to-video"
+                    : activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video"
                       ? ["Camera push-in", "Product reveal", "Cinematic loop", "Social motion"]
                       : ["UGC-style ad", "Dynamic camera move", "Multi-scene cut", "B-roll footage"]
                   ).map((item) => (
@@ -3242,7 +3376,7 @@ function StudioContent() {
 
             <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.045] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className={`grid gap-1 ${mode === "image" ? "grid-cols-3" : "grid-cols-2"}`}>
-                {(mode === "image" ? ["text-to-image", "image-to-image", "enhance-cleanup"] : ["text-to-video", "image-to-video"]).map((workflow) => {
+                {(mode === "image" ? ["text-to-image", "image-to-image", "enhance-cleanup"] : ["avatar-video", "text-to-video", "image-to-video"]).map((workflow) => {
                   const meta = WORKFLOW_META[workflow as StudioWorkflow];
                   const active = activeWorkflow === workflow;
                   return (
@@ -3289,7 +3423,7 @@ function StudioContent() {
                     provider: option.value,
                     imageSize,
                     duration,
-                    hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video",
+                    hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video",
                     resolution: mode === "image" ? editResolution : videoResolution
                   });
                   return (
@@ -3560,7 +3694,7 @@ function StudioContent() {
                 <div className="absolute inset-0 opacity-0 blur-xl transition group-focus-within:opacity-60" style={{ background: "radial-gradient(circle at 18% 0%, rgba(108,150,255,0.24), transparent 36%), radial-gradient(circle at 80% 10%, rgba(162,119,255,0.20), transparent 38%)" }} />
                 <div className="relative rounded-[1.55rem] bg-[#111722]/92 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-18px_45px_rgba(28,107,225,0.035)] backdrop-blur">
                 <div className="flex items-start gap-3">
-                  {mode === "image" || activeWorkflow === "image-to-video" ? (
+                  {mode === "image" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video" ? (
                     <label
                       title="Add reference images"
                       className="grid h-12 w-12 shrink-0 cursor-pointer place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-2xl font-light text-[#bde0fe] shadow-[0_12px_28px_rgba(0,0,0,0.20)] transition hover:bg-white/[0.10]"
@@ -3583,7 +3717,7 @@ function StudioContent() {
                     placeholder="Describe the image you want to create. Add the subject, mood, lighting, camera feel, composition, materials, text details, and what to avoid..."
                   />
                 </div>
-                {(mode === "image" || activeWorkflow === "image-to-video") && referenceImageUrls.length ? (
+                {(mode === "image" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video") && referenceImageUrls.length ? (
                   <div className="mt-3 border-t border-white/10 pt-3">
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/42">
@@ -3607,6 +3741,43 @@ function StudioContent() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                ) : null}
+                {isAvatarWorkflow ? (
+                  <div className="mt-3 border-t border-white/10 pt-3">
+                    {(avatarNeedsImage || avatarNeedsAudio) ? (
+                      <div className="mb-3 grid gap-2">
+                        {avatarNeedsImage ? (
+                          <button
+                            type="button"
+                            onClick={startAvatarImageGuide}
+                            className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-3 text-left transition hover:bg-white/[0.10]"
+                          >
+                            <span className="block text-xs font-black uppercase tracking-[0.12em] text-[#93c5fd]">Need an avatar image?</span>
+                            <span className="mt-1 block text-sm font-semibold text-white/82">Create a presenter portrait in Image Studio</span>
+                          </button>
+                        ) : null}
+                        {avatarNeedsAudio ? (
+                          <button
+                            type="button"
+                            onClick={startAvatarAudioGuide}
+                            className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-3 text-left transition hover:bg-white/[0.10]"
+                          >
+                            <span className="block text-xs font-black uppercase tracking-[0.12em] text-[#86efac]">Need voiceover audio?</span>
+                            <span className="mt-1 block text-sm font-semibold text-white/82">Generate an ElevenLabs MP3 in Text to Audio</span>
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-[0.12em] text-white/42">Voiceover audio URL</span>
+                      <input
+                        value={avatarAudioUrl}
+                        onChange={(event) => setAvatarAudioUrl(event.target.value)}
+                        placeholder="https://.../voiceover.mp3"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.06] px-3 py-3 text-sm font-semibold text-white outline-none placeholder:text-white/28 focus:border-[#77a8e8]"
+                      />
+                    </label>
                   </div>
                 ) : null}
                 </div>
@@ -3757,7 +3928,7 @@ function StudioContent() {
               <span className="text-sm text-[#5f6779]">Prompt</span>
               <div className="mt-2 rounded-2xl border border-black/10 bg-white/95 p-3 shadow-sm focus-within:border-[#77a8e8]">
                 <div className="flex items-start gap-3">
-                  {mode === "image" || activeWorkflow === "image-to-video" ? (
+                  {mode === "image" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video" ? (
                     <label
                       title="Add reference images"
                       className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-xl border border-black/10 bg-[#f4f8ff] text-2xl font-light text-[#1d1d1f] transition hover:bg-[#e8f1ff]"
@@ -3835,6 +4006,8 @@ function StudioContent() {
                 ? "Use at least 8 characters in your prompt."
                 : !hasRequiredReference
                   ? "Add at least one reference image for this workflow."
+                  : !hasRequiredAvatarAudio
+                    ? "Add a valid voiceover audio URL for AI Avatar."
                   : "Prompt looks good. Ready to generate."}
             </p>
             <p className="mt-2 text-xs text-white/35">{providerNote}</p>

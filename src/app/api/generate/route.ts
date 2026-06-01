@@ -19,12 +19,14 @@ type GenerateMode = "image" | "video" | "audio";
 type GenerateRequest = {
   mode: GenerateMode;
   imageWorkflow?: "text-to-image" | "image-to-image" | "enhance-cleanup";
+  videoWorkflow?: "avatar-video" | "text-to-video" | "image-to-video";
   provider: string;
   ratio: string;
   duration: string;
   prompt: string;
   imageSize?: string;
   imageUrls?: string[];
+  audioUrl?: string;
   resolution?: string;
   outputFormat?: string;
   quality?: string;
@@ -110,6 +112,8 @@ function getModelId(mode: GenerateMode, provider: string, editImage = false): st
     "kling-video": editImage
       ? process.env.FAL_MODEL_VIDEO_KLING_I2V || "fal-ai/kling-video/v3/pro/image-to-video"
       : process.env.FAL_MODEL_VIDEO_KLING || "fal-ai/kling-video/v3/pro/text-to-video",
+    "kling-avatar-standard": process.env.FAL_MODEL_VIDEO_KLING_AVATAR_STANDARD || "fal-ai/kling-video/ai-avatar/v2/standard",
+    "kling-avatar-pro": process.env.FAL_MODEL_VIDEO_KLING_AVATAR_PRO || "fal-ai/kling-video/ai-avatar/v2/pro",
     "veo-video": process.env.FAL_MODEL_VIDEO_VEO || "fal-ai/veo3.1",
     "grok-video": editImage
       ? process.env.FAL_MODEL_VIDEO_GROK_I2V || "xai/grok-imagine-video/image-to-video"
@@ -214,6 +218,14 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       subject_detection: "All",
       face_enhancement: true,
       face_enhancement_strength: 0.8
+    };
+  }
+
+  if (body.mode === "video" && (body.provider === "kling-avatar-standard" || body.provider === "kling-avatar-pro")) {
+    return {
+      image_url: firstInputImage(body),
+      audio_url: typeof body.audioUrl === "string" ? body.audioUrl.trim() : "",
+      prompt: prompt || "."
     };
   }
 
@@ -400,7 +412,9 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
   return {
     mode: body.mode,
     workflow:
-      body.mode === "image" && imageUrls.length
+      body.mode === "video" && (body.provider === "kling-avatar-standard" || body.provider === "kling-avatar-pro")
+        ? "avatar-video"
+        : body.mode === "image" && imageUrls.length
         ? "image-to-image"
         : body.mode === "video" && imageUrls.length
           ? "image-to-video"
@@ -413,6 +427,7 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     duration: body.duration,
     image_size: body.imageSize || null,
     image_urls: imageUrls,
+    audio_url: body.audioUrl || null,
     resolution: body.resolution || null,
     output_format: body.outputFormat || null,
     quality: body.quality || null,
@@ -540,6 +555,14 @@ export async function POST(request: Request) {
     }
     if (body.mode === "image" && body.provider === "topaz-image" && !imageUrls.length) {
       return NextResponse.json({ error: "Enhance & Cleanup requires one image for Topaz upscale." }, { status: 400 });
+    }
+    if (body.mode === "video" && (body.provider === "kling-avatar-standard" || body.provider === "kling-avatar-pro")) {
+      if (!imageUrls.length) {
+        return NextResponse.json({ error: "AI Avatar requires one avatar reference image." }, { status: 400 });
+      }
+      if (typeof body.audioUrl !== "string" || !/^https?:\/\//i.test(body.audioUrl.trim())) {
+        return NextResponse.json({ error: "AI Avatar requires a valid voiceover audio URL." }, { status: 400 });
+      }
     }
     const falKey = process.env.FAL_KEY;
     const modelId = getModelId(body.mode, body.provider, hasInputImages(body));
