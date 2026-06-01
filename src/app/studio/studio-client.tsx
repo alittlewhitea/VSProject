@@ -1269,7 +1269,7 @@ function StudioContent() {
         } else {
           setCreditNote(
             payload.signupBonusBlockedByIp
-              ? "This network has already used the free trial credits. Purchased credits can still be used normally."
+              ? "Trial credits are not available for this account. Purchased credits can still be used normally."
               : ""
           );
         }

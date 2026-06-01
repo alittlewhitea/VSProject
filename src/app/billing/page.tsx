@@ -259,7 +259,7 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
       if (Array.isArray(payload.purchases)) setPurchases(payload.purchases);
       if (payload.storageWarning) setMessage(payload.storageWarning);
       else if (payload.signupBonusBlockedByIp) {
-        setMessage("This network has already used the free trial credits. Purchased credits can still be used normally.");
+        setMessage("Trial credits are not available for this account. Purchased credits can still be used normally.");
       }
       return payload;
     } catch {
