@@ -532,8 +532,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
     }
 
-    const prompt = body.prompt.trim();
-    if (prompt.length < 8) {
+    const isAvatarProvider = body.mode === "video" && (body.provider === "kling-avatar-standard" || body.provider === "kling-avatar-pro");
+    const prompt = body.prompt.trim() || (isAvatarProvider ? "." : "");
+    if (!isAvatarProvider && prompt.length < 8) {
       return NextResponse.json({ error: "Prompt must be at least 8 characters." }, { status: 400 });
     }
 
@@ -560,7 +561,7 @@ export async function POST(request: Request) {
     if (body.mode === "image" && body.provider === "topaz-image" && !imageUrls.length) {
       return NextResponse.json({ error: "Enhance & Cleanup requires one image for Topaz upscale." }, { status: 400 });
     }
-    if (body.mode === "video" && (body.provider === "kling-avatar-standard" || body.provider === "kling-avatar-pro")) {
+    if (isAvatarProvider) {
       if (!imageUrls.length) {
         return NextResponse.json({ error: "AI Avatar requires one avatar reference image." }, { status: 400 });
       }

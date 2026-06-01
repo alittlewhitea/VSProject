@@ -1286,7 +1286,7 @@ function StudioContent() {
   const isPromptValid = prompt.trim().length >= 8;
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
-  const canSubmit = isPromptValid && hasRequiredReference && hasRequiredAvatarAudio;
+  const canSubmit = (isAvatarWorkflow || isPromptValid) && hasRequiredReference && hasRequiredAvatarAudio;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const hasCompletedCreation = completedTasks.length > 0;
@@ -4179,7 +4179,7 @@ function StudioContent() {
               </button>
             </div>
             <p className="mt-3 text-sm text-white/46">
-              {!isPromptValid
+              {!isAvatarWorkflow && !isPromptValid
                 ? "Use at least 8 characters in your prompt."
                 : !hasRequiredReference
                   ? "Add at least one reference image for this workflow."
