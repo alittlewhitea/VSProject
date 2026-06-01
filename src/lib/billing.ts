@@ -17,7 +17,7 @@ export const CREDIT_PACKS: CreditPack[] = [
     id: "starter",
     name: "Starter Pack",
     credits: 600,
-    amountCents: 500,
+    amountCents: 499,
     description: "A friendly starter balance for testing prompts, polishing images, and creating a few short clips.",
     idealFor: "Great for exploring the studio across image, audio, and light video workflows.",
     examples: [
@@ -37,7 +37,7 @@ export const CREDIT_PACKS: CreditPack[] = [
     id: "creator",
     name: "Creator Pack",
     credits: 1500,
-    amountCents: 1000,
+    amountCents: 999,
     description: "A comfortable working balance for weekly creative batches, variations, and mixed media tests.",
     idealFor: "Best for creators making several visual directions before choosing the final output.",
     examples: [
@@ -57,7 +57,7 @@ export const CREDIT_PACKS: CreditPack[] = [
     id: "studio",
     name: "Studio Pack",
     credits: 4000,
-    amountCents: 2500,
+    amountCents: 2499,
     description: "The most flexible pack for campaigns, prompt libraries, enhancement passes, and video experiments.",
     idealFor: "Best value when you want room for images, audio, and multiple short video drafts.",
     examples: [

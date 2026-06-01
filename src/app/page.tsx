@@ -15,7 +15,7 @@ const plans = [
     name: pack.name,
     price: formatUsd(pack.amountCents),
     note: pack.id === "studio" ? "Best value" : "Top up when needed",
-    credits: `${pack.credits.toLocaleString()} credits 路 ${pack.idealFor}`,
+    credits: `${pack.credits.toLocaleString()} credits - ${pack.idealFor}`,
     href: "/billing"
   }))
 ];

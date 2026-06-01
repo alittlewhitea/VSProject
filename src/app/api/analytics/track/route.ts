@@ -51,6 +51,20 @@ function cleanProperties(value: unknown) {
   );
 }
 
+function cleanCountryCode(value: string | null) {
+  const code = value?.trim().toUpperCase();
+  return code && /^[A-Z]{2}$/.test(code) && code !== "XX" ? code : null;
+}
+
+function requestCountryCode(headers: Headers) {
+  return (
+    cleanCountryCode(headers.get("cf-ipcountry")) ||
+    cleanCountryCode(headers.get("x-vercel-ip-country")) ||
+    cleanCountryCode(headers.get("x-country-code")) ||
+    cleanCountryCode(headers.get("cloudfront-viewer-country"))
+  );
+}
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as TrackBody | null;
   const eventName = cleanText(body?.eventName, 80);
@@ -67,6 +81,8 @@ export async function POST(request: Request) {
   const user = await getUserFromBearerToken(request.headers.get("authorization")).catch(() => null);
   const userAgent = request.headers.get("user-agent");
   const forwardedFor = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip");
+  const countryCode = requestCountryCode(request.headers);
+  const properties = cleanProperties(body?.properties);
 
   const { error } = await admin.from("analytics_events").insert({
     user_id: user?.id || null,
@@ -77,7 +93,7 @@ export async function POST(request: Request) {
     referrer: cleanText(body?.referrer, 700),
     user_agent: cleanText(userAgent, 500),
     ip_hash: forwardedFor ? Buffer.from(forwardedFor.split(",")[0].trim()).toString("base64").slice(0, 80) : null,
-    properties: cleanProperties(body?.properties)
+    properties: countryCode ? { ...properties, countryCode } : properties
   });
 
   if (error) {

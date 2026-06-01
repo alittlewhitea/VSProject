@@ -16,6 +16,9 @@ type AdminUser = {
   balance: number;
   freeGranted: boolean;
   creditAccountUpdatedAt: string | null;
+  countryCode: string | null;
+  countryName: string | null;
+  countryEventCount: number;
 };
 
 type Account = {
@@ -94,6 +97,13 @@ type FunnelStep = {
   conversionFromPrevious: number | null;
 };
 
+type CountrySummaryRow = {
+  countryCode: string;
+  countryName: string;
+  users: number;
+  events: number;
+};
+
 type AnalyticsEvent = {
   event_name: string;
   user_id: string | null;
@@ -115,8 +125,10 @@ type OpsPayload = {
       byEvent: Record<string, number>;
       byModel: Record<string, number>;
       byMode: Record<string, number>;
+      byCountry: Record<string, number>;
     };
     funnel: FunnelStep[];
+    countries: CountrySummaryRow[];
     recentEvents: AnalyticsEvent[];
     storageWarning: string | null;
   };
@@ -163,6 +175,11 @@ function healthClass(status: "ok" | "warning" | "critical") {
   if (status === "critical") return "border-rose-200 bg-rose-50/70 text-rose-700";
   if (status === "warning") return "border-amber-200 bg-amber-50/70 text-amber-700";
   return "border-emerald-200 bg-emerald-50/70 text-emerald-700";
+}
+
+function countryLabel(user: AdminUser) {
+  if (!user.countryCode) return "Unknown";
+  return `${user.countryName || user.countryCode} (${user.countryCode})`;
 }
 
 export default function AdminHomePage() {
@@ -297,6 +314,7 @@ export default function AdminHomePage() {
   const health = payload?.health;
   const analytics = payload?.analytics;
   const funnel = analytics?.funnel || [];
+  const countries = analytics?.countries || [];
   const analyticsSummary = analytics?.summary;
   const criticalFindingCount = findings.filter((finding) => finding.severity === "critical").reduce((sum, finding) => sum + finding.count, 0);
 
@@ -436,10 +454,11 @@ export default function AdminHomePage() {
             {!funnel.length ? <Empty loading={loading} /> : null}
           </div>
 
-          <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <div className="mt-5 grid gap-4 lg:grid-cols-4">
             <AnalyticsBreakdown title="Top events" values={analyticsSummary?.byEvent || {}} />
             <AnalyticsBreakdown title="Model interest" values={analyticsSummary?.byModel || {}} />
             <AnalyticsBreakdown title="Mode interest" values={analyticsSummary?.byMode || {}} />
+            <AnalyticsBreakdown title="Country events" values={analyticsSummary?.byCountry || {}} />
           </div>
         </section>
 
@@ -539,11 +558,17 @@ export default function AdminHomePage() {
                     setAdjustUserId(user.id);
                     if (token) loadOps(token, user.id);
                   }}
-                  className="grid w-full gap-2 py-3 text-left md:grid-cols-[1fr_auto]"
+                  className="grid w-full gap-2 py-3 text-left md:grid-cols-[1fr_0.55fr_auto]"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{user.email || "No email"}</p>
                     <p className="break-all text-xs text-[#86868b]">{user.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{countryLabel(user)}</p>
+                    <p className="text-xs text-[#86868b]">
+                      {user.countryEventCount ? `${user.countryEventCount} recent events` : "No recent geo signal"}
+                    </p>
                   </div>
                   <div className="text-left md:text-right">
                     <p className="text-sm font-semibold">{user.balance.toLocaleString()} credits</p>
@@ -553,6 +578,19 @@ export default function AdminHomePage() {
               ))}
               {!users.length ? <Empty loading={loading} /> : null}
             </div>
+          </Panel>
+
+          <Panel title="User Countries" count={countries.length}>
+            <Table
+              headers={["Country", "Code", "Users", "Events"]}
+              rows={countries.map((country) => [
+                country.countryName,
+                country.countryCode,
+                country.users.toLocaleString(),
+                country.events.toLocaleString()
+              ])}
+              loading={loading}
+            />
           </Panel>
 
           <Panel title="Credit Accounts" count={accounts.length}>

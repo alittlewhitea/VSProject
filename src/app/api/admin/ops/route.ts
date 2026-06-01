@@ -64,6 +64,19 @@ type AnalyticsRow = {
   created_at: string;
 };
 
+type UserCountryInfo = {
+  countryCode: string | null;
+  countryName: string | null;
+  eventCount: number;
+};
+
+type CountrySummaryRow = {
+  countryCode: string;
+  countryName: string;
+  users: number;
+  events: number;
+};
+
 type AdjustmentPayload = {
   action?: "credit_adjustment" | "repair_generation_safety";
   userId?: string;
@@ -375,6 +388,70 @@ function formatAuthUser(user: { id: string; email?: string; created_at?: string;
   };
 }
 
+function normalizeCountryCode(value: unknown) {
+  if (typeof value !== "string") return null;
+  const code = value.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : null;
+}
+
+function countryName(code: string) {
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(code) || code;
+  } catch {
+    return code;
+  }
+}
+
+function eventCountryCode(event: AnalyticsRow) {
+  return (
+    normalizeCountryCode(event.properties?.countryCode) ||
+    normalizeCountryCode(event.properties?.country) ||
+    normalizeCountryCode(event.properties?.country_code)
+  );
+}
+
+function buildUserCountryMap(events: AnalyticsRow[]) {
+  const byUser = new Map<string, UserCountryInfo>();
+
+  for (const event of events) {
+    if (!event.user_id) continue;
+    const code = eventCountryCode(event);
+    if (!code) continue;
+
+    const existing = byUser.get(event.user_id);
+    byUser.set(event.user_id, {
+      countryCode: existing?.countryCode || code,
+      countryName: existing?.countryName || countryName(code),
+      eventCount: (existing?.eventCount || 0) + 1
+    });
+  }
+
+  return byUser;
+}
+
+function buildCountrySummary(events: AnalyticsRow[]): CountrySummaryRow[] {
+  const byCountry = new Map<string, { events: number; users: Set<string> }>();
+
+  for (const event of events) {
+    const code = eventCountryCode(event);
+    if (!code) continue;
+    const current = byCountry.get(code) || { events: 0, users: new Set<string>() };
+    current.events += 1;
+    if (event.user_id) current.users.add(event.user_id);
+    byCountry.set(code, current);
+  }
+
+  return [...byCountry.entries()]
+    .map(([countryCode, value]) => ({
+      countryCode,
+      countryName: countryName(countryCode),
+      users: value.users.size,
+      events: value.events
+    }))
+    .sort((a, b) => b.users - a.users || b.events - a.events)
+    .slice(0, 12);
+}
+
 function summarize(accounts: CreditAccountRow[], ledger: LedgerRow[], purchases: PurchaseRow[], tasks: TaskRow[]) {
   return {
     usersWithCreditAccounts: accounts.length,
@@ -443,13 +520,19 @@ function buildAnalyticsSummary(events: AnalyticsRow[]) {
   const byEvent = new Map<string, number>();
   const byModel = new Map<string, number>();
   const byMode = new Map<string, number>();
+  const byCountry = new Map<string, number>();
 
   for (const event of events) {
     byEvent.set(event.event_name, (byEvent.get(event.event_name) || 0) + 1);
     const provider = typeof event.properties?.provider === "string" ? event.properties.provider : null;
     const mode = typeof event.properties?.mode === "string" ? event.properties.mode : null;
+    const country = eventCountryCode(event);
     if (provider) byModel.set(provider, (byModel.get(provider) || 0) + 1);
     if (mode) byMode.set(mode, (byMode.get(mode) || 0) + 1);
+    if (country) {
+      const label = countryName(country);
+      byCountry.set(label, (byCountry.get(label) || 0) + 1);
+    }
   }
 
   return {
@@ -459,7 +542,8 @@ function buildAnalyticsSummary(events: AnalyticsRow[]) {
     uniqueUsers: countUnique(events, "user_id"),
     byEvent: Object.fromEntries([...byEvent.entries()].sort((a, b) => b[1] - a[1]).slice(0, 16)),
     byModel: Object.fromEntries([...byModel.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)),
-    byMode: Object.fromEntries([...byMode.entries()].sort((a, b) => b[1] - a[1]))
+    byMode: Object.fromEntries([...byMode.entries()].sort((a, b) => b[1] - a[1])),
+    byCountry: Object.fromEntries([...byCountry.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10))
   };
 }
 
@@ -523,14 +607,19 @@ export async function GET(request: Request) {
   const tasks = (tasksResult.data || []) as TaskRow[];
   const analytics = (analyticsResult.error ? [] : analyticsResult.data || []) as AnalyticsRow[];
   const accountByUserId = new Map(accounts.map((account) => [account.user_id, account]));
+  const countryByUserId = buildUserCountryMap(analytics);
 
   const users = authUsers.map((user) => {
     const account = accountByUserId.get(user.id);
+    const country = countryByUserId.get(user.id);
     return {
       ...user,
       balance: account?.balance ?? 0,
       freeGranted: account?.free_granted ?? false,
-      creditAccountUpdatedAt: account?.updated_at ?? null
+      creditAccountUpdatedAt: account?.updated_at ?? null,
+      countryCode: country?.countryCode ?? null,
+      countryName: country?.countryName ?? null,
+      countryEventCount: country?.eventCount ?? 0
     };
   });
 
@@ -540,6 +629,7 @@ export async function GET(request: Request) {
     analytics: {
       summary: buildAnalyticsSummary(analytics),
       funnel: buildFunnel(analytics),
+      countries: buildCountrySummary(analytics),
       recentEvents: userId ? analytics.filter((event) => event.user_id === userId).slice(0, 80) : analytics.slice(0, 80),
       storageWarning: analyticsResult.error ? analyticsResult.error.message : null
     },
