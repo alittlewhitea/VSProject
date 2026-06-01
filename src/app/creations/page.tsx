@@ -98,6 +98,53 @@ function sessionTasksKey(userId: string | null) {
   return userId ? `${SESSION_TASKS_KEY}:${userId}` : null;
 }
 
+function safeSetLocalStorage(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function safeRemoveLocalStorage(key: string) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Ignore browser cache failures.
+  }
+}
+
+function truncateCacheValue(value: string | null | undefined, maxLength: number) {
+  if (!value) return value ?? null;
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+}
+
+function compactTaskForCache(task: CreationTask): CreationTask {
+  return {
+    id: task.id,
+    type: task.type,
+    status: task.status,
+    cost: task.cost,
+    title: truncateCacheValue(task.title, 120),
+    isFavorite: task.isFavorite,
+    provider: task.provider,
+    prompt: truncateCacheValue(task.prompt, 500) || undefined,
+    ratio: task.ratio,
+    transport: task.transport,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    mediaUrl: truncateCacheValue(task.mediaUrl, 900),
+    chargedCredits: task.chargedCredits,
+    refundedCredits: task.refundedCredits,
+    refundStatus: task.refundStatus,
+    failureCode: task.failureCode,
+    failureReason: truncateCacheValue(task.failureReason, 240),
+    lastCheckedAt: task.lastCheckedAt,
+    timedOutAt: task.timedOutAt
+  };
+}
+
 function readSessionTasks(userId: string | null): CreationTask[] {
   if (typeof window === "undefined") return [];
   try {
@@ -106,7 +153,7 @@ function readSessionTasks(userId: string | null): CreationTask[] {
     const stored = window.localStorage.getItem(key);
     if (!stored) return [];
     const parsed = JSON.parse(stored) as CreationTask[];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.slice(0, 12).map(compactTaskForCache) : [];
   } catch {
     return [];
   }
@@ -115,7 +162,11 @@ function readSessionTasks(userId: string | null): CreationTask[] {
 function saveSessionTasks(tasks: CreationTask[], userId: string | null) {
   if (typeof window === "undefined") return;
   const key = sessionTasksKey(userId);
-  if (key) window.localStorage.setItem(key, JSON.stringify(tasks.slice(0, 30)));
+  if (!key) return;
+  const serialized = JSON.stringify(tasks.slice(0, 12).map(compactTaskForCache));
+  if (!safeSetLocalStorage(key, serialized)) {
+    safeRemoveLocalStorage(key);
+  }
 }
 
 function mergeTasks(remoteTasks: CreationTask[], sessionTasks: CreationTask[]) {

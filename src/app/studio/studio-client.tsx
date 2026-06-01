@@ -572,6 +572,57 @@ function createRandomIdempotencyKey() {
   return `${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
 
+function safeSetLocalStorage(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function safeRemoveLocalStorage(key: string) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Ignore storage failures; browser caches should never break the studio.
+  }
+}
+
+function truncateCacheValue(value: string | null | undefined, maxLength: number) {
+  if (!value) return value ?? null;
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+}
+
+function compactTaskForCache(task: TaskItem): TaskItem {
+  return {
+    id: task.id,
+    type: task.type,
+    status: task.status,
+    cost: task.cost,
+    title: truncateCacheValue(task.title, 120),
+    isFavorite: task.isFavorite,
+    provider: task.provider,
+    prompt: truncateCacheValue(task.prompt, 500) || undefined,
+    ratio: task.ratio,
+    transport: task.transport,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    mediaUrl: truncateCacheValue(task.mediaUrl, 900),
+    chargedCredits: task.chargedCredits,
+    refundedCredits: task.refundedCredits,
+    refundStatus: task.refundStatus,
+    failureReason: truncateCacheValue(task.failureReason, 240)
+  };
+}
+
+function writeSessionTasksCache(key: string, tasks: TaskItem[]) {
+  const serialized = JSON.stringify(tasks.slice(0, 12).map(compactTaskForCache));
+  if (!safeSetLocalStorage(key, serialized)) {
+    safeRemoveLocalStorage(key);
+  }
+}
+
 function getPersistentIdempotency(userId: string | null, fingerprint: string) {
   if (typeof window === "undefined") {
     return { storageKey: null, idempotencyKey: createRandomIdempotencyKey() };
@@ -585,13 +636,13 @@ function getPersistentIdempotency(userId: string | null, fingerprint: string) {
   }
 
   const idempotencyKey = createRandomIdempotencyKey();
-  window.localStorage.setItem(storageKey, idempotencyKey);
+  safeSetLocalStorage(storageKey, idempotencyKey);
   return { storageKey, idempotencyKey };
 }
 
 function clearPersistentIdempotency(storageKey: string | null) {
   if (typeof window !== "undefined" && storageKey) {
-    window.localStorage.removeItem(storageKey);
+    safeRemoveLocalStorage(storageKey);
   }
 }
 
@@ -610,17 +661,12 @@ function readStudioLoginDraft() {
 
 function writeStudioLoginDraft(draft: StudioLoginDraft) {
   if (typeof window === "undefined") return true;
-  try {
-    window.localStorage.setItem(STUDIO_LOGIN_DRAFT_KEY, JSON.stringify(draft));
-    return true;
-  } catch {
-    return false;
-  }
+  return safeSetLocalStorage(STUDIO_LOGIN_DRAFT_KEY, JSON.stringify(draft));
 }
 
 function clearStudioLoginDraft() {
   if (typeof window !== "undefined") {
-    window.localStorage.removeItem(STUDIO_LOGIN_DRAFT_KEY);
+    safeRemoveLocalStorage(STUDIO_LOGIN_DRAFT_KEY);
   }
 }
 
@@ -635,7 +681,7 @@ function readSessionTasks(userId: string | null): TaskItem[] {
     const stored = window.localStorage.getItem(key);
     if (!stored) return [];
     const parsed = JSON.parse(stored) as TaskItem[];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.slice(0, 12).map(compactTaskForCache) : [];
   } catch {
     return [];
   }
@@ -964,9 +1010,9 @@ function StudioContent() {
       setUserId(nextUserId);
       if (typeof window !== "undefined") {
         if (token) {
-          window.localStorage.setItem("nova_access_token", token);
+          safeSetLocalStorage("nova_access_token", token);
         } else {
-          window.localStorage.removeItem("nova_access_token");
+          safeRemoveLocalStorage("nova_access_token");
         }
       }
       if (!token) setCreditNote("Sign in to generate and see your credit balance.");
@@ -987,9 +1033,9 @@ function StudioContent() {
       }
       if (typeof window !== "undefined") {
         if (token) {
-          window.localStorage.setItem("nova_access_token", token);
+          safeSetLocalStorage("nova_access_token", token);
         } else {
-          window.localStorage.removeItem("nova_access_token");
+          safeRemoveLocalStorage("nova_access_token");
         }
       }
       if (token && nextUserId && trackedLoginSuccessRef.current !== nextUserId) {
@@ -1210,7 +1256,7 @@ function StudioContent() {
           if (typeof window !== "undefined") {
             const creditKey = scopedSessionKey(SESSION_CREDIT_BALANCE_KEY, userId);
             if (creditKey) {
-              window.localStorage.setItem(creditKey, String(payload.balance));
+              safeSetLocalStorage(creditKey, String(payload.balance));
             }
           }
         }
@@ -1246,9 +1292,9 @@ function StudioContent() {
     }
 
     if (tasks.length) {
-      window.localStorage.setItem(tasksKey, JSON.stringify(tasks.slice(0, 30)));
+      writeSessionTasksCache(tasksKey, tasks);
     } else {
-      window.localStorage.removeItem(tasksKey);
+      safeRemoveLocalStorage(tasksKey);
     }
   }, [tasks, userId]);
 
@@ -1627,7 +1673,7 @@ function StudioContent() {
     if (typeof window === "undefined") return;
     const creditKey = scopedSessionKey(SESSION_CREDIT_BALANCE_KEY, userId);
     if (creditKey) {
-      window.localStorage.setItem(creditKey, String(balance));
+      safeSetLocalStorage(creditKey, String(balance));
     }
   }
 
