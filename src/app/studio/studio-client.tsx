@@ -858,6 +858,11 @@ function taskProgress(task: Pick<TaskItem, "status" | "createdAt" | "type" | "pr
   return Math.min(94, Math.max(base, Math.round((elapsed / estimate) * 100)));
 }
 
+function frontendPollAttempts(mode: "image" | "video" | "audio", provider: string) {
+  if (mode === "video" || isAvatarProvider(provider)) return 240;
+  return 100;
+}
+
 function StudioContent() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -1946,8 +1951,9 @@ function StudioContent() {
       } else {
         setStatusText("Task queued via fal.ai live API. Waiting for provider...");
         let finalStatus: "COMPLETED" | "FAILED" | "CANCELED" | "ERROR" | null = null;
+        const maxPollAttempts = frontendPollAttempts(mode, provider);
 
-        for (let i = 0; i < 40; i += 1) {
+        for (let i = 0; i < maxPollAttempts; i += 1) {
           await new Promise((resolve) => setTimeout(resolve, 1800));
           const statusRes = await fetch(
             `/api/generate/status?taskId=${encodeURIComponent(payload.taskId)}&statusUrl=${encodeURIComponent(
@@ -2008,16 +2014,22 @@ function StudioContent() {
           setStatusText("Generation completed via fal.ai. Your result is now in Projects.");
           trackEvent("generation_completed", { mode, provider, task_id: payload.taskId, transport: "real" }, liveToken);
         } else {
-          setTasks((prev) =>
-            prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: 0 } : task))
-          );
-          setStatusTone("error");
-          setStatusText(
-            finalStatus
-              ? "fal.ai task did not complete successfully. Credits are refunded automatically when the provider failure is confirmed."
-              : "Task status was not confirmed in time. Open Projects to refresh status, refund, and retry details."
-          );
-          trackEvent("generation_failed", { mode, provider, task_id: payload.taskId, transport: "real", final_status: finalStatus || "timeout" }, liveToken);
+          if (finalStatus) {
+            setTasks((prev) =>
+              prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: 0 } : task))
+            );
+            setStatusTone("error");
+            setStatusText("fal.ai task did not complete successfully. Credits are refunded automatically when the provider failure is confirmed.");
+            trackEvent("generation_failed", { mode, provider, task_id: payload.taskId, transport: "real", final_status: finalStatus }, liveToken);
+          } else {
+            setTasks((prev) =>
+              prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Running" } : task))
+            );
+            setStatusTone("idle");
+            setStatusText(
+              "This task is still running in the background. You can leave this page and check Projects later; DreamFace will keep refreshing the provider status."
+            );
+          }
         }
       }
     } catch (error) {
