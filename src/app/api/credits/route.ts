@@ -9,9 +9,10 @@ import {
   getCreditAccount,
   getDevCreditAccount,
   getDevCreditLedger,
+  getRequestCountryCode,
   getRequestIp,
   listCreditLedger,
-  SIGNUP_BONUS_CREDITS
+  signupBonusCreditsForCountry
 } from "../../../lib/credits";
 
 const CREDIT_TIMEOUT_MS = 4500;
@@ -42,13 +43,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Credit storage is not configured." }, { status: 500 });
     }
 
+    const signupBonusCredits = signupBonusCreditsForCountry(getRequestCountryCode(request.headers));
     const existingAccount = await withTimeout(getCreditAccount(admin, user.id), CREDIT_TIMEOUT_MS);
     const signupClaim = existingAccount
       ? null
       : await withTimeout(claimSignupBonusForIp(admin, user.id, getRequestIp(request.headers)), CREDIT_TIMEOUT_MS);
     const account = existingAccount || await withTimeout(
       ensureCreditAccount(admin, user.id, {
-        signupBonusCredits: signupClaim?.allowed ? SIGNUP_BONUS_CREDITS : 0,
+        signupBonusCredits: signupClaim?.allowed ? signupBonusCredits : 0,
         signupBonusReferenceId: signupClaim?.ipHash
       }),
       CREDIT_TIMEOUT_MS
@@ -70,7 +72,7 @@ export async function GET(request: Request) {
       signupBonusBlockedByIp: !account.free_granted && signupClaim ? !signupClaim.allowed : false,
       ledger,
       purchases: purchases || [],
-      signupBonusCredits: SIGNUP_BONUS_CREDITS
+      signupBonusCredits
     });
   } catch (error) {
     const user = await getUserFromBearerToken(request.headers.get("authorization"));
@@ -80,7 +82,7 @@ export async function GET(request: Request) {
         balance: account.balance,
         freeGranted: account.free_granted,
         ledger: getDevCreditLedger(user.id),
-        signupBonusCredits: SIGNUP_BONUS_CREDITS,
+        signupBonusCredits: signupBonusCreditsForCountry(getRequestCountryCode(request.headers)),
         storageWarning: "Using local development credits because cloud credit storage is unavailable."
       });
     }
@@ -89,7 +91,7 @@ export async function GET(request: Request) {
       {
         balance: null,
         storageWarning: error instanceof Error ? error.message : "Unable to load credit balance.",
-        signupBonusCredits: SIGNUP_BONUS_CREDITS
+        signupBonusCredits: signupBonusCreditsForCountry(getRequestCountryCode(request.headers))
       },
       { status: 200 }
     );

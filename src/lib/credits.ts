@@ -2,6 +2,8 @@ import { createHmac } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const SIGNUP_BONUS_CREDITS = 120;
+export const LIMITED_REGION_SIGNUP_BONUS_CREDITS = 10;
+const LIMITED_SIGNUP_BONUS_COUNTRIES = new Set(["IN", "ID", "NG", "PK", "BD", "ET", "NP"]);
 
 type CreditAccount = { user_id: string; balance: number; free_granted: boolean };
 type EnsureCreditAccountOptions = {
@@ -77,6 +79,26 @@ export function getRequestIp(headers: Headers) {
     headers.get("forwarded")?.match(/for="?([^;,"]+)/i)?.[1]
   ];
   return candidates.map((value) => value?.trim()).find(Boolean) || null;
+}
+
+function cleanCountryCode(value: string | null) {
+  const code = value?.trim().toUpperCase();
+  return code && /^[A-Z]{2}$/.test(code) && code !== "XX" ? code : null;
+}
+
+export function getRequestCountryCode(headers: Headers) {
+  return (
+    cleanCountryCode(headers.get("cf-ipcountry")) ||
+    cleanCountryCode(headers.get("x-vercel-ip-country")) ||
+    cleanCountryCode(headers.get("x-country-code")) ||
+    cleanCountryCode(headers.get("cloudfront-viewer-country"))
+  );
+}
+
+export function signupBonusCreditsForCountry(countryCode: string | null) {
+  return countryCode && LIMITED_SIGNUP_BONUS_COUNTRIES.has(countryCode)
+    ? LIMITED_REGION_SIGNUP_BONUS_CREDITS
+    : SIGNUP_BONUS_CREDITS;
 }
 
 function signupIpSecret() {
