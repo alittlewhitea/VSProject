@@ -509,7 +509,10 @@ function buildFunnel(events: AnalyticsRow[]) {
     { event: "generation_queued", label: "Generation queued" },
     { event: "generation_completed", label: "Generation completed" },
     { event: "checkout_started", label: "Checkout started" },
-    { event: "checkout_success", label: "Checkout success" }
+    { event: "checkout_success", label: "Checkout success" },
+    { event: "subscription_checkout_started", label: "Subscription started" },
+    { event: "subscription_checkout_success", label: "Subscription success" },
+    { event: "purchase", label: "GA4 purchase" }
   ];
 
   const eventCounts = new Map<string, AnalyticsRow[]>();

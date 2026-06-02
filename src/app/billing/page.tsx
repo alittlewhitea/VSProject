@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { CREDIT_PACKS, SUBSCRIPTION_PLANS, formatUsd, type BillingCycle } from "../../lib/billing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, MODEL_PRICING_ROWS } from "../../lib/model-pricing";
 import { TopNav } from "../../components/top-nav";
-import { trackEvent } from "../../lib/analytics";
+import { trackEvent, trackPurchaseEvent } from "../../lib/analytics";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 
 type LedgerEntry = {
@@ -102,6 +102,20 @@ const cycleLabels: Record<BillingCycle, string> = {
   monthly: "Monthly",
   yearly: "Yearly"
 };
+
+function creditPackName(packId: string) {
+  return CREDIT_PACKS.find((pack) => pack.id === packId)?.name || packId;
+}
+
+function subscriptionFromPackId(packId: string) {
+  if (!packId.startsWith("subscription:")) return null;
+  const [, planId, rawCycle] = packId.split(":");
+  const cycle = rawCycle as BillingCycle;
+  const plan = SUBSCRIPTION_PLANS.find((item) => item.id === planId);
+  const price = plan?.prices[cycle];
+  if (!plan || !price) return null;
+  return { plan, cycle, price };
+}
 
 const testimonials = [
   {
@@ -347,6 +361,7 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
   const [pricingRows, setPricingRows] = useState<PricingGuideRow[]>(MODEL_PRICING_ROWS);
   const trackedLoginSuccessRef = useRef<string | null>(null);
   const trackedCheckoutSuccessRef = useRef<string | null>(null);
+  const trackedSubscriptionSuccessRef = useRef<string | null>(null);
   const checkoutState = searchParams.get("checkout");
   const checkoutSessionId = searchParams.get("session_id");
 
@@ -425,9 +440,77 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
     if (!accessToken) return undefined;
 
     if (checkoutState === "subscription_success") {
-      trackEvent("subscription_checkout_success", { stripe_checkout_id: checkoutSessionId || null }, accessToken);
-      setMessage("Subscription checkout completed. Your membership will activate after Stripe confirmation.");
-      return undefined;
+      setMessage("Subscription checkout completed. Confirming your membership with Stripe...");
+      let attempts = 0;
+      const timer = window.setInterval(async () => {
+        attempts += 1;
+        const payload = await loadCredits(accessToken);
+        const matchingPurchase = payload?.purchases?.find(
+          (purchase) =>
+            purchase.pack_id.startsWith("subscription:") &&
+            (!checkoutSessionId || purchase.stripe_checkout_id === checkoutSessionId)
+        );
+        if (matchingPurchase?.status === "completed") {
+          const trackingKey = matchingPurchase.stripe_checkout_id || String(matchingPurchase.id);
+          if (trackedSubscriptionSuccessRef.current !== trackingKey) {
+            trackedSubscriptionSuccessRef.current = trackingKey;
+            const subscription = subscriptionFromPackId(matchingPurchase.pack_id);
+            const value = matchingPurchase.amount_cents / 100;
+            const currency = (matchingPurchase.currency || "usd").toUpperCase();
+            const planId = subscription?.plan.id || matchingPurchase.pack_id;
+            const cycle = subscription?.cycle || "unknown";
+            const planName = subscription?.plan.name || "DreamFace subscription";
+
+            trackEvent(
+              "subscription_checkout_success",
+              {
+                stripe_checkout_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || null,
+                plan_id: planId,
+                cycle,
+                credits: matchingPurchase.credits,
+                amount_cents: matchingPurchase.amount_cents,
+                value,
+                currency
+              },
+              accessToken
+            );
+            trackPurchaseEvent(
+              {
+                transaction_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || String(matchingPurchase.id),
+                value,
+                currency,
+                item_id: matchingPurchase.pack_id,
+                item_name: `${planName} ${cycleLabels[cycle as BillingCycle] || cycle}`,
+                item_category: "subscription",
+                plan_id: planId,
+                cycle,
+                credits: matchingPurchase.credits,
+                amount_cents: matchingPurchase.amount_cents,
+                stripe_checkout_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || null,
+                items: [
+                  {
+                    item_id: matchingPurchase.pack_id,
+                    item_name: `${planName} ${cycleLabels[cycle as BillingCycle] || cycle}`,
+                    item_category: "subscription",
+                    price: value,
+                    quantity: 1
+                  }
+                ]
+              },
+              accessToken
+            );
+          }
+        }
+        if (matchingPurchase?.status === "completed" || attempts >= 8) {
+          window.clearInterval(timer);
+          setMessage(
+            matchingPurchase?.status === "completed"
+              ? "Subscription confirmed. Membership credits have been added to your balance."
+              : "Subscription completed. Stripe confirmation may still be processing; refresh again in a moment."
+          );
+        }
+      }, 1800);
+      return () => window.clearInterval(timer);
     }
 
     if (checkoutState === "success") {
@@ -452,6 +535,30 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
                 amount_cents: matchingPurchase.amount_cents,
                 value: matchingPurchase.amount_cents / 100,
                 currency: (matchingPurchase.currency || "usd").toUpperCase()
+              },
+              accessToken
+            );
+            trackPurchaseEvent(
+              {
+                transaction_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || String(matchingPurchase.id),
+                value: matchingPurchase.amount_cents / 100,
+                currency: (matchingPurchase.currency || "usd").toUpperCase(),
+                item_id: matchingPurchase.pack_id,
+                item_name: creditPackName(matchingPurchase.pack_id),
+                item_category: "credit_pack",
+                pack_id: matchingPurchase.pack_id,
+                credits: matchingPurchase.credits,
+                amount_cents: matchingPurchase.amount_cents,
+                stripe_checkout_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || null,
+                items: [
+                  {
+                    item_id: matchingPurchase.pack_id,
+                    item_name: creditPackName(matchingPurchase.pack_id),
+                    item_category: "credit_pack",
+                    price: matchingPurchase.amount_cents / 100,
+                    quantity: 1
+                  }
+                ]
               },
               accessToken
             );
