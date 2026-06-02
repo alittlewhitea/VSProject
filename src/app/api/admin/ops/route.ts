@@ -38,6 +38,23 @@ type PurchaseRow = {
   updated_at: string;
 };
 
+type SubscriptionRow = {
+  id: number | string;
+  user_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string;
+  plan_id: string;
+  cycle: string;
+  credits_per_cycle: number;
+  status: string;
+  cancel_at_period_end: boolean;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type TaskRow = {
   id: string;
   user_id: string;
@@ -452,7 +469,7 @@ function buildCountrySummary(events: AnalyticsRow[]): CountrySummaryRow[] {
     .slice(0, 12);
 }
 
-function summarize(accounts: CreditAccountRow[], ledger: LedgerRow[], purchases: PurchaseRow[], tasks: TaskRow[]) {
+function summarize(accounts: CreditAccountRow[], ledger: LedgerRow[], purchases: PurchaseRow[], tasks: TaskRow[], subscriptions: SubscriptionRow[] = []) {
   return {
     usersWithCreditAccounts: accounts.length,
     totalOutstandingCredits: accounts.reduce((sum, account) => sum + account.balance, 0),
@@ -472,7 +489,9 @@ function summarize(accounts: CreditAccountRow[], ledger: LedgerRow[], purchases:
       .reduce((sum, entry) => sum + entry.amount, 0),
     tasks: tasks.length,
     failedTasks: tasks.filter((task) => task.status === "failed").length,
-    runningTasks: tasks.filter((task) => task.status === "queued" || task.status === "running").length
+    runningTasks: tasks.filter((task) => task.status === "queued" || task.status === "running").length,
+    activeSubscriptions: subscriptions.filter((subscription) => subscription.status === "active" || subscription.status === "trialing").length,
+    pastDueSubscriptions: subscriptions.filter((subscription) => subscription.status === "past_due").length
   };
 }
 
@@ -576,6 +595,13 @@ export async function GET(request: Request) {
     .select("id,user_id,stripe_checkout_id,pack_id,credits,amount_cents,currency,status,created_at,updated_at")
     .order("created_at", { ascending: false })
     .limit(userId ? 300 : RECENT_LIMIT);
+  let subscriptionsQuery = admin
+    .from("user_subscriptions")
+    .select(
+      "id,user_id,stripe_customer_id,stripe_subscription_id,plan_id,cycle,credits_per_cycle,status,cancel_at_period_end,current_period_start,current_period_end,canceled_at,created_at,updated_at"
+    )
+    .order("updated_at", { ascending: false })
+    .limit(userId ? 50 : RECENT_LIMIT);
   let tasksQuery = admin
     .from("generation_tasks")
     .select(
@@ -595,15 +621,17 @@ export async function GET(request: Request) {
     accountsQuery = accountsQuery.eq("user_id", userId);
     ledgerQuery = ledgerQuery.eq("user_id", userId);
     purchasesQuery = purchasesQuery.eq("user_id", userId);
+    subscriptionsQuery = subscriptionsQuery.eq("user_id", userId);
     tasksQuery = tasksQuery.eq("user_id", userId);
     analyticsQuery = analyticsQuery.eq("user_id", userId);
   }
 
-  const [authUsersResult, accountsResult, ledgerResult, purchasesResult, tasksResult, analyticsResult] = await Promise.all([
+  const [authUsersResult, accountsResult, ledgerResult, purchasesResult, subscriptionsResult, tasksResult, analyticsResult] = await Promise.all([
     admin.auth.admin.listUsers({ page: 1, perPage: 100 }),
     accountsQuery,
     ledgerQuery,
     purchasesQuery,
+    subscriptionsQuery,
     tasksQuery,
     analyticsQuery
   ]);
@@ -612,12 +640,14 @@ export async function GET(request: Request) {
   if (accountsResult.error) return NextResponse.json({ error: accountsResult.error.message }, { status: 500 });
   if (ledgerResult.error) return NextResponse.json({ error: ledgerResult.error.message }, { status: 500 });
   if (purchasesResult.error) return NextResponse.json({ error: purchasesResult.error.message }, { status: 500 });
+  if (subscriptionsResult.error) return NextResponse.json({ error: subscriptionsResult.error.message }, { status: 500 });
   if (tasksResult.error) return NextResponse.json({ error: tasksResult.error.message }, { status: 500 });
 
   const authUsers = (authUsersResult.data.users || []).map(formatAuthUser);
   const accounts = (accountsResult.data || []) as CreditAccountRow[];
   const ledger = (ledgerResult.data || []) as LedgerRow[];
   const purchases = (purchasesResult.data || []) as PurchaseRow[];
+  const subscriptions = (subscriptionsResult.data || []) as SubscriptionRow[];
   const tasks = (tasksResult.data || []) as TaskRow[];
   const analytics = (analyticsResult.error ? [] : analyticsResult.data || []) as AnalyticsRow[];
   const accountByUserId = new Map(accounts.map((account) => [account.user_id, account]));
@@ -639,7 +669,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     adminEmail: adminUser.email,
-    summary: summarize(accounts, ledger, purchases, tasks),
+    summary: summarize(accounts, ledger, purchases, tasks, subscriptions),
     analytics: {
       summary: buildAnalyticsSummary(analytics),
       funnel: buildFunnel(analytics),
@@ -653,6 +683,7 @@ export async function GET(request: Request) {
     accounts: userId ? accounts.filter((account) => account.user_id === userId) : accounts,
     ledger: userId ? ledger.filter((entry) => entry.user_id === userId) : ledger,
     purchases: userId ? purchases.filter((purchase) => purchase.user_id === userId) : purchases,
+    subscriptions: userId ? subscriptions.filter((subscription) => subscription.user_id === userId) : subscriptions,
     tasks: userId ? tasks.filter((task) => task.user_id === userId) : tasks,
     failedTasks: (userId ? tasks.filter((task) => task.user_id === userId) : tasks).filter((task) => task.status === "failed")
   });

@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { CREDIT_PACKS, formatUsd } from "../../lib/billing";
+import { CREDIT_PACKS, SUBSCRIPTION_PLANS, formatUsd, type BillingCycle } from "../../lib/billing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, MODEL_PRICING_ROWS } from "../../lib/model-pricing";
 import { TopNav } from "../../components/top-nav";
 import { trackEvent } from "../../lib/analytics";
@@ -28,6 +28,22 @@ type PurchaseEntry = {
   updated_at: string;
 };
 
+type SubscriptionEntry = {
+  id: number | string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string;
+  plan_id: string;
+  cycle: string;
+  credits_per_cycle: number;
+  status: string;
+  cancel_at_period_end: boolean;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type PricingGuideRow = {
   provider: string;
   label: string;
@@ -45,11 +61,11 @@ type PricingGuideRow = {
 const billingFaqs = [
   {
     q: "How can I test DreamFace?",
-    a: "Create a free account and use the starting credits to try image generation, image editing, voice, and short video workflows before buying a pack."
+    a: "Create a free account and use trial credits to try image generation, image editing, voice, and short video workflows before upgrading."
   },
   {
     q: "How much does DreamFace cost?",
-    a: "DreamFace uses one-time credit packs instead of a fixed subscription. Starter is $5, Creator is $10, and Studio is $25. Each pack adds credits to your wallet and can be spent across supported models."
+    a: "DreamFace offers Premium Lite and Premium subscriptions, plus optional extra credit packs for occasional top-ups."
   },
   {
     q: "What are credits?",
@@ -57,15 +73,19 @@ const billingFaqs = [
   },
   {
     q: "Do credits roll over?",
-    a: "Purchased credits stay in your wallet while your account is active. Generation charges and provider refunds are tracked in your ledger so you can audit every credit movement."
+    a: "Subscription credits renew each billing cycle according to the current product rules. Purchased extra credit packs stay in your wallet while your account is active."
   },
   {
-    q: "How can I get more credits?",
-    a: "Open Billing, choose a pack, and complete Stripe checkout. Your balance refreshes automatically after Stripe confirms the payment."
+    q: "Can I cancel anytime?",
+    a: "Yes. You can cancel your subscription anytime."
   },
   {
-    q: "What is the difference between packs?",
-    a: "All packs unlock the same studio features. Larger packs simply give you more room for batches, iterations, upscale passes, audio, and short video experiments."
+    q: "Can I buy extra credits?",
+    a: "Yes. Extra credits are available below the subscription plans for occasional usage."
+  },
+  {
+    q: "Can I upgrade from Premium Lite to Premium?",
+    a: "Yes. Users can upgrade anytime once subscription management is enabled for the account."
   },
   {
     q: "Can I use credits for video?",
@@ -76,6 +96,12 @@ const billingFaqs = [
     a: "When a provider failure is confirmed, DreamFace records a refund entry in your ledger and returns the related credits to your balance."
   }
 ];
+
+const cycleLabels: Record<BillingCycle, string> = {
+  weekly: "Weekly",
+  monthly: "Monthly",
+  yearly: "Yearly"
+};
 
 const testimonials = [
   {
@@ -122,36 +148,37 @@ const testimonials = [
   }
 ];
 
+const comparisonPlanNames = ["Free", "Premium Lite", "Premium"];
+
 const planComparisonSections = [
   {
-    title: "Pay-as-you-go generation capacity",
-    rows: CREDIT_PACKS[0].examples.map((example) => ({
-      label: example.label,
-      values: CREDIT_PACKS.map((pack) => {
-        const match = pack.examples.find((item) => item.label === example.label);
-        return match ? `${match.count} ${match.note}` : "Not included";
-      })
-    }))
+    title: "Membership credits",
+    rows: [
+      { label: "Trial credits", values: ["100 credits", "Included by eligibility", "Included by eligibility"] },
+      { label: "Monthly credits", values: ["Not included", "2,000 credits", "4,500 credits"] },
+      { label: "Yearly credits", values: ["Not included", "26,000 credits", "68,000 credits"] },
+      { label: "Extra credit packs", values: ["Available", "Available", "Available"] }
+    ]
   },
   {
     title: "Studio access",
     rows: [
-      { label: "Text to image", values: ["Full access", "Full access", "Full access"] },
-      { label: "Image editing", values: ["Full access", "Full access", "Full access"] },
-      { label: "Text to video", values: ["Short tests", "Creator batches", "Campaign batches"] },
-      { label: "Image to video", values: ["Short tests", "Creator batches", "Campaign batches"] },
-      { label: "Voice generation", values: ["Included", "Included", "Included"] },
-      { label: "Prompt and creation history", values: ["Included", "Included", "Included"] }
+      { label: "Text to image", values: ["Trial access", "Full access", "Full access"] },
+      { label: "Image editing", values: ["Trial access", "Full access", "Full access"] },
+      { label: "Voice generation", values: ["Limited", "Included", "Included"] },
+      { label: "Video generation", values: ["Limited", "Basic video", "Higher video capacity"] },
+      { label: "Premium model access", values: ["Limited", "Included", "Advanced access"] },
+      { label: "Prompt history", values: ["Included", "Included", "Included"] }
     ]
   },
   {
-    title: "Wallet & billing",
+    title: "Membership benefits",
     rows: [
-      { label: "Billing model", values: ["Pay as you go", "Pay as you go", "Pay as you go"] },
-      { label: "Subscription required", values: ["No", "No", "No"] },
-      { label: "Credits expire monthly", values: ["No", "No", "No"] },
+      { label: "Commercial use", values: ["Not included", "Included", "Included"] },
+      { label: "Watermark", values: ["Included", "No watermark", "No watermark"] },
+      { label: "Queue", values: ["Standard", "Faster queue", "Priority queue"] },
       { label: "Failed provider job refunds", values: ["Included", "Included", "Included"] },
-      { label: "Best for", values: ["Testing prompts", "Weekly creative work", "Campaign production"] }
+      { label: "Best for", values: ["Testing tools", "Casual creators", "Heavy creators and teams"] }
     ]
   }
 ];
@@ -180,6 +207,7 @@ function formatReason(reason: string) {
   const labels: Record<string, string> = {
     signup_bonus: "Signup bonus",
     stripe_checkout: "Credit purchase",
+    stripe_subscription: "Subscription credits",
     generation_task: "Generation",
     generation_refund: "Failed generation refund",
     manual_top_up_dev: "Development top-up"
@@ -206,6 +234,101 @@ function formatStatus(status: string) {
   return labels[status] || status;
 }
 
+function SubscriptionPlanCard({
+  plan,
+  cycle,
+  onCycleChange,
+  onCheckout,
+  loading
+}: {
+  plan: (typeof SUBSCRIPTION_PLANS)[number];
+  cycle: BillingCycle;
+  onCycleChange: (cycle: BillingCycle) => void;
+  onCheckout: () => void;
+  loading: boolean;
+}) {
+  const price = plan.prices[cycle];
+  const featured = Boolean(plan.highlight);
+  const premium = plan.id === "premium";
+
+  return (
+    <article
+      className={`relative flex min-h-[620px] flex-col overflow-hidden rounded-[1.75rem] border p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-7 ${
+        featured
+          ? "border-[#08bff1] bg-white ring-4 ring-[#08bff1]/15"
+          : premium
+            ? "border-[#ccb4ff] bg-[linear-gradient(135deg,#ffffff_0%,#f5f1ff_55%,#eafaff_100%)]"
+            : "border-black/10 bg-white"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#f2f2f4] text-[#555963]"}`}>
+            {plan.badge}
+          </p>
+          <h3 className="mt-5 text-4xl font-black tracking-normal">{plan.name}</h3>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-3 rounded-full bg-[#f3f4f6] p-1">
+        {(Object.keys(cycleLabels) as BillingCycle[]).map((item) => (
+          <button
+            key={`${plan.id}-${item}`}
+            type="button"
+            onClick={() => onCycleChange(item)}
+            className={`rounded-full px-3 py-2 text-xs font-black transition ${
+              cycle === item ? "bg-white text-[#111318] shadow-sm" : "text-[#697181]"
+            }`}
+          >
+            {cycleLabels[item]}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-7">
+        <p className="text-5xl font-black tracking-normal">
+          {formatUsd(price.amountCents).replace(".00", "")}
+          <span className="text-xl font-bold text-[#5d6675]"> / {price.interval}</span>
+        </p>
+        {price.monthlyEquivalentCents ? (
+          <p className="mt-2 text-sm font-bold text-[#475569]">
+            Only {formatUsd(price.monthlyEquivalentCents).replace(".00", "")}/mo · {price.savingsText}
+          </p>
+        ) : (
+          <p className="mt-2 text-sm font-bold text-[#475569]">{price.credits.toLocaleString()} credits / {price.interval}</p>
+        )}
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-black/10 bg-white/75 px-4 py-3">
+        <p className="text-xl font-black">{price.credits.toLocaleString()} credits</p>
+        <p className="mt-1 text-sm font-semibold text-[#5d6675]">renews every {price.interval}</p>
+      </div>
+
+      <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">{plan.bestFor}</p>
+
+      <button
+        type="button"
+        onClick={onCheckout}
+        disabled={loading}
+        className={`mt-6 rounded-xl px-5 py-3 text-base font-black transition active:scale-[0.98] disabled:opacity-60 ${
+          featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#16171a] text-white"
+        }`}
+      >
+        {loading ? "Opening checkout..." : plan.cta}
+      </button>
+
+      <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
+        {plan.features.map((feature) => (
+          <li key={feature} className="flex gap-3">
+            <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#08bff1] text-[10px] font-black text-[#061215]">✓</span>
+            <span>{feature}</span>
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
 export function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -213,8 +336,13 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
   const [balance, setBalance] = useState<number | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [purchases, setPurchases] = useState<PurchaseEntry[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionEntry[]>([]);
   const [message, setMessage] = useState("");
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState<string | null>(null);
+  const [selectedCycles, setSelectedCycles] = useState<Record<string, BillingCycle>>(() =>
+    Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, plan.defaultCycle]))
+  );
   const [refreshingCredits, setRefreshingCredits] = useState(false);
   const [pricingRows, setPricingRows] = useState<PricingGuideRow[]>(MODEL_PRICING_ROWS);
   const trackedLoginSuccessRef = useRef<string | null>(null);
@@ -251,12 +379,14 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
         balance?: number | null;
         ledger?: LedgerEntry[];
         purchases?: PurchaseEntry[];
+        subscriptions?: SubscriptionEntry[];
         signupBonusBlockedByIp?: boolean;
         storageWarning?: string;
       };
       if (typeof payload.balance === "number") setBalance(payload.balance);
       if (Array.isArray(payload.ledger)) setLedger(payload.ledger);
       if (Array.isArray(payload.purchases)) setPurchases(payload.purchases);
+      if (Array.isArray(payload.subscriptions)) setSubscriptions(payload.subscriptions);
       if (payload.storageWarning) setMessage(payload.storageWarning);
       else if (payload.signupBonusBlockedByIp) {
         setMessage("Trial credits are not available for this account. Purchased credits can still be used normally.");
@@ -293,6 +423,12 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
 
   useEffect(() => {
     if (!accessToken) return undefined;
+
+    if (checkoutState === "subscription_success") {
+      trackEvent("subscription_checkout_success", { stripe_checkout_id: checkoutSessionId || null }, accessToken);
+      setMessage("Subscription checkout completed. Your membership will activate after Stripe confirmation.");
+      return undefined;
+    }
 
     if (checkoutState === "success") {
       setMessage("Payment completed. Refreshing your balance from Stripe confirmation...");
@@ -348,6 +484,10 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
     () => purchases.find((purchase) => !checkoutSessionId || purchase.stripe_checkout_id === checkoutSessionId) || null,
     [checkoutSessionId, purchases]
   );
+  const currentSubscription = useMemo(
+    () => subscriptions.find((subscription) => ["active", "trialing", "past_due"].includes(subscription.status)) || subscriptions[0] || null,
+    [subscriptions]
+  );
   const lowBalance = typeof balance === "number" && balance < CREDIT_LOW_BALANCE_THRESHOLD;
 
   async function startCheckout(packId: string) {
@@ -380,6 +520,70 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to start checkout.");
       setLoadingPack(null);
+    }
+  }
+
+  async function startSubscriptionCheckout(planId: string, cycle: BillingCycle) {
+    const plan = SUBSCRIPTION_PLANS.find((item) => item.id === planId);
+    const price = plan?.prices[cycle];
+    if (!accessToken) {
+      trackEvent("generate_login_required", { surface: "pricing", plan_id: planId, cycle });
+      const nextPath = typeof window !== "undefined" ? window.location.pathname : "/price";
+      router.push(`/auth?next=${encodeURIComponent(nextPath)}`);
+      return;
+    }
+
+    setLoadingSubscription(`${planId}:${cycle}`);
+    setMessage("");
+    trackEvent(
+      "subscription_checkout_started",
+      {
+        plan_id: planId,
+        cycle,
+        credits: price?.credits || null,
+        amount_cents: price?.amountCents || null,
+        value: price ? price.amountCents / 100 : null,
+        currency: "USD"
+      },
+      accessToken
+    );
+
+    try {
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ type: "subscription", planId, cycle })
+      });
+      const payload = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "Unable to start subscription checkout.");
+      window.location.href = payload.url;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to start subscription checkout.");
+      setLoadingSubscription(null);
+    }
+  }
+
+  async function openBillingPortal() {
+    if (!accessToken) {
+      router.push(`/auth?next=${encodeURIComponent("/billing")}`);
+      return;
+    }
+    setMessage("");
+    try {
+      const response = await fetch("/api/billing/portal", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      const payload = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "Unable to open billing portal.");
+      window.location.href = payload.url;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to open billing portal.");
     }
   }
 
@@ -430,6 +634,37 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
             </p>
           ) : null}
 
+          <section className="mt-8 rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_48px_rgba(10,16,30,0.06)]">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">Subscription</p>
+                <h2 className="mt-2 text-3xl font-black tracking-normal">
+                  {currentSubscription ? `${currentSubscription.plan_id.replace("-", " ")} · ${currentSubscription.status}` : "No active membership"}
+                </h2>
+                <p className="mt-2 text-sm font-semibold leading-6 text-[#667084]">
+                  {currentSubscription
+                    ? `${currentSubscription.credits_per_cycle.toLocaleString()} credits per ${currentSubscription.cycle}. ${
+                        currentSubscription.cancel_at_period_end ? "Cancellation is scheduled at period end." : "Manage billing through Stripe."
+                      }`
+                    : "Choose Premium Lite or Premium to unlock membership benefits and renewable credits."}
+                </p>
+                {currentSubscription?.current_period_end ? (
+                  <p className="mt-2 text-sm font-semibold text-[#475569]">
+                    {currentSubscription.cancel_at_period_end ? "Access until" : "Renews"} {formatDate(currentSubscription.current_period_end)}
+                  </p>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={openBillingPortal}
+                disabled={!currentSubscription?.stripe_customer_id}
+                className="rounded-full border border-black/10 bg-[#f0f2f5] px-5 py-3 text-sm font-black text-[#16171a] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Manage billing
+              </button>
+            </div>
+          </section>
+
           {checkoutState === "success" ? (
             <section className="mt-6 rounded-[2rem] border border-[#197a46]/20 bg-[#eefaf3] p-6 shadow-[0_18px_44px_rgba(25,122,70,0.08)]">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">Checkout success</p>
@@ -444,6 +679,16 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
             </section>
           ) : null}
 
+          {checkoutState === "subscription_success" ? (
+            <section className="mt-6 rounded-[2rem] border border-[#197a46]/20 bg-[#eefaf3] p-6 shadow-[0_18px_44px_rgba(25,122,70,0.08)]">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">Subscription checkout</p>
+              <h2 className="mt-2 text-3xl font-black">Membership checkout completed</h2>
+              <p className="mt-2 text-sm leading-6 text-[#3f6b52]">
+                Stripe is confirming your subscription. Membership credits and benefits will appear after confirmation is fully enabled.
+              </p>
+            </section>
+          ) : null}
+
           {lowBalance ? (
             <section className="mt-6 rounded-2xl border border-[#d8b85d]/30 bg-[#fff8df] px-5 py-4 text-sm font-semibold text-[#705d1d]">
               Your balance is below {CREDIT_LOW_BALANCE_THRESHOLD} credits. Top up before larger video renders or high-quality image batches.
@@ -453,33 +698,83 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
           <section className="mt-10">
             <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">Recharge</p>
-                <h2 className="mt-2 text-4xl font-black tracking-normal">Choose a credit pack</h2>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">Membership</p>
+                <h2 className="mt-2 text-4xl font-black tracking-normal">Choose a Premium plan</h2>
               </div>
               <p className="max-w-xl text-sm font-semibold leading-6 text-[#667084]">
-                No monthly or yearly plan. Credits are added through Stripe checkout and can be used across supported generation models.
+                Premium memberships renew credits on a weekly, monthly, or yearly cycle and unlock watermark-free creation, faster queues, and commercial usage.
               </p>
             </div>
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-3">
+              <article className="flex min-h-[620px] flex-col rounded-[1.75rem] border border-black/10 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] md:p-7">
+                <p className="inline-flex w-fit rounded-full bg-[#f2f2f4] px-3 py-1 text-xs font-black text-[#555963]">Free</p>
+                <h3 className="mt-5 text-4xl font-black tracking-normal">Free</h3>
+                <p className="mt-7 text-5xl font-black tracking-normal">$0<span className="text-xl font-bold text-[#5d6675]"> / mo</span></p>
+                <div className="mt-5 rounded-2xl border border-black/10 bg-[#fbfbfd] px-4 py-3">
+                  <p className="text-xl font-black">100 trial credits</p>
+                  <p className="mt-1 text-sm font-semibold text-[#5d6675]">for new eligible accounts</p>
+                </div>
+                <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">
+                  Try image generation, image editing, voice, and limited video generation before choosing a Premium plan.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push(accessToken ? "/studio" : `/auth?next=${encodeURIComponent("/studio")}`)}
+                  className="mt-6 rounded-xl bg-[#16171a] px-5 py-3 text-base font-black text-white transition active:scale-[0.98]"
+                >
+                  Start Free
+                </button>
+                <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
+                  {["Try image generation", "Try image editing", "Limited voice generation", "Limited video generation", "Watermark included", "Standard queue"].map((feature) => (
+                    <li key={feature} className="flex gap-3">
+                      <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-black text-[#111318]">✓</span>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+              {SUBSCRIPTION_PLANS.map((plan) => {
+                const selectedCycle = selectedCycles[plan.id] || plan.defaultCycle;
+                return (
+                  <SubscriptionPlanCard
+                    key={plan.id}
+                    plan={plan}
+                    cycle={selectedCycle}
+                    onCycleChange={(cycle) => setSelectedCycles((prev) => ({ ...prev, [plan.id]: cycle }))}
+                    onCheckout={() => startSubscriptionCheckout(plan.id, selectedCycle)}
+                    loading={loadingSubscription === `${plan.id}:${selectedCycle}`}
+                  />
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="mt-12">
+            <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">Extra credits</p>
+                <h2 className="mt-2 text-3xl font-black tracking-normal">Need Extra Credits?</h2>
+              </div>
+              <p className="max-w-xl text-sm font-semibold leading-6 text-[#667084]">
+                For occasional usage. Most creators get better value with a Premium subscription.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {CREDIT_PACKS.map((pack) => (
-                <article key={pack.id} className={`rounded-[2rem] border bg-white p-7 shadow-[0_18px_48px_rgba(10,16,30,0.06)] ${pack.id === bestValuePack.id ? "border-[#08bff1]" : "border-black/10"}`}>
-                  <p className="inline-flex rounded-full bg-[#f1f1f1] px-4 py-2 text-xs font-black text-[#3d3d42]">
-                    {pack.id === bestValuePack.id ? "Best value" : "Pay as you go"}
-                  </p>
-                  <h3 className="mt-6 text-4xl font-black tracking-normal">{pack.name.replace(" Pack", "")}</h3>
-                  <p className="mt-4 text-3xl font-medium">
-                    {formatUsd(pack.amountCents).replace(".00", "")}
-                    <span className="text-xl"> one-time</span>
-                  </p>
-                  <p className="mt-5 rounded-2xl border border-[#06bff2] bg-[#f8fdff] px-5 py-4 text-lg font-black">
-                    {pack.credits.toLocaleString()} credits
-                  </p>
-                  <p className="mt-5 min-h-[72px] text-base font-medium leading-7 text-[#4f5a67]">{pack.idealFor}</p>
+                <article key={pack.id} className={`rounded-[1.4rem] border bg-white p-5 shadow-[0_14px_36px_rgba(10,16,30,0.05)] ${pack.id === bestValuePack.id ? "border-[#08bff1]" : "border-black/10"}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-2xl font-black tracking-normal">{pack.name}</h3>
+                      <p className="mt-2 text-sm font-semibold text-[#667084]">{pack.credits.toLocaleString()} credits</p>
+                    </div>
+                    <p className="text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
+                  </div>
+                  <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{pack.idealFor}</p>
                   <button
                     type="button"
                     onClick={() => startCheckout(pack.id)}
                     disabled={Boolean(loadingPack)}
-                    className="mt-6 w-full rounded-xl bg-[#08bff1] px-5 py-3 text-lg font-black text-[#061215] transition active:scale-[0.98] disabled:opacity-60"
+                    className="mt-5 w-full rounded-xl bg-[#f0f2f5] px-5 py-3 text-sm font-black text-[#16171a] transition active:scale-[0.98] disabled:opacity-60"
                   >
                     {loadingPack === pack.id ? "Opening checkout..." : "Recharge"}
                   </button>
@@ -557,10 +852,10 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
             Price
           </p>
           <h1 className="mx-auto mt-8 max-w-5xl text-[clamp(3.25rem,8vw,7.6rem)] font-black leading-[0.95] tracking-normal">
-            Compare pay-as-you-go plans and features
+            Premium AI creation plans
           </h1>
           <p className="mx-auto mt-7 max-w-2xl text-lg font-medium leading-8 text-[#333338] md:text-xl">
-            DreamFace currently offers individual credit packs only. There are no monthly or yearly subscriptions: buy credits when you need them, then spend them across images, video, editing, upscaling, and voice.
+            Choose a Premium membership for watermark-free creation, faster queues, commercial use, and credits that renew with your billing cycle. Extra credits are available when you need a top-up.
           </p>
 
           <div className="mx-auto mt-9 flex w-fit rounded-full bg-white p-1.5 shadow-[0_12px_35px_rgba(20,20,22,0.08)]">
@@ -589,73 +884,44 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
         </div>
 
         <div className="relative mx-auto mt-8 grid max-w-[1360px] gap-7 px-4 md:px-8 lg:grid-cols-3 lg:items-start">
-          {CREDIT_PACKS.map((pack, index) => {
-            const isFeatured = pack.id === bestValuePack.id;
-            const title = pack.name.replace(" Pack", "");
-            const accent = index === 2 ? "before:absolute before:inset-0 before:-z-10 before:bg-[radial-gradient(circle_at_80%_8%,rgba(171,225,255,0.92),transparent_24%),radial-gradient(circle_at_72%_38%,rgba(255,215,250,0.95),transparent_34%),radial-gradient(circle_at_88%_78%,rgba(127,233,164,0.72),transparent_34%)]" : "";
-
+          <article className="flex min-h-[620px] flex-col rounded-[1.75rem] border border-black/10 bg-white p-6 text-left shadow-[0_20px_60px_rgba(15,23,42,0.06)] md:p-7">
+            <p className="inline-flex w-fit rounded-full bg-[#f2f2f4] px-3 py-1 text-xs font-black text-[#555963]">Free</p>
+            <h2 className="mt-5 text-4xl font-black tracking-normal">Free</h2>
+            <p className="mt-7 text-5xl font-black tracking-normal">$0<span className="text-xl font-bold text-[#5d6675]"> / mo</span></p>
+            <div className="mt-5 rounded-2xl border border-black/10 bg-[#fbfbfd] px-4 py-3">
+              <p className="text-xl font-black">100 trial credits</p>
+              <p className="mt-1 text-sm font-semibold text-[#5d6675]">for eligible new accounts</p>
+            </div>
+            <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">
+              Start with the basics: image generation, editing, limited voice, limited video, watermark, and standard queue.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push(accessToken ? "/studio" : `/auth?next=${encodeURIComponent("/studio")}`)}
+              className="mt-6 rounded-xl bg-[#16171a] px-5 py-3 text-base font-black text-white transition active:scale-[0.98]"
+            >
+              Start Free
+            </button>
+            <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
+              {["Try image generation", "Try image editing", "Limited voice generation", "Limited video generation", "Watermark included", "Standard queue"].map((feature) => (
+                <li key={feature} className="flex gap-3">
+                  <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-black text-[#111318]">✓</span>
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+          {SUBSCRIPTION_PLANS.map((plan) => {
+            const selectedCycle = selectedCycles[plan.id] || plan.defaultCycle;
             return (
-              <article
-                key={pack.id}
-                className={`relative isolate min-h-[720px] overflow-hidden rounded-[2.25rem] bg-white p-7 text-left shadow-[0_22px_60px_rgba(25,25,28,0.10)] md:p-9 ${
-                  isFeatured ? "border-[3px] border-[#c984ff]" : "border border-white"
-                } ${accent}`}
-              >
-                <div className="mb-8 inline-flex rounded-full bg-[#f1f1f1] px-4 py-2 text-xs font-black text-[#3d3d42]">Pay as you go</div>
-
-                <h2 className="text-5xl font-black tracking-normal text-[#0d4d4f] md:text-6xl">{title}</h2>
-                <p className="mt-8 text-3xl font-medium">
-                  {formatUsd(pack.amountCents).replace(".00", "")}
-                  <span className="text-2xl"> one-time</span>
-                </p>
-                <p className="mt-8 min-h-[96px] text-lg font-medium leading-8 text-[#40533b]">{pack.description}</p>
-
-                <button
-                  type="button"
-                  onClick={() => startCheckout(pack.id)}
-                  disabled={Boolean(loadingPack)}
-                  className={`mt-8 rounded-xl px-5 py-3 text-2xl font-black text-[#151517] transition active:scale-[0.98] disabled:opacity-60 ${
-                    isFeatured ? "bg-[#08bff1]" : "bg-[#d9d9d9]"
-                  }`}
-                >
-                  {loadingPack === pack.id ? "Opening..." : "Get started"}
-                </button>
-
-                <div className={`mt-7 rounded-2xl border px-5 py-4 text-lg font-black ${isFeatured ? "border-black/60 bg-white" : "border-[#06bff2] bg-white/80"}`}>
-                  {pack.credits.toLocaleString()} credits
-                </div>
-                <p className="mt-5 text-base font-black">See what you can get with {pack.credits.toLocaleString()} credits</p>
-
-                <div className="mt-7 space-y-7 text-lg leading-8">
-                  <div>
-                    <p className="font-black">Generation:</p>
-                    <ul className="mt-2 space-y-2">
-                      {pack.examples.slice(0, 5).map((example) => (
-                        <li key={`${pack.id}-${example.label}`} className="pl-2">
-                          <span className="mr-2">.</span>
-                          {example.count} {example.label}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="font-black">Plan notes:</p>
-                    <ul className="mt-2 space-y-2">
-                      {(index === 0
-                        ? ["Starter room for image and short video tests", "No subscription or monthly commitment"]
-                        : index === 1
-                          ? ["More room for weekly batches", "Same model access with a bigger balance"]
-                          : ["Best value per dollar", "Campaign-sized creative room", "More premium video experiments"]
-                      ).map((feature) => (
-                        <li key={feature} className="pl-2">
-                          <span className="mr-2">.</span>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </article>
+              <SubscriptionPlanCard
+                key={plan.id}
+                plan={plan}
+                cycle={selectedCycle}
+                onCycleChange={(cycle) => setSelectedCycles((prev) => ({ ...prev, [plan.id]: cycle }))}
+                onCheckout={() => startSubscriptionCheckout(plan.id, selectedCycle)}
+                loading={loadingSubscription === `${plan.id}:${selectedCycle}`}
+              />
             );
           })}
         </div>
@@ -682,12 +948,56 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
           </section>
         ) : null}
 
+        {checkoutState === "subscription_success" ? (
+          <section className="mt-6 rounded-[2rem] border border-[#197a46]/20 bg-[#eefaf3] p-6 shadow-[0_18px_44px_rgba(25,122,70,0.08)]">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">Subscription checkout</p>
+            <h2 className="mt-2 text-3xl font-black">Membership checkout completed</h2>
+            <p className="mt-2 text-sm leading-6 text-[#3f6b52]">
+              Stripe is confirming your subscription. Membership credits and benefits will appear after confirmation is fully enabled.
+            </p>
+          </section>
+        ) : null}
+
         {lowBalance ? (
           <section className="mt-6 rounded-2xl border border-[#d8b85d]/30 bg-[#fff8df] px-5 py-4 text-sm font-semibold text-[#705d1d]">
             Your balance is below {CREDIT_LOW_BALANCE_THRESHOLD} credits. Top up before larger video renders or high-quality image batches.
           </section>
         ) : null}
       </div>
+
+      <section className="mx-auto max-w-[1360px] px-4 py-20 md:px-8">
+        <div className="mb-7 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">Extra credits</p>
+            <h2 className="mt-2 text-4xl font-black tracking-normal">Need Extra Credits?</h2>
+          </div>
+          <p className="max-w-xl text-sm font-semibold leading-6 text-[#667084]">
+            For occasional usage. Most creators get better value with a Premium subscription.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {CREDIT_PACKS.map((pack) => (
+            <article key={`price-extra-${pack.id}`} className={`rounded-[1.4rem] border bg-white p-5 shadow-[0_14px_36px_rgba(10,16,30,0.05)] ${pack.id === bestValuePack.id ? "border-[#08bff1]" : "border-black/10"}`}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-2xl font-black tracking-normal">{pack.name}</h3>
+                  <p className="mt-2 text-sm font-semibold text-[#667084]">{pack.credits.toLocaleString()} credits</p>
+                </div>
+                <p className="text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
+              </div>
+              <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{pack.idealFor}</p>
+              <button
+                type="button"
+                onClick={() => startCheckout(pack.id)}
+                disabled={Boolean(loadingPack)}
+                className="mt-5 w-full rounded-xl bg-[#f0f2f5] px-5 py-3 text-sm font-black text-[#16171a] transition active:scale-[0.98] disabled:opacity-60"
+              >
+                {loadingPack === pack.id ? "Opening..." : "Buy extra credits"}
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="mx-auto grid max-w-[1360px] gap-16 px-4 py-24 md:grid-cols-[0.7fr_1.3fr] md:px-8">
         <h2 className="text-5xl font-black tracking-normal md:sticky md:top-28 md:h-fit md:text-6xl">Price FAQs</h2>
@@ -718,16 +1028,23 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
             <div className="min-w-[980px]">
               <div className="sticky top-0 z-10 grid grid-cols-[1.15fr_repeat(3,1fr)] items-center rounded-[1.75rem] border border-[#dff7ff] bg-white/95 px-8 py-8 shadow-[0_16px_40px_rgba(10,16,30,0.05)] backdrop-blur">
                 <div />
-                {CREDIT_PACKS.map((pack) => (
-                  <div key={`header-${pack.id}`} className="text-center">
-                    <h3 className="text-5xl font-black tracking-normal">{pack.name.replace(" Pack", "")}</h3>
+                {comparisonPlanNames.map((name) => (
+                  <div key={`header-${name}`} className="text-center">
+                    <h3 className="text-5xl font-black tracking-normal">{name}</h3>
                     <button
                       type="button"
-                      onClick={() => startCheckout(pack.id)}
-                      disabled={Boolean(loadingPack)}
+                      onClick={() => {
+                        if (name === "Free") {
+                          router.push(accessToken ? "/studio" : `/auth?next=${encodeURIComponent("/studio")}`);
+                          return;
+                        }
+                        const plan = SUBSCRIPTION_PLANS.find((item) => item.name === name);
+                        if (plan) startSubscriptionCheckout(plan.id, selectedCycles[plan.id] || plan.defaultCycle);
+                      }}
+                      disabled={Boolean(loadingSubscription)}
                       className="mt-2 text-base font-medium text-[#333338] disabled:opacity-60"
                     >
-                      {loadingPack === pack.id ? "Opening..." : "Get started ->"}
+                      {loadingSubscription ? "Opening..." : "Get started ->"}
                     </button>
                   </div>
                 ))}

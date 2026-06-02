@@ -25,6 +25,8 @@ Core funnel:
 - `balance_refreshed`
 - `checkout_started`
 - `checkout_success`
+- `subscription_checkout_started`
+- `subscription_checkout_success`
 - `checkout_cancelled`
 
 Recommended GA4 conversion events:
@@ -35,6 +37,8 @@ Recommended GA4 conversion events:
 - `generation_completed`
 - `checkout_started`
 - `checkout_success`
+- `subscription_checkout_started`
+- `subscription_checkout_success`
 
 Common parameters pushed to `dataLayer`:
 - `anonymous_id`
@@ -49,6 +53,8 @@ Common parameters pushed to `dataLayer`:
 - `signed_in`
 - `has_references`
 - `pack_id`
+- `plan_id`
+- `cycle`
 - `credits`
 - `amount_cents`
 - `value`

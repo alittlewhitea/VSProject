@@ -231,10 +231,34 @@ create table if not exists public.credit_purchases (
 create index if not exists credit_purchases_user_id_created_at_idx
   on public.credit_purchases (user_id, created_at desc);
 
+create table if not exists public.user_subscriptions (
+  id bigserial primary key,
+  user_id uuid not null,
+  stripe_customer_id text,
+  stripe_subscription_id text not null unique,
+  plan_id text not null,
+  cycle text not null,
+  credits_per_cycle int not null,
+  status text not null,
+  cancel_at_period_end boolean not null default false,
+  current_period_start timestamptz,
+  current_period_end timestamptz,
+  canceled_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists user_subscriptions_user_id_updated_at_idx
+  on public.user_subscriptions (user_id, updated_at desc);
+
+create index if not exists user_subscriptions_status_idx
+  on public.user_subscriptions (status);
+
 alter table public.user_credit_accounts enable row level security;
 alter table public.signup_ip_claims enable row level security;
 alter table public.credit_ledger enable row level security;
 alter table public.credit_purchases enable row level security;
+alter table public.user_subscriptions enable row level security;
 
 drop policy if exists "Users can view own credit account" on public.user_credit_accounts;
 create policy "Users can view own credit account"
@@ -249,6 +273,11 @@ create policy "Users can view own credit ledger"
 drop policy if exists "Users can view own credit purchases" on public.credit_purchases;
 create policy "Users can view own credit purchases"
   on public.credit_purchases for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can view own subscriptions" on public.user_subscriptions;
+create policy "Users can view own subscriptions"
+  on public.user_subscriptions for select
   using (auth.uid() = user_id);
 
 create extension if not exists pgcrypto;

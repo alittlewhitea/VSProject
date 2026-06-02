@@ -10,7 +10,7 @@ import { fetchPublishedGalleryItems } from "../lib/gallery-server";
 import { LEGAL_DOCUMENTS } from "../lib/legal";
 
 const plans = [
-  { name: "Trial Credits", price: "Free", note: "For new accounts", credits: "120 signup credits included", href: "/studio?mode=image&workflow=text-to-image" },
+  { name: "Trial Credits", price: "Free", note: "For new accounts", credits: "100 signup credits included", href: "/studio?mode=image&workflow=text-to-image" },
   ...CREDIT_PACKS.map((pack) => ({
     name: pack.name,
     price: formatUsd(pack.amountCents),

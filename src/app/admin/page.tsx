@@ -51,6 +51,23 @@ type Purchase = {
   updated_at: string;
 };
 
+type Subscription = {
+  id: number | string;
+  user_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string;
+  plan_id: string;
+  cycle: string;
+  credits_per_cycle: number;
+  status: string;
+  cancel_at_period_end: boolean;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type Task = {
   id: string;
   user_id: string;
@@ -138,6 +155,7 @@ type OpsPayload = {
   accounts?: Account[];
   ledger?: Ledger[];
   purchases?: Purchase[];
+  subscriptions?: Subscription[];
   tasks?: Task[];
   failedTasks?: Task[];
   error?: string;
@@ -316,6 +334,7 @@ export default function AdminHomePage() {
   const accounts = payload?.accounts || [];
   const ledger = payload?.ledger || [];
   const purchases = payload?.purchases || [];
+  const subscriptions = payload?.subscriptions || [];
   const tasks = payload?.tasks || [];
   const failedTasks = payload?.failedTasks || [];
   const findings = payload?.findings || [];
@@ -326,6 +345,7 @@ export default function AdminHomePage() {
   const analyticsSummary = analytics?.summary;
   const criticalFindingCount = findings.filter((finding) => finding.severity === "critical").reduce((sum, finding) => sum + finding.count, 0);
   const selectedUser = filterUserId.trim() ? users[0] || null : null;
+  const selectedSubscription = filterUserId.trim() ? subscriptions[0] || null : null;
   const selectedCompletedPurchases = purchases.filter((purchase) => purchase.status === "completed");
   const selectedUserStats = useMemo(() => {
     const completed = tasks.filter((task) => task.status === "completed").length;
@@ -382,7 +402,9 @@ export default function AdminHomePage() {
               ["Credits purchased", summary.creditsPurchased ?? 0],
               ["Credits spent", summary.creditsSpent ?? 0],
               ["Credits refunded", summary.creditsRefunded ?? 0],
-              ["Running tasks", summary.runningTasks ?? 0]
+              ["Running tasks", summary.runningTasks ?? 0],
+              ["Active subs", summary.activeSubscriptions ?? 0],
+              ["Past due subs", summary.pastDueSubscriptions ?? 0]
             ].map(([label, value]) => (
               <div key={label} className="rounded-2xl border border-black/10 bg-[#fbfbfd] p-4">
                 <p className="text-xs uppercase tracking-[0.12em] text-[#86868b]">{label}</p>
@@ -451,6 +473,11 @@ export default function AdminHomePage() {
                     <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">Created: {formatDate(selectedUser.createdAt)}</span>
                     <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">Last sign-in: {formatDate(selectedUser.lastSignInAt)}</span>
                     <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">Balance: {selectedUser.balance.toLocaleString()} credits</span>
+                    {selectedSubscription ? (
+                      <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">
+                        Subscription: {selectedSubscription.plan_id} / {selectedSubscription.cycle} / {selectedSubscription.status}
+                      </span>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="mt-3 text-sm text-[#86868b]">{loading ? "Loading selected user..." : "No auth user was found for this id."}</p>
@@ -745,6 +772,34 @@ export default function AdminHomePage() {
                 </div>
               ))}
               {!purchases.length ? <Empty loading={loading} /> : null}
+            </div>
+          </Panel>
+
+          <Panel title="Subscriptions" count={subscriptions.length}>
+            <div className="divide-y divide-black/10">
+              {subscriptions.slice(0, 30).map((subscription) => (
+                <div key={subscription.id} className="grid gap-2 py-3 md:grid-cols-[0.7fr_0.8fr_1fr]">
+                  <div>
+                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${statusClass(subscription.status)}`}>
+                      {subscription.status}
+                    </span>
+                    <p className="mt-2 text-xs text-[#86868b]">
+                      {subscription.cancel_at_period_end ? "Cancels at period end" : "Renews normally"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{subscription.plan_id} / {subscription.cycle}</p>
+                    <p className="text-xs text-[#86868b]">{subscription.credits_per_cycle.toLocaleString()} credits per cycle</p>
+                    <p className="text-xs text-[#86868b]">Period end {formatDate(subscription.current_period_end)}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="break-all text-xs text-[#86868b]">{subscription.user_id}</p>
+                    <p className="break-all text-xs text-[#86868b]">{subscription.stripe_subscription_id}</p>
+                    <p className="break-all text-xs text-[#86868b]">{subscription.stripe_customer_id || "No customer id"}</p>
+                  </div>
+                </div>
+              ))}
+              {!subscriptions.length ? <Empty loading={loading} /> : null}
             </div>
           </Panel>
 

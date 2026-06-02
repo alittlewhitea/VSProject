@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export const SIGNUP_BONUS_CREDITS = 120;
+export const SIGNUP_BONUS_CREDITS = 100;
 export const LIMITED_REGION_SIGNUP_BONUS_CREDITS = 10;
 const LIMITED_SIGNUP_BONUS_COUNTRIES = new Set(["IN", "ID", "NG", "PK", "BD", "ET", "NP"]);
 

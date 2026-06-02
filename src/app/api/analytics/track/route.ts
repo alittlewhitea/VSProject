@@ -26,6 +26,8 @@ const ALLOWED_EVENTS = new Set([
   "balance_refreshed",
   "checkout_started",
   "checkout_success",
+  "subscription_checkout_started",
+  "subscription_checkout_success",
   "checkout_cancelled"
 ]);
 

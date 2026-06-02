@@ -14,6 +14,7 @@ import {
   listCreditLedger,
   signupBonusCreditsForCountry
 } from "../../../lib/credits";
+import { listUserSubscriptions } from "../../../lib/subscriptions";
 
 const CREDIT_TIMEOUT_MS = 4500;
 
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
         .limit(25) as unknown as Promise<CreditPurchasesResult>,
       CREDIT_TIMEOUT_MS
     ).catch(() => ({ data: [] }));
+    const subscriptions = await withTimeout(listUserSubscriptions(admin, user.id), CREDIT_TIMEOUT_MS).catch(() => []);
     return NextResponse.json({
       balance: account.balance,
       freeGranted: account.free_granted,
@@ -72,6 +74,7 @@ export async function GET(request: Request) {
       signupBonusBlockedByIp: !account.free_granted && signupClaim ? !signupClaim.allowed : false,
       ledger,
       purchases: purchases || [],
+      subscriptions,
       signupBonusCredits
     });
   } catch (error) {
