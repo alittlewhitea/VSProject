@@ -36,6 +36,9 @@ export const metadata = {
   description: "Learn about DreamFace, our mission, AI tools, and creator-focused workflow."
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default function AboutPage() {
   return (
     <main className="bg-grid min-h-screen pb-14">
