@@ -50,7 +50,7 @@ const nextConfig = {
           }
         ]
       },
-      ...["/", "/studio", "/auth", "/billing", "/price", "/creations", "/gallery", "/admin"].map((source) => ({
+      ...["/", "/about", "/studio", "/auth", "/billing", "/price", "/creations", "/gallery", "/admin"].map((source) => ({
         source,
         headers: [
           {
