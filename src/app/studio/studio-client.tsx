@@ -113,33 +113,37 @@ const HOME_SLIDES: Array<{
   cta: string;
   href: string;
   gradient: string;
+  stats: string[];
 }> = [
   {
     eyebrow: "New creative routing",
-    title: "Campaign visuals with",
+    title: "Create campaign visuals with",
     accent: "GPT Image 2",
-    body: "Readable typography, product posters, and polished ad concepts from one focused image workspace.",
+    body: "Make readable ads, posters, product shots, and polished concepts from a focused image workspace.",
     cta: "Try image studio",
     href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image",
-    gradient: "from-[#bde0fe] via-[#e8f4ff] to-[#d8f7df]"
+    gradient: "from-[#bde0fe] via-[#e8f4ff] to-[#d8f7df]",
+    stats: ["Text to image", "Preset sizes", "Low-cost drafts"]
   },
   {
     eyebrow: "Motion workspace",
-    title: "Image clips with",
-    accent: "Seedance 2",
-    body: "Animate product frames, portraits, and story scenes with image-to-video controls.",
+    title: "Animate clips with",
+    accent: "Kling and Seedance",
+    body: "Turn product frames, portraits, and story scenes into short clips with simple motion controls.",
     cta: "Create video",
-    href: "/studio?mode=video&workflow=image-to-video",
-    gradient: "from-[#cfe8ff] via-[#e8e7ff] to-[#f4dcff]"
+    href: "/studio?mode=video&workflow=image-to-video&duration=5s",
+    gradient: "from-[#cfe8ff] via-[#e8e7ff] to-[#f4dcff]",
+    stats: ["Image to video", "5s starter clip", "720p preview"]
   },
   {
     eyebrow: "DreamFace apps",
-    title: "Beyond the studio.",
-    accent: "Meet the tools.",
-    body: "Generate images, motion, cleanup, enhancement, and audio prompts from one clean dashboard.",
+    title: "Open every creative tool from",
+    accent: "one dashboard",
+    body: "Switch between images, motion, cleanup, enhancement, and audio without losing your project flow.",
     cta: "Explore apps",
     href: "/studio?view=home",
-    gradient: "from-[#ffe1d5] via-[#f5d8e9] to-[#ecc7ff]"
+    gradient: "from-[#ffe1d5] via-[#f5d8e9] to-[#ecc7ff]",
+    stats: ["7 workflows", "Saved Projects", "Credit aware"]
   }
 ];
 
@@ -179,7 +183,7 @@ const TOOLKIT_APPS: Array<{
     title: "Text to Video",
     body: "Turn scene ideas into short motion clips for social, ads, storyboards, and B-roll.",
     icon: "film",
-    href: "/studio?mode=video&workflow=text-to-video",
+    href: "/studio?mode=video&workflow=text-to-video&duration=5s",
     accent: "from-[#ede9fe] to-[#e0f2fe]",
     iconClass: "text-[#8b5cf6]"
   },
@@ -187,7 +191,7 @@ const TOOLKIT_APPS: Array<{
     title: "Image to Video",
     body: "Animate a product, portrait, or reference frame with camera motion and cinematic timing.",
     icon: "motion",
-    href: "/studio?mode=video&workflow=image-to-video",
+    href: "/studio?mode=video&workflow=image-to-video&duration=5s",
     accent: "from-[#dcfce7] to-[#dbeafe]",
     iconClass: "text-[#22c55e]"
   },
@@ -360,6 +364,8 @@ const VEO_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p", "4k"];
 const VIDEO_DURATION_OPTIONS = ["3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s"];
 const GROK_VIDEO_DURATION_OPTIONS = ["1s", "2s", ...VIDEO_DURATION_OPTIONS];
 const VEO_VIDEO_DURATION_OPTIONS = ["4s", "6s", "8s"];
+const DEFAULT_VIDEO_DURATION = "5s";
+const DEFAULT_VEO_VIDEO_DURATION = "8s";
 const NANO_ASPECT_RATIO_OPTIONS = ["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"];
 const ELEVENLABS_VOICES = ["Rachel", "Aria", "Roger", "Sarah", "Laura", "Charlie", "George", "Callum", "River", "Liam", "Charlotte", "Alice", "Matilda", "Will", "Jessica", "Eric", "Chris", "Brian", "Daniel", "Lily", "Bill"];
 const ELEVENLABS_LANGUAGE_OPTIONS = [
@@ -966,7 +972,7 @@ function StudioContent() {
   const [systemPrompt, setSystemPrompt] = useState("");
   const [enableWebSearch, setEnableWebSearch] = useState(false);
   const [thinkingLevel, setThinkingLevel] = useState("");
-  const [duration, setDuration] = useState(mode === "video" ? "6s" : "single");
+  const [duration, setDuration] = useState(mode === "video" ? DEFAULT_VIDEO_DURATION : "single");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [statusTone, setStatusTone] = useState<"ok" | "error" | "idle">("idle");
@@ -1078,7 +1084,7 @@ function StudioContent() {
     const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
     setRatio(mode === "image" ? (nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize)) : "16:9");
     setImageSize(nextImageSize);
-    setDuration(mode === "video" ? "6s" : "single");
+    setDuration(mode === "video" ? DEFAULT_VIDEO_DURATION : "single");
     setStatusText("");
     setStatusTone("idle");
   }, [mode, sp]);
@@ -1431,7 +1437,7 @@ function StudioContent() {
       setRatio(videoRatioOptions.includes("auto") ? "auto" : videoRatioOptions[0] || "16:9");
     }
     if (!videoDurationOptions.includes(duration)) {
-      setDuration(provider === "veo-video" ? "8s" : videoDurationOptions[0] || "6s");
+      setDuration(provider === "veo-video" ? DEFAULT_VEO_VIDEO_DURATION : DEFAULT_VIDEO_DURATION);
     }
     if (showVideoResolutionControl && !videoResolutionOptions.includes(videoResolution)) {
       setVideoResolution(videoResolutionOptions[0] || "720p");
@@ -1505,7 +1511,7 @@ function StudioContent() {
       setRatio(nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
     } else if (nextMode === "video") {
       setRatio(nextWorkflow === "avatar-video" ? "source" : "16:9");
-      setDuration(nextProvider === "veo-video" ? "8s" : "6s");
+      setDuration(nextProvider === "veo-video" ? DEFAULT_VEO_VIDEO_DURATION : DEFAULT_VIDEO_DURATION);
     } else {
       setRatio("16:9");
       setDuration("single");
@@ -1578,7 +1584,7 @@ function StudioContent() {
         setDuration("4s");
       }
       if (nextProvider === "veo-video" && !VEO_VIDEO_DURATION_OPTIONS.includes(duration)) {
-        setDuration("8s");
+        setDuration(DEFAULT_VEO_VIDEO_DURATION);
       }
       const nextResolution = nextProvider === "veo-video" && !VEO_VIDEO_RESOLUTION_OPTIONS.includes(videoResolution) ? "720p" : videoResolution;
       if (nextResolution !== videoResolution) {
@@ -2422,15 +2428,22 @@ function StudioContent() {
                     >
                       <StudioIcon name="chevron-right" className="h-5 w-5" />
                     </button>
-                    <div className="relative mx-auto max-w-4xl px-8 md:px-12">
+                    <div className="relative mx-auto flex min-h-[330px] max-w-4xl flex-col items-center justify-center px-8 md:min-h-[360px] md:px-12">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#64748b]">{activeHomeSlide.eyebrow}</p>
-                      <h2 className="mt-2 text-3xl font-black tracking-tight text-[#202633] md:text-5xl">
+                      <h2 className="mt-3 max-w-3xl text-3xl font-black leading-tight tracking-tight text-[#202633] md:text-5xl">
                         {activeHomeSlide.title}{" "}
                         <span className="bg-[linear-gradient(90deg,#0ea5e9,#14b8a6,#22c55e)] bg-clip-text text-transparent">
                           {activeHomeSlide.accent}
                         </span>
                       </h2>
-                      <p className="mx-auto mt-3 max-w-2xl text-base font-medium leading-7 text-[#5f6b7d]">{activeHomeSlide.body}</p>
+                      <p className="mx-auto mt-4 min-h-[56px] max-w-2xl text-base font-medium leading-7 text-[#5f6b7d]">{activeHomeSlide.body}</p>
+                      <div className="mt-5 flex flex-wrap justify-center gap-2">
+                        {activeHomeSlide.stats.map((item) => (
+                          <span key={item} className="rounded-full border border-white/70 bg-white/58 px-3 py-1.5 text-xs font-black text-[#475569] shadow-sm backdrop-blur">
+                            {item}
+                          </span>
+                        ))}
+                      </div>
                       <Link
                         href={activeHomeSlide.href}
                         className="mt-6 inline-flex items-center gap-3 rounded-full bg-white/88 px-5 py-3 text-sm font-semibold text-[#202633] shadow-[0_12px_32px_rgba(15,23,42,0.12)] backdrop-blur transition hover:-translate-y-0.5 hover:bg-white"
@@ -3748,6 +3761,7 @@ function StudioContent() {
                       <option value="single">Single Output</option>
                     ) : (
                       <>
+                        <option value="5s">5 seconds</option>
                         <option value="6s">6 seconds</option>
                         <option value="8s">8 seconds</option>
                         <option value="10s">10 seconds</option>

@@ -36,7 +36,7 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
 
           <div className="mt-7 grid gap-3 sm:mt-8 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
             <Link
-              href="/auth?next=%2Fstudio%3Fview%3Dhome"
+              href="/auth?provider=google&next=%2Fstudio%3Fview%3Dhome"
               onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/auth", item: "google_signup" })}
               className="inline-flex h-[52px] items-center justify-center gap-3 rounded-md border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[#2f2f32] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:h-14 sm:justify-start sm:text-base"
             >

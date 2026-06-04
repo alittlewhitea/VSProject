@@ -88,8 +88,8 @@ const FLUX_SCHNELL_BY_SIZE: Record<string, number> = {
 };
 
 function secondsFromDuration(duration?: string | null) {
-  const parsed = Number.parseInt(String(duration || "6s"), 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 6;
+  const parsed = Number.parseInt(String(duration || "5s"), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
 }
 
 function nanoBananaCredits(resolution?: string | null, isPro = false) {

@@ -239,7 +239,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     return {
       prompt,
       image_url: firstInputImage(body),
-      duration: String(Number.isInteger(duration) && duration >= 4 && duration <= 15 ? duration : 6),
+      duration: String(Number.isInteger(duration) && duration >= 4 && duration <= 15 ? duration : 5),
       resolution: body.resolution && SEEDANCE_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
       aspect_ratio: SEEDANCE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
       generate_audio: Boolean(body.generateAudio)
@@ -251,7 +251,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     const seed = optionalSeed(body.seed);
     return {
       prompt,
-      duration: String(Number.isInteger(duration) && duration >= 4 && duration <= 15 ? duration : 6),
+      duration: String(Number.isInteger(duration) && duration >= 4 && duration <= 15 ? duration : 5),
       resolution: body.resolution && SEEDANCE_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
       aspect_ratio: SEEDANCE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
       generate_audio: Boolean(body.generateAudio),
@@ -302,7 +302,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     return {
       prompt,
       image_url: firstInputImage(body),
-      duration: Number.isInteger(duration) && duration > 0 && duration <= 15 ? duration : 6,
+      duration: Number.isInteger(duration) && duration > 0 && duration <= 15 ? duration : 5,
       aspect_ratio: GROK_IMAGE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
       resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p"
     };
@@ -312,7 +312,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     const duration = Number.parseInt(body.duration, 10);
     return {
       prompt,
-      duration: Number.isInteger(duration) && duration > 0 && duration <= 15 ? duration : 6,
+      duration: Number.isInteger(duration) && duration > 0 && duration <= 15 ? duration : 5,
       aspect_ratio: VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
       resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p"
     };
