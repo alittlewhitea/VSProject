@@ -871,6 +871,124 @@ function isProbablyUrl(value: string) {
   }
 }
 
+function readFileAsDataUrl(file: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("File could not be read."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function audioBufferToWavBlob(buffer: AudioBuffer, frameCount: number) {
+  const channels = Math.max(1, Math.min(buffer.numberOfChannels, 2));
+  const sampleRate = buffer.sampleRate;
+  const bytesPerSample = 2;
+  const blockAlign = channels * bytesPerSample;
+  const dataSize = frameCount * blockAlign;
+  const arrayBuffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(arrayBuffer);
+  let offset = 0;
+
+  function writeString(value: string) {
+    for (let index = 0; index < value.length; index += 1) {
+      view.setUint8(offset, value.charCodeAt(index));
+      offset += 1;
+    }
+  }
+
+  writeString("RIFF");
+  view.setUint32(offset, 36 + dataSize, true); offset += 4;
+  writeString("WAVE");
+  writeString("fmt ");
+  view.setUint32(offset, 16, true); offset += 4;
+  view.setUint16(offset, 1, true); offset += 2;
+  view.setUint16(offset, channels, true); offset += 2;
+  view.setUint32(offset, sampleRate, true); offset += 4;
+  view.setUint32(offset, sampleRate * blockAlign, true); offset += 4;
+  view.setUint16(offset, blockAlign, true); offset += 2;
+  view.setUint16(offset, 16, true); offset += 2;
+  writeString("data");
+  view.setUint32(offset, dataSize, true); offset += 4;
+
+  const channelData = Array.from({ length: channels }, (_, channel) => buffer.getChannelData(channel));
+  for (let frame = 0; frame < frameCount; frame += 1) {
+    for (let channel = 0; channel < channels; channel += 1) {
+      const sample = Math.max(-1, Math.min(1, channelData[channel][frame] || 0));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([view], { type: "audio/wav" });
+}
+
+async function trimAudioFileToDataUrl(file: File, maxSeconds: number) {
+  const AudioContextClass =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) {
+    throw new Error("This browser cannot trim audio before upload. Please use a modern browser or upload a shorter file.");
+  }
+
+  const context = new AudioContextClass();
+  try {
+    const decoded = await context.decodeAudioData(await file.arrayBuffer());
+    if (decoded.duration <= maxSeconds + 0.05) {
+      return {
+        dataUrl: await readFileAsDataUrl(file),
+        originalSeconds: decoded.duration,
+        outputSeconds: decoded.duration,
+        trimmed: false
+      };
+    }
+
+    const frameCount = Math.max(1, Math.min(decoded.length, Math.floor(maxSeconds * decoded.sampleRate)));
+    const wavBlob = audioBufferToWavBlob(decoded, frameCount);
+    return {
+      dataUrl: await readFileAsDataUrl(wavBlob),
+      originalSeconds: decoded.duration,
+      outputSeconds: frameCount / decoded.sampleRate,
+      trimmed: true
+    };
+  } finally {
+    void context.close();
+  }
+}
+
+function formatSeconds(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return "0s";
+  return `${value.toFixed(value >= 10 ? 0 : 1)}s`;
+}
+
+function readAudioDurationFromUrl(url: string) {
+  return new Promise<number>((resolve, reject) => {
+    const audio = document.createElement("audio");
+    const timer = window.setTimeout(() => {
+      audio.src = "";
+      reject(new Error("Audio length could not be verified."));
+    }, 8000);
+
+    audio.preload = "metadata";
+    audio.onloadedmetadata = () => {
+      window.clearTimeout(timer);
+      const duration = audio.duration;
+      audio.src = "";
+      if (Number.isFinite(duration) && duration > 0) {
+        resolve(duration);
+      } else {
+        reject(new Error("Audio length could not be verified."));
+      }
+    };
+    audio.onerror = () => {
+      window.clearTimeout(timer);
+      audio.src = "";
+      reject(new Error("Audio length could not be verified."));
+    };
+    audio.src = url;
+  });
+}
+
 function shortInputValue(value: string) {
   if (!value.trim()) return "";
   if (value.startsWith("data:")) return "Uploaded local file";
@@ -951,6 +1069,7 @@ function StudioContent() {
   );
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
   const [avatarAudioUrl, setAvatarAudioUrl] = useState(sp.get("audioUrl") || "");
+  const [avatarAudioTrimSeconds, setAvatarAudioTrimSeconds] = useState<number | null>(null);
   const [editResolution, setEditResolution] = useState("1K");
   const [videoResolution, setVideoResolution] = useState("720p");
   const [generateAudio, setGenerateAudio] = useState(false);
@@ -1323,6 +1442,7 @@ function StudioContent() {
   const avatarNeedsAudio = isAvatarWorkflow && !isProbablyUrl(avatarAudioUrl);
   const hasRequiredAvatarAudio = !isAvatarWorkflow || isProbablyUrl(avatarAudioUrl);
   const audioCharacterCount = mode === "audio" ? prompt.trim().length : 0;
+  const avatarSelectedSeconds = Math.max(1, Number.parseInt(duration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
 
   const estCredits = estimateGenerationCredits({
     mode,
@@ -1429,8 +1549,17 @@ function StudioContent() {
           : mode === "audio"
             ? `${prompt.trim().length || 0} chars / ${ttsVoice} / stability ${ttsStability.toFixed(2)}`
           : isAvatarWorkflow
-            ? `${duration} estimate / audio URL required`
+            ? `${duration} output / audio required`
             : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / audio on" : " / audio off" : ""}`;
+
+  useEffect(() => {
+    if (!isAvatarWorkflow || !avatarAudioUrl.startsWith("data:audio/") || avatarAudioTrimSeconds === null) return;
+    if (avatarAudioTrimSeconds === avatarSelectedSeconds) return;
+    setAvatarAudioUrl("");
+    setAvatarAudioTrimSeconds(null);
+    setStatusTone("idle");
+    setStatusText(`Avatar duration changed to ${avatarSelectedSeconds}s. Please choose the audio file again so DreamFace can trim it to the new length.`);
+  }, [avatarAudioTrimSeconds, avatarAudioUrl, avatarSelectedSeconds, isAvatarWorkflow]);
 
   useEffect(() => {
     if (mode !== "video") return;
@@ -1659,15 +1788,23 @@ function StudioContent() {
       setStatusText("Please choose an audio file for AI Avatar.");
       return;
     }
-    const value = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error("Audio file could not be read."));
-      reader.readAsDataURL(file);
-    });
-    setAvatarAudioUrl(value);
-    setStatusTone("idle");
-    setStatusText(`${file.name} is ready for the Avatar audio input.`);
+    const targetSeconds = Math.max(1, Number.parseInt(duration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
+    try {
+      setStatusTone("idle");
+      setStatusText(`Trimming ${file.name} to the selected ${targetSeconds}s Avatar length...`);
+      const result = await trimAudioFileToDataUrl(file, targetSeconds);
+      setAvatarAudioUrl(result.dataUrl);
+      setAvatarAudioTrimSeconds(targetSeconds);
+      setStatusTone("idle");
+      setStatusText(
+        result.trimmed
+          ? `${file.name} was trimmed from ${formatSeconds(result.originalSeconds)} to ${formatSeconds(result.outputSeconds)} for this Avatar.`
+          : `${file.name} is ${formatSeconds(result.originalSeconds)} and fits the selected ${targetSeconds}s Avatar length.`
+      );
+    } catch (error) {
+      setStatusTone("error");
+      setStatusText(error instanceof Error ? error.message : "Audio file could not be trimmed.");
+    }
   }
 
   function clearCompletedWorkbench() {
@@ -1791,6 +1928,21 @@ function StudioContent() {
     const taskType: TaskItem["type"] = mode === "image" ? "Image" : mode === "audio" ? "Audio" : "Video";
     let idempotencyStorageKey: string | null = null;
     try {
+      if (isAvatarWorkflow) {
+        if (avatarAudioUrl.startsWith("data:audio/")) {
+          if (avatarAudioTrimSeconds !== avatarSelectedSeconds) {
+            throw new Error(`Please choose the audio file again so DreamFace can trim it to the selected ${avatarSelectedSeconds}s Avatar length.`);
+          }
+        } else {
+          setStatusText("Checking Avatar audio length...");
+          const remoteAudioSeconds = await readAudioDurationFromUrl(avatarAudioUrl.trim());
+          if (remoteAudioSeconds > avatarSelectedSeconds + 0.5) {
+            throw new Error(
+              `The pasted audio URL is ${formatSeconds(remoteAudioSeconds)}, longer than the selected ${avatarSelectedSeconds}s Avatar length. Upload the audio file so DreamFace can trim the first ${avatarSelectedSeconds}s, or choose a matching URL.`
+            );
+          }
+        }
+      }
       const supabase = createBrowserSupabaseClient();
       await supabase.auth.refreshSession();
       const { data } = await supabase.auth.getSession();
@@ -2879,7 +3031,10 @@ function StudioContent() {
                           <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                             <input
                               value={shortInputValue(avatarAudioUrl)}
-                              onChange={(event) => setAvatarAudioUrl(event.target.value)}
+                              onChange={(event) => {
+                                setAvatarAudioUrl(event.target.value);
+                                setAvatarAudioTrimSeconds(null);
+                              }}
                               placeholder="https://.../voiceover.mp3"
                               className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
                             />
@@ -2894,7 +3049,7 @@ function StudioContent() {
                             </label>
                           </div>
                           <p className="mt-3 text-xs leading-5 text-[#667085]">
-                            Hint: paste an audio URL or choose an audio file. Accepted file types: mp3, ogg, wav, m4a, aac.
+                            Uploaded files are trimmed to the selected {duration} Avatar length. Pasted URLs should already match that length.
                           </p>
                           {avatarAudioUrl ? (
                             <div className="mt-3 rounded-xl border border-black/[0.06] bg-white p-3">
@@ -3976,7 +4131,10 @@ function StudioContent() {
                       <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                         <input
                           value={shortInputValue(avatarAudioUrl)}
-                          onChange={(event) => setAvatarAudioUrl(event.target.value)}
+                          onChange={(event) => {
+                            setAvatarAudioUrl(event.target.value);
+                            setAvatarAudioTrimSeconds(null);
+                          }}
                           placeholder="https://.../voiceover.mp3"
                           className="min-h-11 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold text-white outline-none placeholder:text-white/28 focus:border-[#77a8e8]"
                         />
@@ -3991,7 +4149,7 @@ function StudioContent() {
                         </label>
                       </div>
                       <p className="mt-2 text-xs leading-5 text-white/38">
-                        Drag, choose, or paste a URL. Accepted: mp3, ogg, wav, m4a, aac.
+                        Uploaded files are trimmed to the selected {duration} Avatar length. Pasted URLs should already match that length.
                       </p>
                       {avatarAudioUrl ? <audio src={avatarAudioUrl} controls className="mt-3 h-9 w-full" /> : null}
                     </div>
