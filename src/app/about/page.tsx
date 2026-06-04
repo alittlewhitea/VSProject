@@ -25,13 +25,6 @@ const pillars = [
   }
 ];
 
-const stats = [
-  { label: "Creation modes", value: "Image + Video" },
-  { label: "Workflow", value: "Prompt to asset" },
-  { label: "Billing", value: "Credits" },
-  { label: "Focus", value: "Commercial creators" }
-];
-
 const companyDetails = [
   { label: "Company", value: "Dreamface LTD" },
   { label: "Registered office", value: "82A James Carter Road, Mildenhall, IP28 7DE, United Kingdom" },
@@ -65,13 +58,28 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              {stats.map((item) => (
-                <div key={item.label} className="rounded-2xl border border-black/10 bg-[#f8fbff] p-5">
-                  <p className="text-xs uppercase tracking-[0.14em] text-[#667084]">{item.label}</p>
-                  <p className="mt-2 text-2xl font-semibold tracking-tight">{item.value}</p>
+            <div className="grid gap-3">
+              <div className="rounded-2xl border border-black/10 bg-[#f8fbff] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#667084]">Legal entity</p>
+                <p className="mt-2 text-3xl font-semibold tracking-tight text-[#1d1d1f]">Dreamface LTD</p>
+                <p className="mt-3 text-sm leading-6 text-[#5b6577]">
+                  UK company details for DreamFace account, billing, product, and business enquiries.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-black/10 bg-white p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#667084]">Registered office</p>
+                  <p className="mt-2 text-lg font-semibold leading-7 tracking-tight text-[#1d1d1f]">
+                    82A James Carter Road, Mildenhall, IP28 7DE
+                  </p>
                 </div>
-              ))}
+                <div className="rounded-2xl border border-black/10 bg-white p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#667084]">Support</p>
+                  <a href="mailto:support@dreamface.io" className="mt-2 block text-lg font-semibold tracking-tight text-[#0071e3] hover:text-[#005bb8]">
+                    support@dreamface.io
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </section>
