@@ -44,8 +44,8 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
               Continue with Google
             </Link>
             <Link
-              href="/studio?view=home"
-              onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/studio?view=home", item: "get_started" })}
+              href="/auth?next=%2Fstudio%3Fview%3Dhome"
+              onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/auth", item: "get_started" })}
               className="inline-flex h-[52px] items-center justify-center gap-3 rounded-xl bg-[#08bdf2] px-7 py-3 text-sm font-black text-[#08232d] shadow-[0_18px_38px_rgba(8,189,242,0.22)] transition hover:-translate-y-0.5 hover:bg-[#15c8fa] sm:h-14 sm:justify-start sm:text-base"
             >
               Get Started for Free

@@ -77,70 +77,76 @@ function AuthContent() {
   }, [providerParam, nextPath]);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#070b12] px-4 py-8 text-white sm:py-10">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(56,189,248,0.22),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(99,102,241,0.18),transparent_30%),linear-gradient(145deg,#070b12_0%,#111827_58%,#05070c_100%)]" />
-      <div className="pointer-events-none fixed inset-0 opacity-[0.055]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "22px 22px" }} />
+    <main className="min-h-screen overflow-hidden bg-[#f7f8fb] px-4 py-6 text-[#1d1d1f] sm:px-6 sm:py-8">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(48rem_28rem_at_12%_-10%,rgba(8,189,242,0.16),transparent_60%),radial-gradient(40rem_24rem_at_88%_-8%,rgba(255,200,221,0.30),transparent_58%),radial-gradient(34rem_22rem_at_54%_8%,rgba(134,239,172,0.16),transparent_60%),linear-gradient(180deg,#ffffff_0%,#f5f5f7_100%)]" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 h-32 bg-gradient-to-b from-white/80 to-transparent" />
 
-      <div className="relative mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-7 lg:grid-cols-[1fr_0.82fr]">
-        <section className="hidden lg:block">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8ab6ff]">DreamFace Studio</p>
-          <h1 className="mt-4 max-w-3xl text-6xl font-black leading-[0.95] tracking-tight">
-            Sign in and keep every creation in one workspace.
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-white/58">
-            Your credits, prompts, references, and finished outputs sync into Projects after login.
-          </p>
-          <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
+      <div className="relative mx-auto max-w-[1240px]">
+        <header className="flex items-center justify-between rounded-[1.35rem] border border-black/[0.06] bg-white/78 px-4 py-3 shadow-[0_14px_34px_rgba(18,24,40,0.06)] backdrop-blur sm:rounded-[1.8rem] sm:px-6">
+          <Link href="/" className="text-xl font-black tracking-tight text-[#171719] sm:text-2xl">
+            dreamface
+          </Link>
+          <Link href="/" className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-bold text-[#2f2f32] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            Back to home
+          </Link>
+        </header>
+
+        <div className="grid min-h-[calc(100vh-7.5rem)] items-center gap-8 py-8 lg:grid-cols-[1fr_0.78fr] lg:gap-12 lg:py-12">
+          <section className="mx-auto max-w-3xl text-center lg:mx-0 lg:text-left">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0ea5e9]">DreamFace Studio</p>
+            <h1 className="mt-4 text-[clamp(3.1rem,12vw,5.8rem)] font-black leading-[0.92] tracking-tight text-[#2f2f32] lg:text-[clamp(4.2rem,6.8vw,7.5rem)]">
+              Start creating videos in minutes.
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-7 text-[#3f4148] sm:text-xl sm:leading-8 lg:mx-0">
+              Sign in once to unlock your free credits, save every prompt, and keep generated images and videos organized in Projects.
+            </p>
+            <div className="mt-7 grid gap-3 sm:grid-cols-3">
             {["100 free credits", "Project history", "Google in one click"].map((item) => (
-              <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-semibold text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <div key={item} className="rounded-2xl border border-black/[0.06] bg-white/78 px-4 py-3 text-sm font-black text-[#3f4148] shadow-[0_12px_30px_rgba(15,23,42,0.06)] backdrop-blur">
                 {item}
               </div>
             ))}
           </div>
         </section>
 
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.075] p-5 shadow-[0_36px_96px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur md:p-7">
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-          <div className="pointer-events-none absolute -right-24 top-12 h-64 w-64 rounded-full bg-[#3f86ff]/14 blur-3xl" />
-          <div className="pointer-events-none absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-[#13c8f2]/12 blur-3xl" />
+          <section className="relative overflow-hidden rounded-[2rem] border border-black/[0.07] bg-white/92 p-5 shadow-[0_28px_80px_rgba(16,27,48,0.14),inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur md:p-7">
+            <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#bde0fe]/48 blur-3xl" />
+            <div className="pointer-events-none absolute -left-20 bottom-0 h-52 w-52 rounded-full bg-[#ffc8dd]/28 blur-3xl" />
 
           <div className="relative">
-            <Link href="/" className="mb-7 inline-flex text-sm font-semibold text-white/58 transition hover:text-white">
-              Back to home
-            </Link>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/42">Authentication</p>
-            <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Sign in to Nova Studio</h2>
-            <p className="mt-3 text-sm leading-6 text-white/54">Use Google for the fastest start, or receive a secure email magic link.</p>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#697386]">Authentication</p>
+              <h2 className="mt-2 text-3xl font-black tracking-tight text-[#171719] sm:text-4xl">Create your free account</h2>
+              <p className="mt-3 text-sm font-medium leading-6 text-[#606676]">Continue with Google for the fastest start, or receive a secure email magic link.</p>
 
             <button
               type="button"
               onClick={() => signInWithGoogle()}
               disabled={loading}
-              className="mt-7 flex min-h-[56px] w-full items-center justify-center gap-3 rounded-[1.15rem] bg-white px-5 py-3 text-base font-black text-[#111827] shadow-[0_18px_42px_rgba(28,107,225,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_26px_60px_rgba(28,107,225,0.30)] disabled:cursor-not-allowed disabled:opacity-70"
+                className="mt-7 flex min-h-[56px] w-full items-center justify-center gap-3 rounded-[1.15rem] border border-black/[0.07] bg-white px-5 py-3 text-base font-black text-[#171719] shadow-[0_18px_42px_rgba(15,23,42,0.10)] transition hover:-translate-y-0.5 hover:shadow-[0_26px_60px_rgba(15,23,42,0.14)] disabled:cursor-not-allowed disabled:opacity-70"
             >
               <span className="grid h-7 w-7 place-items-center rounded-full border border-black/10 bg-white text-lg font-black text-[#4285f4]">G</span>
               {loading && providerParam === "google" ? "Opening Google..." : "Continue with Google"}
             </button>
 
-            <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/32">
-              <span className="h-px flex-1 bg-white/10" />
+              <div className="my-6 flex items-center gap-3 text-xs font-black uppercase tracking-[0.16em] text-[#8b95a7]">
+                <span className="h-px flex-1 bg-black/[0.08]" />
               Email
-              <span className="h-px flex-1 bg-white/10" />
+                <span className="h-px flex-1 bg-black/[0.08]" />
             </div>
 
             <label className="block">
-              <span className="text-sm font-semibold text-white/58">Email</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-                className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/[0.07] px-4 py-3 text-white outline-none transition placeholder:text-white/28 focus:border-[#77a8e8] focus:bg-white/[0.09]"
-            placeholder="you@company.com"
-          />
-        </label>
+                <span className="text-sm font-bold text-[#4b5563]">Email</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                  className="mt-2 w-full rounded-[1rem] border border-black/[0.08] bg-[#f8fbff] px-4 py-3 text-[#171719] outline-none transition placeholder:text-[#99a1b3] focus:border-[#10bff3] focus:bg-white focus:ring-4 focus:ring-[#10bff3]/10"
+                placeholder="you@company.com"
+              />
+            </label>
 
             <div className="mt-4">
-              <AppButton onClick={signInWithEmail} disabled={!email || loading} className="w-full rounded-[1.1rem]">
+                <AppButton onClick={signInWithEmail} disabled={!email || loading} className="min-h-[56px] w-full rounded-[1.1rem] bg-[#08bdf2] text-base font-black text-[#08232d] shadow-[0_18px_38px_rgba(8,189,242,0.24)] hover:bg-[#15c8fa]">
             {loading ? "Please wait..." : "Send magic link"}
           </AppButton>
             </div>
@@ -148,21 +154,22 @@ function AuthContent() {
         {msg ? (
               <p className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
                 tone === "ok"
-                  ? "border-[#34d399]/20 bg-[#10b981]/10 text-[#8df0bf]"
+                    ? "border-[#22c55e]/20 bg-[#dcfce7] text-[#16733f]"
                   : tone === "error"
-                    ? "border-[#fb7185]/20 bg-[#f43f5e]/10 text-[#ffb4bf]"
-                    : "border-white/10 bg-white/[0.05] text-white/58"
+                      ? "border-[#fb7185]/25 bg-[#fff1f2] text-[#b03439]"
+                      : "border-black/[0.06] bg-[#f8fbff] text-[#606676]"
               }`}>
             {msg}
           </p>
         ) : null}
 
-            <p className="mt-5 text-center text-xs leading-5 text-white/34">
-              By continuing, you can access Studio, credits, billing, and saved Projects.
+              <p className="mt-5 text-center text-xs font-medium leading-5 text-[#7a8496]">
+                By continuing, you can access Studio, credits, billing, and saved Projects.
             </p>
           </div>
         </section>
         </div>
+      </div>
     </main>
   );
 }
