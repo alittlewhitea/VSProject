@@ -32,6 +32,12 @@ const stats = [
   { label: "Focus", value: "Commercial creators" }
 ];
 
+const companyDetails = [
+  { label: "Company", value: "Dreamface LTD" },
+  { label: "Registered office", value: "82A James Carter Road, Mildenhall, IP28 7DE, United Kingdom" },
+  { label: "Support", value: "support@dreamface.io", href: "mailto:support@dreamface.io" }
+];
+
 export const metadata = {
   title: "About Us | DreamFace",
   description: "Learn about DreamFace, our mission, AI tools, and creator-focused workflow."
@@ -105,6 +111,41 @@ export default function AboutPage() {
               ].map((item) => (
                 <div key={item} className="rounded-xl border border-black/10 bg-white/85 px-4 py-3 text-sm text-[#4e596b]">
                   {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="contact"
+          className="mt-8 scroll-mt-24 rounded-[2rem] border border-black/5 bg-white/94 p-6 shadow-[0_22px_58px_rgba(13,18,35,0.08)] md:p-9"
+        >
+          <div className="grid gap-8 lg:grid-cols-[0.86fr_1.14fr] lg:items-start">
+            <div>
+              <p className="text-xs uppercase tracking-[0.14em] text-[#6e6e73]">Company & Contact</p>
+              <h2 className="mt-2 text-4xl font-semibold tracking-tight md:text-5xl">Professional support for your creative workflow.</h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-[#5b6577] md:text-base">
+                DreamFace is operated by Dreamface LTD. For account, billing, product, or business enquiries, contact our support team and we will route your request to the right place.
+              </p>
+              <div className="mt-6">
+                <AppButton href="mailto:support@dreamface.io" variant="primary" size="md">
+                  Email Support
+                </AppButton>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              {companyDetails.map((item) => (
+                <div key={item.label} className="rounded-2xl border border-black/10 bg-[#f8fbff] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#667084]">{item.label}</p>
+                  {item.href ? (
+                    <a href={item.href} className="mt-2 block text-lg font-semibold tracking-tight text-[#0071e3] hover:text-[#005bb8]">
+                      {item.value}
+                    </a>
+                  ) : (
+                    <p className="mt-2 text-lg font-semibold leading-7 tracking-tight text-[#1d1d1f]">{item.value}</p>
+                  )}
                 </div>
               ))}
             </div>

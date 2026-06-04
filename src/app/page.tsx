@@ -371,7 +371,7 @@ export default async function HomePage() {
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
                 <AppButton href="/studio?mode=image&workflow=text-to-image" variant="primary">Start in Studio</AppButton>
-                <AppButton variant="secondary">Contact sales</AppButton>
+                <AppButton href="/about#contact" variant="secondary">Contact sales</AppButton>
               </div>
             </div>
           </Reveal>
@@ -397,7 +397,7 @@ export default async function HomePage() {
               <p className="text-sm font-semibold">Company</p>
               <Link href="/about" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">About Us</Link>
               <p className="text-sm text-[#4f5a67]">Documentation</p>
-              <p className="text-sm text-[#4f5a67]">Contact</p>
+              <Link href="/about#contact" className="block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Contact</Link>
             </div>
             <div>
               <p className="text-sm font-semibold">License & Terms</p>
