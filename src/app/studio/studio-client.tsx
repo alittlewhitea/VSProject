@@ -1322,6 +1322,7 @@ function StudioContent() {
   const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
   const avatarNeedsAudio = isAvatarWorkflow && !isProbablyUrl(avatarAudioUrl);
   const hasRequiredAvatarAudio = !isAvatarWorkflow || isProbablyUrl(avatarAudioUrl);
+  const audioCharacterCount = mode === "audio" ? prompt.trim().length : 0;
 
   const estCredits = estimateGenerationCredits({
     mode,
@@ -3127,7 +3128,7 @@ function StudioContent() {
                           />
                         </label>
                         <p className="rounded-2xl border border-black/[0.06] bg-white px-4 py-3 text-sm font-semibold text-[#667085]">
-                          {(prompt.trim().length || 0).toLocaleString()} chars / $0.10 per 1K
+                          {audioCharacterCount.toLocaleString()} chars / about {estCredits} credits now
                         </p>
                       </div>
                     </div>
@@ -3603,7 +3604,8 @@ function StudioContent() {
                     imageSize,
                     duration,
                     hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video",
-                    resolution: mode === "image" ? editResolution : videoResolution
+                    resolution: mode === "image" ? editResolution : videoResolution,
+                    promptText: mode === "audio" ? prompt : undefined
                   });
                   return (
                     <button

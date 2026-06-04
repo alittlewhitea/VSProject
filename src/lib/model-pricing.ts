@@ -175,7 +175,7 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 
   if (input.mode === "audio") {
     if (input.provider === "elevenlabs-tts") {
-      const characters = Math.max(1, input.promptText?.trim().length || 1000);
+      const characters = Math.max(1, input.promptText?.trim().length || 1);
       return creditsFromFalUsd((characters / 1000) * 0.1, 4);
     }
     return 8;
