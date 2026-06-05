@@ -15,7 +15,8 @@ import {
 } from "../../../lib/credits";
 import { estimateGenerationCreditsWithLivePricing } from "../../../lib/fal-pricing";
 
-type GenerateMode = "image" | "video" | "audio";
+type GenerateMode = "image" | "video" | "audio" | "avatar";
+type StoredGenerateMode = "image" | "video" | "audio";
 
 type GenerateRequest = {
   mode: GenerateMode;
@@ -71,12 +72,20 @@ function isValidBody(body: unknown): body is GenerateRequest {
 
   const payload = body as Record<string, unknown>;
   return (
-    (payload.mode === "image" || payload.mode === "video" || payload.mode === "audio") &&
+    (payload.mode === "image" || payload.mode === "video" || payload.mode === "audio" || payload.mode === "avatar") &&
     typeof payload.provider === "string" &&
     typeof payload.ratio === "string" &&
     typeof payload.duration === "string" &&
     typeof payload.prompt === "string"
   );
+}
+
+function storedModeForRequest(body: Pick<GenerateRequest, "mode">): StoredGenerateMode {
+  return body.mode === "avatar" ? "video" : body.mode;
+}
+
+function isAvatarRequest(body: GenerateRequest) {
+  return (body.mode === "avatar" || body.videoWorkflow === "avatar-video") && (body.provider === "kling-avatar-standard" || body.provider === "kling-avatar-pro");
 }
 
 function hasReferenceImages(body: GenerateRequest) {
@@ -95,7 +104,7 @@ function isValidAudioInput(value: unknown) {
   return typeof value === "string" && (/^https?:\/\//i.test(value.trim()) || /^data:audio\//i.test(value.trim()));
 }
 
-function getModelId(mode: GenerateMode, provider: string, editImage = false): string | null {
+function getModelId(mode: StoredGenerateMode, provider: string, editImage = false): string | null {
   const keyByProvider: Record<string, string | undefined> = {
     "chatgpt-image": editImage
       ? process.env.FAL_MODEL_IMAGE_CHATGPT_EDIT || "openai/gpt-image-2/edit"
@@ -164,6 +173,35 @@ const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p"]);
 const VEO_VIDEO_RESOLUTIONS = new Set(["720p", "1080p", "4k"]);
 const VEO_VIDEO_DURATIONS = new Set(["4s", "6s", "8s"]);
+const AVATAR_MAX_SECONDS = 15;
+
+function estimateAvatarScriptSeconds(text: string) {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (!cleaned) return 0;
+  const cjkCount = (cleaned.match(/[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af]/g) || []).length;
+  const latinWords = (cleaned.match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g) || []).length;
+  const nonSpaceCount = cleaned.replace(/\s/g, "").length;
+  const cjkSeconds = cjkCount / 4.2;
+  const wordSeconds = latinWords / 2.55;
+  const fallbackSeconds = nonSpaceCount / 12;
+  return Math.max(3, Math.ceil(Math.max(cjkSeconds, wordSeconds, fallbackSeconds)));
+}
+
+function avatarDurationFromPrompt(prompt: string) {
+  return `${Math.min(AVATAR_MAX_SECONDS, Math.max(3, estimateAvatarScriptSeconds(prompt)))}s`;
+}
+
+function buildTtsInput(body: GenerateRequest, prompt: string) {
+  const languageCode = cleanLanguageCode(body.languageCode);
+  return {
+    text: prompt,
+    voice: typeof body.voice === "string" && body.voice.trim() ? body.voice.trim().slice(0, 80) : "Rachel",
+    stability: clampNumber(body.stability, 0, 1, 0.5),
+    timestamps: false,
+    ...(languageCode ? { language_code: languageCode } : {}),
+    apply_text_normalization: body.textNormalization && TTS_TEXT_NORMALIZATION_OPTIONS.has(body.textNormalization) ? body.textNormalization : "auto"
+  };
+}
 
 function clampInt(value: unknown, min: number, max: number, fallback: number) {
   const parsed = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
@@ -203,14 +241,9 @@ function getFalImageSize(ratio: string, imageSize?: string) {
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
   if (body.mode === "audio" && body.provider === "elevenlabs-tts") {
-    const languageCode = cleanLanguageCode(body.languageCode);
     return {
-      text: prompt,
-      voice: typeof body.voice === "string" && body.voice.trim() ? body.voice.trim().slice(0, 80) : "Rachel",
-      stability: clampNumber(body.stability, 0, 1, 0.5),
-      timestamps: Boolean(body.timestamps),
-      ...(languageCode ? { language_code: languageCode } : {}),
-      apply_text_normalization: body.textNormalization && TTS_TEXT_NORMALIZATION_OPTIONS.has(body.textNormalization) ? body.textNormalization : "auto"
+      ...buildTtsInput(body, prompt),
+      timestamps: Boolean(body.timestamps)
     };
   }
 
@@ -226,7 +259,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
-  if (body.mode === "video" && (body.provider === "kling-avatar-standard" || body.provider === "kling-avatar-pro")) {
+  if (isAvatarRequest(body)) {
     return {
       image_url: firstInputImage(body),
       audio_url: typeof body.audioUrl === "string" ? body.audioUrl.trim() : "",
@@ -417,7 +450,7 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
   return {
     mode: body.mode,
     workflow:
-      body.mode === "video" && (body.provider === "kling-avatar-standard" || body.provider === "kling-avatar-pro")
+      isAvatarRequest(body)
         ? "avatar-video"
         : body.mode === "image" && imageUrls.length
         ? "image-to-image"
@@ -454,6 +487,81 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     language_code: cleanLanguageCode(body.languageCode) || null,
     text_normalization: body.textNormalization || null
   };
+}
+
+async function submitFalQueue(falKey: string, modelId: string, input: unknown) {
+  const response = await fetchFal(`https://queue.fal.run/${modelId}`, {
+    method: "POST",
+    attempts: 3,
+    timeoutMs: 22000,
+    headers: {
+      Authorization: `Key ${falKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`fal.ai request failed: ${response.status} ${errorText}`);
+  }
+
+  return (await response.json()) as {
+    request_id: string;
+    status: string;
+    status_url: string;
+    response_url?: string;
+  };
+}
+
+async function waitForFalResponse(falKey: string, submitPayload: { status_url: string; response_url?: string }, timeoutMs: number) {
+  const startedAt = Date.now();
+  let responseUrl = submitPayload.response_url || null;
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (responseUrl) {
+      const response = await fetchFal(responseUrl, {
+        attempts: 2,
+        timeoutMs: 16000,
+        headers: { Authorization: `Key ${falKey}` }
+      });
+      if (response.ok) return response.json();
+    }
+
+    const statusResponse = await fetchFal(submitPayload.status_url, {
+      attempts: 2,
+      timeoutMs: 12000,
+      headers: { Authorization: `Key ${falKey}` }
+    });
+
+    if (statusResponse.ok) {
+      const statusPayload = (await statusResponse.json()) as Record<string, unknown>;
+      const status = typeof statusPayload.status === "string" ? statusPayload.status.toUpperCase() : "";
+      if (typeof statusPayload.response_url === "string") {
+        responseUrl = statusPayload.response_url;
+      }
+      if (status === "COMPLETED" && responseUrl) {
+        continue;
+      }
+      if (status === "FAILED" || status === "ERROR") {
+        throw new Error(typeof statusPayload.error === "string" ? statusPayload.error : "fal.ai TTS generation failed.");
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+
+  throw new Error("ElevenLabs voice generation timed out before Avatar submission.");
+}
+
+function pickAudioUrl(payload: unknown) {
+  if (!payload || typeof payload !== "object") return null;
+  const data = payload as Record<string, unknown>;
+  const audio = data.audio;
+  if (audio && typeof audio === "object" && typeof (audio as Record<string, unknown>).url === "string") {
+    return (audio as Record<string, string>).url;
+  }
+  return null;
 }
 
 function generationTaskId(idempotencyKey: unknown) {
@@ -534,15 +642,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
     }
 
-    const isAvatarProvider = body.mode === "video" && (body.provider === "kling-avatar-standard" || body.provider === "kling-avatar-pro");
+    const isAvatarProvider = isAvatarRequest(body);
+    const storageMode = storedModeForRequest(body);
     const prompt = body.prompt.trim() || (isAvatarProvider ? "." : "");
     if (!isAvatarProvider && prompt.length < 8) {
       return NextResponse.json({ error: "Prompt must be at least 8 characters." }, { status: 400 });
     }
+    if (isAvatarProvider && prompt.length < 2) {
+      return NextResponse.json({ error: "AI Avatar needs a short script for ElevenLabs voice generation." }, { status: 400 });
+    }
+    const avatarScriptSeconds = isAvatarProvider ? estimateAvatarScriptSeconds(prompt) : 0;
+    if (isAvatarProvider && avatarScriptSeconds > AVATAR_MAX_SECONDS) {
+      return NextResponse.json({ error: `AI Avatar script is about ${avatarScriptSeconds}s. Please keep it within ${AVATAR_MAX_SECONDS}s.` }, { status: 400 });
+    }
+    if (isAvatarProvider) {
+      body.duration = avatarDurationFromPrompt(prompt);
+      body.videoWorkflow = "avatar-video";
+      body.ratio = "source";
+    }
 
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
     const estimatedCredits = await estimateGenerationCreditsWithLivePricing({
-      mode: body.mode,
+      mode: storageMode,
       provider: body.provider,
       imageSize: body.imageSize,
       duration: body.duration,
@@ -567,12 +688,12 @@ export async function POST(request: Request) {
       if (!imageUrls.length) {
         return NextResponse.json({ error: "AI Avatar requires one avatar reference image." }, { status: 400 });
       }
-      if (!isValidAudioInput(body.audioUrl)) {
-        return NextResponse.json({ error: "AI Avatar requires a valid voiceover audio URL." }, { status: 400 });
+      if (body.audioUrl && !isValidAudioInput(body.audioUrl)) {
+        return NextResponse.json({ error: "AI Avatar audio input is invalid." }, { status: 400 });
       }
     }
     const falKey = process.env.FAL_KEY;
-    const modelId = getModelId(body.mode, body.provider, hasInputImages(body));
+    const modelId = getModelId(storageMode, body.provider, hasInputImages(body));
     const taskId = generationTaskId(body.idempotencyKey);
 
     const admin = createSupabaseAdminClient();
@@ -597,7 +718,7 @@ export async function POST(request: Request) {
       const { error: insertError } = await admin.from("generation_tasks").insert({
         id: taskId,
         user_id: user.id,
-        mode: body.mode,
+        mode: storageMode,
         provider: body.provider,
         prompt,
         status: "queued",
@@ -650,27 +771,77 @@ export async function POST(request: Request) {
         taskId,
         status: "queued",
         transport: "mock" as const,
-        mode: body.mode,
+        mode: storageMode,
         provider: body.provider,
         estimatedCredits,
         balance: spendResult.balance
       });
     }
+    if (!falKey || !modelId) {
+      throw new Error("fal.ai model configuration is missing.");
+    }
 
-    let submitResponse: Response;
+    let ttsStep:
+      | {
+          provider: string;
+          model_id: string;
+          request_id: string;
+          status_url: string;
+          response_url: string | null;
+          audio_url: string;
+          voice: string;
+          stability: number;
+          language_code: string | null;
+          text_normalization: string;
+          estimated_seconds: number;
+        }
+      | null = null;
+    let submitPayload: {
+      request_id: string;
+      status: string;
+      status_url: string;
+      response_url?: string;
+    };
     try {
-      submitResponse = await fetchFal(`https://queue.fal.run/${modelId}`, {
-        method: "POST",
-        attempts: 3,
-        timeoutMs: 22000,
-        headers: {
-          Authorization: `Key ${falKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(buildFalInput(body, prompt))
-      });
+      if (isAvatarProvider && !body.audioUrl) {
+        const ttsModelId = getModelId("audio", "elevenlabs-tts") || "fal-ai/elevenlabs/tts/eleven-v3";
+        const ttsInput = buildTtsInput(body, prompt);
+        const ttsSubmitPayload = await submitFalQueue(falKey, ttsModelId, ttsInput);
+        const ttsResult = await waitForFalResponse(falKey, ttsSubmitPayload, 90000);
+        const audioUrl = pickAudioUrl(ttsResult);
+        if (!audioUrl) {
+          throw new Error("ElevenLabs voice generation did not return an audio URL.");
+        }
+        body.audioUrl = audioUrl;
+        ttsStep = {
+          provider: "elevenlabs-tts",
+          model_id: ttsModelId,
+          request_id: ttsSubmitPayload.request_id,
+          status_url: ttsSubmitPayload.status_url,
+          response_url: ttsSubmitPayload.response_url || null,
+          audio_url: audioUrl,
+          voice: typeof ttsInput.voice === "string" ? ttsInput.voice : "Rachel",
+          stability: typeof ttsInput.stability === "number" ? ttsInput.stability : 0.5,
+          language_code: "language_code" in ttsInput && typeof ttsInput.language_code === "string" ? ttsInput.language_code : null,
+          text_normalization: typeof ttsInput.apply_text_normalization === "string" ? ttsInput.apply_text_normalization : "auto",
+          estimated_seconds: avatarScriptSeconds
+        };
+        await admin
+          .from("generation_tasks")
+          .update({
+            request_settings: {
+              ...buildRequestSettings(body, modelId),
+              tts_step: ttsStep
+            },
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", taskId)
+          .eq("user_id", user.id);
+      }
+      submitPayload = await submitFalQueue(falKey, modelId, buildFalInput(body, prompt));
     } catch (networkError) {
       const balance = await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
+      const failedSurface = isAvatarProvider ? "Avatar generation" : "provider generation";
       await admin
         .from("generation_tasks")
         .update({
@@ -678,8 +849,8 @@ export async function POST(request: Request) {
           failure_code: "provider_submit_failed",
           failure_reason:
             networkError instanceof Error
-              ? `fal.ai network error before provider accepted the task. Credits were refunded automatically. ${networkError.message}`
-              : "fal.ai network error before provider accepted the task. Credits were refunded automatically.",
+              ? `fal.ai error before ${failedSurface} started. Credits were refunded automatically. ${networkError.message}`
+              : `fal.ai error before ${failedSurface} started. Credits were refunded automatically.`,
           updated_at: new Date().toISOString()
         })
         .eq("id", taskId)
@@ -696,32 +867,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!submitResponse.ok) {
-      const errorText = await submitResponse.text();
-      const balance = await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
-      await admin
-        .from("generation_tasks")
-        .update({
-          status: "failed",
-          failure_code: "provider_submit_failed",
-          failure_reason: `fal.ai rejected the task before generation started. Credits were refunded automatically. ${submitResponse.status} ${errorText}`,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", taskId)
-        .eq("user_id", user.id);
-      return NextResponse.json(
-        { error: `fal.ai request failed: ${submitResponse.status} ${errorText}`, balance },
-        { status: 502 }
-      );
-    }
-
-    const submitPayload = (await submitResponse.json()) as {
-      request_id: string;
-      status: string;
-      status_url: string;
-      response_url?: string;
-    };
-
     try {
       const normalizedStatus = submitPayload.status?.toUpperCase() === "IN_PROGRESS" ? "running" : "queued";
       const { error: updateError } = await admin
@@ -731,6 +876,12 @@ export async function POST(request: Request) {
           status: normalizedStatus,
           status_url: submitPayload.status_url,
           response_url: submitPayload.response_url || null,
+          request_settings: ttsStep
+            ? {
+                ...buildRequestSettings(body, modelId),
+                tts_step: ttsStep
+              }
+            : buildRequestSettings(body, modelId),
           updated_at: new Date().toISOString()
         })
         .eq("id", taskId)
@@ -770,7 +921,7 @@ export async function POST(request: Request) {
       taskId,
       status: submitPayload.status?.toLowerCase() || "queued",
       transport: "real" as const,
-      mode: body.mode,
+      mode: storageMode,
       provider: body.provider,
       estimatedCredits,
       balance: spendResult.balance,

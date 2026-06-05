@@ -33,10 +33,12 @@ type TaskItem = {
   failureReason?: string | null;
 };
 
+type StudioMode = "image" | "video" | "audio" | "avatar";
+
 type StudioLoginDraft = {
   createdAt: string;
   autoSubmit: boolean;
-  mode: "image" | "video" | "audio";
+  mode: StudioMode;
   provider: string;
   imageWorkflow: ImageWorkflow;
   videoWorkflow?: VideoWorkflow;
@@ -157,9 +159,9 @@ const TOOLKIT_APPS: Array<{
 }> = [
   {
     title: "AI Avatar",
-    body: "Create talking avatar videos from one character image and an audio URL with Kling Avatar v2.",
+    body: "Create talking avatar videos from one character image and a short ElevenLabs script.",
     icon: "video",
-    href: "/studio?mode=video&workflow=avatar-video&provider=kling-avatar-standard",
+    href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard",
     accent: "from-[#dff7ff] via-[#eef2ff] to-[#f7e8ff]",
     iconClass: "text-[#2563eb]"
   },
@@ -367,7 +369,35 @@ const VEO_VIDEO_DURATION_OPTIONS = ["4s", "6s", "8s"];
 const DEFAULT_VIDEO_DURATION = "5s";
 const DEFAULT_VEO_VIDEO_DURATION = "8s";
 const NANO_ASPECT_RATIO_OPTIONS = ["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"];
-const ELEVENLABS_VOICES = ["Rachel", "Aria", "Roger", "Sarah", "Laura", "Charlie", "George", "Callum", "River", "Liam", "Charlotte", "Alice", "Matilda", "Will", "Jessica", "Eric", "Chris", "Brian", "Daniel", "Lily", "Bill"];
+const ELEVENLABS_VOICE_META = [
+  { name: "Rachel", gender: "female" },
+  { name: "Aria", gender: "female" },
+  { name: "Roger", gender: "male" },
+  { name: "Sarah", gender: "female" },
+  { name: "Laura", gender: "female" },
+  { name: "Charlie", gender: "male" },
+  { name: "George", gender: "male" },
+  { name: "Callum", gender: "male" },
+  { name: "River", gender: "female" },
+  { name: "Liam", gender: "male" },
+  { name: "Charlotte", gender: "female" },
+  { name: "Alice", gender: "female" },
+  { name: "Matilda", gender: "female" },
+  { name: "Will", gender: "male" },
+  { name: "Jessica", gender: "female" },
+  { name: "Eric", gender: "male" },
+  { name: "Chris", gender: "male" },
+  { name: "Brian", gender: "male" },
+  { name: "Daniel", gender: "male" },
+  { name: "Lily", gender: "female" },
+  { name: "Bill", gender: "male" }
+] as const;
+const ELEVENLABS_VOICES: string[] = ELEVENLABS_VOICE_META.map((voice) => voice.name);
+const ELEVENLABS_VOICE_GENDER_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "female", label: "Female" },
+  { value: "male", label: "Male" }
+] as const;
 const ELEVENLABS_LANGUAGE_OPTIONS = [
   { value: "", label: "Auto language" },
   { value: "en", label: "English" },
@@ -836,7 +866,7 @@ function ratioFromImageSize(value: string) {
 
 function defaultPromptForProvider(provider: string) {
   if (provider === "kling-avatar-standard" || provider === "kling-avatar-pro") {
-    return "Natural talking avatar performance with steady eye contact, expressive but realistic facial motion, clean lip sync, and polished presenter framing.";
+    return "";
   }
   return "";
 }
@@ -859,6 +889,23 @@ function defaultImageSizeForProvider(provider: string) {
 
 function isAvatarProvider(provider: string) {
   return provider === "kling-avatar-standard" || provider === "kling-avatar-pro";
+}
+
+function estimateAvatarScriptSeconds(text: string) {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (!cleaned) return 0;
+  const cjkCount = (cleaned.match(/[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af]/g) || []).length;
+  const latinWords = (cleaned.match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g) || []).length;
+  const nonSpaceCount = cleaned.replace(/\s/g, "").length;
+  return Math.max(3, Math.ceil(Math.max(cjkCount / 4.2, latinWords / 2.55, nonSpaceCount / 12)));
+}
+
+function avatarDurationFromPrompt(text: string) {
+  return `${Math.min(15, Math.max(3, estimateAvatarScriptSeconds(text)))}s`;
+}
+
+function modeForPricing(mode: StudioMode): "image" | "video" | "audio" {
+  return mode === "avatar" ? "video" : mode;
 }
 
 function isProbablyUrl(value: string) {
@@ -995,15 +1042,17 @@ function shortInputValue(value: string) {
   return value;
 }
 
-function isProviderAllowedForMode(provider: string | null, mode: "image" | "video" | "audio") {
+function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (!provider) return false;
   if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image"].includes(provider);
   if (mode === "audio") return ["elevenlabs-tts"].includes(provider);
+  if (mode === "avatar") return ["kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return ["seedance-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
 }
 
-function workflowForMode(mode: "image" | "video" | "audio", workflow: string | null): StudioWorkflow {
+function workflowForMode(mode: StudioMode, workflow: string | null): StudioWorkflow {
   if (mode === "audio") return "text-to-audio";
+  if (mode === "avatar") return "avatar-video";
   if (mode === "image") {
     if (workflow === "image-to-image" || workflow === "enhance-cleanup") return workflow;
     return "text-to-image";
@@ -1036,7 +1085,7 @@ function frontendPollAttempts(mode: "image" | "video" | "audio", provider: strin
 function StudioContent() {
   const router = useRouter();
   const sp = useSearchParams();
-  const mode = sp.get("mode") === "image" ? "image" : sp.get("mode") === "audio" ? "audio" : "video";
+  const mode: StudioMode = sp.get("mode") === "image" ? "image" : sp.get("mode") === "audio" ? "audio" : sp.get("mode") === "avatar" ? "avatar" : "video";
   const view = sp.get("view");
   const isProjectsView = view === "projects";
   const isAppsHome = view === "home" || (!view && !sp.get("mode") && !sp.get("workflow"));
@@ -1059,10 +1108,10 @@ function StudioContent() {
   const [provider, setProvider] = useState(initialProvider);
   const [imageWorkflow, setImageWorkflow] = useState<ImageWorkflow>(initialImageWorkflow);
   const [videoWorkflow, setVideoWorkflow] = useState<VideoWorkflow>(initialVideoWorkflow);
-  const [ratio, setRatio] = useState(mode === "image" ? "1:1" : "16:9");
+  const [ratio, setRatio] = useState(mode === "image" ? "1:1" : mode === "avatar" ? "source" : "16:9");
   const [imageSize, setImageSize] = useState("default_4_3");
   const [referenceImagesText, setReferenceImagesText] = useState(() =>
-    (mode === "image" || mode === "video") &&
+    (mode === "image" || mode === "video" || mode === "avatar") &&
     initialReferenceUrl
       ? initialReferenceUrl
       : ""
@@ -1074,6 +1123,7 @@ function StudioContent() {
   const [videoResolution, setVideoResolution] = useState("720p");
   const [generateAudio, setGenerateAudio] = useState(false);
   const [ttsVoice, setTtsVoice] = useState("Rachel");
+  const [avatarVoiceGender, setAvatarVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
   const [ttsStability, setTtsStability] = useState(0.5);
   const [ttsTimestamps, setTtsTimestamps] = useState(false);
   const [ttsLanguageCode, setTtsLanguageCode] = useState("");
@@ -1091,7 +1141,7 @@ function StudioContent() {
   const [systemPrompt, setSystemPrompt] = useState("");
   const [enableWebSearch, setEnableWebSearch] = useState(false);
   const [thinkingLevel, setThinkingLevel] = useState("");
-  const [duration, setDuration] = useState(mode === "video" ? DEFAULT_VIDEO_DURATION : "single");
+  const [duration, setDuration] = useState(mode === "video" || mode === "avatar" ? DEFAULT_VIDEO_DURATION : "single");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [statusTone, setStatusTone] = useState<"ok" | "error" | "idle">("idle");
@@ -1175,7 +1225,7 @@ function StudioContent() {
   }, []);
 
   useEffect(() => {
-    const workflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : videoWorkflow;
+    const workflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : mode === "avatar" ? "avatar-video" : videoWorkflow;
     const key = `${mode}:${provider}:${workflow}`;
     if (trackedStudioViewRef.current === key) return;
     trackedStudioViewRef.current = key;
@@ -1191,9 +1241,11 @@ function StudioContent() {
         : "text-to-image"
     );
     setVideoWorkflow(
-      mode === "video" && (workflowParam === "avatar-video" || workflowParam === "image-to-video")
+      mode === "video" && (workflowParam === "image-to-video")
         ? workflowParam
-        : "text-to-video"
+        : mode === "avatar"
+          ? "avatar-video"
+          : "text-to-video"
     );
     const nextProvider = providerForWorkflow(
       workflowParam,
@@ -1201,9 +1253,9 @@ function StudioContent() {
     );
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
     const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
-    setRatio(mode === "image" ? (nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize)) : "16:9");
+    setRatio(mode === "image" ? (nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize)) : mode === "avatar" ? "source" : "16:9");
     setImageSize(nextImageSize);
-    setDuration(mode === "video" ? DEFAULT_VIDEO_DURATION : "single");
+    setDuration(mode === "video" || mode === "avatar" ? DEFAULT_VIDEO_DURATION : "single");
     setStatusText("");
     setStatusTone("idle");
   }, [mode, sp]);
@@ -1424,8 +1476,12 @@ function StudioContent() {
   }, [tasks, userId]);
 
   const options = useMemo(
-    () => WORKFLOW_META[mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : videoWorkflow].providers.map((value) => ({ value, label: PROVIDER_META[value]?.label || value })),
+    () => WORKFLOW_META[mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : mode === "avatar" ? "avatar-video" : videoWorkflow].providers.map((value) => ({ value, label: PROVIDER_META[value]?.label || value })),
     [imageWorkflow, mode, videoWorkflow]
+  );
+  const avatarVoiceOptions = useMemo(
+    () => ELEVENLABS_VOICE_META.filter((voice) => avatarVoiceGender === "all" || voice.gender === avatarVoiceGender).map((voice) => voice.name) as string[],
+    [avatarVoiceGender]
   );
 
   const referenceImageUrls = [
@@ -1435,20 +1491,26 @@ function StudioContent() {
       .filter(Boolean),
     ...referenceImageFiles
   ].slice(0, 14);
-  const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : videoWorkflow;
+  const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : mode === "avatar" ? "avatar-video" : videoWorkflow;
   const activeWorkflowMeta = WORKFLOW_META[activeWorkflow];
-  const isAvatarWorkflow = activeWorkflow === "avatar-video";
+  const isAvatarWorkflow = mode === "avatar" || activeWorkflow === "avatar-video";
   const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
-  const avatarNeedsAudio = isAvatarWorkflow && !isProbablyUrl(avatarAudioUrl);
-  const hasRequiredAvatarAudio = !isAvatarWorkflow || isProbablyUrl(avatarAudioUrl);
+  const avatarScriptSeconds = isAvatarWorkflow ? estimateAvatarScriptSeconds(prompt) : 0;
+  const avatarDuration = isAvatarWorkflow ? avatarDurationFromPrompt(prompt) : duration;
+  const avatarScriptTooLong = isAvatarWorkflow && avatarScriptSeconds > 15;
+  const avatarScriptMeta = isAvatarWorkflow
+    ? prompt.trim()
+      ? `${prompt.trim().length.toLocaleString()} chars / about ${avatarScriptSeconds}s`
+      : "0 chars / max 15s"
+    : "";
   const audioCharacterCount = mode === "audio" ? prompt.trim().length : 0;
-  const avatarSelectedSeconds = Math.max(1, Number.parseInt(duration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
+  const avatarSelectedSeconds = Math.max(1, Number.parseInt(avatarDuration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
 
   const estCredits = estimateGenerationCredits({
-    mode,
+    mode: modeForPricing(mode),
     provider,
     imageSize,
-    duration,
+    duration: isAvatarWorkflow ? avatarDuration : duration,
     hasReferences: referenceImageUrls.length > 0,
     resolution: mode === "image" ? editResolution : videoResolution,
     generateAudio: mode === "video" ? generateAudio : false,
@@ -1460,11 +1522,11 @@ function StudioContent() {
   });
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
-  const estimatedSeconds = estimateTaskSeconds(mode, provider, duration);
-  const isPromptValid = prompt.trim().length >= 8;
+  const estimatedSeconds = estimateTaskSeconds(modeForPricing(mode), provider, isAvatarWorkflow ? avatarDuration : duration);
+  const isPromptValid = isAvatarWorkflow ? prompt.trim().length >= 2 && !avatarScriptTooLong : prompt.trim().length >= 8;
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
-  const canSubmit = (isAvatarWorkflow || isPromptValid) && hasRequiredReference && hasRequiredAvatarAudio;
+  const canSubmit = isPromptValid && hasRequiredReference;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const hasCompletedCreation = completedTasks.length > 0;
@@ -1475,7 +1537,7 @@ function StudioContent() {
     : tasks[0] || null;
   const activeHomeSlide = HOME_SLIDES[homeSlideIndex % HOME_SLIDES.length];
   const latestActiveTask = activeTasks[0] || null;
-  const latestActiveProgress = latestActiveTask ? taskProgress(latestActiveTask, duration) : 0;
+  const latestActiveProgress = latestActiveTask ? taskProgress(latestActiveTask, isAvatarWorkflow ? avatarDuration : duration) : 0;
   const selectedImageSize = getImageSizePreset(imageSize);
   const videoPreviewRatio = ratio.includes(":") ? ratio.replace(":", " / ") : "16 / 9";
   const previewAspectRatio = mode === "image" ? `${selectedImageSize.width} / ${selectedImageSize.height}` : mode === "audio" ? "16 / 7" : videoPreviewRatio;
@@ -1491,9 +1553,9 @@ function StudioContent() {
         : provider === "topaz-image"
           ? "Topaz Upscale enhances an uploaded image with 2x upscale, clarity, and face enhancement."
         : provider === "kling-avatar-standard"
-          ? "Kling AI Avatar v2 Standard creates talking avatar videos from one avatar image and a voiceover audio URL."
+          ? "Kling AI Avatar v2 Standard creates talking avatar videos from one avatar image and an ElevenLabs script."
         : provider === "kling-avatar-pro"
-          ? "Kling AI Avatar v2 Pro is the premium avatar endpoint for realistic people, animals, cartoons, and stylized characters."
+          ? "Kling AI Avatar v2 Pro is the premium talking avatar endpoint. ElevenLabs voice is generated first and recorded as a sub-step."
         : provider === "grok-video"
           ? "Grok Imagine Video supports text-to-video and image-to-video with 1-15 second clips, aspect ratio controls, and 480p/720p output resolution."
           : provider === "seedance-video"
@@ -1549,8 +1611,14 @@ function StudioContent() {
           : mode === "audio"
             ? `${prompt.trim().length || 0} chars / ${ttsVoice} / stability ${ttsStability.toFixed(2)}`
           : isAvatarWorkflow
-            ? `${duration} output / audio required`
+            ? `${avatarDuration} Avatar / ${ttsVoice} voice`
             : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / audio on" : " / audio off" : ""}`;
+
+  useEffect(() => {
+    if (mode !== "avatar") return;
+    if (avatarVoiceOptions.includes(ttsVoice)) return;
+    setTtsVoice(avatarVoiceOptions[0] || "Rachel");
+  }, [avatarVoiceOptions, mode, ttsVoice]);
 
   useEffect(() => {
     if (!isAvatarWorkflow || !avatarAudioUrl.startsWith("data:audio/") || avatarAudioTrimSeconds === null) return;
@@ -1608,7 +1676,9 @@ function StudioContent() {
         ? "image"
         : nextWorkflow === "text-to-audio"
           ? "audio"
-          : "video";
+          : nextWorkflow === "avatar-video"
+            ? "avatar"
+            : "video";
     const nextProvider = providerForWorkflow(nextWorkflow, provider);
       if (nextMode === "image") {
       setImageWorkflow(nextWorkflow as ImageWorkflow);
@@ -1617,7 +1687,7 @@ function StudioContent() {
         setReferenceImageFiles([]);
       }
       setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
-    } else if (nextMode === "video") {
+    } else if (nextMode === "video" || nextMode === "avatar") {
       setVideoWorkflow(nextWorkflow as VideoWorkflow);
       if (nextWorkflow === "text-to-video") {
         setReferenceImagesText("");
@@ -1639,7 +1709,7 @@ function StudioContent() {
     if (nextMode === "image") {
       setImageSize(nextImageSize);
       setRatio(nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
-    } else if (nextMode === "video") {
+    } else if (nextMode === "video" || nextMode === "avatar") {
       setRatio(nextWorkflow === "avatar-video" ? "source" : "16:9");
       setDuration(nextProvider === "veo-video" ? DEFAULT_VEO_VIDEO_DURATION : DEFAULT_VIDEO_DURATION);
     } else {
@@ -1654,7 +1724,7 @@ function StudioContent() {
     if (nextMode === "image") {
       params.set("imageSize", nextImageSize);
       params.set("ratio", nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
-    } else if (nextMode === "video") {
+    } else if (nextMode === "video" || nextMode === "avatar") {
       params.delete("imageSize");
       params.set("ratio", nextWorkflow === "avatar-video" ? "source" : "16:9");
     } else {
@@ -1697,7 +1767,7 @@ function StudioContent() {
       router.replace(`/studio?${params.toString()}`, { scroll: false });
     } else {
       const nextRatio =
-        isAvatarProvider(nextProvider)
+        mode === "avatar" || isAvatarProvider(nextProvider)
           ? "source"
         : nextProvider === "kling-video" && activeWorkflow === "image-to-video"
           ? "source"
@@ -1710,10 +1780,10 @@ function StudioContent() {
               : ratio === "source"
                 ? "auto"
                 : ratio;
-      if (nextProvider === "seedance-video" && Number.parseInt(duration, 10) < 4) {
+      if (mode !== "avatar" && nextProvider === "seedance-video" && Number.parseInt(duration, 10) < 4) {
         setDuration("4s");
       }
-      if (nextProvider === "veo-video" && !VEO_VIDEO_DURATION_OPTIONS.includes(duration)) {
+      if (mode !== "avatar" && nextProvider === "veo-video" && !VEO_VIDEO_DURATION_OPTIONS.includes(duration)) {
         setDuration(DEFAULT_VEO_VIDEO_DURATION);
       }
       const nextResolution = nextProvider === "veo-video" && !VEO_VIDEO_RESOLUTION_OPTIONS.includes(videoResolution) ? "720p" : videoResolution;
@@ -1722,8 +1792,8 @@ function StudioContent() {
       }
       setRatio(nextRatio);
       const params = new URLSearchParams(sp.toString());
-      params.set("mode", "video");
-      params.set("workflow", activeWorkflow);
+      params.set("mode", mode === "avatar" ? "avatar" : "video");
+      params.set("workflow", mode === "avatar" ? "avatar-video" : activeWorkflow);
       params.set("provider", nextProvider);
       params.set("ratio", nextRatio);
       if (nextProvider === "grok-video" || nextProvider === "seedance-video" || nextProvider === "veo-video") {
@@ -1768,7 +1838,10 @@ function StudioContent() {
         setProvider(WORKFLOW_META["image-to-image"].recommendedProvider);
       }
     }
-    if (mode === "video" && videoWorkflow !== "image-to-video" && videoWorkflow !== "avatar-video") {
+    if (mode === "avatar") {
+      setVideoWorkflow("avatar-video");
+    }
+    if (mode === "video" && videoWorkflow !== "image-to-video") {
       setVideoWorkflow("image-to-video");
       if (!WORKFLOW_META["image-to-video"].providers.includes(provider)) {
         setProvider(WORKFLOW_META["image-to-video"].recommendedProvider);
@@ -1928,7 +2001,7 @@ function StudioContent() {
     const taskType: TaskItem["type"] = mode === "image" ? "Image" : mode === "audio" ? "Audio" : "Video";
     let idempotencyStorageKey: string | null = null;
     try {
-      if (isAvatarWorkflow) {
+      if (isAvatarWorkflow && avatarAudioUrl.trim()) {
         if (avatarAudioUrl.startsWith("data:audio/")) {
           if (avatarAudioTrimSeconds !== avatarSelectedSeconds) {
             throw new Error(`Please choose the audio file again so DreamFace can trim it to the selected ${avatarSelectedSeconds}s Avatar length.`);
@@ -1969,20 +2042,21 @@ function StudioContent() {
       }
 
       const parsedSeed = seed.trim() ? Number.parseInt(seed.trim(), 10) : undefined;
+      const requestDuration = isAvatarWorkflow ? avatarDuration : duration;
       const requestPayload = {
         mode,
         imageWorkflow,
-        videoWorkflow,
+        videoWorkflow: isAvatarWorkflow ? "avatar-video" : videoWorkflow,
         provider,
-        ratio,
-        duration,
+        ratio: isAvatarWorkflow ? "source" : ratio,
+        duration: requestDuration,
         prompt,
         imageSize: mode === "image" ? imageSize : undefined,
         imageUrls:
-          (mode === "image" && referenceImageUrls.length > 0) || (mode === "video" && (videoWorkflow === "image-to-video" || videoWorkflow === "avatar-video"))
+          (mode === "image" && referenceImageUrls.length > 0) || (mode === "avatar" || (mode === "video" && videoWorkflow === "image-to-video"))
             ? referenceImageUrls
             : undefined,
-        audioUrl: mode === "video" && videoWorkflow === "avatar-video" ? avatarAudioUrl.trim() : undefined,
+        audioUrl: isAvatarWorkflow && avatarAudioUrl.trim() ? avatarAudioUrl.trim() : undefined,
         resolution:
           mode === "image"
             ? editResolution
@@ -2003,11 +2077,11 @@ function StudioContent() {
         systemPrompt: mode === "image" && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" ? enableWebSearch : undefined,
         thinkingLevel: mode === "image" && thinkingLevel ? thinkingLevel : undefined,
-        voice: mode === "audio" ? ttsVoice : undefined,
-        stability: mode === "audio" ? ttsStability : undefined,
+        voice: mode === "audio" || isAvatarWorkflow ? ttsVoice : undefined,
+        stability: mode === "audio" || isAvatarWorkflow ? ttsStability : undefined,
         timestamps: mode === "audio" ? ttsTimestamps : undefined,
-        languageCode: mode === "audio" && ttsLanguageCode ? ttsLanguageCode : undefined,
-        textNormalization: mode === "audio" ? textNormalization : undefined
+        languageCode: (mode === "audio" || isAvatarWorkflow) && ttsLanguageCode ? ttsLanguageCode : undefined,
+        textNormalization: mode === "audio" || isAvatarWorkflow ? textNormalization : undefined
       };
       const fingerprint = createIdempotencyFingerprint({
         ...requestPayload,
@@ -2156,7 +2230,7 @@ function StudioContent() {
       } else {
         setStatusText("Task queued via fal.ai live API. Waiting for provider...");
         let finalStatus: "COMPLETED" | "FAILED" | "CANCELED" | "ERROR" | null = null;
-        const maxPollAttempts = frontendPollAttempts(mode, provider);
+        const maxPollAttempts = frontendPollAttempts(modeForPricing(mode), provider);
 
         for (let i = 0; i < maxPollAttempts; i += 1) {
           await new Promise((resolve) => setTimeout(resolve, 1800));
@@ -2351,7 +2425,7 @@ function StudioContent() {
               <nav className="mt-9 flex flex-1 flex-col items-center gap-4">
                 {[
                   { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName },
-                  { label: "Avatar", href: "/studio?mode=video&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName },
+                  { label: "Avatar", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName },
                   { label: "Image", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName },
                   { label: "Video", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName },
                   { label: "Audio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName },
@@ -2359,7 +2433,7 @@ function StudioContent() {
                 ].map((item) => {
                   const active =
                     (item.label === "Home" && isAppsHome) ||
-                    (!isAppsHome && !isProjectsView && item.label === "Avatar" && activeWorkflow === "avatar-video") ||
+                    (!isAppsHome && !isProjectsView && item.label === "Avatar" && mode === "avatar") ||
                     (item.label === "Projects" && isProjectsView) ||
                     (!isAppsHome && !isProjectsView && item.label === "Image" && mode === "image") ||
                     (!isAppsHome && !isProjectsView && item.label === "Video" && mode === "video") ||
@@ -2439,10 +2513,11 @@ function StudioContent() {
               </Link>
             </aside>
 
-            <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-4 gap-1 rounded-[1.4rem] border border-black/[0.08] bg-white/90 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl lg:hidden">
+            <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 gap-1 rounded-[1.4rem] border border-black/[0.08] bg-white/90 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl lg:hidden">
               {[
                 { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
                 { label: "Image", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
+                { label: "Avatar", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
                 { label: "Video", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
                 { label: "Audio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
                 { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView }
@@ -2488,7 +2563,7 @@ function StudioContent() {
                         {[
                           { label: "DreamFace Home", href: "https://dreamface.io/", icon: "home" as StudioIconName, active: false },
                           { label: "Studio Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
-                          { label: "AI Avatar", href: "/studio?mode=video&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && activeWorkflow === "avatar-video" },
+                          { label: "AI Avatar", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
                           { label: "Image Studio", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
                           { label: "Video Studio", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
                           { label: "Audio Studio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
@@ -2517,7 +2592,7 @@ function StudioContent() {
                   <div>
                     <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7] sm:block">DreamFace Apps</p>
                     <h1 className="truncate text-lg font-semibold tracking-tight text-[#202633] sm:text-xl md:text-3xl">
-                      {isProjectsView ? "Projects" : isAppsHome ? "Creative AI Toolkit" : mode === "image" ? "AI Image Generator" : mode === "audio" ? "AI Audio Generator" : "AI Video Generator"}
+                      {isProjectsView ? "Projects" : isAppsHome ? "Creative AI Toolkit" : mode === "image" ? "AI Image Generator" : mode === "audio" ? "AI Audio Generator" : mode === "avatar" ? "AI Avatar Generator" : "AI Video Generator"}
                     </h1>
                     <p className="mt-1 hidden text-sm text-[#8b95a7] sm:block">
                       {isProjectsView
@@ -2526,7 +2601,9 @@ function StudioContent() {
                         ? "Image, video, audio, and cleanup tools in one production workspace."
                         : mode === "image"
                           ? "Create image assets from text, references, or both in one focused workspace."
-                          : "Create AI-generated motion from prompts or animate a reference image."}
+                          : mode === "avatar"
+                            ? "Upload one avatar image, write the words, and generate a talking video with ElevenLabs voice."
+                            : "Create AI-generated motion from prompts or animate a reference image."}
                     </p>
                   </div>
                 </div>
@@ -2937,7 +3014,9 @@ function StudioContent() {
                           ? "Type your prompt to create images. Add a reference with + when you want image-to-image..."
                           : mode === "audio"
                             ? "Type the voiceover script you want ElevenLabs to speak..."
-                          : activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video"
+                          : mode === "avatar"
+                            ? "Type the exact words you want this avatar to say. Keep it short, clear, and under about 15 seconds..."
+                          : activeWorkflow === "image-to-video"
                             ? "Describe how the uploaded image should move, the camera feel, and final mood..."
                             : "Type your prompt to create AI video footage..."
                       }
@@ -3016,72 +3095,79 @@ function StudioContent() {
                           ) : null}
                         </div>
 
-                        <div
-                          className="mb-4 rounded-2xl border border-dashed border-[#cbd5e1] bg-[#fbfdff] p-4"
-                          onDragOver={(event) => event.preventDefault()}
-                          onDrop={(event) => {
-                            event.preventDefault();
-                            handleAvatarAudioFile(event.dataTransfer.files?.[0]).catch(() => setStatusText("Audio file could not be read."));
-                          }}
-                        >
+                        <div className="mb-4 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
                           <div className="mb-2 flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-[#202633]">Audio URL<span className="text-[#2563eb]">*</span></span>
-                            <span className="rounded-full bg-[#f0fdf4] px-3 py-1 text-xs font-semibold text-[#16a34a]">Voiceover</span>
+                            <span className="text-sm font-semibold text-[#202633]">ElevenLabs voice</span>
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${avatarScriptTooLong ? "bg-[#fff1f2] text-[#e11d48]" : "bg-[#f0fdf4] text-[#16a34a]"}`}>
+                              {avatarScriptMeta}
+                            </span>
                           </div>
-                          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                            <input
-                              value={shortInputValue(avatarAudioUrl)}
-                              onChange={(event) => {
-                                setAvatarAudioUrl(event.target.value);
-                                setAvatarAudioTrimSeconds(null);
-                              }}
-                              placeholder="https://.../voiceover.mp3"
+                          <div className="mb-3 inline-grid grid-cols-3 rounded-full border border-black/[0.06] bg-white p-1 shadow-sm">
+                            {ELEVENLABS_VOICE_GENDER_OPTIONS.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => setAvatarVoiceGender(option.value)}
+                                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                                  avatarVoiceGender === option.value
+                                    ? "bg-[#202633] text-white shadow-[0_8px_20px_rgba(32,38,51,0.14)]"
+                                    : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
+                                }`}
+                              >
+                                {option.label}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="grid gap-3 lg:grid-cols-3">
+                            <select
+                              value={ttsVoice}
+                              onChange={(e) => setTtsVoice(e.target.value)}
                               className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
-                            />
-                            <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-black/[0.08] bg-white px-5 text-sm font-semibold text-[#202633] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                              Choose...
+                            >
+                              {avatarVoiceOptions.map((voice) => (
+                                <option key={voice} value={voice}>{voice}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={ttsLanguageCode}
+                              onChange={(e) => setTtsLanguageCode(e.target.value)}
+                              className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                            >
+                              {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
+                                <option key={item.value || "auto"} value={item.value}>{item.label}</option>
+                              ))}
+                            </select>
+                            <label className="rounded-xl border border-black/[0.08] bg-white px-4 py-2.5">
+                              <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8791a3]">Stability {ttsStability.toFixed(2)}</span>
                               <input
-                                type="file"
-                                accept="audio/*,.mp3,.ogg,.wav,.m4a,.aac"
-                                className="hidden"
-                                onChange={(event) => handleAvatarAudioFile(event.target.files?.[0]).catch(() => setStatusText("Audio file could not be read."))}
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={ttsStability}
+                                onChange={(e) => setTtsStability(Number(e.target.value))}
+                                className="mt-1 w-full accent-[#202633]"
                               />
                             </label>
                           </div>
-                          <p className="mt-3 text-xs leading-5 text-[#667085]">
-                            Uploaded files are trimmed to the selected {duration} Avatar length. Pasted URLs should already match that length.
+                          <p className={`mt-3 text-xs leading-5 ${avatarScriptTooLong ? "text-[#e11d48]" : "text-[#667085]"}`}>
+                            {avatarScriptTooLong
+                              ? "This script is longer than the 15s Avatar limit. Shorten it before generating."
+                              : `DreamFace will generate the voice first, then send it to Kling Avatar. Avatar billing is based on about ${avatarDuration}.`}
                           </p>
-                          {avatarAudioUrl ? (
-                            <div className="mt-3 rounded-xl border border-black/[0.06] bg-white p-3">
-                              <audio src={avatarAudioUrl} controls className="h-9 w-full" />
-                            </div>
-                          ) : null}
                         </div>
 
-                        {(avatarNeedsImage || avatarNeedsAudio) ? (
+                        {avatarNeedsImage ? (
                           <div className="mb-4 grid gap-3 md:grid-cols-2">
-                            {avatarNeedsImage ? (
-                              <button
-                                type="button"
-                                onClick={startAvatarImageGuide}
-                                className="rounded-2xl border border-[#bfdbfe] bg-[#eff6ff] p-4 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
-                              >
-                                <span className="text-xs font-black uppercase tracking-[0.12em] text-[#2563eb]">Need an avatar image?</span>
-                                <span className="mt-2 block text-sm font-semibold text-[#202633]">Create a presenter portrait first</span>
-                                <span className="mt-1 block text-xs leading-5 text-[#667085]">Generate a clean front-facing character or host image, then use it here as the avatar reference.</span>
-                              </button>
-                            ) : null}
-                            {avatarNeedsAudio ? (
-                              <button
-                                type="button"
-                                onClick={startAvatarAudioGuide}
-                                className="rounded-2xl border border-[#bbf7d0] bg-[#f0fdf4] p-4 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
-                              >
-                                <span className="text-xs font-black uppercase tracking-[0.12em] text-[#16a34a]">Need voiceover audio?</span>
-                                <span className="mt-2 block text-sm font-semibold text-[#202633]">Generate an ElevenLabs voiceover</span>
-                                <span className="mt-1 block text-xs leading-5 text-[#667085]">Create the script audio in Text to Audio, then paste the output MP3 URL back into this Avatar workflow.</span>
-                              </button>
-                            ) : null}
+                            <button
+                              type="button"
+                              onClick={startAvatarImageGuide}
+                              className="rounded-2xl border border-[#bfdbfe] bg-[#eff6ff] p-4 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                            >
+                              <span className="text-xs font-black uppercase tracking-[0.12em] text-[#2563eb]">Need an avatar image?</span>
+                              <span className="mt-2 block text-sm font-semibold text-[#202633]">Create a presenter portrait first</span>
+                              <span className="mt-1 block text-xs leading-5 text-[#667085]">Generate a clean front-facing character or host image, then use it here as the avatar reference.</span>
+                            </button>
                           </div>
                         ) : null}
                         <label className="hidden">
@@ -3179,6 +3265,44 @@ function StudioContent() {
                             <option key={item.value || "auto"} value={item.value}>{item.label}</option>
                           ))}
                         </select>
+                      </>
+                    ) : mode === "avatar" ? (
+                      <>
+                        <div className="col-span-2 grid grid-cols-3 rounded-full border border-black/[0.06] bg-white p-1 shadow-sm sm:col-span-1 sm:w-auto">
+                          {ELEVENLABS_VOICE_GENDER_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setAvatarVoiceGender(option.value)}
+                              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                                avatarVoiceGender === option.value ? "bg-[#202633] text-white" : "text-[#667085] hover:bg-[#f3f8ff]"
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                        <select
+                          value={ttsVoice}
+                          onChange={(e) => setTtsVoice(e.target.value)}
+                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
+                        >
+                          {avatarVoiceOptions.map((voice) => (
+                            <option key={voice} value={voice}>{voice}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={ttsLanguageCode}
+                          onChange={(e) => setTtsLanguageCode(e.target.value)}
+                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
+                        >
+                          {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
+                            <option key={item.value || "auto"} value={item.value}>{item.label}</option>
+                          ))}
+                        </select>
+                        <span className={`rounded-full border px-4 py-2.5 text-center text-sm font-semibold sm:py-2 ${avatarScriptTooLong ? "border-[#fecdd3] bg-[#fff1f2] text-[#e11d48]" : "border-black/[0.06] bg-white text-[#667085]"}`}>
+                          {avatarDuration} auto
+                        </span>
                       </>
                     ) : (
                       <>
@@ -3754,10 +3878,10 @@ function StudioContent() {
                   };
                   const active = provider === option.value;
                   const modelCredits = estimateGenerationCredits({
-                    mode,
+                    mode: modeForPricing(mode),
                     provider: option.value,
                     imageSize,
-                    duration,
+                    duration: isAvatarWorkflow ? avatarDuration : duration,
                     hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video",
                     resolution: mode === "image" ? editResolution : videoResolution,
                     promptText: mode === "audio" ? prompt : undefined
@@ -4116,66 +4240,60 @@ function StudioContent() {
                       </p>
                     </div>
 
-                    <div
-                      className="mb-3 rounded-2xl border border-dashed border-white/14 bg-white/[0.045] p-3"
-                      onDragOver={(event) => event.preventDefault()}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        handleAvatarAudioFile(event.dataTransfer.files?.[0]).catch(() => setStatusText("Audio file could not be read."));
-                      }}
-                    >
+                    <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="text-sm font-semibold text-white/82">Audio URL<span className="text-[#93c5fd]">*</span></span>
-                        <span className="rounded-full bg-[#15803d]/25 px-2.5 py-1 text-[11px] font-semibold text-[#bbf7d0]">Voiceover</span>
+                        <span className="text-sm font-semibold text-white/82">ElevenLabs voice</span>
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${avatarScriptTooLong ? "bg-[#be123c]/25 text-[#fecdd3]" : "bg-[#15803d]/25 text-[#bbf7d0]"}`}>{avatarScriptMeta}</span>
                       </div>
-                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                        <input
-                          value={shortInputValue(avatarAudioUrl)}
-                          onChange={(event) => {
-                            setAvatarAudioUrl(event.target.value);
-                            setAvatarAudioTrimSeconds(null);
-                          }}
-                          placeholder="https://.../voiceover.mp3"
+                      <div className="mb-2 grid grid-cols-3 rounded-full border border-white/10 bg-white/[0.06] p-1">
+                        {ELEVENLABS_VOICE_GENDER_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setAvatarVoiceGender(option.value)}
+                            className={`rounded-full px-2.5 py-1.5 text-xs font-semibold transition ${
+                              avatarVoiceGender === option.value ? "bg-white text-[#111827]" : "text-white/52 hover:bg-white/[0.08] hover:text-white"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <select
+                          value={ttsVoice}
+                          onChange={(event) => setTtsVoice(event.target.value)}
                           className="min-h-11 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold text-white outline-none placeholder:text-white/28 focus:border-[#77a8e8]"
-                        />
-                        <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] px-4 text-sm font-semibold text-white/82 transition hover:bg-white/[0.12]">
-                          Choose...
-                          <input
-                            type="file"
-                            accept="audio/*,.mp3,.ogg,.wav,.m4a,.aac"
-                            className="hidden"
-                            onChange={(event) => handleAvatarAudioFile(event.target.files?.[0]).catch(() => setStatusText("Audio file could not be read."))}
-                          />
-                        </label>
+                        >
+                          {avatarVoiceOptions.map((voice) => (
+                            <option key={voice} value={voice}>{voice}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={ttsLanguageCode}
+                          onChange={(event) => setTtsLanguageCode(event.target.value)}
+                          className="min-h-11 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold text-white outline-none placeholder:text-white/28 focus:border-[#77a8e8]"
+                        >
+                          {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
+                            <option key={item.value || "auto"} value={item.value}>{item.label}</option>
+                          ))}
+                        </select>
                       </div>
                       <p className="mt-2 text-xs leading-5 text-white/38">
-                        Uploaded files are trimmed to the selected {duration} Avatar length. Pasted URLs should already match that length.
+                        DreamFace generates the voice first, then sends it to Kling Avatar as one tracked Avatar task.
                       </p>
-                      {avatarAudioUrl ? <audio src={avatarAudioUrl} controls className="mt-3 h-9 w-full" /> : null}
                     </div>
 
-                    {(avatarNeedsImage || avatarNeedsAudio) ? (
+                    {avatarNeedsImage ? (
                       <div className="mb-3 grid gap-2">
-                        {avatarNeedsImage ? (
-                          <button
-                            type="button"
-                            onClick={startAvatarImageGuide}
-                            className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-3 text-left transition hover:bg-white/[0.10]"
-                          >
-                            <span className="block text-xs font-black uppercase tracking-[0.12em] text-[#93c5fd]">Need an avatar image?</span>
-                            <span className="mt-1 block text-sm font-semibold text-white/82">Create a presenter portrait in Image Studio</span>
-                          </button>
-                        ) : null}
-                        {avatarNeedsAudio ? (
-                          <button
-                            type="button"
-                            onClick={startAvatarAudioGuide}
-                            className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-3 text-left transition hover:bg-white/[0.10]"
-                          >
-                            <span className="block text-xs font-black uppercase tracking-[0.12em] text-[#86efac]">Need voiceover audio?</span>
-                            <span className="mt-1 block text-sm font-semibold text-white/82">Generate an ElevenLabs MP3 in Text to Audio</span>
-                          </button>
-                        ) : null}
+                        <button
+                          type="button"
+                          onClick={startAvatarImageGuide}
+                          className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-3 text-left transition hover:bg-white/[0.10]"
+                        >
+                          <span className="block text-xs font-black uppercase tracking-[0.12em] text-[#93c5fd]">Need an avatar image?</span>
+                          <span className="mt-1 block text-sm font-semibold text-white/82">Create a presenter portrait in Image Studio</span>
+                        </button>
                       </div>
                     ) : null}
                     <label className="hidden">
@@ -4413,10 +4531,10 @@ function StudioContent() {
             <p className="mt-3 text-sm text-white/46">
               {!isAvatarWorkflow && !isPromptValid
                 ? "Use at least 8 characters in your prompt."
+                : isAvatarWorkflow && avatarScriptTooLong
+                  ? "Shorten the Avatar script to stay within 15 seconds."
                 : !hasRequiredReference
                   ? "Add at least one reference image for this workflow."
-                  : !hasRequiredAvatarAudio
-                    ? "Add a valid voiceover audio URL for AI Avatar."
                   : "Prompt looks good. Ready to generate."}
             </p>
             <p className="mt-2 text-xs text-white/35">{providerNote}</p>
