@@ -900,8 +900,13 @@ function estimateAvatarScriptSeconds(text: string) {
   return Math.max(3, Math.ceil(Math.max(cjkCount / 4.2, latinWords / 2.55, nonSpaceCount / 12)));
 }
 
+const AVATAR_MAX_SECONDS = 15;
+const AVATAR_KLING_BUFFER_SECONDS = 2;
+
 function avatarDurationFromPrompt(text: string) {
-  return `${Math.min(15, Math.max(3, estimateAvatarScriptSeconds(text)))}s`;
+  const speechSeconds = estimateAvatarScriptSeconds(text);
+  const outputSeconds = Math.min(AVATAR_MAX_SECONDS, Math.max(3, speechSeconds + AVATAR_KLING_BUFFER_SECONDS));
+  return `${outputSeconds}s`;
 }
 
 function modeForPricing(mode: StudioMode): "image" | "video" | "audio" {
@@ -1496,12 +1501,13 @@ function StudioContent() {
   const isAvatarWorkflow = mode === "avatar" || activeWorkflow === "avatar-video";
   const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
   const avatarScriptSeconds = isAvatarWorkflow ? estimateAvatarScriptSeconds(prompt) : 0;
+  const avatarOutputSeconds = isAvatarWorkflow ? avatarScriptSeconds + AVATAR_KLING_BUFFER_SECONDS : 0;
   const avatarDuration = isAvatarWorkflow ? avatarDurationFromPrompt(prompt) : duration;
-  const avatarScriptTooLong = isAvatarWorkflow && avatarScriptSeconds > 15;
+  const avatarScriptTooLong = isAvatarWorkflow && avatarOutputSeconds > AVATAR_MAX_SECONDS;
   const avatarScriptMeta = isAvatarWorkflow
     ? prompt.trim()
-      ? `${prompt.trim().length.toLocaleString()} chars / about ${avatarScriptSeconds}s`
-      : "0 chars / max 15s"
+      ? `${prompt.trim().length.toLocaleString()} chars / voice ${avatarScriptSeconds}s / video ${Number.parseInt(avatarDuration, 10)}s`
+      : "0 chars / max 15s video"
     : "";
   const audioCharacterCount = mode === "audio" ? prompt.trim().length : 0;
   const avatarSelectedSeconds = Math.max(1, Number.parseInt(avatarDuration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
@@ -2980,7 +2986,7 @@ function StudioContent() {
                     </button>
                     </>
                   ) : mode === "video" ? (
-                    (["avatar-video", "text-to-video", "image-to-video"] as StudioWorkflow[]).map((workflow) => {
+                    (["text-to-video", "image-to-video"] as StudioWorkflow[]).map((workflow) => {
                       const active = activeWorkflow === workflow;
                       return (
                         <button
@@ -3152,8 +3158,8 @@ function StudioContent() {
                           </div>
                           <p className={`mt-3 text-xs leading-5 ${avatarScriptTooLong ? "text-[#e11d48]" : "text-[#667085]"}`}>
                             {avatarScriptTooLong
-                              ? "This script is longer than the 15s Avatar limit. Shorten it before generating."
-                              : `DreamFace will generate the voice first, then send it to Kling Avatar. Avatar billing is based on about ${avatarDuration}.`}
+                              ? "This script is likely longer than the 15s Avatar limit after Kling adds a short buffer. Shorten it before generating."
+                              : `DreamFace will generate the voice first, then send it to Kling Avatar. Billing uses the estimated final video length: about ${avatarDuration}.`}
                           </p>
                         </div>
 
@@ -3267,43 +3273,9 @@ function StudioContent() {
                         </select>
                       </>
                     ) : mode === "avatar" ? (
-                      <>
-                        <div className="col-span-2 grid grid-cols-3 rounded-full border border-black/[0.06] bg-white p-1 shadow-sm sm:col-span-1 sm:w-auto">
-                          {ELEVENLABS_VOICE_GENDER_OPTIONS.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => setAvatarVoiceGender(option.value)}
-                              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                                avatarVoiceGender === option.value ? "bg-[#202633] text-white" : "text-[#667085] hover:bg-[#f3f8ff]"
-                              }`}
-                            >
-                              {option.label}
-                            </button>
-                          ))}
-                        </div>
-                        <select
-                          value={ttsVoice}
-                          onChange={(e) => setTtsVoice(e.target.value)}
-                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
-                        >
-                          {avatarVoiceOptions.map((voice) => (
-                            <option key={voice} value={voice}>{voice}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={ttsLanguageCode}
-                          onChange={(e) => setTtsLanguageCode(e.target.value)}
-                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
-                        >
-                          {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
-                            <option key={item.value || "auto"} value={item.value}>{item.label}</option>
-                          ))}
-                        </select>
-                        <span className={`rounded-full border px-4 py-2.5 text-center text-sm font-semibold sm:py-2 ${avatarScriptTooLong ? "border-[#fecdd3] bg-[#fff1f2] text-[#e11d48]" : "border-black/[0.06] bg-white text-[#667085]"}`}>
-                          {avatarDuration} auto
-                        </span>
-                      </>
+                      <span className={`rounded-full border px-4 py-2.5 text-center text-sm font-semibold sm:py-2 ${avatarScriptTooLong ? "border-[#fecdd3] bg-[#fff1f2] text-[#e11d48]" : "border-black/[0.06] bg-white text-[#667085]"}`}>
+                        {avatarDuration} auto
+                      </span>
                     ) : (
                       <>
                         <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
@@ -3835,7 +3807,7 @@ function StudioContent() {
 
             <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.045] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className={`grid gap-1 ${mode === "image" ? "grid-cols-3" : "grid-cols-2"}`}>
-                {(mode === "image" ? ["text-to-image", "image-to-image", "enhance-cleanup"] : ["avatar-video", "text-to-video", "image-to-video"]).map((workflow) => {
+                {(mode === "image" ? ["text-to-image", "image-to-image", "enhance-cleanup"] : mode === "avatar" ? ["avatar-video"] : ["text-to-video", "image-to-video"]).map((workflow) => {
                   const meta = WORKFLOW_META[workflow as StudioWorkflow];
                   const active = activeWorkflow === workflow;
                   return (
@@ -4280,7 +4252,7 @@ function StudioContent() {
                         </select>
                       </div>
                       <p className="mt-2 text-xs leading-5 text-white/38">
-                        DreamFace generates the voice first, then sends it to Kling Avatar as one tracked Avatar task.
+                        DreamFace generates the voice first, then sends it to Kling Avatar as one tracked Avatar task. Billing uses the estimated final video length.
                       </p>
                     </div>
 

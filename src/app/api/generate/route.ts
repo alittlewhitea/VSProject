@@ -174,6 +174,7 @@ const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p"]);
 const VEO_VIDEO_RESOLUTIONS = new Set(["720p", "1080p", "4k"]);
 const VEO_VIDEO_DURATIONS = new Set(["4s", "6s", "8s"]);
 const AVATAR_MAX_SECONDS = 15;
+const AVATAR_KLING_BUFFER_SECONDS = 2;
 
 function estimateAvatarScriptSeconds(text: string) {
   const cleaned = text.replace(/\s+/g, " ").trim();
@@ -188,7 +189,9 @@ function estimateAvatarScriptSeconds(text: string) {
 }
 
 function avatarDurationFromPrompt(prompt: string) {
-  return `${Math.min(AVATAR_MAX_SECONDS, Math.max(3, estimateAvatarScriptSeconds(prompt)))}s`;
+  const speechSeconds = estimateAvatarScriptSeconds(prompt);
+  const outputSeconds = Math.min(AVATAR_MAX_SECONDS, Math.max(3, speechSeconds + AVATAR_KLING_BUFFER_SECONDS));
+  return `${outputSeconds}s`;
 }
 
 function buildTtsInput(body: GenerateRequest, prompt: string) {
@@ -652,8 +655,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "AI Avatar needs a short script for ElevenLabs voice generation." }, { status: 400 });
     }
     const avatarScriptSeconds = isAvatarProvider ? estimateAvatarScriptSeconds(prompt) : 0;
-    if (isAvatarProvider && avatarScriptSeconds > AVATAR_MAX_SECONDS) {
-      return NextResponse.json({ error: `AI Avatar script is about ${avatarScriptSeconds}s. Please keep it within ${AVATAR_MAX_SECONDS}s.` }, { status: 400 });
+    const avatarOutputSeconds = isAvatarProvider ? avatarScriptSeconds + AVATAR_KLING_BUFFER_SECONDS : 0;
+    if (isAvatarProvider && avatarOutputSeconds > AVATAR_MAX_SECONDS) {
+      return NextResponse.json({ error: `AI Avatar output is about ${avatarOutputSeconds}s including Kling buffer. Please keep it within ${AVATAR_MAX_SECONDS}s.` }, { status: 400 });
     }
     if (isAvatarProvider) {
       body.duration = avatarDurationFromPrompt(prompt);
@@ -794,6 +798,7 @@ export async function POST(request: Request) {
           language_code: string | null;
           text_normalization: string;
           estimated_seconds: number;
+          estimated_avatar_seconds: number;
         }
       | null = null;
     let submitPayload: {
@@ -824,7 +829,8 @@ export async function POST(request: Request) {
           stability: typeof ttsInput.stability === "number" ? ttsInput.stability : 0.5,
           language_code: "language_code" in ttsInput && typeof ttsInput.language_code === "string" ? ttsInput.language_code : null,
           text_normalization: typeof ttsInput.apply_text_normalization === "string" ? ttsInput.apply_text_normalization : "auto",
-          estimated_seconds: avatarScriptSeconds
+          estimated_seconds: avatarScriptSeconds,
+          estimated_avatar_seconds: Math.min(AVATAR_MAX_SECONDS, Math.max(3, avatarOutputSeconds))
         };
         await admin
           .from("generation_tasks")
