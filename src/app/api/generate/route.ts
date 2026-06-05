@@ -20,7 +20,7 @@ type StoredGenerateMode = "image" | "video" | "audio";
 
 type GenerateRequest = {
   mode: GenerateMode;
-  imageWorkflow?: "text-to-image" | "image-to-image" | "enhance-cleanup";
+  imageWorkflow?: "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
   videoWorkflow?: "avatar-video" | "text-to-video" | "image-to-video";
   provider: string;
   ratio: string;
@@ -112,6 +112,7 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "flux-image": process.env.FAL_MODEL_IMAGE_FLUX || "fal-ai/flux/schnell",
     "flux-dev": process.env.FAL_MODEL_IMAGE_FLUX_DEV || "fal-ai/flux/dev",
     "topaz-image": process.env.FAL_MODEL_IMAGE_TOPAZ || "fal-ai/topaz/upscale/image",
+    "bria-background-remove": process.env.FAL_MODEL_IMAGE_BRIA_BACKGROUND_REMOVE || "fal-ai/bria/background/remove",
     "nano-banana-image": editImage
       ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit"
       : process.env.FAL_MODEL_IMAGE_NANO_BANANA || "fal-ai/nano-banana-2",
@@ -259,6 +260,12 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       subject_detection: "All",
       face_enhancement: true,
       face_enhancement_strength: 0.8
+    };
+  }
+
+  if (body.mode === "image" && body.provider === "bria-background-remove") {
+    return {
+      image_url: firstInputImage(body)
     };
   }
 
@@ -455,6 +462,8 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     workflow:
       isAvatarRequest(body)
         ? "avatar-video"
+        : body.mode === "image" && body.provider === "bria-background-remove"
+        ? "background-remove"
         : body.mode === "image" && imageUrls.length
         ? "image-to-image"
         : body.mode === "video" && imageUrls.length
@@ -647,8 +656,9 @@ export async function POST(request: Request) {
 
     const isAvatarProvider = isAvatarRequest(body);
     const storageMode = storedModeForRequest(body);
-    const prompt = body.prompt.trim() || (isAvatarProvider ? "." : "");
-    if (!isAvatarProvider && prompt.length < 8) {
+    const isPromptlessImageTool = body.mode === "image" && body.provider === "bria-background-remove";
+    const prompt = body.prompt.trim() || (isAvatarProvider || isPromptlessImageTool ? "." : "");
+    if (!isAvatarProvider && !isPromptlessImageTool && prompt.length < 8) {
       return NextResponse.json({ error: "Prompt must be at least 8 characters." }, { status: 400 });
     }
     if (isAvatarProvider && prompt.length < 2) {
@@ -687,6 +697,9 @@ export async function POST(request: Request) {
     }
     if (body.mode === "image" && body.provider === "topaz-image" && !imageUrls.length) {
       return NextResponse.json({ error: "Enhance & Cleanup requires one image for Topaz upscale." }, { status: 400 });
+    }
+    if (body.mode === "image" && body.provider === "bria-background-remove" && !imageUrls.length) {
+      return NextResponse.json({ error: "Background Remove requires one image." }, { status: 400 });
     }
     if (isAvatarProvider) {
       if (!imageUrls.length) {

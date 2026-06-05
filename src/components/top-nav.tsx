@@ -140,6 +140,7 @@ export function TopNav() {
                           ["Text to Image", "Generate polished ads, posters, thumbnails, and concepts", "/studio?mode=image&workflow=text-to-image"],
                           ["Image to Image", "Edit, restyle, or extend reference images", "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image"],
                           ["Image Enhance", "Upscale and clean up owned images", "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image"],
+                          ["Background Remove", "Remove backgrounds and export transparent PNG assets", "/studio?mode=image&workflow=background-remove&provider=bria-background-remove"],
                           ["Text to Video", "Turn written scenes into short motion clips", "/studio?mode=video&workflow=text-to-video"],
                           ["Image to Video", "Animate a product, portrait, or reference frame", "/studio?mode=video&workflow=image-to-video"],
                           ["Text to Audio", "Create natural voiceovers from scripts", "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts"]

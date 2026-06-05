@@ -170,6 +170,13 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
       return creditsFromFalUsd(0.08, 12) * multiplier;
     }
 
+    if (input.provider === "bria-background-remove") {
+      if (dynamicImagePrice) {
+        return creditsFromFalUsd(dynamicImagePrice, 4);
+      }
+      return creditsFromFalUsd(0.01, 4);
+    }
+
     return 12;
   }
 
@@ -291,6 +298,16 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal lists Topaz upscale at $0.08 for a single image up to 24MP output.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "topaz-image", hasReferences: true }),
     unitNote: "14 credits"
+  },
+  {
+    provider: "bria-background-remove",
+    label: "Bria Background Remove",
+    mode: "image",
+    workflow: "Background Remove",
+    endpointId: "fal-ai/bria/background/remove",
+    falBasis: "fal Bria RMBG 2.0 removes backgrounds from a single input image and returns a transparent PNG.",
+    typicalCredits: estimateGenerationCredits({ mode: "image", provider: "bria-background-remove", hasReferences: true }),
+    unitNote: "4 credits"
   },
   {
     provider: "seedance-video",

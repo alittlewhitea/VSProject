@@ -72,7 +72,7 @@ type StudioLoginDraft = {
   thinkingLevel?: string;
 };
 
-type ImageWorkflow = "text-to-image" | "image-to-image" | "enhance-cleanup";
+type ImageWorkflow = "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
 type VideoWorkflow = "avatar-video" | "text-to-video" | "image-to-video";
 type StudioWorkflow = ImageWorkflow | VideoWorkflow | "text-to-audio";
 type GalleryTemplate = {
@@ -204,6 +204,14 @@ const TOOLKIT_APPS: Array<{
     href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image",
     accent: "from-[#fff7ed] to-[#fce7f3]",
     iconClass: "text-[#f97316]"
+  },
+  {
+    title: "Background Remove",
+    body: "Remove image backgrounds and export clean transparent PNG assets.",
+    icon: "cleanup",
+    href: "/studio?mode=image&workflow=background-remove&provider=bria-background-remove",
+    accent: "from-[#ecfeff] to-[#eef2ff]",
+    iconClass: "text-[#0891b2]"
   },
   {
     title: "Text to Audio",
@@ -468,6 +476,13 @@ const PROVIDER_META: Record<
     quality: "Enhance",
     bestFor: "Enhance & Cleanup upscaling, clarity, and face enhancement from an uploaded image"
   },
+  "bria-background-remove": {
+    label: "Bria Background Remove",
+    shortLabel: "Bria BG",
+    speed: "Fast",
+    quality: "Transparent PNG",
+    bestFor: "Removing backgrounds from product, portrait, and asset images"
+  },
   "seedance-video": {
     label: "Seedance 2.0",
     shortLabel: "Seedance",
@@ -545,6 +560,12 @@ const WORKFLOW_META: Record<
     description: "Upscale, sharpen, and clean up an uploaded image.",
     recommendedProvider: "topaz-image",
     providers: ["topaz-image"]
+  },
+  "background-remove": {
+    label: "Background Remove",
+    description: "Remove the background from one image.",
+    recommendedProvider: "bria-background-remove",
+    providers: ["bria-background-remove"]
   },
   "avatar-video": {
     label: "AI Avatar",
@@ -1049,7 +1070,7 @@ function shortInputValue(value: string) {
 
 function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (!provider) return false;
-  if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image"].includes(provider);
+  if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return ["elevenlabs-tts"].includes(provider);
   if (mode === "avatar") return ["kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return ["seedance-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
@@ -1059,7 +1080,7 @@ function workflowForMode(mode: StudioMode, workflow: string | null): StudioWorkf
   if (mode === "audio") return "text-to-audio";
   if (mode === "avatar") return "avatar-video";
   if (mode === "image") {
-    if (workflow === "image-to-image" || workflow === "enhance-cleanup") return workflow;
+    if (workflow === "image-to-image" || workflow === "enhance-cleanup" || workflow === "background-remove") return workflow;
     return "text-to-image";
   }
   if (workflow === "avatar-video") return "avatar-video";
@@ -1105,7 +1126,7 @@ function StudioContent() {
       : null
   );
   const initialImageWorkflow: ImageWorkflow =
-    initialWorkflow === "image-to-image" || initialWorkflow === "enhance-cleanup" ? initialWorkflow : "text-to-image";
+    initialWorkflow === "image-to-image" || initialWorkflow === "enhance-cleanup" || initialWorkflow === "background-remove" ? initialWorkflow : "text-to-image";
   const initialVideoWorkflow: VideoWorkflow =
     initialWorkflow === "avatar-video" || initialWorkflow === "image-to-video" ? initialWorkflow : "text-to-video";
   const initialReferenceUrl = sp.get("reference");
@@ -1241,7 +1262,7 @@ function StudioContent() {
     const workflowParam = workflowForMode(mode, sp.get("workflow"));
     const providerParam = sp.get("provider");
     setImageWorkflow(
-      mode === "image" && (workflowParam === "image-to-image" || workflowParam === "enhance-cleanup")
+      mode === "image" && (workflowParam === "image-to-image" || workflowParam === "enhance-cleanup" || workflowParam === "background-remove")
         ? workflowParam
         : "text-to-image"
     );
@@ -1318,7 +1339,7 @@ function StudioContent() {
     const referenceParam = sp.get("reference");
     if (mode === "image" && referenceParam) {
       const referenceWorkflow = workflowForMode(mode, sp.get("workflow"));
-      setImageWorkflow(referenceWorkflow === "enhance-cleanup" ? "enhance-cleanup" : "image-to-image");
+      setImageWorkflow(referenceWorkflow === "enhance-cleanup" || referenceWorkflow === "background-remove" ? referenceWorkflow : "image-to-image");
       setReferenceImagesText(referenceParam);
     }
   }, [mode, sp]);
@@ -1529,8 +1550,9 @@ function StudioContent() {
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const estimatedSeconds = estimateTaskSeconds(modeForPricing(mode), provider, isAvatarWorkflow ? avatarDuration : duration);
-  const isPromptValid = isAvatarWorkflow ? prompt.trim().length >= 2 && !avatarScriptTooLong : prompt.trim().length >= 8;
-  const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
+  const isPromptlessImageWorkflow = mode === "image" && activeWorkflow === "background-remove";
+  const isPromptValid = isPromptlessImageWorkflow || (isAvatarWorkflow ? prompt.trim().length >= 2 && !avatarScriptTooLong : prompt.trim().length >= 8);
+  const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
   const canSubmit = isPromptValid && hasRequiredReference;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
@@ -1678,7 +1700,7 @@ function StudioContent() {
 
   function applyWorkflow(nextWorkflow: StudioWorkflow) {
     const nextMode =
-      nextWorkflow === "text-to-image" || nextWorkflow === "image-to-image" || nextWorkflow === "enhance-cleanup"
+      nextWorkflow === "text-to-image" || nextWorkflow === "image-to-image" || nextWorkflow === "enhance-cleanup" || nextWorkflow === "background-remove"
         ? "image"
         : nextWorkflow === "text-to-audio"
           ? "audio"
@@ -1706,15 +1728,15 @@ function StudioContent() {
       setAvatarAudioUrl("");
     }
     setProvider(nextProvider);
-    if (nextProvider === "nano-banana-image" || nextProvider === "nano-banana-pro" || nextProvider === "topaz-image") {
-      setRatio(nextProvider === "nano-banana-image" || nextProvider === "topaz-image" ? "auto" : "1:1");
+    if (nextProvider === "nano-banana-image" || nextProvider === "nano-banana-pro" || nextProvider === "topaz-image" || nextProvider === "bria-background-remove") {
+      setRatio(nextProvider === "nano-banana-image" || nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : "1:1");
     }
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
     const nextImageSize = nextMode === "image" ? defaultImageSizeForProvider(nextProvider) : imageSize;
     if (nextMode === "image") {
       setImageSize(nextImageSize);
-      setRatio(nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
+      setRatio(nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : ratioFromImageSize(nextImageSize));
     } else if (nextMode === "video" || nextMode === "avatar") {
       setRatio(nextWorkflow === "avatar-video" ? "source" : "16:9");
       setDuration(nextProvider === "veo-video" ? DEFAULT_VEO_VIDEO_DURATION : DEFAULT_VIDEO_DURATION);
@@ -1729,7 +1751,7 @@ function StudioContent() {
     params.set("provider", nextProvider);
     if (nextMode === "image") {
       params.set("imageSize", nextImageSize);
-      params.set("ratio", nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
+      params.set("ratio", nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : ratioFromImageSize(nextImageSize));
     } else if (nextMode === "video" || nextMode === "avatar") {
       params.delete("imageSize");
       params.set("ratio", nextWorkflow === "avatar-video" ? "source" : "16:9");
@@ -1746,21 +1768,22 @@ function StudioContent() {
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
     if (mode === "image") {
-      if (nextProvider !== "topaz-image") {
+      if (nextProvider !== "topaz-image" && nextProvider !== "bria-background-remove") {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
       }
       if (nextProvider === "topaz-image") setImageWorkflow("enhance-cleanup");
+      if (nextProvider === "bria-background-remove") setImageWorkflow("background-remove");
       const nextImageSize = defaultImageSizeForProvider(nextProvider);
       setImageSize(nextImageSize);
       setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
-      setRatio(nextProvider === "nano-banana-image" || nextProvider === "topaz-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
+      setRatio(nextProvider === "nano-banana-image" || nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "image");
-      params.set("workflow", nextProvider === "topaz-image" ? "enhance-cleanup" : activeWorkflow);
+      params.set("workflow", nextProvider === "topaz-image" ? "enhance-cleanup" : nextProvider === "bria-background-remove" ? "background-remove" : activeWorkflow);
       params.set("provider", nextProvider);
       params.set("imageSize", nextImageSize);
-      params.set("ratio", nextProvider === "nano-banana-image" || nextProvider === "topaz-image" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
+      params.set("ratio", nextProvider === "nano-banana-image" || nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
       router.replace(`/studio?${params.toString()}`, { scroll: false });
     } else if (mode === "audio") {
       setReferenceImagesText("");
@@ -2477,6 +2500,11 @@ function StudioContent() {
                                 label: "Image Enhance",
                                 body: "Topaz upscale and cleanup",
                                 href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image"
+                              },
+                              {
+                                label: "Background Remove",
+                                body: "Transparent PNG cutouts",
+                                href: "/studio?mode=image&workflow=background-remove&provider=bria-background-remove"
                               }
                             ].map((workflowItem) => (
                               <Link
@@ -2958,8 +2986,8 @@ function StudioContent() {
                 <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:mt-5 md:mt-7">
                   {mode === "image" ? (
                     <>
-                      <div className="grid w-full max-w-[560px] grid-cols-3 rounded-full border border-black/[0.06] bg-white/82 p-1 shadow-sm sm:inline-flex sm:w-auto sm:max-w-none">
-                        {(["text-to-image", "image-to-image", "enhance-cleanup"] as StudioWorkflow[]).map((workflow) => {
+                      <div className="grid w-full max-w-[720px] grid-cols-2 rounded-2xl border border-black/[0.06] bg-white/82 p-1 shadow-sm sm:inline-grid sm:w-auto sm:max-w-none sm:grid-cols-4 sm:rounded-full">
+                        {(["text-to-image", "image-to-image", "enhance-cleanup", "background-remove"] as StudioWorkflow[]).map((workflow) => {
                           const active = imageWorkflow === workflow;
                           return (
                             <button
@@ -3807,7 +3835,7 @@ function StudioContent() {
 
             <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.045] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className={`grid gap-1 ${mode === "image" ? "grid-cols-3" : "grid-cols-2"}`}>
-                {(mode === "image" ? ["text-to-image", "image-to-image", "enhance-cleanup"] : mode === "avatar" ? ["avatar-video"] : ["text-to-video", "image-to-video"]).map((workflow) => {
+                {(mode === "image" ? ["text-to-image", "image-to-image", "enhance-cleanup", "background-remove"] : mode === "avatar" ? ["avatar-video"] : ["text-to-video", "image-to-video"]).map((workflow) => {
                   const meta = WORKFLOW_META[workflow as StudioWorkflow];
                   const active = activeWorkflow === workflow;
                   return (
@@ -3854,7 +3882,7 @@ function StudioContent() {
                     provider: option.value,
                     imageSize,
                     duration: isAvatarWorkflow ? avatarDuration : duration,
-                    hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video",
+                    hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video",
                     resolution: mode === "image" ? editResolution : videoResolution,
                     promptText: mode === "audio" ? prompt : undefined
                   });
