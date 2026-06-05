@@ -1510,15 +1510,17 @@ function StudioContent() {
     [avatarVoiceGender]
   );
 
-  const referenceImageUrls = [
+  const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : mode === "avatar" ? "avatar-video" : videoWorkflow;
+  const activeWorkflowMeta = WORKFLOW_META[activeWorkflow];
+  const isPromptlessImageWorkflow = mode === "image" && activeWorkflow === "background-remove";
+  const allReferenceImageUrls = [
     ...referenceImagesText
       .split(/\r?\n|,/)
       .map((url) => url.trim())
       .filter(Boolean),
     ...referenceImageFiles
-  ].slice(0, 14);
-  const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : mode === "avatar" ? "avatar-video" : videoWorkflow;
-  const activeWorkflowMeta = WORKFLOW_META[activeWorkflow];
+  ];
+  const referenceImageUrls = allReferenceImageUrls.slice(0, isPromptlessImageWorkflow ? 1 : 14);
   const isAvatarWorkflow = mode === "avatar" || activeWorkflow === "avatar-video";
   const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
   const avatarScriptSeconds = isAvatarWorkflow ? estimateAvatarScriptSeconds(prompt) : 0;
@@ -1550,7 +1552,6 @@ function StudioContent() {
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const estimatedSeconds = estimateTaskSeconds(modeForPricing(mode), provider, isAvatarWorkflow ? avatarDuration : duration);
-  const isPromptlessImageWorkflow = mode === "image" && activeWorkflow === "background-remove";
   const isPromptValid = isPromptlessImageWorkflow || (isAvatarWorkflow ? prompt.trim().length >= 2 && !avatarScriptTooLong : prompt.trim().length >= 8);
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
@@ -1846,10 +1847,11 @@ function StudioContent() {
 
   async function handleReferenceFiles(files: FileList | null) {
     if (!files?.length) return;
+    const maxFiles = isPromptlessImageWorkflow ? 1 : 4;
     const nextFiles = await Promise.all(
       Array.from(files)
         .filter((file) => file.type.startsWith("image/"))
-        .slice(0, 4)
+        .slice(0, maxFiles)
         .map(
           (file) =>
             new Promise<string>((resolve, reject) => {
@@ -1860,7 +1862,7 @@ function StudioContent() {
             })
         )
     );
-    setReferenceImageFiles((prev) => [...prev, ...nextFiles].slice(0, 4));
+    setReferenceImageFiles((prev) => (isPromptlessImageWorkflow ? nextFiles.slice(0, 1) : [...prev, ...nextFiles].slice(0, 4)));
     if (mode === "image" && imageWorkflow === "text-to-image") {
       setImageWorkflow("image-to-image");
       if (!WORKFLOW_META["image-to-image"].providers.includes(provider)) {
@@ -2093,19 +2095,19 @@ function StudioContent() {
               ? videoResolution
               : undefined,
         generateAudio: mode === "video" ? generateAudio : undefined,
-        outputFormat: mode === "image" ? outputFormat : undefined,
-        quality: mode === "image" ? imageQuality : undefined,
-        numImages: mode === "image" ? numImages : undefined,
-        guidanceScale: mode === "image" ? guidanceScale : undefined,
-        numInferenceSteps: mode === "image" ? numInferenceSteps : undefined,
-        enableSafetyChecker: mode === "image" ? enableSafetyChecker : undefined,
-        acceleration: mode === "image" ? acceleration : undefined,
-        limitGenerations: mode === "image" ? limitGenerations : undefined,
+        outputFormat: mode === "image" && !isPromptlessImageWorkflow ? outputFormat : undefined,
+        quality: mode === "image" && !isPromptlessImageWorkflow ? imageQuality : undefined,
+        numImages: mode === "image" && !isPromptlessImageWorkflow ? numImages : undefined,
+        guidanceScale: mode === "image" && !isPromptlessImageWorkflow ? guidanceScale : undefined,
+        numInferenceSteps: mode === "image" && !isPromptlessImageWorkflow ? numInferenceSteps : undefined,
+        enableSafetyChecker: mode === "image" && !isPromptlessImageWorkflow ? enableSafetyChecker : undefined,
+        acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
+        limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
         seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "seedance-video" || provider === "veo-video") ? parsedSeed : undefined,
-        safetyTolerance: mode === "image" ? safetyTolerance : undefined,
-        systemPrompt: mode === "image" && systemPrompt.trim() ? systemPrompt.trim() : undefined,
-        enableWebSearch: mode === "image" ? enableWebSearch : undefined,
-        thinkingLevel: mode === "image" && thinkingLevel ? thinkingLevel : undefined,
+        safetyTolerance: mode === "image" && !isPromptlessImageWorkflow ? safetyTolerance : undefined,
+        systemPrompt: mode === "image" && !isPromptlessImageWorkflow && systemPrompt.trim() ? systemPrompt.trim() : undefined,
+        enableWebSearch: mode === "image" && !isPromptlessImageWorkflow ? enableWebSearch : undefined,
+        thinkingLevel: mode === "image" && !isPromptlessImageWorkflow && thinkingLevel ? thinkingLevel : undefined,
         voice: mode === "audio" || isAvatarWorkflow ? ttsVoice : undefined,
         stability: mode === "audio" || isAvatarWorkflow ? ttsStability : undefined,
         timestamps: mode === "audio" ? ttsTimestamps : undefined,
@@ -3038,23 +3040,59 @@ function StudioContent() {
 
                 <div className="mt-4 overflow-hidden rounded-[1.7rem] border border-black/[0.06] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.09)] sm:mt-5 md:mt-7 md:rounded-[2rem] md:shadow-[0_28px_80px_rgba(15,23,42,0.12)]">
                   <div className="p-5 text-left md:p-7">
-                    <textarea
-                      rows={5}
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      className="min-h-[190px] w-full resize-none bg-transparent text-[17px] leading-8 text-[#202633] outline-none placeholder:text-[#98a3b8] sm:min-h-[132px] sm:text-base sm:leading-7 md:min-h-[154px] md:text-lg md:leading-8"
-                      placeholder={
-                        mode === "image"
-                          ? "Type your prompt to create images. Add a reference with + when you want image-to-image..."
-                          : mode === "audio"
-                            ? "Type the voiceover script you want ElevenLabs to speak..."
-                          : mode === "avatar"
-                            ? "Type the exact words you want this avatar to say. Keep it short, clear, and under about 15 seconds..."
-                          : activeWorkflow === "image-to-video"
-                            ? "Describe how the uploaded image should move, the camera feel, and final mood..."
-                            : "Type your prompt to create AI video footage..."
-                      }
-                    />
+                    {isPromptlessImageWorkflow ? (
+                      <div
+                        className="rounded-2xl border border-dashed border-[#cbd5e1] bg-[#fbfdff] p-4"
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText("Image file could not be read."));
+                        }}
+                      >
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold text-[#202633]">Image URL<span className="text-[#2563eb]">*</span></span>
+                          <span className="rounded-full bg-[#ecfeff] px-3 py-1 text-xs font-semibold text-[#0891b2]">Transparent PNG</span>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                          <input
+                            value={referenceImagesText}
+                            onChange={(event) => setReferenceImagesText(event.target.value)}
+                            placeholder="https://.../image.jpg"
+                            className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                          />
+                          <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-black/[0.08] bg-white px-5 text-sm font-semibold text-[#202633] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                            Choose image
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText("Image file could not be read."))}
+                            />
+                          </label>
+                        </div>
+                        <p className="mt-3 text-xs leading-5 text-[#667085]">
+                          Upload or paste one image. Bria removes the background and returns a PNG with transparency.
+                        </p>
+                      </div>
+                    ) : (
+                      <textarea
+                        rows={5}
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        className="min-h-[190px] w-full resize-none bg-transparent text-[17px] leading-8 text-[#202633] outline-none placeholder:text-[#98a3b8] sm:min-h-[132px] sm:text-base sm:leading-7 md:min-h-[154px] md:text-lg md:leading-8"
+                        placeholder={
+                          mode === "image"
+                            ? "Type your prompt to create images. Add a reference with + when you want image-to-image..."
+                            : mode === "audio"
+                              ? "Type the voiceover script you want ElevenLabs to speak..."
+                            : mode === "avatar"
+                              ? "Type the exact words you want this avatar to say. Keep it short, clear, and under about 15 seconds..."
+                            : activeWorkflow === "image-to-video"
+                              ? "Describe how the uploaded image should move, the camera feel, and final mood..."
+                              : "Type your prompt to create AI video footage..."
+                        }
+                      />
+                    )}
                     {referenceImageUrls.length ? (
                       <div className="mt-4 border-t border-black/[0.06] pt-4">
                         <div className="mb-3 flex items-center justify-between">
@@ -3066,7 +3104,7 @@ function StudioContent() {
                             onClick={() => {
                               setReferenceImagesText("");
                               setReferenceImageFiles([]);
-                              if (mode === "image") setImageWorkflow("text-to-image");
+                              if (mode === "image" && !isPromptlessImageWorkflow) setImageWorkflow("text-to-image");
                               if (mode === "video" && !isAvatarWorkflow) setVideoWorkflow("text-to-video");
                             }}
                             className="rounded-full border border-black/[0.06] bg-white px-3 py-1 text-xs font-semibold text-[#667085] hover:bg-[#f8fafc]"
@@ -3218,7 +3256,7 @@ function StudioContent() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5 border-t border-black/[0.06] bg-[#fbfcff] px-5 py-4 sm:flex sm:flex-wrap sm:items-center md:px-7">
-                    {mode !== "audio" ? (
+                    {mode !== "audio" && !isPromptlessImageWorkflow ? (
                     <label
                       title="Add reference images"
                       className="col-span-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-black/[0.08] bg-white text-sm font-semibold text-[#475467] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:grid sm:h-10 sm:w-10 sm:place-items-center sm:rounded-full sm:text-xl sm:font-light"
@@ -3411,7 +3449,7 @@ function StudioContent() {
                         </p>
                       </div>
                     </div>
-                  ) : mode === "image" ? (
+                  ) : mode === "image" && !isPromptlessImageWorkflow ? (
                     <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">Model settings</p>
@@ -4535,7 +4573,9 @@ function StudioContent() {
                   ? "Shorten the Avatar script to stay within 15 seconds."
                 : !hasRequiredReference
                   ? "Add at least one reference image for this workflow."
-                  : "Prompt looks good. Ready to generate."}
+                  : isPromptlessImageWorkflow
+                    ? "Image ready. Background Remove will return a transparent PNG."
+                    : "Prompt looks good. Ready to generate."}
             </p>
             <p className="mt-2 text-xs text-white/35">{providerNote}</p>
             {accessToken && !hasEnoughCredits ? (
