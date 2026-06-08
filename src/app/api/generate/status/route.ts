@@ -269,12 +269,17 @@ export async function GET(request: Request) {
 
     const statusPayload = (await statusRes.json()) as {
       status?: string;
+      response_url?: string;
     };
     const upperStatus = (statusPayload.status || "IN_QUEUE").toUpperCase();
+    const providerResponseUrl = isAllowedFalUrl(statusPayload.response_url || "")
+      ? statusPayload.response_url || null
+      : null;
+    const effectiveResponseUrl = providerResponseUrl || responseUrl;
 
     let result: unknown = null;
-    if (upperStatus === "COMPLETED" && responseUrl && isAllowedFalUrl(responseUrl)) {
-      const resultRes = await fetchFal(responseUrl, {
+    if (upperStatus === "COMPLETED" && effectiveResponseUrl && isAllowedFalUrl(effectiveResponseUrl)) {
+      const resultRes = await fetchFal(effectiveResponseUrl, {
         attempts: 2,
         timeoutMs: 20000,
         headers: {
@@ -325,6 +330,7 @@ export async function GET(request: Request) {
               .from("generation_tasks")
               .update({
                 status: "failed",
+                response_url: effectiveResponseUrl,
                 failure_code: "task_timeout",
                 failure_reason: failureReason,
                 last_checked_at: now,
@@ -363,6 +369,7 @@ export async function GET(request: Request) {
             .from("generation_tasks")
             .update({
               status: normalized,
+              response_url: effectiveResponseUrl,
               output_url: mediaUrl,
               raw_result: result,
               failure_code: normalized === "failed" ? "provider_failed" : null,

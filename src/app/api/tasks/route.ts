@@ -246,13 +246,17 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
         });
         if (!statusRes.ok) return;
 
-        const statusPayload = (await statusRes.json()) as { status?: string };
+        const statusPayload = (await statusRes.json()) as { status?: string; response_url?: string };
         const upperStatus = (statusPayload.status || "IN_QUEUE").toUpperCase();
         const normalized = normalizeFalStatus(upperStatus);
+        const providerResponseUrl = isAllowedFalUrl(statusPayload.response_url || null)
+          ? statusPayload.response_url || null
+          : null;
+        const effectiveResponseUrl = providerResponseUrl || task.response_url;
         let result: unknown = null;
 
-        if (upperStatus === "COMPLETED" && isAllowedFalUrl(task.response_url)) {
-          const resultRes = await fetchFal(task.response_url, {
+        if (upperStatus === "COMPLETED" && isAllowedFalUrl(effectiveResponseUrl)) {
+          const resultRes = await fetchFal(effectiveResponseUrl, {
             attempts: 1,
             timeoutMs: 5000,
             headers: {
@@ -273,6 +277,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
           .from("generation_tasks")
           .update({
             status: normalized,
+            response_url: effectiveResponseUrl,
             output_url: extractMediaUrl(result),
             raw_result: result,
             failure_code: normalized === "failed" ? "provider_failed" : null,

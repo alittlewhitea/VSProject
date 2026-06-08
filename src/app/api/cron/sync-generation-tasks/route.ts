@@ -1,0 +1,256 @@
+import { NextResponse } from "next/server";
+import { refundCredits } from "../../../../lib/credits";
+import { fetchFal } from "../../../../lib/fal-fetch";
+import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
+
+const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
+const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
+const SYNC_LIMIT = 40;
+
+type PendingTaskRow = {
+  id: string;
+  user_id: string;
+  status: "queued" | "running" | "completed" | "failed";
+  estimated_credits: number;
+  transport: "real" | "mock";
+  status_url: string | null;
+  response_url: string | null;
+  created_at: string;
+  timed_out_at?: string | null;
+};
+
+function taskTimeoutMinutes() {
+  const value = Number(process.env.GENERATION_TASK_TIMEOUT_MINUTES || DEFAULT_TASK_TIMEOUT_MINUTES);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_TASK_TIMEOUT_MINUTES;
+}
+
+function orphanTaskTimeoutMinutes() {
+  const value = Number(process.env.GENERATION_ORPHAN_TIMEOUT_MINUTES || DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES;
+}
+
+function isOlderThan(value: string, minutes: number) {
+  return Date.now() - new Date(value).getTime() > minutes * 60 * 1000;
+}
+
+function isAllowedFalUrl(url: string | null): url is string {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && parsed.hostname === "queue.fal.run";
+  } catch {
+    return false;
+  }
+}
+
+function normalizeFalStatus(status: string) {
+  const upperStatus = status.toUpperCase();
+  if (upperStatus === "IN_QUEUE") return "queued";
+  if (upperStatus === "IN_PROGRESS") return "running";
+  if (upperStatus === "COMPLETED") return "completed";
+  return "failed";
+}
+
+function extractMediaUrl(result: unknown): string | null {
+  if (!result || typeof result !== "object") return null;
+  const payload = result as Record<string, unknown>;
+  if (typeof payload.url === "string") return payload.url;
+  if (Array.isArray(payload.images) && payload.images[0] && typeof payload.images[0] === "object") {
+    const first = payload.images[0] as Record<string, unknown>;
+    if (typeof first.url === "string") return first.url;
+  }
+  if (payload.image && typeof payload.image === "object") {
+    const image = payload.image as Record<string, unknown>;
+    if (typeof image.url === "string") return image.url;
+  }
+  if (payload.video && typeof payload.video === "object") {
+    const video = payload.video as Record<string, unknown>;
+    if (typeof video.url === "string") return video.url;
+  }
+  if (Array.isArray(payload.videos) && payload.videos[0] && typeof payload.videos[0] === "object") {
+    const first = payload.videos[0] as Record<string, unknown>;
+    if (typeof first.url === "string") return first.url;
+  }
+  if (payload.audio && typeof payload.audio === "object") {
+    const audio = payload.audio as Record<string, unknown>;
+    if (typeof audio.url === "string") return audio.url;
+  }
+  return null;
+}
+
+function cronAuthorized(request: Request) {
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  if (!cronSecret) {
+    return process.env.NODE_ENV !== "production";
+  }
+
+  const authorization = request.headers.get("authorization") || "";
+  const url = new URL(request.url);
+  return authorization === `Bearer ${cronSecret}` || url.searchParams.get("secret") === cronSecret;
+}
+
+async function refundTaskCredits(task: PendingTaskRow, failureReference = task.id) {
+  const admin = createSupabaseAdminClient();
+  if (!admin || task.estimated_credits <= 0) return;
+  await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", failureReference);
+}
+
+async function syncTask(task: PendingTaskRow, falKey: string) {
+  const admin = createSupabaseAdminClient();
+  if (!admin) {
+    return { taskId: task.id, action: "skipped", reason: "admin_not_configured" };
+  }
+
+  const now = new Date().toISOString();
+
+  if (!isAllowedFalUrl(task.status_url)) {
+    if (!isOlderThan(task.created_at, orphanTaskTimeoutMinutes())) {
+      await admin
+        .from("generation_tasks")
+        .update({ last_checked_at: now, updated_at: now })
+        .eq("id", task.id)
+        .eq("user_id", task.user_id);
+      return { taskId: task.id, action: "checked", status: task.status };
+    }
+
+    await refundTaskCredits(task);
+    await admin
+      .from("generation_tasks")
+      .update({
+        status: "failed",
+        failure_code: "provider_tracking_missing",
+        failure_reason: `Cron sync: task was charged but never received provider tracking within ${orphanTaskTimeoutMinutes()} minutes. Credits were refunded.`,
+        last_checked_at: now,
+        timed_out_at: now,
+        updated_at: now
+      })
+      .eq("id", task.id)
+      .eq("user_id", task.user_id);
+    return { taskId: task.id, action: "failed", status: "provider_tracking_missing" };
+  }
+
+  const statusRes = await fetchFal(task.status_url, {
+    attempts: 2,
+    timeoutMs: 15000,
+    headers: { Authorization: `Key ${falKey}` },
+    cache: "no-store"
+  });
+
+  if (!statusRes.ok) {
+    await admin
+      .from("generation_tasks")
+      .update({ last_checked_at: now, updated_at: now })
+      .eq("id", task.id)
+      .eq("user_id", task.user_id);
+    return { taskId: task.id, action: "status_error", statusCode: statusRes.status };
+  }
+
+  const statusPayload = (await statusRes.json()) as { status?: string; response_url?: string };
+  const upperStatus = (statusPayload.status || "IN_QUEUE").toUpperCase();
+  const normalized = normalizeFalStatus(upperStatus);
+  const providerResponseUrl = isAllowedFalUrl(statusPayload.response_url || null)
+    ? statusPayload.response_url || null
+    : null;
+  const effectiveResponseUrl = providerResponseUrl || task.response_url;
+
+  if ((normalized === "queued" || normalized === "running") && isOlderThan(task.created_at, taskTimeoutMinutes())) {
+    await refundTaskCredits(task);
+    await admin
+      .from("generation_tasks")
+      .update({
+        status: "failed",
+        response_url: effectiveResponseUrl,
+        failure_code: "task_timeout",
+        failure_reason: `Cron sync: provider task exceeded ${taskTimeoutMinutes()} minutes. Credits were refunded.`,
+        last_checked_at: now,
+        timed_out_at: now,
+        updated_at: now
+      })
+      .eq("id", task.id)
+      .eq("user_id", task.user_id);
+    return { taskId: task.id, action: "failed", status: "task_timeout", providerStatus: upperStatus };
+  }
+
+  let result: unknown = null;
+  if (upperStatus === "COMPLETED" && isAllowedFalUrl(effectiveResponseUrl)) {
+    const resultRes = await fetchFal(effectiveResponseUrl, {
+      attempts: 2,
+      timeoutMs: 20000,
+      headers: { Authorization: `Key ${falKey}` },
+      cache: "no-store"
+    });
+    if (resultRes.ok) {
+      result = await resultRes.json();
+    }
+  }
+
+  if (normalized === "failed") {
+    await refundTaskCredits(task);
+  }
+
+  await admin
+    .from("generation_tasks")
+    .update({
+      status: normalized,
+      response_url: effectiveResponseUrl,
+      output_url: normalized === "completed" ? extractMediaUrl(result) : null,
+      raw_result: result,
+      failure_code: normalized === "failed" ? "provider_failed" : null,
+      failure_reason: normalized === "failed" ? "Cron sync: the provider reported this task as failed. Credits were refunded." : null,
+      last_checked_at: now,
+      updated_at: now
+    })
+    .eq("id", task.id)
+    .eq("user_id", task.user_id);
+
+  return { taskId: task.id, action: "synced", status: normalized, providerStatus: upperStatus };
+}
+
+export async function GET(request: Request) {
+  if (!cronAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized cron request." }, { status: 401 });
+  }
+
+  const admin = createSupabaseAdminClient();
+  if (!admin) {
+    return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
+  }
+
+  const falKey = process.env.FAL_KEY;
+  if (!falKey) {
+    return NextResponse.json({ error: "FAL_KEY is not configured." }, { status: 500 });
+  }
+
+  const { data, error } = await admin
+    .from("generation_tasks")
+    .select("id,user_id,status,estimated_credits,transport,status_url,response_url,created_at,timed_out_at")
+    .eq("transport", "real")
+    .in("status", ["queued", "running"])
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true })
+    .limit(SYNC_LIMIT);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const tasks = (data || []) as PendingTaskRow[];
+  const results = [];
+  for (const task of tasks) {
+    try {
+      results.push(await syncTask(task, falKey));
+    } catch (error) {
+      results.push({
+        taskId: task.id,
+        action: "error",
+        error: error instanceof Error ? error.message : "Unknown sync error"
+      });
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    scanned: tasks.length,
+    results
+  });
+}

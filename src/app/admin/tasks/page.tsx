@@ -21,6 +21,7 @@ type AdminTask = {
   refundLedgerId: number | string | null;
   refundStatus: "refunded" | "not_refunded" | "not_applicable";
   transport: "real" | "mock";
+  providerRequestId: string | null;
   outputUrl: string | null;
   createdAt: string;
   updatedAt: string | null;
@@ -79,6 +80,7 @@ export default function AdminTasksPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
+  const [syncingTaskId, setSyncingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -112,6 +114,42 @@ export default function AdminTasksPage() {
       setMessage(error instanceof Error ? error.message : "Admin tasks could not be loaded.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function syncProviderTask(taskId: string, accessToken = token) {
+    if (!accessToken) return;
+    setSyncingTaskId(taskId);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ action: "sync_provider", taskId })
+      });
+      const payload = (await response.json()) as {
+        task?: AdminTask | null;
+        providerStatus?: string;
+        timedOut?: boolean;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(payload.error || "Provider sync failed.");
+      if (payload.task) {
+        setTasks((current) => current.map((task) => (task.id === taskId ? (payload.task as AdminTask) : task)));
+      }
+      setMessage(
+        payload.timedOut
+          ? `Provider sync marked ${taskId} as timed out and refunded credits.`
+          : `Provider sync completed for ${taskId}. Provider status: ${payload.providerStatus || "unknown"}.`
+      );
+      await loadTasks(accessToken);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Provider sync failed.");
+    } finally {
+      setSyncingTaskId(null);
     }
   }
 
@@ -213,6 +251,7 @@ export default function AdminTasksPage() {
                       <p className="mt-1 truncate text-xs text-[#86868b]">
                         {task.userId} · {task.provider} · {task.mode}
                       </p>
+                      {task.providerRequestId ? <p className="mt-1 break-all text-xs text-[#86868b]">Provider {task.providerRequestId}</p> : null}
                     </div>
                     <div>
                       <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${statusTone(task.status)}`}>
@@ -235,6 +274,16 @@ export default function AdminTasksPage() {
                     <div className="text-xs text-[#86868b]">
                       <p>{formatDate(task.lastCheckedAt)}</p>
                       {task.timedOutAt ? <p className="mt-1 text-rose-600">Timed out {formatDate(task.timedOutAt)}</p> : null}
+                      {task.transport === "real" && (task.status === "queued" || task.status === "running") ? (
+                        <button
+                          type="button"
+                          onClick={() => syncProviderTask(task.id)}
+                          disabled={Boolean(syncingTaskId)}
+                          className="mt-3 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-[#1d1d1f] shadow-sm transition hover:bg-[#f8fbff] disabled:opacity-60"
+                        >
+                          {syncingTaskId === task.id ? "Syncing..." : "Sync provider"}
+                        </button>
+                      ) : null}
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-[#1d1d1f]">{task.failureCode || "No failure code"}</p>
