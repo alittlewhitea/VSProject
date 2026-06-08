@@ -3,7 +3,46 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const SIGNUP_BONUS_CREDITS = 100;
 export const LIMITED_REGION_SIGNUP_BONUS_CREDITS = 10;
-const LIMITED_SIGNUP_BONUS_COUNTRIES = new Set(["IN", "ID", "NG", "PK", "BD", "ET", "NP"]);
+const LIMITED_SIGNUP_BONUS_COUNTRIES = new Set([
+  "IN",
+  "ID",
+  "NG",
+  "PK",
+  "BD",
+  "ET",
+  "NP",
+  "AF",
+  "AZ",
+  "BF",
+  "CU",
+  "FJ",
+  "GY",
+  "KI",
+  "LY",
+  "ML",
+  "NI",
+  "WS",
+  "SY",
+  "AM",
+  "PS",
+  "TN",
+  "MK",
+  "UZ",
+  "KZ",
+  "JO",
+  "UG",
+  "KE",
+  "LK",
+  "IQ",
+  "SD",
+  "SV",
+  "HT",
+  "VE",
+  "ZW",
+  "ZM",
+  "MN",
+  "MG"
+]);
 
 type CreditAccount = { user_id: string; balance: number; free_granted: boolean };
 type EnsureCreditAccountOptions = {

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { AppButton } from "../../components/ui/button";
 import { trackEvent } from "../../lib/analytics";
+import { CREDIT_PACKS, SUBSCRIPTION_PLANS, formatUsd, type BillingCycle } from "../../lib/billing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, estimateGenerationCredits } from "../../lib/model-pricing";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 
@@ -222,6 +223,13 @@ const TOOLKIT_APPS: Array<{
     iconClass: "text-[#10b981]"
   }
 ];
+
+const STUDIO_BILLING_CYCLES: BillingCycle[] = ["weekly", "monthly", "yearly"];
+const STUDIO_BILLING_CYCLE_LABELS: Record<BillingCycle, string> = {
+  weekly: "Weekly",
+  monthly: "Monthly",
+  yearly: "Yearly"
+};
 
 function StudioIcon({ name, className = "h-5 w-5" }: { name: StudioIconName; className?: string }) {
   const common = {
@@ -1185,6 +1193,12 @@ function StudioContent() {
   const [galleryTemplateNote, setGalleryTemplateNote] = useState("");
   const [homeSlideIndex, setHomeSlideIndex] = useState(0);
   const [mobileStudioMenuOpen, setMobileStudioMenuOpen] = useState(false);
+  const [billingModalOpen, setBillingModalOpen] = useState(false);
+  const [billingMessage, setBillingMessage] = useState("");
+  const [loadingBillingItem, setLoadingBillingItem] = useState<string | null>(null);
+  const [selectedBillingCycles, setSelectedBillingCycles] = useState<Record<string, BillingCycle>>(() =>
+    Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, plan.defaultCycle]))
+  );
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
@@ -2392,6 +2406,91 @@ function StudioContent() {
     }
   }
 
+  function openBillingModal(source: string) {
+    setBillingModalOpen(true);
+    setBillingMessage("");
+    trackEvent("studio_billing_modal_opened", { source, balance: creditBalance, mode, provider }, accessToken);
+  }
+
+  async function startStudioCreditCheckout(packId: string) {
+    if (!accessToken) {
+      trackEvent("checkout_login_required", { pack_id: packId, surface: "studio_modal" });
+      const nextPath = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?view=home";
+      router.push(`/auth?next=${encodeURIComponent(nextPath)}`);
+      return;
+    }
+
+    const pack = CREDIT_PACKS.find((item) => item.id === packId);
+    setLoadingBillingItem(`credits:${packId}`);
+    setBillingMessage("");
+    trackEvent(
+      "checkout_started",
+      { surface: "studio_modal", pack_id: packId, credits: pack?.credits || null, amount_cents: pack?.amountCents || null },
+      accessToken
+    );
+
+    try {
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ packId })
+      });
+      const payload = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "Unable to start checkout.");
+      window.location.href = payload.url;
+    } catch (error) {
+      setBillingMessage(error instanceof Error ? error.message : "Unable to start checkout.");
+      setLoadingBillingItem(null);
+    }
+  }
+
+  async function startStudioSubscriptionCheckout(planId: string, cycle: BillingCycle) {
+    if (!accessToken) {
+      trackEvent("checkout_login_required", { plan_id: planId, cycle, surface: "studio_modal" });
+      const nextPath = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?view=home";
+      router.push(`/auth?next=${encodeURIComponent(nextPath)}`);
+      return;
+    }
+
+    const plan = SUBSCRIPTION_PLANS.find((item) => item.id === planId);
+    const price = plan?.prices[cycle];
+    setLoadingBillingItem(`subscription:${planId}:${cycle}`);
+    setBillingMessage("");
+    trackEvent(
+      "subscription_checkout_started",
+      {
+        surface: "studio_modal",
+        plan_id: planId,
+        cycle,
+        credits: price?.credits || null,
+        amount_cents: price?.amountCents || null,
+        value: price ? price.amountCents / 100 : null,
+        currency: "USD"
+      },
+      accessToken
+    );
+
+    try {
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ type: "subscription", planId, cycle })
+      });
+      const payload = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "Unable to start subscription checkout.");
+      window.location.href = payload.url;
+    } catch (error) {
+      setBillingMessage(error instanceof Error ? error.message : "Unable to start subscription checkout.");
+      setLoadingBillingItem(null);
+    }
+  }
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10 text-[#1f2430]">
       <div className="pointer-events-none absolute left-[18%] top-10 h-72 w-72 rounded-full bg-[#bde0fe]/30 blur-3xl" />
@@ -2444,6 +2543,201 @@ function StudioContent() {
           <section className="mb-4 rounded-2xl border border-black/[0.06] bg-white/82 p-6 text-sm text-[#667085] shadow-sm">
             Checking your session...
           </section>
+        ) : null}
+
+        {billingModalOpen ? (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/58 p-3 backdrop-blur-sm md:p-6"
+            onClick={() => {
+              if (!loadingBillingItem) setBillingModalOpen(false);
+            }}
+          >
+            <section
+              className="relative max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-[1.5rem] border border-white/75 bg-white shadow-[0_34px_110px_rgba(15,23,42,0.28)] md:rounded-[2rem]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#08bff1,#8b5cf6,#f6b431)]" />
+              <button
+                type="button"
+                aria-label="Close pricing"
+                onClick={() => {
+                  if (!loadingBillingItem) setBillingModalOpen(false);
+                }}
+                disabled={Boolean(loadingBillingItem)}
+                className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full border border-black/10 bg-white text-2xl leading-none text-[#667085] shadow-sm transition hover:bg-[#f8fafc] hover:text-[#111827] disabled:opacity-50"
+              >
+                x
+              </button>
+
+              <div className="max-h-[92vh] overflow-y-auto px-4 py-6 sm:px-6 md:px-8 md:py-8">
+                <div className="mx-auto max-w-3xl text-center">
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-full border-2 border-[#12bff3] bg-white shadow-[0_16px_40px_rgba(8,191,241,0.18)]">
+                    <span className="relative block h-5 w-6">
+                      <span className="absolute left-1/2 top-0 h-3 w-4 -translate-x-1/2 rounded-t-sm bg-[#ffd45d]" />
+                      <span className="absolute left-1/2 top-2 h-3.5 w-3.5 -translate-x-1/2 rotate-45 bg-[#f6a91f]" />
+                    </span>
+                  </div>
+                  <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-[#08a8d8]">DreamFace Premium</p>
+                  <h2 className="mt-2 text-3xl font-black tracking-tight text-[#151922] md:text-5xl">Plans that fit your creative scale</h2>
+                  <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#667085] md:text-base">
+                    Upgrade for renewable credits, faster queues, watermark-free output, and more room for image, video, avatar, and audio generation.
+                  </p>
+                  <div className="mt-5 inline-flex rounded-full border border-black/10 bg-[#f3f6fb] p-1">
+                    {STUDIO_BILLING_CYCLES.map((cycle) => (
+                      <button
+                        key={cycle}
+                        type="button"
+                        onClick={() =>
+                          setSelectedBillingCycles(
+                            Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, cycle]))
+                          )
+                        }
+                        className={`rounded-full px-4 py-2 text-xs font-black transition ${
+                          SUBSCRIPTION_PLANS.every((plan) => selectedBillingCycles[plan.id] === cycle)
+                            ? "bg-white text-[#111827] shadow-sm"
+                            : "text-[#6b7280] hover:text-[#111827]"
+                        }`}
+                      >
+                        {STUDIO_BILLING_CYCLE_LABELS[cycle]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {billingMessage ? (
+                  <p className="mx-auto mt-5 max-w-3xl rounded-2xl border border-[#fecaca] bg-[#fff1f2] px-4 py-3 text-sm font-semibold text-[#be123c]">
+                    {billingMessage}
+                  </p>
+                ) : null}
+
+                <div className="mt-7 grid gap-4 lg:grid-cols-3">
+                  <article className="flex min-h-[460px] flex-col rounded-[1.35rem] border border-black/10 bg-[#f8fafc] p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
+                    <h3 className="text-2xl font-black text-[#151922]">Free</h3>
+                    <p className="mt-5 text-5xl font-black">$0</p>
+                    <p className="mt-2 text-sm font-semibold text-[#667085]">Trial credits for eligible new accounts.</p>
+                    <button
+                      type="button"
+                      disabled
+                      className="mt-7 rounded-xl bg-[#e9edf3] px-5 py-3 text-sm font-black text-[#a1a8b3]"
+                    >
+                      Current Plan
+                    </button>
+                    <div className="mt-8 space-y-3 text-sm font-semibold leading-6 text-[#394150]">
+                      {["Try image and audio workflows", "Project history", "Credit refund protection"].map((feature) => (
+                        <p key={feature} className="flex gap-3">
+                          <span className="text-[#08bff1]">+</span>
+                          <span>{feature}</span>
+                        </p>
+                      ))}
+                    </div>
+                  </article>
+
+                  {SUBSCRIPTION_PLANS.map((plan) => {
+                    const cycle = selectedBillingCycles[plan.id] || plan.defaultCycle;
+                    const price = plan.prices[cycle];
+                    const loading = loadingBillingItem === `subscription:${plan.id}:${cycle}`;
+                    return (
+                      <article
+                        key={plan.id}
+                        className={`relative flex min-h-[460px] flex-col rounded-[1.35rem] border p-5 shadow-[0_18px_52px_rgba(15,23,42,0.08)] ${
+                          plan.highlight
+                            ? "border-[#08bff1] bg-white ring-4 ring-[#08bff1]/12"
+                            : "border-[#d6c7ff] bg-[linear-gradient(135deg,#ffffff_0%,#f6f1ff_55%,#eafaff_100%)]"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${plan.highlight ? "bg-[#08bff1] text-[#061215]" : "bg-white text-[#6d55c7]"}`}>
+                              {plan.badge}
+                            </p>
+                            <h3 className="mt-4 text-2xl font-black text-[#151922]">{plan.name}</h3>
+                          </div>
+                          <select
+                            value={cycle}
+                            onChange={(event) =>
+                              setSelectedBillingCycles((current) => ({
+                                ...current,
+                                [plan.id]: event.target.value as BillingCycle
+                              }))
+                            }
+                            className="rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-black text-[#485164] outline-none"
+                          >
+                            {STUDIO_BILLING_CYCLES.map((item) => (
+                              <option key={item} value={item}>
+                                {STUDIO_BILLING_CYCLE_LABELS[item]}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="mt-6">
+                          <p className="text-5xl font-black tracking-tight">
+                            {formatUsd(price.amountCents).replace(".00", "")}
+                            <span className="text-lg font-bold text-[#5d6675]"> / {price.interval}</span>
+                          </p>
+                          <p className="mt-2 text-sm font-semibold text-[#667085]">
+                            {price.credits.toLocaleString()} credits renew every {price.interval}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => startStudioSubscriptionCheckout(plan.id, cycle)}
+                          disabled={Boolean(loadingBillingItem)}
+                          className={`mt-6 rounded-xl px-5 py-3 text-sm font-black transition active:scale-[0.98] disabled:opacity-60 ${
+                            plan.highlight ? "bg-[#08bff1] text-[#061215]" : "bg-[#151922] text-white"
+                          }`}
+                        >
+                          {loading ? "Opening checkout..." : plan.cta}
+                        </button>
+
+                        <div className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#394150]">
+                          {plan.features.slice(0, 6).map((feature) => (
+                            <p key={feature} className="flex gap-3">
+                              <span className="text-[#08bff1]">+</span>
+                              <span>{feature}</span>
+                            </p>
+                          ))}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <section className="mt-6 rounded-[1.35rem] border border-black/10 bg-[#fbfcff] p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">Extra credits</p>
+                      <h3 className="mt-2 text-2xl font-black text-[#151922]">Top up without changing plans</h3>
+                    </div>
+                    <p className="text-sm font-semibold text-[#667085]">
+                      Current balance: {creditBalance === null ? "--" : creditBalance.toLocaleString()} credits
+                    </p>
+                  </div>
+                  <div className="mt-5 grid gap-3 md:grid-cols-4">
+                    {CREDIT_PACKS.map((pack) => {
+                      const loading = loadingBillingItem === `credits:${pack.id}`;
+                      return (
+                        <article key={pack.id} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+                          <h4 className="text-base font-black text-[#151922]">{pack.name}</h4>
+                          <p className="mt-2 text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
+                          <p className="mt-1 text-sm font-semibold text-[#667085]">{pack.credits.toLocaleString()} credits</p>
+                          <button
+                            type="button"
+                            onClick={() => startStudioCreditCheckout(pack.id)}
+                            disabled={Boolean(loadingBillingItem)}
+                            className="mt-4 w-full rounded-xl bg-[#151922] px-4 py-2.5 text-sm font-black text-white transition active:scale-[0.98] disabled:opacity-60"
+                          >
+                            {loading ? "Opening..." : "Recharge"}
+                          </button>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+            </section>
+          </div>
         ) : null}
 
         <section className="relative min-h-[calc(100vh-1rem)] overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-white/72 shadow-[0_20px_60px_rgba(71,85,105,0.10)] backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-[0_32px_120px_rgba(71,85,105,0.14)]">
@@ -2644,9 +2938,25 @@ function StudioContent() {
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-                  <Link href="/billing" className="rounded-full border border-black/[0.06] bg-white px-3 py-2 text-xs font-semibold text-[#485164] shadow-[0_10px_28px_rgba(15,23,42,0.08)] md:rounded-2xl md:px-4 md:text-sm">
+                  <button
+                    type="button"
+                    onClick={() => openBillingModal("balance")}
+                    className="rounded-full border border-black/[0.06] bg-white px-3 py-2 text-xs font-semibold text-[#485164] shadow-[0_10px_28px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-[#08bff1]/45 hover:text-[#0f172a] hover:shadow-[0_16px_36px_rgba(8,191,241,0.14)] md:rounded-2xl md:px-4 md:text-sm"
+                  >
                     {creditBalance === null ? "--" : creditBalance.toLocaleString()} credits
-                  </Link>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Open Premium plans"
+                    title="Open Premium plans"
+                    onClick={() => openBillingModal("vip_badge")}
+                    className="grid h-10 w-10 place-items-center rounded-full border-2 border-[#12bff3] bg-white text-[#f6b431] shadow-[0_12px_30px_rgba(8,191,241,0.18)] transition hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-[0_18px_42px_rgba(8,191,241,0.26)]"
+                  >
+                    <span className="relative block h-4 w-5">
+                      <span className="absolute left-1/2 top-0 h-2.5 w-3.5 -translate-x-1/2 rounded-t-sm bg-[#ffd45d]" />
+                      <span className="absolute left-1/2 top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 bg-[#f6a91f]" />
+                    </span>
+                  </button>
                   {accessToken ? (
                     <Link href="/studio?view=projects" className="hidden rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] sm:inline-flex">
                       Projects
