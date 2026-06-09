@@ -231,6 +231,11 @@ const STUDIO_BILLING_CYCLE_LABELS: Record<BillingCycle, string> = {
   yearly: "Yearly"
 };
 
+const KLING_AVATAR_DEFAULT_SCRIPT =
+  "Welcome to Cat Facts, where we explore the fascinating world of our feline friends. Did you know that cats spend 70% of their lives sleeping, which means a three-year-old cat has only been awake for about nine months of its life?";
+const KLING_AVATAR_DEFAULT_IMAGE_URL = "https://storage.googleapis.com/falserverless/example_inputs/kling_ai_avatar_input.jpg";
+const KLING_AVATAR_PREVIEW_VIDEO_URL = "https://v3.fal.media/files/penguin/ln3x7H1p1jL0Pwo7675NI_output.mp4";
+
 function StudioIcon({ name, className = "h-5 w-5" }: { name: StudioIconName; className?: string }) {
   const common = {
     className,
@@ -895,13 +900,13 @@ function ratioFromImageSize(value: string) {
 
 function defaultPromptForProvider(provider: string) {
   if (provider === "kling-avatar-standard" || provider === "kling-avatar-pro") {
-    return "";
+    return KLING_AVATAR_DEFAULT_SCRIPT;
   }
   return "";
 }
 
 function defaultPreviewForProvider(provider: string) {
-  void provider;
+  if (provider === "kling-avatar-standard" || provider === "kling-avatar-pro") return KLING_AVATAR_PREVIEW_VIDEO_URL;
   return null;
 }
 
@@ -1148,6 +1153,8 @@ function StudioContent() {
     (mode === "image" || mode === "video" || mode === "avatar") &&
     initialReferenceUrl
       ? initialReferenceUrl
+      : isAvatarProvider(initialProvider)
+        ? KLING_AVATAR_DEFAULT_IMAGE_URL
       : ""
   );
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
@@ -1585,7 +1592,7 @@ function StudioContent() {
   const videoPreviewRatio = ratio.includes(":") ? ratio.replace(":", " / ") : "16 / 9";
   const previewAspectRatio = mode === "image" ? `${selectedImageSize.width} / ${selectedImageSize.height}` : mode === "audio" ? "16 / 7" : videoPreviewRatio;
   const modelPreviewUrl = hasCompletedCreation ? null : defaultPreviewForProvider(provider);
-  const isModelPreviewVideo = provider === "grok-video";
+  const isModelPreviewVideo = provider === "grok-video" || isAvatarProvider(provider);
   const providerNote =
     provider === "flux-image"
       ? "FLUX Schnell is best for fast visual drafts. Use OpenAI GPT-Image-2 for exact text, counting, or strict layout instructions."
@@ -1736,6 +1743,9 @@ function StudioContent() {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
         setAvatarAudioUrl("");
+      } else if (nextWorkflow === "avatar-video") {
+        setReferenceImagesText((current) => current || KLING_AVATAR_DEFAULT_IMAGE_URL);
+        setReferenceImageFiles([]);
       }
     } else {
       setReferenceImagesText("");
@@ -1782,6 +1792,10 @@ function StudioContent() {
     setProvider(nextProvider);
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
+    if (isAvatarProvider(nextProvider)) {
+      setReferenceImagesText((current) => current || KLING_AVATAR_DEFAULT_IMAGE_URL);
+      setReferenceImageFiles([]);
+    }
     if (mode === "image") {
       if (nextProvider !== "topaz-image" && nextProvider !== "bria-background-remove") {
         setReferenceImagesText("");
@@ -4976,6 +4990,8 @@ function StudioContent() {
                             ? "Nano Banana 2 Edit sample"
                             : provider === "grok-video"
                               ? "Grok Imagine Video sample"
+                            : isAvatarProvider(provider)
+                              ? "Kling AI Avatar sample"
                             : "GPT Image 2 sample"}
                       </p>
                       <p className="mt-1 text-xs text-white/75">
