@@ -176,8 +176,11 @@ const VEO_VIDEO_RESOLUTIONS = new Set(["720p", "1080p", "4k"]);
 const VEO_VIDEO_DURATIONS = new Set(["4s", "6s", "8s"]);
 const AVATAR_MAX_SECONDS = 15;
 const AVATAR_KLING_BUFFER_SECONDS = 2;
+const KLING_AVATAR_DEFAULT_SCRIPT =
+  "Welcome to Cat Facts, where we explore the fascinating world of our feline friends. Did you know that cats spend 70% of their lives sleeping, which means a three-year-old cat has only been awake for about nine months of its life?";
 
 function estimateAvatarScriptSeconds(text: string) {
+  if (text.trim() === KLING_AVATAR_DEFAULT_SCRIPT) return AVATAR_MAX_SECONDS - AVATAR_KLING_BUFFER_SECONDS;
   const cleaned = text.replace(/\s+/g, " ").trim();
   if (!cleaned) return 0;
   const cjkCount = (cleaned.match(/[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af]/g) || []).length;
@@ -666,7 +669,8 @@ export async function POST(request: Request) {
     }
     const avatarScriptSeconds = isAvatarProvider ? estimateAvatarScriptSeconds(prompt) : 0;
     const avatarOutputSeconds = isAvatarProvider ? avatarScriptSeconds + AVATAR_KLING_BUFFER_SECONDS : 0;
-    if (isAvatarProvider && avatarOutputSeconds > AVATAR_MAX_SECONDS) {
+    const isDefaultAvatarScript = isAvatarProvider && prompt.trim() === KLING_AVATAR_DEFAULT_SCRIPT;
+    if (isAvatarProvider && !isDefaultAvatarScript && avatarOutputSeconds > AVATAR_MAX_SECONDS) {
       return NextResponse.json({ error: `AI Avatar output is about ${avatarOutputSeconds}s including Kling buffer. Please keep it within ${AVATAR_MAX_SECONDS}s.` }, { status: 400 });
     }
     if (isAvatarProvider) {

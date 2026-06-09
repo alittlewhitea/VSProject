@@ -926,6 +926,7 @@ function isAvatarProvider(provider: string) {
 }
 
 function estimateAvatarScriptSeconds(text: string) {
+  if (text.trim() === KLING_AVATAR_DEFAULT_SCRIPT) return AVATAR_MAX_SECONDS - AVATAR_KLING_BUFFER_SECONDS;
   const cleaned = text.replace(/\s+/g, " ").trim();
   if (!cleaned) return 0;
   const cjkCount = (cleaned.match(/[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af]/g) || []).length;
@@ -1546,11 +1547,14 @@ function StudioContent() {
   const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
   const avatarScriptSeconds = isAvatarWorkflow ? estimateAvatarScriptSeconds(prompt) : 0;
   const avatarOutputSeconds = isAvatarWorkflow ? avatarScriptSeconds + AVATAR_KLING_BUFFER_SECONDS : 0;
+  const isDefaultAvatarScript = isAvatarWorkflow && prompt.trim() === KLING_AVATAR_DEFAULT_SCRIPT;
   const avatarDuration = isAvatarWorkflow ? avatarDurationFromPrompt(prompt) : duration;
-  const avatarScriptTooLong = isAvatarWorkflow && avatarOutputSeconds > AVATAR_MAX_SECONDS;
+  const avatarScriptTooLong = isAvatarWorkflow && !isDefaultAvatarScript && avatarOutputSeconds > AVATAR_MAX_SECONDS;
   const avatarScriptMeta = isAvatarWorkflow
     ? prompt.trim()
-      ? `${prompt.trim().length.toLocaleString()} chars / voice ${avatarScriptSeconds}s / video ${Number.parseInt(avatarDuration, 10)}s`
+      ? isDefaultAvatarScript
+        ? "Sample script / video 15s"
+        : `${prompt.trim().length.toLocaleString()} chars / voice ${avatarScriptSeconds}s / video ${Number.parseInt(avatarDuration, 10)}s`
       : "0 chars / max 15s video"
     : "";
   const audioCharacterCount = mode === "audio" ? prompt.trim().length : 0;
@@ -3491,6 +3495,25 @@ function StudioContent() {
                           ) : null}
                         </div>
 
+                        <div className="mb-4 grid gap-4 lg:grid-cols-[0.72fr_1fr]">
+                          <div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-[#0f172a] shadow-sm">
+                            <video
+                              src={KLING_AVATAR_PREVIEW_VIDEO_URL}
+                              controls
+                              muted
+                              playsInline
+                              preload="metadata"
+                              className="aspect-video w-full bg-black object-cover"
+                            />
+                          </div>
+                          <div className="rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
+                            <p className="text-sm font-semibold text-[#202633]">Example output</p>
+                            <p className="mt-2 text-xs leading-5 text-[#667085]">
+                              This preview uses the default avatar image and sample script. Replace the image URL or upload your own avatar when you want a custom result.
+                            </p>
+                          </div>
+                        </div>
+
                         <div className="mb-4 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
                           <div className="mb-2 flex items-center justify-between gap-3">
                             <span className="text-sm font-semibold text-[#202633]">ElevenLabs voice</span>
@@ -4600,6 +4623,21 @@ function StudioContent() {
                       <p className="mt-2 text-xs leading-5 text-white/38">
                         Drag, choose, or paste a URL. Accepted: jpg, jpeg, png, webp, gif, avif.
                       </p>
+                    </div>
+
+                    <div className="mb-3 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                      <video
+                        src={KLING_AVATAR_PREVIEW_VIDEO_URL}
+                        controls
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="aspect-video w-full bg-black object-cover"
+                      />
+                      <div className="border-t border-white/10 px-3 py-2">
+                        <p className="text-xs font-semibold text-white/72">Example output</p>
+                        <p className="mt-1 text-xs leading-5 text-white/38">Uses the default avatar image and sample script.</p>
+                      </div>
                     </div>
 
                     <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
