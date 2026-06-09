@@ -19,6 +19,20 @@ type AdminUser = {
   countryCode: string | null;
   countryName: string | null;
   countryEventCount: number;
+  creditsSpent: number;
+  creditsRefunded: number;
+  creditsPurchased: number;
+  purchaseRevenueCents: number;
+  completedPurchases: number;
+  generationTasks: number;
+  completedTasks: number;
+  failedTasks: number;
+  runningTasks: number;
+  lastTaskAt: string | null;
+  hasSpentCredits: boolean;
+  subscriptionPlan: string | null;
+  subscriptionCycle: string | null;
+  subscriptionStatus: string | null;
 };
 
 type Account = {
@@ -161,6 +175,25 @@ type OpsPayload = {
   error?: string;
 };
 
+const USERS_PER_PAGE = 10;
+
+const adminSections = [
+  ["overview", "Overview"],
+  ["user-detail", "User detail"],
+  ["analytics", "Analytics"],
+  ["health", "Health"],
+  ["generation-safety", "Safety"],
+  ["users", "Users"],
+  ["countries", "Countries"],
+  ["credit-accounts", "Accounts"],
+  ["credit-ledger", "Ledger"],
+  ["purchases", "Purchases"],
+  ["subscriptions", "Subscriptions"],
+  ["tasks", "Tasks"],
+  ["failed-tasks", "Failed"],
+  ["events", "Events"]
+] as const;
+
 function formatDate(value: string | null | undefined) {
   if (!value) return "Not recorded";
   return new Intl.DateTimeFormat(undefined, {
@@ -200,6 +233,70 @@ function countryLabel(user: AdminUser) {
   return `${user.countryName || user.countryCode} (${user.countryCode})`;
 }
 
+function csvCell(value: string | number | boolean | null | undefined) {
+  const text = value === null || value === undefined ? "" : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function downloadUsersCsv(users: AdminUser[]) {
+  const headers = [
+    "email",
+    "user_id",
+    "registered_at",
+    "last_sign_in_at",
+    "country_code",
+    "country_name",
+    "balance",
+    "free_granted",
+    "has_spent_credits",
+    "credits_spent",
+    "credits_refunded",
+    "credits_purchased",
+    "completed_purchases",
+    "purchase_revenue_cents",
+    "generation_tasks",
+    "completed_tasks",
+    "failed_tasks",
+    "running_tasks",
+    "last_task_at",
+    "subscription_plan",
+    "subscription_cycle",
+    "subscription_status"
+  ];
+  const rows = users.map((user) => [
+    user.email,
+    user.id,
+    user.createdAt,
+    user.lastSignInAt,
+    user.countryCode,
+    user.countryName,
+    user.balance,
+    user.freeGranted,
+    user.hasSpentCredits,
+    user.creditsSpent,
+    user.creditsRefunded,
+    user.creditsPurchased,
+    user.completedPurchases,
+    user.purchaseRevenueCents,
+    user.generationTasks,
+    user.completedTasks,
+    user.failedTasks,
+    user.runningTasks,
+    user.lastTaskAt,
+    user.subscriptionPlan,
+    user.subscriptionCycle,
+    user.subscriptionStatus
+  ]);
+  const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `dreamface-users-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function countValues(values: string[]) {
   const counts = new Map<string, number>();
   for (const value of values) {
@@ -221,6 +318,7 @@ export default function AdminHomePage() {
   const [adjustNote, setAdjustNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [repairing, setRepairing] = useState(false);
+  const [userPage, setUserPage] = useState(1);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -347,6 +445,13 @@ export default function AdminHomePage() {
   const selectedUser = filterUserId.trim() ? users[0] || null : null;
   const selectedSubscription = filterUserId.trim() ? subscriptions[0] || null : null;
   const selectedCompletedPurchases = purchases.filter((purchase) => purchase.status === "completed");
+  const userPageCount = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
+  const visibleUsers = users.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
+
+  useEffect(() => {
+    setUserPage(1);
+  }, [filterUserId, users.length]);
+
   const selectedUserStats = useMemo(() => {
     const completed = tasks.filter((task) => task.status === "completed").length;
     const failed = tasks.filter((task) => task.status === "failed").length;
@@ -375,7 +480,7 @@ export default function AdminHomePage() {
       <div className="mx-auto w-full max-w-[1760px] px-4 py-6 md:px-8">
         <TopNav />
 
-        <section className="rounded-[28px] border border-black/10 bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-8">
+        <section id="overview" className="scroll-mt-6 rounded-[28px] border border-black/10 bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.16em] text-[#6e6e73]">DreamFace Admin</p>
@@ -394,7 +499,7 @@ export default function AdminHomePage() {
 
           <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              ["Users", summary.usersWithCreditAccounts ?? accounts.length],
+              ["Users", summary.authUsers ?? users.length],
               ["Outstanding credits", summary.totalOutstandingCredits ?? 0],
               ["Revenue", formatUsd(summary.completedPurchaseRevenueCents ?? 0)],
               ["Failed tasks", summary.failedTasks ?? failedTasks.length],
@@ -460,8 +565,22 @@ export default function AdminHomePage() {
           ) : null}
         </section>
 
+        <nav className="mt-6 rounded-[24px] border border-black/10 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+          <div className="flex flex-wrap gap-2">
+            {adminSections.map(([id, label]) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-2 text-xs font-semibold text-[#4f5a6d] transition hover:border-black/20 hover:bg-white hover:text-[#1d1d1f]"
+              >
+                {label}
+              </a>
+            ))}
+          </div>
+        </nav>
+
         {filterUserId.trim() ? (
-          <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+          <section id="user-detail" className="mt-6 scroll-mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.14em] text-[#86868b]">User detail</p>
@@ -530,7 +649,7 @@ export default function AdminHomePage() {
           </section>
         ) : null}
 
-        <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+        <section id="analytics" className="mt-6 scroll-mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.14em] text-[#86868b]">Conversion funnel</p>
@@ -586,7 +705,7 @@ export default function AdminHomePage() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+        <section id="health" className="mt-6 scroll-mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.14em] text-[#86868b]">Production health</p>
@@ -631,7 +750,7 @@ export default function AdminHomePage() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+        <section id="generation-safety" className="mt-6 scroll-mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.14em] text-[#86868b]">Generation safety</p>
@@ -671,40 +790,97 @@ export default function AdminHomePage() {
         </section>
 
         <section className="mt-6 grid gap-6 xl:grid-cols-2">
-          <Panel title="Users" count={users.length}>
-            <div className="divide-y divide-black/10">
-              {users.slice(0, 24).map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  onClick={() => {
-                    setFilterUserId(user.id);
-                    setAdjustUserId(user.id);
-                    if (token) loadOps(token, user.id);
-                  }}
-                  className="grid w-full gap-2 py-3 text-left md:grid-cols-[1fr_0.55fr_auto]"
+          <Panel id="users" title="Users" count={users.length} className="xl:col-span-2">
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <p className="text-sm text-[#6e6e73]">
+                Default {USERS_PER_PAGE} per page. Includes auth profile, country signal, balance, spending, purchases, tasks, and latest subscription.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <AppButton variant="secondary" onClick={() => downloadUsersCsv(users)} disabled={!users.length}>
+                  Export CSV
+                </AppButton>
+                <AppButton
+                  variant="secondary"
+                  onClick={() => setUserPage((page) => Math.max(1, page - 1))}
+                  disabled={userPage <= 1}
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{user.email || "No email"}</p>
-                    <p className="break-all text-xs text-[#86868b]">{user.id}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{countryLabel(user)}</p>
-                    <p className="text-xs text-[#86868b]">
-                      {user.countryEventCount ? `${user.countryEventCount} recent events` : "No recent geo signal"}
-                    </p>
-                  </div>
-                  <div className="text-left md:text-right">
-                    <p className="text-sm font-semibold">{user.balance.toLocaleString()} credits</p>
-                    <p className="text-xs text-[#86868b]">Last sign-in {formatDate(user.lastSignInAt)}</p>
-                  </div>
-                </button>
-              ))}
-              {!users.length ? <Empty loading={loading} /> : null}
+                  Previous
+                </AppButton>
+                <AppButton
+                  variant="secondary"
+                  onClick={() => setUserPage((page) => Math.min(userPageCount, page + 1))}
+                  disabled={userPage >= userPageCount}
+                >
+                  Next
+                </AppButton>
+              </div>
             </div>
+            <div className="mb-3 text-xs font-semibold text-[#86868b]">
+              Page {userPage} / {userPageCount}
+            </div>
+            {users.length ? (
+              <div className="overflow-x-auto rounded-2xl border border-black/10">
+                <div className="min-w-[1200px]">
+                <div className="grid grid-cols-[1.4fr_0.7fr_0.8fr_0.75fr_0.75fr_0.75fr_0.75fr] gap-3 bg-[#f5f5f7] px-3 py-2 text-xs uppercase tracking-[0.1em] text-[#86868b]">
+                  <span>User</span>
+                  <span>Country</span>
+                  <span>Dates</span>
+                  <span>Balance</span>
+                  <span>Credits</span>
+                  <span>Tasks</span>
+                  <span>Paid</span>
+                </div>
+                <div className="divide-y divide-black/10">
+                  {visibleUsers.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => {
+                        setFilterUserId(user.id);
+                        setAdjustUserId(user.id);
+                        if (token) loadOps(token, user.id);
+                      }}
+                      className="grid w-full grid-cols-[1.4fr_0.7fr_0.8fr_0.75fr_0.75fr_0.75fr_0.75fr] gap-3 px-3 py-3 text-left text-xs transition hover:bg-[#fbfbfd]"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-[#1d1d1f]">{user.email || "No email"}</span>
+                        <span className="block break-all text-[#86868b]">{user.id}</span>
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold text-[#4f5a6d]">{countryLabel(user)}</span>
+                        <span className="block text-[#86868b]">{user.countryEventCount || 0} events</span>
+                      </span>
+                      <span className="text-[#4f5a6d]">
+                        <span className="block">Reg {formatDate(user.createdAt)}</span>
+                        <span className="block">Login {formatDate(user.lastSignInAt)}</span>
+                      </span>
+                      <span className="font-semibold text-[#1d1d1f]">{user.balance.toLocaleString()}</span>
+                      <span className="text-[#4f5a6d]">
+                        <span className="block">Spent {user.creditsSpent.toLocaleString()}</span>
+                        <span className="block">Refund {user.creditsRefunded.toLocaleString()}</span>
+                        <span className="block">{user.hasSpentCredits ? "Consumed" : "No spend"}</span>
+                      </span>
+                      <span className="text-[#4f5a6d]">
+                        <span className="block">{user.generationTasks.toLocaleString()} total</span>
+                        <span className="block">{user.completedTasks} done / {user.failedTasks} failed</span>
+                        <span className="block">{user.runningTasks} running</span>
+                      </span>
+                      <span className="text-[#4f5a6d]">
+                        <span className="block">{user.creditsPurchased.toLocaleString()} credits</span>
+                        <span className="block">{formatUsd(user.purchaseRevenueCents)}</span>
+                        <span className="block">{user.subscriptionStatus ? `${user.subscriptionPlan} ${user.subscriptionStatus}` : "No sub"}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                </div>
+              </div>
+            ) : (
+              <Empty loading={loading} />
+            )}
           </Panel>
 
-          <Panel title="User Countries" count={countries.length}>
+          <Panel id="countries" title="User Countries" count={countries.length}>
             <Table
               headers={["Country", "Code", "Users", "Events"]}
               rows={countries.map((country) => [
@@ -717,7 +893,7 @@ export default function AdminHomePage() {
             />
           </Panel>
 
-          <Panel title="Credit Accounts" count={accounts.length}>
+          <Panel id="credit-accounts" title="Credit Accounts" count={accounts.length}>
             <Table
               headers={["User", "Balance", "Free", "Updated"]}
               rows={accounts.slice(0, 24).map((account) => [
@@ -730,7 +906,7 @@ export default function AdminHomePage() {
             />
           </Panel>
 
-          <Panel title="Credit Ledger" count={ledger.length}>
+          <Panel id="credit-ledger" title="Credit Ledger" count={ledger.length}>
             <div className="divide-y divide-black/10">
               {ledger.slice(0, 30).map((entry) => (
                 <div key={entry.id} className="grid gap-2 py-3 md:grid-cols-[0.8fr_0.7fr_1fr]">
@@ -751,7 +927,7 @@ export default function AdminHomePage() {
             </div>
           </Panel>
 
-          <Panel title="Stripe Purchases" count={purchases.length}>
+          <Panel id="purchases" title="Stripe Purchases" count={purchases.length}>
             <div className="divide-y divide-black/10">
               {purchases.slice(0, 30).map((purchase) => (
                 <div key={purchase.id} className="grid gap-2 py-3 md:grid-cols-[0.8fr_0.8fr_1fr]">
@@ -775,7 +951,7 @@ export default function AdminHomePage() {
             </div>
           </Panel>
 
-          <Panel title="Subscriptions" count={subscriptions.length}>
+          <Panel id="subscriptions" title="Subscriptions" count={subscriptions.length}>
             <div className="divide-y divide-black/10">
               {subscriptions.slice(0, 30).map((subscription) => (
                 <div key={subscription.id} className="grid gap-2 py-3 md:grid-cols-[0.7fr_0.8fr_1fr]">
@@ -803,15 +979,15 @@ export default function AdminHomePage() {
             </div>
           </Panel>
 
-          <Panel title="Generation Tasks" count={tasks.length}>
+          <Panel id="tasks" title="Generation Tasks" count={tasks.length}>
             <TaskList tasks={tasks.slice(0, 30)} loading={loading} />
           </Panel>
 
-          <Panel title="Failed Tasks" count={failedTasks.length}>
+          <Panel id="failed-tasks" title="Failed Tasks" count={failedTasks.length}>
             <TaskList tasks={failedTasks.slice(0, 30)} loading={loading} failures />
           </Panel>
 
-          <Panel title="Recent Analytics Events" count={analytics?.recentEvents?.length || 0}>
+          <Panel id="events" title="Recent Analytics Events" count={analytics?.recentEvents?.length || 0}>
             <div className="divide-y divide-black/10">
               {(analytics?.recentEvents || []).slice(0, 30).map((event, index) => (
                 <div key={`${event.event_name}-${event.created_at}-${index}`} className="grid gap-2 py-3 md:grid-cols-[0.6fr_1fr_1fr]">
@@ -855,9 +1031,9 @@ function AnalyticsBreakdown({ title, values }: { title: string; values: Record<s
   );
 }
 
-function Panel({ title, count, children }: { title: string; count: number; children: ReactNode }) {
+function Panel({ id, title, count, className = "", children }: { id?: string; title: string; count: number; className?: string; children: ReactNode }) {
   return (
-    <article className="rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+    <article id={id} className={`scroll-mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)] ${className}`}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
         <span className="rounded-full bg-[#f5f5f7] px-3 py-1 text-xs font-semibold text-[#6e6e73]">{count}</span>

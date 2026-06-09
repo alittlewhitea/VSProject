@@ -5,6 +5,8 @@ import { addCredits, refundCredits, spendCredits } from "../../../../lib/credits
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 
 const RECENT_LIMIT = 80;
+const ADMIN_DATA_LIMIT = 5000;
+const AUTH_USERS_PER_PAGE = 100;
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
 
@@ -116,6 +118,8 @@ type SystemHealthCheck = {
   status: "ok" | "warning" | "critical";
   detail: string;
 };
+
+type AuthUserInfo = ReturnType<typeof formatAuthUser>;
 
 function taskTimeoutMinutes() {
   const value = Number(process.env.GENERATION_TASK_TIMEOUT_MINUTES || DEFAULT_TASK_TIMEOUT_MINUTES);
@@ -405,6 +409,23 @@ function formatAuthUser(user: { id: string; email?: string; created_at?: string;
   };
 }
 
+async function listAuthUsers(admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>, userId?: string) {
+  const users: AuthUserInfo[] = [];
+
+  for (let page = 1; users.length < ADMIN_DATA_LIMIT; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: AUTH_USERS_PER_PAGE });
+    if (error) throw error;
+
+    const pageUsers = (data.users || []).map(formatAuthUser);
+    users.push(...pageUsers);
+
+    if (userId && pageUsers.some((user) => user.id === userId)) break;
+    if (pageUsers.length < AUTH_USERS_PER_PAGE) break;
+  }
+
+  return userId ? users.filter((user) => user.id === userId) : users;
+}
+
 function normalizeCountryCode(value: unknown) {
   if (typeof value !== "string") return null;
   const code = value.trim().toUpperCase();
@@ -493,6 +514,107 @@ function summarize(accounts: CreditAccountRow[], ledger: LedgerRow[], purchases:
     activeSubscriptions: subscriptions.filter((subscription) => subscription.status === "active" || subscription.status === "trialing").length,
     pastDueSubscriptions: subscriptions.filter((subscription) => subscription.status === "past_due").length
   };
+}
+
+function addToMap(map: Map<string, number>, key: string, amount: number) {
+  map.set(key, (map.get(key) || 0) + amount);
+}
+
+function latestByDate<T extends { user_id: string; updated_at?: string | null; created_at?: string | null }>(rows: T[]) {
+  const byUser = new Map<string, T>();
+  for (const row of rows) {
+    const existing = byUser.get(row.user_id);
+    const currentTime = new Date(row.updated_at || row.created_at || 0).getTime();
+    const existingTime = existing ? new Date(existing.updated_at || existing.created_at || 0).getTime() : -1;
+    if (!existing || currentTime > existingTime) byUser.set(row.user_id, row);
+  }
+  return byUser;
+}
+
+function buildUserRows(
+  authUsers: AuthUserInfo[],
+  accounts: CreditAccountRow[],
+  ledger: LedgerRow[],
+  purchases: PurchaseRow[],
+  tasks: TaskRow[],
+  subscriptions: SubscriptionRow[],
+  analytics: AnalyticsRow[]
+) {
+  const accountByUserId = new Map(accounts.map((account) => [account.user_id, account]));
+  const countryByUserId = buildUserCountryMap(analytics);
+  const latestSubscriptionByUser = latestByDate(subscriptions);
+  const creditsSpentByUser = new Map<string, number>();
+  const creditsRefundedByUser = new Map<string, number>();
+  const creditsPurchasedByUser = new Map<string, number>();
+  const purchaseRevenueByUser = new Map<string, number>();
+  const completedPurchasesByUser = new Map<string, number>();
+  const taskCountsByUser = new Map<
+    string,
+    { generationTasks: number; completedTasks: number; failedTasks: number; runningTasks: number; lastTaskAt: string | null }
+  >();
+
+  for (const entry of ledger) {
+    if (entry.amount < 0) addToMap(creditsSpentByUser, entry.user_id, Math.abs(entry.amount));
+    if (entry.reason === "generation_refund") addToMap(creditsRefundedByUser, entry.user_id, entry.amount);
+  }
+
+  for (const purchase of purchases) {
+    if (purchase.status !== "completed") continue;
+    addToMap(creditsPurchasedByUser, purchase.user_id, purchase.credits);
+    addToMap(purchaseRevenueByUser, purchase.user_id, purchase.amount_cents);
+    addToMap(completedPurchasesByUser, purchase.user_id, 1);
+  }
+
+  for (const task of tasks) {
+    const current = taskCountsByUser.get(task.user_id) || {
+      generationTasks: 0,
+      completedTasks: 0,
+      failedTasks: 0,
+      runningTasks: 0,
+      lastTaskAt: null
+    };
+
+    current.generationTasks += 1;
+    if (task.status === "completed") current.completedTasks += 1;
+    if (task.status === "failed") current.failedTasks += 1;
+    if (task.status === "queued" || task.status === "running") current.runningTasks += 1;
+    if (!current.lastTaskAt || new Date(task.created_at).getTime() > new Date(current.lastTaskAt).getTime()) {
+      current.lastTaskAt = task.created_at;
+    }
+    taskCountsByUser.set(task.user_id, current);
+  }
+
+  return authUsers.map((user) => {
+    const account = accountByUserId.get(user.id);
+    const country = countryByUserId.get(user.id);
+    const subscription = latestSubscriptionByUser.get(user.id);
+    const taskCounts = taskCountsByUser.get(user.id);
+    const creditsSpent = creditsSpentByUser.get(user.id) || 0;
+
+    return {
+      ...user,
+      balance: account?.balance ?? 0,
+      freeGranted: account?.free_granted ?? false,
+      creditAccountUpdatedAt: account?.updated_at ?? null,
+      countryCode: country?.countryCode ?? null,
+      countryName: country?.countryName ?? null,
+      countryEventCount: country?.eventCount ?? 0,
+      creditsSpent,
+      creditsRefunded: creditsRefundedByUser.get(user.id) || 0,
+      creditsPurchased: creditsPurchasedByUser.get(user.id) || 0,
+      purchaseRevenueCents: purchaseRevenueByUser.get(user.id) || 0,
+      completedPurchases: completedPurchasesByUser.get(user.id) || 0,
+      generationTasks: taskCounts?.generationTasks ?? 0,
+      completedTasks: taskCounts?.completedTasks ?? 0,
+      failedTasks: taskCounts?.failedTasks ?? 0,
+      runningTasks: taskCounts?.runningTasks ?? 0,
+      lastTaskAt: taskCounts?.lastTaskAt ?? null,
+      hasSpentCredits: creditsSpent > 0,
+      subscriptionPlan: subscription?.plan_id ?? null,
+      subscriptionCycle: subscription?.cycle ?? null,
+      subscriptionStatus: subscription?.status ?? null
+    };
+  });
 }
 
 function countUnique(events: AnalyticsRow[], key: "session_id" | "anonymous_id" | "user_id") {
@@ -587,24 +709,24 @@ export async function GET(request: Request) {
     .from("user_credit_accounts")
     .select("user_id,balance,free_granted,created_at,updated_at")
     .order("updated_at", { ascending: false })
-    .limit(userId ? 1 : 100);
+    .limit(userId ? 1 : ADMIN_DATA_LIMIT);
   let ledgerQuery = admin
     .from("credit_ledger")
     .select("id,user_id,amount,reason,reference_id,created_at")
     .order("created_at", { ascending: false })
-    .limit(userId ? 300 : RECENT_LIMIT);
+    .limit(userId ? 1000 : ADMIN_DATA_LIMIT);
   let purchasesQuery = admin
     .from("credit_purchases")
     .select("id,user_id,stripe_checkout_id,pack_id,credits,amount_cents,currency,status,created_at,updated_at")
     .order("created_at", { ascending: false })
-    .limit(userId ? 300 : RECENT_LIMIT);
+    .limit(userId ? 1000 : ADMIN_DATA_LIMIT);
   let subscriptionsQuery = admin
     .from("user_subscriptions")
     .select(
       "id,user_id,stripe_customer_id,stripe_subscription_id,plan_id,cycle,credits_per_cycle,status,cancel_at_period_end,current_period_start,current_period_end,canceled_at,created_at,updated_at"
     )
     .order("updated_at", { ascending: false })
-    .limit(userId ? 50 : RECENT_LIMIT);
+    .limit(userId ? 1000 : ADMIN_DATA_LIMIT);
   let tasksQuery = admin
     .from("generation_tasks")
     .select(
@@ -612,7 +734,7 @@ export async function GET(request: Request) {
     )
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(userId ? 300 : RECENT_LIMIT);
+    .limit(userId ? 1000 : ADMIN_DATA_LIMIT);
   let analyticsQuery = admin
     .from("analytics_events")
     .select("event_name,user_id,anonymous_id,session_id,properties,created_at")
@@ -630,7 +752,7 @@ export async function GET(request: Request) {
   }
 
   const [authUsersResult, accountsResult, ledgerResult, purchasesResult, subscriptionsResult, tasksResult, analyticsResult] = await Promise.all([
-    admin.auth.admin.listUsers({ page: 1, perPage: 100 }),
+    listAuthUsers(admin, userId || undefined),
     accountsQuery,
     ledgerQuery,
     purchasesQuery,
@@ -639,40 +761,27 @@ export async function GET(request: Request) {
     analyticsQuery
   ]);
 
-  if (authUsersResult.error) return NextResponse.json({ error: authUsersResult.error.message }, { status: 500 });
   if (accountsResult.error) return NextResponse.json({ error: accountsResult.error.message }, { status: 500 });
   if (ledgerResult.error) return NextResponse.json({ error: ledgerResult.error.message }, { status: 500 });
   if (purchasesResult.error) return NextResponse.json({ error: purchasesResult.error.message }, { status: 500 });
   if (subscriptionsResult.error) return NextResponse.json({ error: subscriptionsResult.error.message }, { status: 500 });
   if (tasksResult.error) return NextResponse.json({ error: tasksResult.error.message }, { status: 500 });
 
-  const authUsers = (authUsersResult.data.users || []).map(formatAuthUser);
+  const authUsers = authUsersResult;
   const accounts = (accountsResult.data || []) as CreditAccountRow[];
   const ledger = (ledgerResult.data || []) as LedgerRow[];
   const purchases = (purchasesResult.data || []) as PurchaseRow[];
   const subscriptions = (subscriptionsResult.data || []) as SubscriptionRow[];
   const tasks = (tasksResult.data || []) as TaskRow[];
   const analytics = (analyticsResult.error ? [] : analyticsResult.data || []) as AnalyticsRow[];
-  const accountByUserId = new Map(accounts.map((account) => [account.user_id, account]));
-  const countryByUserId = buildUserCountryMap(analytics);
-
-  const users = authUsers.map((user) => {
-    const account = accountByUserId.get(user.id);
-    const country = countryByUserId.get(user.id);
-    return {
-      ...user,
-      balance: account?.balance ?? 0,
-      freeGranted: account?.free_granted ?? false,
-      creditAccountUpdatedAt: account?.updated_at ?? null,
-      countryCode: country?.countryCode ?? null,
-      countryName: country?.countryName ?? null,
-      countryEventCount: country?.eventCount ?? 0
-    };
-  });
+  const users = buildUserRows(authUsers, accounts, ledger, purchases, tasks, subscriptions, analytics);
 
   return NextResponse.json({
     adminEmail: adminUser.email,
-    summary: summarize(accounts, ledger, purchases, tasks, subscriptions),
+    summary: {
+      authUsers: authUsers.length,
+      ...summarize(accounts, ledger, purchases, tasks, subscriptions)
+    },
     analytics: {
       summary: buildAnalyticsSummary(analytics),
       funnel: buildFunnel(analytics),
