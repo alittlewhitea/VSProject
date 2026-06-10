@@ -1371,7 +1371,13 @@ function StudioContent() {
       const referenceWorkflow = workflowForMode(mode, sp.get("workflow"));
       setImageWorkflow(referenceWorkflow === "enhance-cleanup" || referenceWorkflow === "background-remove" ? referenceWorkflow : "image-to-image");
       setReferenceImagesText(referenceParam);
-    } else if (mode !== "avatar") {
+    } else if (mode === "avatar") {
+      const avatarProvider = isProviderAllowedForMode(providerParam, mode) ? providerParam : providerForWorkflow(workflowForMode(mode, sp.get("workflow")), null);
+      if (isAvatarProvider(avatarProvider || "")) {
+        setPrompt((current) => (current.trim() ? current : KLING_AVATAR_DEFAULT_SCRIPT));
+        setReferenceImagesText((current) => (current.trim() ? current : KLING_AVATAR_DEFAULT_IMAGE_URL));
+      }
+    } else {
       setReferenceImagesText((current) => stripKlingAvatarDefaultReference(current));
       setPrompt((current) => (current.trim() === KLING_AVATAR_DEFAULT_SCRIPT ? "" : current));
     }
