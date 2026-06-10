@@ -119,34 +119,34 @@ const HOME_SLIDES: Array<{
   stats: string[];
 }> = [
   {
-    eyebrow: "New creative routing",
-    title: "Create campaign visuals with",
+    eyebrow: "Image studio",
+    title: "Make scroll-stopping visuals with",
     accent: "GPT Image 2",
-    body: "Make readable ads, posters, product shots, and polished concepts from a focused image workspace.",
-    cta: "Try image studio",
+    body: "Readable text, product shots, posters, and campaign concepts.",
+    cta: "Start with image",
     href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image",
     gradient: "from-[#bde0fe] via-[#e8f4ff] to-[#d8f7df]",
-    stats: ["Text to image", "Preset sizes", "Low-cost drafts"]
+    stats: ["Ads", "Posters", "Products"]
   },
   {
-    eyebrow: "Motion workspace",
-    title: "Animate clips with",
+    eyebrow: "Video studio",
+    title: "Turn ideas into short clips with",
     accent: "Kling and Seedance",
-    body: "Turn product frames, portraits, and story scenes into short clips with simple motion controls.",
-    cta: "Create video",
+    body: "Create motion from text or animate a product, portrait, or scene.",
+    cta: "Create a video",
     href: "/studio?mode=video&workflow=image-to-video&duration=5s",
     gradient: "from-[#cfe8ff] via-[#e8e7ff] to-[#f4dcff]",
-    stats: ["Image to video", "5s starter clip", "720p preview"]
+    stats: ["Text to video", "Image to video", "Social clips"]
   },
   {
-    eyebrow: "DreamFace apps",
-    title: "Open every creative tool from",
-    accent: "one dashboard",
-    body: "Switch between images, motion, cleanup, enhancement, and audio without losing your project flow.",
-    cta: "Explore apps",
-    href: "/studio?view=home",
+    eyebrow: "AI Avatar",
+    title: "Create talking presenter videos from",
+    accent: "one image",
+    body: "Use a face image and a short script to make an avatar video.",
+    cta: "Try Avatar",
+    href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard",
     gradient: "from-[#ffe1d5] via-[#f5d8e9] to-[#ecc7ff]",
-    stats: ["7 workflows", "Saved Projects", "Credit aware"]
+    stats: ["Talking avatar", "Voiceover", "Presenter clips"]
   }
 ];
 
@@ -160,7 +160,7 @@ const TOOLKIT_APPS: Array<{
 }> = [
   {
     title: "AI Avatar",
-    body: "Create talking avatar videos from one character image and a short ElevenLabs script.",
+    body: "Talking presenter from one image.",
     icon: "video",
     href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard",
     accent: "from-[#dff7ff] via-[#eef2ff] to-[#f7e8ff]",
@@ -168,7 +168,7 @@ const TOOLKIT_APPS: Array<{
   },
   {
     title: "Text to Image",
-    body: "Generate polished ads, posters, product shots, thumbnails, and concept visuals from a prompt.",
+    body: "Ads, posters, products, concepts.",
     icon: "sparkles",
     href: "/studio?mode=image&workflow=text-to-image",
     accent: "from-[#dbeafe] to-[#ecfeff]",
@@ -176,7 +176,7 @@ const TOOLKIT_APPS: Array<{
   },
   {
     title: "Image to Image",
-    body: "Upload references to restyle, edit, extend, or keep product and character continuity.",
+    body: "Restyle or edit a reference.",
     icon: "wand",
     href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
     accent: "from-[#fce7f3] to-[#eff6ff]",
@@ -184,7 +184,7 @@ const TOOLKIT_APPS: Array<{
   },
   {
     title: "Text to Video",
-    body: "Turn scene ideas into short motion clips for social, ads, storyboards, and B-roll.",
+    body: "Scene ideas into short clips.",
     icon: "film",
     href: "/studio?mode=video&workflow=text-to-video&duration=5s",
     accent: "from-[#ede9fe] to-[#e0f2fe]",
@@ -192,7 +192,7 @@ const TOOLKIT_APPS: Array<{
   },
   {
     title: "Image to Video",
-    body: "Animate a product, portrait, or reference frame with camera motion and cinematic timing.",
+    body: "Animate products or portraits.",
     icon: "motion",
     href: "/studio?mode=video&workflow=image-to-video&duration=5s",
     accent: "from-[#dcfce7] to-[#dbeafe]",
@@ -200,7 +200,7 @@ const TOOLKIT_APPS: Array<{
   },
   {
     title: "Enhance & Cleanup",
-    body: "Upscale owned images, improve clarity, and remove unwanted marks or distractions.",
+    body: "Upscale and clean images.",
     icon: "cleanup",
     href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image",
     accent: "from-[#fff7ed] to-[#fce7f3]",
@@ -208,7 +208,7 @@ const TOOLKIT_APPS: Array<{
   },
   {
     title: "Background Remove",
-    body: "Remove image backgrounds and export clean transparent PNG assets.",
+    body: "Transparent PNG cutouts.",
     icon: "cleanup",
     href: "/studio?mode=image&workflow=background-remove&provider=bria-background-remove",
     accent: "from-[#ecfeff] to-[#eef2ff]",
@@ -216,7 +216,7 @@ const TOOLKIT_APPS: Array<{
   },
   {
     title: "Text to Audio",
-    body: "Generate voiceovers from scripts with natural ElevenLabs speech.",
+    body: "Natural voiceovers from scripts.",
     icon: "audio",
     href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts",
     accent: "from-[#fef9c3] to-[#dcfce7]",
@@ -925,6 +925,14 @@ function isAvatarProvider(provider: string) {
   return provider === "kling-avatar-standard" || provider === "kling-avatar-pro";
 }
 
+function stripKlingAvatarDefaultReference(value: string) {
+  return value
+    .split(/\r?\n|,/)
+    .map((url) => url.trim())
+    .filter((url) => url && url !== KLING_AVATAR_DEFAULT_IMAGE_URL)
+    .join("\n");
+}
+
 function estimateAvatarScriptSeconds(text: string) {
   if (text.trim() === KLING_AVATAR_DEFAULT_SCRIPT) return AVATAR_MAX_SECONDS - AVATAR_KLING_BUFFER_SECONDS;
   const cleaned = text.replace(/\s+/g, " ").trim();
@@ -1363,6 +1371,9 @@ function StudioContent() {
       const referenceWorkflow = workflowForMode(mode, sp.get("workflow"));
       setImageWorkflow(referenceWorkflow === "enhance-cleanup" || referenceWorkflow === "background-remove" ? referenceWorkflow : "image-to-image");
       setReferenceImagesText(referenceParam);
+    } else if (mode !== "avatar") {
+      setReferenceImagesText((current) => stripKlingAvatarDefaultReference(current));
+      setPrompt((current) => (current.trim() === KLING_AVATAR_DEFAULT_SCRIPT ? "" : current));
     }
   }, [mode, sp]);
 
@@ -3001,89 +3012,118 @@ function StudioContent() {
               ) : null}
 
               {isAppsHome ? (
-                <div className="mx-auto mt-7 max-w-6xl md:mt-12">
-                  <div className={`relative overflow-hidden rounded-[1.5rem] border border-white/60 bg-gradient-to-r ${activeHomeSlide.gradient} px-4 py-7 text-center shadow-[0_22px_64px_rgba(56,189,248,0.14)] md:rounded-[2.2rem] md:px-10 md:py-10 md:shadow-[0_28px_90px_rgba(56,189,248,0.16)]`}>
-                    <div className="pointer-events-none absolute -left-16 top-1/2 h-52 w-52 -translate-y-1/2 rounded-full bg-white/48 blur-3xl" />
-                    <div className="pointer-events-none absolute left-1/3 top-full h-36 w-72 -translate-y-1/2 rounded-full bg-[#bde0fe]/45 blur-3xl" />
-                    <div className="pointer-events-none absolute -right-16 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full bg-white/42 blur-3xl" />
-                    <button
-                      type="button"
-                      aria-label="Previous slide"
-                      onClick={() => setHomeSlideIndex((index) => (index + HOME_SLIDES.length - 1) % HOME_SLIDES.length)}
-                      className="absolute left-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/78 text-[#667085] shadow-[0_14px_34px_rgba(15,23,42,0.10)] backdrop-blur transition hover:-translate-x-0.5 hover:bg-white hover:text-[#202633] md:left-5 md:h-12 md:w-12"
-                    >
-                      <StudioIcon name="chevron-left" className="h-5 w-5" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Next slide"
-                      onClick={() => setHomeSlideIndex((index) => (index + 1) % HOME_SLIDES.length)}
-                      className="absolute right-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/78 text-[#667085] shadow-[0_14px_34px_rgba(15,23,42,0.10)] backdrop-blur transition hover:translate-x-0.5 hover:bg-white hover:text-[#202633] md:right-5 md:h-12 md:w-12"
-                    >
-                      <StudioIcon name="chevron-right" className="h-5 w-5" />
-                    </button>
-                    <div className="relative mx-auto flex min-h-[330px] max-w-4xl flex-col items-center justify-center px-8 md:min-h-[360px] md:px-12">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#64748b]">{activeHomeSlide.eyebrow}</p>
-                      <h2 className="mt-3 max-w-3xl text-3xl font-black leading-tight tracking-tight text-[#202633] md:text-5xl">
-                        {activeHomeSlide.title}{" "}
-                        <span className="bg-[linear-gradient(90deg,#0ea5e9,#14b8a6,#22c55e)] bg-clip-text text-transparent">
-                          {activeHomeSlide.accent}
-                        </span>
-                      </h2>
-                      <p className="mx-auto mt-4 min-h-[56px] max-w-2xl text-base font-medium leading-7 text-[#5f6b7d]">{activeHomeSlide.body}</p>
-                      <div className="mt-5 flex flex-wrap justify-center gap-2">
-                        {activeHomeSlide.stats.map((item) => (
-                          <span key={item} className="rounded-full border border-white/70 bg-white/58 px-3 py-1.5 text-xs font-black text-[#475569] shadow-sm backdrop-blur">
-                            {item}
-                          </span>
-                        ))}
+                <div className="mx-auto mt-5 max-w-7xl md:mt-8">
+                  <div className={`relative overflow-hidden rounded-[1.5rem] border border-white/70 bg-gradient-to-br ${activeHomeSlide.gradient} p-4 shadow-[0_24px_70px_rgba(56,189,248,0.14)] md:rounded-[2.2rem] md:p-7`}>
+                    <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
+                      <div className="relative flex min-h-[360px] flex-col justify-between rounded-[1.2rem] bg-white/62 p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] backdrop-blur md:rounded-[1.8rem] md:p-8">
+                        <div>
+                          <div className="mb-5 flex items-center justify-between gap-3">
+                            <span className="rounded-full bg-[#111827] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-white">
+                              {activeHomeSlide.eyebrow}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                aria-label="Previous slide"
+                                onClick={() => setHomeSlideIndex((index) => (index + HOME_SLIDES.length - 1) % HOME_SLIDES.length)}
+                                className="grid h-9 w-9 place-items-center rounded-full border border-black/[0.06] bg-white/80 text-[#667085] shadow-sm transition hover:bg-white hover:text-[#202633]"
+                              >
+                                <StudioIcon name="chevron-left" className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label="Next slide"
+                                onClick={() => setHomeSlideIndex((index) => (index + 1) % HOME_SLIDES.length)}
+                                className="grid h-9 w-9 place-items-center rounded-full border border-black/[0.06] bg-white/80 text-[#667085] shadow-sm transition hover:bg-white hover:text-[#202633]"
+                              >
+                                <StudioIcon name="chevron-right" className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <h2 className="max-w-2xl text-4xl font-black leading-[1.02] tracking-tight text-[#202633] md:text-6xl">
+                            {activeHomeSlide.title}{" "}
+                            <span className="bg-[linear-gradient(90deg,#0ea5e9,#8b5cf6,#14b8a6)] bg-clip-text text-transparent">
+                              {activeHomeSlide.accent}
+                            </span>
+                          </h2>
+                          <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-[#536071] md:text-lg">{activeHomeSlide.body}</p>
+                        </div>
+                        <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center">
+                          <Link
+                            href={activeHomeSlide.href}
+                            className="inline-flex items-center justify-center gap-3 rounded-2xl bg-[#111827] px-6 py-4 text-sm font-black text-white shadow-[0_18px_40px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5"
+                          >
+                            {activeHomeSlide.cta}
+                            <StudioIcon name="chevron-right" className="h-4 w-4" />
+                          </Link>
+                          <div className="flex flex-wrap gap-2">
+                            {activeHomeSlide.stats.map((item) => (
+                              <span key={item} className="rounded-full border border-white/80 bg-white/62 px-3 py-1.5 text-xs font-black text-[#475569] shadow-sm backdrop-blur">
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                      <Link
-                        href={activeHomeSlide.href}
-                        className="mt-6 inline-flex items-center gap-3 rounded-full bg-white/88 px-5 py-3 text-sm font-semibold text-[#202633] shadow-[0_12px_32px_rgba(15,23,42,0.12)] backdrop-blur transition hover:-translate-y-0.5 hover:bg-white"
-                      >
-                        <span className="rounded-full bg-[#111827] px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white">New</span>
-                        {activeHomeSlide.cta}
-                        <StudioIcon name="chevron-right" className="h-4 w-4" />
-                      </Link>
-                      <div className="mt-6 flex justify-center gap-2">
-                        {HOME_SLIDES.map((slide, index) => (
-                          <button
-                            key={slide.eyebrow}
-                            type="button"
-                            aria-label={`Show ${slide.eyebrow}`}
-                            onClick={() => setHomeSlideIndex(index)}
-                            className={`h-2 rounded-full transition-all ${
-                              index === homeSlideIndex ? "w-8 bg-[#202633]" : "w-2 bg-white/70 hover:bg-white"
-                            }`}
-                          />
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {[
+                          { label: "AI Avatar", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, accent: "bg-[#eff6ff] text-[#2563eb]", note: "Talking presenter" },
+                          { label: "Text to Image", href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image", icon: "sparkles" as StudioIconName, accent: "bg-[#ecfeff] text-[#0891b2]", note: "Ads and posters" },
+                          { label: "Image to Video", href: "/studio?mode=video&workflow=image-to-video&duration=5s", icon: "motion" as StudioIconName, accent: "bg-[#f0fdf4] text-[#16a34a]", note: "Animate a reference" },
+                          { label: "Enhance", href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image", icon: "cleanup" as StudioIconName, accent: "bg-[#fff7ed] text-[#f97316]", note: "Upscale and clean" }
+                        ].map((item) => (
+                          <Link
+                            key={item.label}
+                            href={item.href}
+                            className="group min-h-[174px] rounded-[1.35rem] border border-white/72 bg-white/70 p-5 text-left shadow-[0_16px_42px_rgba(15,23,42,0.08)] backdrop-blur transition hover:-translate-y-1 hover:bg-white md:min-h-[190px]"
+                          >
+                            <span className={`grid h-12 w-12 place-items-center rounded-2xl ${item.accent}`}>
+                              <StudioIcon name={item.icon} className="h-6 w-6" />
+                            </span>
+                            <span className="mt-5 block text-xl font-black tracking-tight text-[#202633]">{item.label}</span>
+                            <span className="mt-1 block text-sm font-semibold text-[#667085]">{item.note}</span>
+                            <span className="mt-5 inline-flex items-center gap-1 text-sm font-black text-[#0ea5e9]">
+                              Open <StudioIcon name="chevron-right" className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                            </span>
+                          </Link>
                         ))}
                       </div>
                     </div>
+                    <div className="mt-4 flex justify-center gap-2">
+                      {HOME_SLIDES.map((slide, index) => (
+                        <button
+                          key={slide.eyebrow}
+                          type="button"
+                          aria-label={`Show ${slide.eyebrow}`}
+                          onClick={() => setHomeSlideIndex(index)}
+                          className={`h-2 rounded-full transition-all ${
+                            index === homeSlideIndex ? "w-9 bg-[#202633]" : "w-2.5 bg-white/70 hover:bg-white"
+                          }`}
+                        />
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="mt-5 grid gap-3 md:mt-9 md:grid-cols-2 md:gap-5 xl:grid-cols-3">
+                  <div className="mt-5 grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-4">
                     {TOOLKIT_APPS.map((app, index) => (
                       <Link
                         key={app.title}
                         href={app.href}
-                        className={`group relative min-h-[160px] overflow-hidden rounded-[1.5rem] border bg-white/70 p-5 text-left shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_26px_70px_rgba(15,23,42,0.10)] md:min-h-[210px] md:rounded-[2rem] md:p-7 ${
-                          index === 0 ? "border-[#93c5fd] md:col-span-2 xl:col-span-3" : "border-black/[0.05]"
-                        }`}
+                        className="group relative min-h-[138px] overflow-hidden rounded-[1.35rem] border border-black/[0.05] bg-white/72 p-5 text-left shadow-[0_12px_34px_rgba(15,23,42,0.055)] backdrop-blur transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_52px_rgba(15,23,42,0.09)]"
                       >
                         <div className={`absolute inset-0 bg-gradient-to-br ${app.accent} opacity-55 transition group-hover:opacity-80`} />
-                        {index === 0 ? (
-                          <span className="relative mb-4 inline-flex rounded-full bg-[#202633] px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-white">
-                            Featured Avatar
-                          </span>
-                        ) : null}
-                        <div className={`relative grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ${app.iconClass}`}>
-                          <StudioIcon name={app.icon} className="h-7 w-7" />
+                        <div className="relative flex items-start gap-4">
+                          <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white shadow-sm ${app.iconClass}`}>
+                            <StudioIcon name={app.icon} className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-base font-black tracking-tight text-[#202633]">{app.title}</h3>
+                            <p className="mt-1 text-sm font-semibold leading-5 text-[#7a8496]">{app.body}</p>
+                          </div>
                         </div>
-                        <h3 className="relative mt-4 text-lg font-semibold tracking-tight text-[#202633] md:mt-6 md:text-xl">{app.title}</h3>
-                        <p className="relative mt-3 max-w-[280px] text-sm font-medium leading-6 text-[#7a8496]">{app.body}</p>
-                        <span className="relative mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#0ea5e9]">
-                          Open tool <StudioIcon name="chevron-right" className="h-4 w-4" />
+                        <span className="relative mt-5 inline-flex items-center gap-1 text-sm font-black text-[#0ea5e9]">
+                          Open <StudioIcon name="chevron-right" className="h-4 w-4" />
                         </span>
                       </Link>
                     ))}
