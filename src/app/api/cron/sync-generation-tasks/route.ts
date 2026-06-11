@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { refundCredits } from "../../../../lib/credits";
 import { fetchFal } from "../../../../lib/fal-fetch";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
+import { resolveFalCostUsd } from "../../../../lib/fal-billing";
 import {
   falApiErrorFromResponse,
   falRefundCreditsFromCost,
@@ -19,6 +20,7 @@ type PendingTaskRow = {
   status: "queued" | "running" | "completed" | "failed";
   estimated_credits: number;
   transport: "real" | "mock";
+  provider_request_id: string | null;
   status_url: string | null;
   response_url: string | null;
   created_at: string;
@@ -196,6 +198,9 @@ async function syncTask(task: PendingTaskRow, falKey: string) {
   }
 
   const failureInfo = normalized === "failed" ? responseFailureInfo || parseFalFailure(result || statusPayload) : null;
+  if (failureInfo) {
+    failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
+  }
   const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits) : 0;
   if (normalized === "failed") {
     await refundTaskCredits({ ...task, estimated_credits: refundCreditsAmount });
@@ -239,7 +244,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await admin
     .from("generation_tasks")
-    .select("id,user_id,status,estimated_credits,transport,status_url,response_url,created_at,timed_out_at")
+    .select("id,user_id,status,estimated_credits,transport,provider_request_id,status_url,response_url,created_at,timed_out_at")
     .eq("transport", "real")
     .in("status", ["queued", "running"])
     .is("deleted_at", null)

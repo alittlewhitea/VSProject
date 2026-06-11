@@ -3,6 +3,7 @@ import { getUserFromBearerToken } from "../../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { fetchFal } from "../../../../lib/fal-fetch";
 import { refundCredits } from "../../../../lib/credits";
+import { resolveFalCostUsd } from "../../../../lib/fal-billing";
 import {
   falApiErrorFromResponse,
   falRefundCreditsFromCost,
@@ -318,14 +319,14 @@ export async function GET(request: Request) {
                 : "failed";
 
         try {
-          let taskForRefund: { estimated_credits?: number; created_at?: string } | null = null;
+          let taskForRefund: { estimated_credits?: number; created_at?: string; provider_request_id?: string | null } | null = null;
           const { data: task } = await admin
             .from("generation_tasks")
-            .select("estimated_credits, created_at")
+            .select("estimated_credits, created_at, provider_request_id")
             .eq("id", taskId)
             .eq("user_id", user.id)
             .maybeSingle();
-          taskForRefund = task as { estimated_credits?: number; created_at?: string } | null;
+          taskForRefund = task as { estimated_credits?: number; created_at?: string; provider_request_id?: string | null } | null;
 
           if (
             taskForRefund?.created_at &&
@@ -370,6 +371,7 @@ export async function GET(request: Request) {
                 ? taskForRefund.estimated_credits
                 : 0;
             const failureInfo = responseFailureInfo || parseFalFailure(result || statusPayload);
+            failureInfo.costUsd = await resolveFalCostUsd(falKey, taskForRefund?.provider_request_id, failureInfo.costUsd);
             const refundCredits = falRefundCreditsFromCost(failureInfo.costUsd, estimatedCredits);
             refund = await refundAndReadLedger(admin, user.id, taskId, refundCredits);
             failureCode = failureInfo.code || "provider_failed";

@@ -4,6 +4,7 @@ import { getUserFromBearerToken } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { fetchFal } from "../../../lib/fal-fetch";
 import { refundCredits } from "../../../lib/credits";
+import { resolveFalCostUsd } from "../../../lib/fal-billing";
 import {
   falApiErrorFromResponse,
   falRefundCreditsFromCost,
@@ -59,6 +60,7 @@ type PendingTaskRow = {
   status: "queued" | "running" | "completed" | "failed";
   estimated_credits: number;
   transport: "real" | "mock";
+  provider_request_id: string | null;
   status_url: string | null;
   response_url: string | null;
   created_at: string;
@@ -180,7 +182,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
 
   const { data } = await admin
     .from("generation_tasks")
-    .select("id,user_id,status,estimated_credits,transport,status_url,response_url,created_at")
+    .select("id,user_id,status,estimated_credits,transport,provider_request_id,status_url,response_url,created_at")
     .eq("user_id", userId)
     .eq("transport", "real")
     .in("status", ["queued", "running"])
@@ -281,6 +283,9 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
         }
 
         const failureInfo = normalized === "failed" ? responseFailureInfo || parseFalFailure(result || statusPayload) : null;
+        if (failureInfo) {
+          failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
+        }
         const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits) : 0;
         if (normalized === "failed" && refundCreditsAmount > 0) {
           await refundCredits(admin, userId, refundCreditsAmount, "generation_refund", task.id);

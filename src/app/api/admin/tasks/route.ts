@@ -3,6 +3,7 @@ import { getAdminUserFromRequest } from "../../../../lib/admin-auth";
 import { refundCredits } from "../../../../lib/credits";
 import { fetchFal } from "../../../../lib/fal-fetch";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
+import { resolveFalCostUsd } from "../../../../lib/fal-billing";
 import {
   falApiErrorFromResponse,
   falRefundCreditsFromCost,
@@ -236,6 +237,7 @@ async function syncProviderTask(
     failureReason = `Admin sync: provider task exceeded ${taskTimeoutMinutes()} minutes. Credits were refunded.`;
   } else if (normalized === "failed") {
     const failureInfo = responseFailureInfo || parseFalFailure(result || statusPayload);
+    failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
     const refundCreditsAmount = falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits);
     failureCode = failureInfo.code || "provider_failed";
     failureReason = formatFalFailureReason(failureInfo, task.estimated_credits, refundCreditsAmount);
@@ -243,6 +245,9 @@ async function syncProviderTask(
 
   if (finalStatus === "failed" && task.estimated_credits > 0) {
     const failureInfo = normalized === "failed" && !timedOut ? responseFailureInfo || parseFalFailure(result || statusPayload) : null;
+    if (failureInfo) {
+      failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
+    }
     const refundCreditsAmount = failureInfo
       ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits)
       : task.estimated_credits;
