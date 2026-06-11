@@ -250,6 +250,62 @@
       "description": "Start with the basics: image generation, editing, limited voice, limited video, watermark, and standard queue.",
       "cta": "Start Free"
     },
+    "freeFeatures": {
+      "image": "Try image generation",
+      "editing": "Try image editing",
+      "voice": "Limited voice generation",
+      "video": "Limited video generation",
+      "watermark": "Watermark included",
+      "queue": "Standard queue"
+    },
+    "plan": {
+      "premiumLite": {
+        "name": "Premium Lite",
+        "badge": "Most Popular",
+        "cta": "Start Premium Lite",
+        "bestFor": "Casual creators, image generation, image editing, and short AI tests.",
+        "feature.fullImage": "Full image generation",
+        "feature.fullEditing": "Full image editing",
+        "feature.voice": "Voice generation",
+        "feature.basicVideo": "Basic video generation",
+        "feature.commercial": "Commercial use",
+        "feature.noWatermark": "No watermark",
+        "feature.refund": "Credit refund protection",
+        "feature.queue": "Faster queue",
+        "feature.history": "Prompt history"
+      },
+      "premium": {
+        "name": "Premium",
+        "badge": "Best Value",
+        "cta": "Upgrade to Premium",
+        "bestFor": "Video generation, heavy creators, marketers, agencies, and content teams.",
+        "feature.everything": "Everything in Premium Lite",
+        "feature.video": "Higher video capacity",
+        "feature.queue": "Priority generation queue",
+        "feature.models": "Advanced AI models",
+        "feature.tests": "More Kling, Seedance, and Veo tests",
+        "feature.processing": "Faster processing",
+        "feature.early": "Early access features"
+      }
+    },
+    "creditPack": {
+      "starter": {
+        "name": "Starter Pack",
+        "idealFor": "Great for exploring the studio across image, audio, and light video workflows."
+      },
+      "creator": {
+        "name": "Creator Pack",
+        "idealFor": "Best for creators making several visual directions before choosing the final output."
+      },
+      "studio": {
+        "name": "Studio Pack",
+        "idealFor": "Best value when you want room for images, audio, and multiple short video drafts."
+      },
+      "proTopup": {
+        "name": "Pro Top-up",
+        "idealFor": "For occasional high-volume usage when a Premium subscription needs temporary extra capacity."
+      }
+    },
     "extraCredits": {
       "eyebrow": "Extra credits",
       "title": "Need Extra Credits?",

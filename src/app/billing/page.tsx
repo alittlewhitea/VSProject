@@ -249,6 +249,29 @@ function formatStatus(status: string) {
   return labels[status] || status;
 }
 
+function planMessageId(planId: string) {
+  return planId === "premium-lite" ? "premiumLite" : "premium";
+}
+
+function creditPackMessageId(packId: string) {
+  return packId === "pro-topup" ? "proTopup" : packId;
+}
+
+const planFeatureKeys: Record<string, string[]> = {
+  "premium-lite": [
+    "fullImage",
+    "fullEditing",
+    "voice",
+    "basicVideo",
+    "commercial",
+    "noWatermark",
+    "refund",
+    "queue",
+    "history"
+  ],
+  premium: ["everything", "video", "queue", "models", "tests", "processing", "early"]
+};
+
 function SubscriptionPlanCard({
   plan,
   cycle,
@@ -266,6 +289,8 @@ function SubscriptionPlanCard({
   const price = plan.prices[cycle];
   const featured = Boolean(plan.highlight);
   const premium = plan.id === "premium";
+  const planKey = planMessageId(plan.id);
+  const features = planFeatureKeys[plan.id].map((key) => t(`pricing.plan.${planKey}.feature.${key}`));
 
   return (
     <article
@@ -280,9 +305,9 @@ function SubscriptionPlanCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#f2f2f4] text-[#555963]"}`}>
-            {plan.badge}
+            {t(`pricing.plan.${planKey}.badge`)}
           </p>
-          <h3 className="mt-5 text-4xl font-black tracking-normal">{plan.name}</h3>
+          <h3 className="mt-5 text-4xl font-black tracking-normal">{t(`pricing.plan.${planKey}.name`)}</h3>
         </div>
       </div>
 
@@ -320,7 +345,7 @@ function SubscriptionPlanCard({
         <p className="mt-1 text-sm font-semibold text-[#5d6675]">{t("billing.renewsEvery", { interval: price.interval })}</p>
       </div>
 
-      <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">{plan.bestFor}</p>
+      <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">{t(`pricing.plan.${planKey}.bestFor`)}</p>
 
       <button
         type="button"
@@ -330,11 +355,11 @@ function SubscriptionPlanCard({
           featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#16171a] text-white"
         }`}
       >
-        {loading ? t("billing.openingCheckout") : plan.cta}
+        {loading ? t("billing.openingCheckout") : t(`pricing.plan.${planKey}.cta`)}
       </button>
 
       <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
-        {plan.features.map((feature) => (
+        {features.map((feature) => (
           <li key={feature} className="flex gap-3">
             <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#08bff1] text-[10px] font-black text-[#061215]">✓</span>
             <span>{feature}</span>
@@ -835,12 +860,15 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
                   Start Free
                 </button>
                 <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
-                  {["Try image generation", "Try image editing", "Limited voice generation", "Limited video generation", "Watermark included", "Standard queue"].map((feature) => (
-                    <li key={feature} className="flex gap-3">
-                      <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-black text-[#111318]">✓</span>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
+                  {["image", "editing", "voice", "video", "watermark", "queue"].map((featureKey) => {
+                    const feature = t(`pricing.freeFeatures.${featureKey}`);
+                    return (
+                      <li key={feature} className="flex gap-3">
+                        <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-black text-[#111318]">✓</span>
+                        <span>{feature}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </article>
               {SUBSCRIPTION_PLANS.map((plan) => {
@@ -874,12 +902,12 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
                 <article key={pack.id} className={`rounded-[1.4rem] border bg-white p-5 shadow-[0_14px_36px_rgba(10,16,30,0.05)] ${pack.id === bestValuePack.id ? "border-[#08bff1]" : "border-black/10"}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-2xl font-black tracking-normal">{pack.name}</h3>
+                      <h3 className="text-2xl font-black tracking-normal">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.name`)}</h3>
                       <p className="mt-2 text-sm font-semibold text-[#667084]">{pack.credits.toLocaleString()} credits</p>
                     </div>
                     <p className="text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
                   </div>
-                  <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{pack.idealFor}</p>
+                  <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.idealFor`)}</p>
                   <button
                     type="button"
                     onClick={() => startCheckout(pack.id)}
@@ -1013,12 +1041,15 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
               Start Free
             </button>
             <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
-              {["Try image generation", "Try image editing", "Limited voice generation", "Limited video generation", "Watermark included", "Standard queue"].map((feature) => (
-                <li key={feature} className="flex gap-3">
-                  <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-black text-[#111318]">✓</span>
-                  <span>{feature}</span>
-                </li>
-              ))}
+              {["image", "editing", "voice", "video", "watermark", "queue"].map((featureKey) => {
+                const feature = t(`pricing.freeFeatures.${featureKey}`);
+                return (
+                  <li key={feature} className="flex gap-3">
+                    <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-black text-[#111318]">✓</span>
+                    <span>{feature}</span>
+                  </li>
+                );
+              })}
             </ul>
           </article>
           {SUBSCRIPTION_PLANS.map((plan) => {
@@ -1090,12 +1121,12 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
             <article key={`price-extra-${pack.id}`} className={`rounded-[1.4rem] border bg-white p-5 shadow-[0_14px_36px_rgba(10,16,30,0.05)] ${pack.id === bestValuePack.id ? "border-[#08bff1]" : "border-black/10"}`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-2xl font-black tracking-normal">{pack.name}</h3>
+                  <h3 className="text-2xl font-black tracking-normal">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.name`)}</h3>
                   <p className="mt-2 text-sm font-semibold text-[#667084]">{pack.credits.toLocaleString()} credits</p>
                 </div>
                 <p className="text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
               </div>
-              <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{pack.idealFor}</p>
+              <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.idealFor`)}</p>
               <button
                 type="button"
                 onClick={() => startCheckout(pack.id)}
