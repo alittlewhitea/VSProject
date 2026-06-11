@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { defaultLocale, getLocaleFromPathname, localizeMarketingHref } from "../i18n/routing";
 import { trackEvent } from "../lib/analytics";
 
 type HomeHeroCarouselProps = {
@@ -19,6 +21,10 @@ function ArrowIcon() {
 }
 
 export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname || "") || defaultLocale;
+  const localizedHref = (href: string) => localizeMarketingHref(locale, href);
+
   return (
     <section className="relative overflow-hidden rounded-[1.75rem] bg-white sm:rounded-[2.5rem] lg:min-h-[760px]">
       <div className="pointer-events-none absolute -right-24 top-24 h-[380px] w-[380px] rounded-full bg-[radial-gradient(circle,rgba(189,224,254,0.52),rgba(255,200,221,0.18)_46%,transparent_70%)] blur-2xl sm:h-[620px] sm:w-[620px]" />
@@ -36,7 +42,7 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
 
           <div className="mt-7 grid gap-3 sm:mt-8 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
             <Link
-              href="/auth?provider=google&next=%2Fstudio%3Fview%3Dhome"
+              href={localizedHref("/auth?provider=google&next=%2Fstudio%3Fview%3Dhome")}
               onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/auth", item: "google_signup" })}
               className="inline-flex h-[52px] items-center justify-center gap-3 rounded-md border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[#2f2f32] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:h-14 sm:justify-start sm:text-base"
             >
@@ -44,7 +50,7 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
               Continue with Google
             </Link>
             <Link
-              href="/auth?next=%2Fstudio%3Fview%3Dhome"
+              href={localizedHref("/auth?next=%2Fstudio%3Fview%3Dhome")}
               onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/auth", item: "get_started" })}
               className="inline-flex h-[52px] items-center justify-center gap-3 rounded-xl bg-[#08bdf2] px-7 py-3 text-sm font-black text-[#08232d] shadow-[0_18px_38px_rgba(8,189,242,0.22)] transition hover:-translate-y-0.5 hover:bg-[#15c8fa] sm:h-14 sm:justify-start sm:text-base"
             >

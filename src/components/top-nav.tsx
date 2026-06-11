@@ -3,11 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { LanguageSwitcher } from "./language-switcher";
+import { defaultLocale, getLocaleFromPathname, localizeMarketingHref, stripLocaleFromPathname } from "../i18n/routing";
 import { trackEvent } from "../lib/analytics";
 import { createBrowserSupabaseClient } from "../lib/supabase-client";
 
 export function TopNav() {
   const pathname = usePathname();
+  const cleanPathname = stripLocaleFromPathname(pathname || "/");
+  const locale = getLocaleFromPathname(pathname || "") || defaultLocale;
+  const localizedHref = (href: string) => localizeMarketingHref(locale, href);
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("platform");
   const [email, setEmail] = useState<string | null>(null);
@@ -59,7 +64,7 @@ export function TopNav() {
   }, []);
 
   useEffect(() => {
-    if (pathname !== "/") return;
+    if (cleanPathname !== "/") return;
 
     const ids = ["platform", "providers", "pricing"];
     const obs = new IntersectionObserver(
@@ -78,7 +83,7 @@ export function TopNav() {
     });
 
     return () => obs.disconnect();
-  }, [pathname]);
+  }, [cleanPathname]);
 
   return (
     <header
@@ -90,7 +95,7 @@ export function TopNav() {
     >
       <div className="flex items-center justify-between gap-3 sm:gap-5">
         <div className="flex min-w-0 items-center gap-5 lg:gap-10">
-          <Link href="/" onClick={() => trackEvent("nav_clicked", { item: "logo", target: "/" })} className="shrink-0 text-xl font-black leading-none tracking-tight sm:text-3xl">
+          <Link href={localizedHref("/")} onClick={() => trackEvent("nav_clicked", { item: "logo", target: "/" })} className="shrink-0 text-xl font-black leading-none tracking-tight sm:text-3xl">
             dreamface
           </Link>
           <span className="hidden h-7 w-px bg-black/12 lg:block" />
@@ -98,8 +103,8 @@ export function TopNav() {
             <div onMouseEnter={openPlatformMenu} onMouseLeave={schedulePlatformMenuClose}>
               <a
                 onClick={() => trackEvent("nav_clicked", { item: "platform", target: "/#platform" })}
-                className={`rounded-full px-4 py-2 transition ${platformMenuOpen ? "bg-[#e8f7ff]" : ""} ${pathname === "/" && active === "platform" ? "text-[#111]" : ""}`}
-                href="/#platform"
+                className={`rounded-full px-4 py-2 transition ${platformMenuOpen ? "bg-[#e8f7ff]" : ""} ${cleanPathname === "/" && active === "platform" ? "text-[#111]" : ""}`}
+                href={localizedHref("/#platform")}
               >
                 Platform
               </a>
@@ -153,7 +158,7 @@ export function TopNav() {
                       </div>
                     </div>
                   </div>
-                  <Link href="/price" className="flex items-center justify-between bg-[linear-gradient(90deg,#10bff3,#9cb3ff_58%,#f29df7)] px-8 py-5 text-white">
+                  <Link href={localizedHref("/price")} className="flex items-center justify-between bg-[linear-gradient(90deg,#10bff3,#9cb3ff_58%,#f29df7)] px-8 py-5 text-white">
                     <span>
                       <span className="rounded-full border border-white/40 bg-white/15 px-4 py-1 text-xs font-black uppercase tracking-[0.14em]">Pay as you go</span>
                       <span className="ml-5 text-xl font-black">Credit packs for individuals</span>
@@ -163,9 +168,9 @@ export function TopNav() {
                 </div>
               </div>
             </div>
-            <a onClick={() => trackEvent("nav_clicked", { item: "providers", target: "/#providers" })} className={pathname === "/" && active === "providers" ? "text-[#111]" : ""} href="/#providers">Providers</a>
+            <a onClick={() => trackEvent("nav_clicked", { item: "providers", target: "/#providers" })} className={cleanPathname === "/" && active === "providers" ? "text-[#111]" : ""} href={localizedHref("/#providers")}>Providers</a>
             <Link onClick={() => trackEvent("nav_clicked", { item: "gallery", target: "/gallery" })} className={pathname?.startsWith("/gallery") ? "text-[#111]" : ""} href="/gallery">Gallery</Link>
-            <Link onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className={pathname?.startsWith("/price") || pathname?.startsWith("/billing") || (pathname === "/" && active === "pricing") ? "text-[#111]" : ""} href="/price">Pricing</Link>
+            <Link onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className={cleanPathname.startsWith("/price") || cleanPathname.startsWith("/billing") || (cleanPathname === "/" && active === "pricing") ? "text-[#111]" : ""} href={localizedHref("/price")}>Pricing</Link>
           </nav>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -184,7 +189,8 @@ export function TopNav() {
               <Link href="/studio?view=projects" onClick={() => trackEvent("nav_clicked", { item: "projects", target: "/studio?view=projects" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
                 Projects
               </Link>
-              <Link href="/price" onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
+              <LanguageSwitcher />
+              <Link href={localizedHref("/price")} onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
                 Pricing
               </Link>
               <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
@@ -194,10 +200,8 @@ export function TopNav() {
             </>
           ) : (
             <>
-              <span className="hidden items-center gap-2 text-sm font-black text-[#073b3a] md:inline-flex">
-                <span aria-hidden="true">EN</span>
-              </span>
-              <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
+              <LanguageSwitcher />
+              <Link href={localizedHref("/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image")} onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
                 Sign in
               </Link>
               <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="inline-flex items-center gap-2 rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
