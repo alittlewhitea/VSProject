@@ -1,0 +1,35 @@
+{
+  "nav": {
+    "login": "Dang nhap",
+    "pricing": "Bang gia",
+    "studio": "Studio"
+  },
+  "hero": {
+    "title": "Bien y tuong thanh video trong vai phut",
+    "subtitle": "Tu kich ban, hinh anh, ban trinh bay hoac prompt den noi dung sang tao hoan chinh."
+  },
+  "pricing": {
+    "starter": {
+      "title": "Goi khoi dau"
+    },
+    "pro": {
+      "title": "Premium"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Tao tai khoan mien phi"
+    },
+    "signup": {
+      "title": "Bat dau tao video trong vai phut"
+    }
+  },
+  "billing": {
+    "success": {
+      "title": "Thanh toan thanh cong"
+    },
+    "cancel": {
+      "title": "Da huy thanh toan"
+    }
+  }
+}

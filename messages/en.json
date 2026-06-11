@@ -1,0 +1,35 @@
+{
+  "nav": {
+    "login": "Sign in",
+    "pricing": "Pricing",
+    "studio": "Studio"
+  },
+  "hero": {
+    "title": "Turn your ideas into videos in minutes",
+    "subtitle": "Go from script, image, presentation, or prompt to finished creative."
+  },
+  "pricing": {
+    "starter": {
+      "title": "Starter Pack"
+    },
+    "pro": {
+      "title": "Premium"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Create your free account"
+    },
+    "signup": {
+      "title": "Start creating videos in minutes"
+    }
+  },
+  "billing": {
+    "success": {
+      "title": "Checkout success"
+    },
+    "cancel": {
+      "title": "Checkout was cancelled"
+    }
+  }
+}

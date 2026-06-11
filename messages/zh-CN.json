@@ -1,0 +1,35 @@
+{
+  "nav": {
+    "login": "登录",
+    "pricing": "价格",
+    "studio": "工作台"
+  },
+  "hero": {
+    "title": "几分钟内把想法变成视频",
+    "subtitle": "从脚本、图片、演示或提示词快速生成完整创意内容。"
+  },
+  "pricing": {
+    "starter": {
+      "title": "入门积分包"
+    },
+    "pro": {
+      "title": "高级版"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "创建免费账户"
+    },
+    "signup": {
+      "title": "几分钟内开始创作视频"
+    }
+  },
+  "billing": {
+    "success": {
+      "title": "支付成功"
+    },
+    "cancel": {
+      "title": "支付已取消"
+    }
+  }
+}

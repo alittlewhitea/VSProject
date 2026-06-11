@@ -1,0 +1,35 @@
+{
+  "nav": {
+    "login": "Entrar",
+    "pricing": "Precos",
+    "studio": "Studio"
+  },
+  "hero": {
+    "title": "Transforme ideias em videos em minutos",
+    "subtitle": "Va de roteiro, imagem, apresentacao ou prompt para uma peca criativa pronta."
+  },
+  "pricing": {
+    "starter": {
+      "title": "Pacote Inicial"
+    },
+    "pro": {
+      "title": "Premium"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Crie sua conta gratuita"
+    },
+    "signup": {
+      "title": "Comece a criar videos em minutos"
+    }
+  },
+  "billing": {
+    "success": {
+      "title": "Pagamento concluido"
+    },
+    "cancel": {
+      "title": "Pagamento cancelado"
+    }
+  }
+}

@@ -1,5 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { defaultLocale, isLocale } from "../i18n/routing";
 
 export const metadata: Metadata = {
   title: {
@@ -47,8 +49,11 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const requestLocale = headers().get("x-dreamface-locale");
+  const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <head>
         <script
           dangerouslySetInnerHTML={{
