@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { CREDIT_PACKS, SUBSCRIPTION_PLANS, formatUsd, type BillingCycle } from "../../lib/billing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, MODEL_PRICING_ROWS } from "../../lib/model-pricing";
@@ -261,6 +262,7 @@ function SubscriptionPlanCard({
   onCheckout: () => void;
   loading: boolean;
 }) {
+  const t = useTranslations();
   const price = plan.prices[cycle];
   const featured = Boolean(plan.highlight);
   const premium = plan.id === "premium";
@@ -294,7 +296,7 @@ function SubscriptionPlanCard({
               cycle === item ? "bg-white text-[#111318] shadow-sm" : "text-[#697181]"
             }`}
           >
-            {cycleLabels[item]}
+            {t(`billing.cycle.${item}`)}
           </button>
         ))}
       </div>
@@ -306,16 +308,16 @@ function SubscriptionPlanCard({
         </p>
         {price.monthlyEquivalentCents ? (
           <p className="mt-2 text-sm font-bold text-[#475569]">
-            Only {formatUsd(price.monthlyEquivalentCents).replace(".00", "")}/mo · {price.savingsText}
+            {t("billing.onlyMonthly", { price: formatUsd(price.monthlyEquivalentCents).replace(".00", ""), savings: price.savingsText || "" })}
           </p>
         ) : (
-          <p className="mt-2 text-sm font-bold text-[#475569]">{price.credits.toLocaleString()} credits / {price.interval}</p>
+          <p className="mt-2 text-sm font-bold text-[#475569]">{t("billing.creditsPerInterval", { credits: price.credits.toLocaleString(), interval: price.interval })}</p>
         )}
       </div>
 
       <div className="mt-5 rounded-2xl border border-black/10 bg-white/75 px-4 py-3">
-        <p className="text-xl font-black">{price.credits.toLocaleString()} credits</p>
-        <p className="mt-1 text-sm font-semibold text-[#5d6675]">renews every {price.interval}</p>
+        <p className="text-xl font-black">{t("billing.creditCount", { credits: price.credits.toLocaleString() })}</p>
+        <p className="mt-1 text-sm font-semibold text-[#5d6675]">{t("billing.renewsEvery", { interval: price.interval })}</p>
       </div>
 
       <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">{plan.bestFor}</p>
@@ -328,7 +330,7 @@ function SubscriptionPlanCard({
           featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#16171a] text-white"
         }`}
       >
-        {loading ? "Opening checkout..." : plan.cta}
+        {loading ? t("billing.openingCheckout") : plan.cta}
       </button>
 
       <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
@@ -344,6 +346,7 @@ function SubscriptionPlanCard({
 }
 
 export function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }) {
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -705,18 +708,18 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
           <div className="grid gap-7 lg:grid-cols-[0.82fr_1.18fr] lg:items-end">
             <div>
               <p className="inline-flex rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-black text-[#44444a] shadow-sm">
-                Billing
+                {t("billing.eyebrow")}
               </p>
               <h1 className="mt-7 text-[clamp(3.5rem,8vw,7rem)] font-black leading-[0.92] tracking-normal">
-                Manage credits and top ups
+                {t("billing.title")}
               </h1>
               <p className="mt-6 max-w-2xl text-xl font-medium leading-9 text-[#46464b]">
-                Choose a pay-as-you-go credit pack, refresh your balance, and review credit activity or Stripe purchases from one wallet page.
+                {t("billing.subtitle")}
               </p>
             </div>
 
             <div className="rounded-[2rem] border border-black/10 bg-white p-7 shadow-[0_22px_60px_rgba(20,20,24,0.08)]">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#6a6a72]">Current balance</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#6a6a72]">{t("billing.currentBalance")}</p>
               <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <p className="text-5xl font-black">{balance === null ? "--" : balance.toLocaleString()}</p>
                 <button
@@ -728,10 +731,10 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
                   disabled={refreshingCredits}
                   className="rounded-full bg-[#08bff1] px-5 py-3 text-sm font-black text-[#061215] disabled:opacity-60"
                 >
-                  {refreshingCredits ? "Refreshing" : accessToken ? "Refresh balance" : "Sign in to view"}
+                  {refreshingCredits ? t("pricing.refreshing") : accessToken ? t("billing.refreshBalance") : t("billing.signInToView")}
                 </button>
               </div>
-              <p className="mt-2 text-sm font-semibold text-[#667084]">credits available</p>
+              <p className="mt-2 text-sm font-semibold text-[#667084]">{t("billing.creditsAvailable")}</p>
             </div>
           </div>
 
@@ -744,16 +747,16 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
           <section className="mt-8 rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_48px_rgba(10,16,30,0.06)]">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">Subscription</p>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">{t("billing.subscription.eyebrow")}</p>
                 <h2 className="mt-2 text-3xl font-black tracking-normal">
-                  {currentSubscription ? `${currentSubscription.plan_id.replace("-", " ")} · ${currentSubscription.status}` : "No active membership"}
+                  {currentSubscription ? `${currentSubscription.plan_id.replace("-", " ")} · ${currentSubscription.status}` : t("billing.subscription.noActive")}
                 </h2>
                 <p className="mt-2 text-sm font-semibold leading-6 text-[#667084]">
                   {currentSubscription
                     ? `${currentSubscription.credits_per_cycle.toLocaleString()} credits per ${currentSubscription.cycle}. ${
                         currentSubscription.cancel_at_period_end ? "Cancellation is scheduled at period end." : "Manage billing through Stripe."
                       }`
-                    : "Choose Premium Lite or Premium to unlock membership benefits and renewable credits."}
+                    : t("billing.subscription.choosePlan")}
                 </p>
                 {currentSubscription?.current_period_end ? (
                   <p className="mt-2 text-sm font-semibold text-[#475569]">
@@ -767,49 +770,49 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
                 disabled={!currentSubscription?.stripe_customer_id}
                 className="rounded-full border border-black/10 bg-[#f0f2f5] px-5 py-3 text-sm font-black text-[#16171a] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Manage billing
+                {t("billing.subscription.manage")}
               </button>
             </div>
           </section>
 
           {checkoutState === "success" ? (
             <section className="mt-6 rounded-[2rem] border border-[#197a46]/20 bg-[#eefaf3] p-6 shadow-[0_18px_44px_rgba(25,122,70,0.08)]">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">Checkout success</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">{t("billing.success.title")}</p>
               <h2 className="mt-2 text-3xl font-black">
-                {matchingCheckoutPurchase ? `${matchingCheckoutPurchase.credits.toLocaleString()} credits added` : "Payment received"}
+                {matchingCheckoutPurchase ? t("billing.success.creditsAdded", { credits: matchingCheckoutPurchase.credits.toLocaleString() }) : t("billing.success.paymentReceived")}
               </h2>
               <p className="mt-2 text-sm leading-6 text-[#3f6b52]">
                 {matchingCheckoutPurchase
                   ? `${matchingCheckoutPurchase.pack_id} package - ${formatUsd(matchingCheckoutPurchase.amount_cents)} - ${formatStatus(matchingCheckoutPurchase.status)}`
-                  : "Stripe confirmation is still syncing. Your balance refreshes automatically on this page."}
+                  : t("billing.success.description")}
               </p>
             </section>
           ) : null}
 
           {checkoutState === "subscription_success" ? (
             <section className="mt-6 rounded-[2rem] border border-[#197a46]/20 bg-[#eefaf3] p-6 shadow-[0_18px_44px_rgba(25,122,70,0.08)]">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">Subscription checkout</p>
-              <h2 className="mt-2 text-3xl font-black">Membership checkout completed</h2>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">{t("billing.subscriptionSuccess.eyebrow")}</p>
+              <h2 className="mt-2 text-3xl font-black">{t("billing.subscriptionSuccess.title")}</h2>
               <p className="mt-2 text-sm leading-6 text-[#3f6b52]">
-                Stripe is confirming your subscription. Membership credits and benefits will appear after confirmation is fully enabled.
+                {t("billing.subscriptionSuccess.description")}
               </p>
             </section>
           ) : null}
 
           {lowBalance ? (
             <section className="mt-6 rounded-2xl border border-[#d8b85d]/30 bg-[#fff8df] px-5 py-4 text-sm font-semibold text-[#705d1d]">
-              Your balance is below {CREDIT_LOW_BALANCE_THRESHOLD} credits. Top up before larger video renders or high-quality image batches.
+              {t("billing.lowBalance", { threshold: CREDIT_LOW_BALANCE_THRESHOLD })}
             </section>
           ) : null}
 
           <section className="mt-10">
             <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">Membership</p>
-                <h2 className="mt-2 text-4xl font-black tracking-normal">Choose a Premium plan</h2>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">{t("billing.membership.eyebrow")}</p>
+                <h2 className="mt-2 text-4xl font-black tracking-normal">{t("billing.membership.title")}</h2>
               </div>
               <p className="max-w-xl text-sm font-semibold leading-6 text-[#667084]">
-                Premium memberships renew credits on a weekly, monthly, or yearly cycle and unlock watermark-free creation, faster queues, and commercial usage.
+                {t("billing.membership.description")}
               </p>
             </div>
             <div className="grid gap-6 lg:grid-cols-3">
@@ -859,11 +862,11 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
           <section className="mt-12">
             <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">Extra credits</p>
-                <h2 className="mt-2 text-3xl font-black tracking-normal">Need Extra Credits?</h2>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">{t("billing.extraCredits.eyebrow")}</p>
+                <h2 className="mt-2 text-3xl font-black tracking-normal">{t("billing.extraCredits.title")}</h2>
               </div>
               <p className="max-w-xl text-sm font-semibold leading-6 text-[#667084]">
-                For occasional usage. Most creators get better value with a Premium subscription.
+                {t("billing.extraCredits.description")}
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -883,7 +886,7 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
                     disabled={Boolean(loadingPack)}
                     className="mt-5 w-full rounded-xl bg-[#f0f2f5] px-5 py-3 text-sm font-black text-[#16171a] transition active:scale-[0.98] disabled:opacity-60"
                   >
-                    {loadingPack === pack.id ? "Opening checkout..." : "Recharge"}
+                    {loadingPack === pack.id ? t("billing.openingCheckout") : t("billing.recharge")}
                   </button>
                 </article>
               ))}

@@ -1,13 +1,14 @@
-﻿import Link from "next/link";
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { HomeHeroCarousel } from "../components/home-hero-carousel";
 import { PageAnalytics } from "../components/page-analytics";
 import { Reveal } from "../components/reveal";
+import { SiteFooter } from "../components/site-footer";
 import { TopNav } from "../components/top-nav";
 import { AppButton } from "../components/ui/button";
 import { CREDIT_PACKS, formatUsd } from "../lib/billing";
 import { galleryItemPath, mapGalleryRow } from "../lib/gallery";
 import { fetchPublishedGalleryItems } from "../lib/gallery-server";
-import { LEGAL_DOCUMENTS } from "../lib/legal";
 
 const plans = [
   { name: "Trial Credits", price: "Free", note: "For new accounts", credits: "100 signup credits included", href: "/studio?mode=image&workflow=text-to-image" },
@@ -120,6 +121,7 @@ const homeFaqJsonLd = {
 };
 
 export default async function HomePage() {
+  const t = await getTranslations();
   const galleryItems = await fetchPublishedGalleryItems({ limit: 8, featuredFirst: true })
     .then((rows) => rows.map(mapGalleryRow))
     .catch(() => []);
@@ -365,53 +367,19 @@ export default async function HomePage() {
             <div className="card hero-sheen relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#f3f7ff] via-white to-[#f5f0ff] px-7 py-10 text-center md:px-12">
               <div className="orb -left-8 bottom-2 h-24 w-24 bg-[#ffd5b6]" />
               <div className="orb right-0 top-0 h-28 w-28 bg-[#c6dbff]" />
-              <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-6xl">Design less around APIs. Build more around outcomes.</h3>
+              <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-6xl">{t("home.finalCta.title")}</h3>
               <p className="mx-auto mt-4 max-w-3xl text-lg leading-8 text-[#6e6e73]">
-                Launch faster with one clean studio for image and video generation.
+                {t("home.finalCta.description")}
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
-                <AppButton href="/studio?mode=image&workflow=text-to-image" variant="primary">Start in Studio</AppButton>
-                <AppButton href="/about#contact" variant="secondary">Contact sales</AppButton>
+                <AppButton href="/studio?mode=image&workflow=text-to-image" variant="primary">{t("home.finalCta.primary")}</AppButton>
+                <AppButton href="/about#contact" variant="secondary">{t("home.finalCta.secondary")}</AppButton>
               </div>
             </div>
           </Reveal>
         </section>
 
-        <footer className="mt-16 rounded-3xl bg-gradient-to-br from-[#dff3fa] via-[#e8f8ff] to-[#efeefe] px-7 py-9">
-          <div className="grid gap-7 border-b border-black/10 pb-7 md:grid-cols-5">
-            <div>
-              <p className="text-2xl font-semibold tracking-tight">dreamface</p>
-              <p className="mt-2 text-sm text-[#506170]">Unified image + video generation infrastructure.</p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Platform</p>
-              <p className="mt-2 text-sm text-[#4f5a67]">Image Studio</p>
-              <p className="text-sm text-[#4f5a67]">Video Studio</p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Platform</p>
-              <p className="mt-2 text-sm text-[#4f5a67]">Provider routing</p>
-              <p className="text-sm text-[#4f5a67]">Credits billing</p>
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Company</p>
-              <Link href="/about" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">About Us</Link>
-              <p className="text-sm text-[#4f5a67]">Documentation</p>
-              <Link href="/about#contact" className="block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Contact</Link>
-            </div>
-            <div>
-              <p className="text-sm font-semibold">License & Terms</p>
-              <div className="mt-2 grid gap-1">
-                {LEGAL_DOCUMENTS.map((document) => (
-                  <Link key={document.slug} href={`/legal/${document.slug}`} className="text-sm text-[#4f5a67] hover:text-[#1d1d1f]">
-                    {document.title}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-          <p className="pt-5 text-xs text-[#667180]">(c) 2026 DreamFace. All rights reserved.</p>
-        </footer>
+        <SiteFooter />
       </div>
     </main>
   );

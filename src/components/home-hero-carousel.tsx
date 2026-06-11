@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { defaultLocale, getLocaleFromPathname, localizeMarketingHref } from "../i18n/routing";
 import { trackEvent } from "../lib/analytics";
 
@@ -21,6 +22,7 @@ function ArrowIcon() {
 }
 
 export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
+  const t = useTranslations();
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname || "") || defaultLocale;
   const localizedHref = (href: string) => localizeMarketingHref(locale, href);
@@ -33,11 +35,11 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
       <div className="relative grid items-center gap-7 px-4 py-8 sm:px-6 sm:py-10 lg:min-h-[760px] lg:grid-cols-[0.94fr_1.06fr] lg:px-0">
         <div className="max-w-4xl pt-3 sm:pt-8 lg:pt-20">
           <h1 className="text-[clamp(3.35rem,15vw,5.8rem)] font-black leading-[0.92] tracking-[-0.055em] text-[#2f2f32] lg:text-[clamp(4rem,7.1vw,8.2rem)]">
-            Turn your ideas into
-            <span className="block text-[#11bff3]">videos in minutes</span>
+            {t("hero.titleLine1")}
+            <span className="block text-[#11bff3]">{t("hero.titleLine2")}</span>
           </h1>
           <p className="mt-6 max-w-2xl text-base font-medium leading-7 text-[#3f4148] sm:mt-9 sm:text-xl sm:leading-8">
-            Go from script, image, presentation, or prompt to finished creative. No cameras, no crew, no editing skills required.
+            {t("hero.subtitle")}
           </p>
 
           <div className="mt-7 grid gap-3 sm:mt-8 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
@@ -47,14 +49,14 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
               className="inline-flex h-[52px] items-center justify-center gap-3 rounded-md border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-[#2f2f32] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:h-14 sm:justify-start sm:text-base"
             >
               <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-lg font-black text-[#4285f4]">G</span>
-              Continue with Google
+              {t("hero.ctaGoogle")}
             </Link>
             <Link
               href={localizedHref("/auth?next=%2Fstudio%3Fview%3Dhome")}
               onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/auth", item: "get_started" })}
               className="inline-flex h-[52px] items-center justify-center gap-3 rounded-xl bg-[#08bdf2] px-7 py-3 text-sm font-black text-[#08232d] shadow-[0_18px_38px_rgba(8,189,242,0.22)] transition hover:-translate-y-0.5 hover:bg-[#15c8fa] sm:h-14 sm:justify-start sm:text-base"
             >
-              Get Started for Free
+              {t("hero.ctaPrimary")}
               <ArrowIcon />
             </Link>
           </div>

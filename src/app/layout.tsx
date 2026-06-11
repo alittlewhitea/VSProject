@@ -1,7 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { defaultLocale, isLocale } from "../i18n/routing";
+import { NextIntlClientProvider } from "next-intl";
+import { defaultLocale, isLocale, type Locale } from "../i18n/routing";
 
 export const metadata: Metadata = {
   title: {
@@ -48,9 +49,14 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+async function loadMessages(locale: Locale) {
+  return (await import(`../../messages/${locale}.json`)).default;
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const requestLocale = headers().get("x-dreamface-locale");
   const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
+  const messages = await loadMessages(locale);
 
   return (
     <html lang={locale}>
@@ -71,7 +77,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
-        {children}
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

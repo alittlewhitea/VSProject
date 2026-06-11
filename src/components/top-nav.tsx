@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { LanguageSwitcher } from "./language-switcher";
 import { defaultLocale, getLocaleFromPathname, localizeMarketingHref, stripLocaleFromPathname } from "../i18n/routing";
@@ -9,6 +10,7 @@ import { trackEvent } from "../lib/analytics";
 import { createBrowserSupabaseClient } from "../lib/supabase-client";
 
 export function TopNav() {
+  const t = useTranslations();
   const pathname = usePathname();
   const cleanPathname = stripLocaleFromPathname(pathname || "/");
   const locale = getLocaleFromPathname(pathname || "") || defaultLocale;
@@ -96,7 +98,7 @@ export function TopNav() {
       <div className="flex items-center justify-between gap-3 sm:gap-5">
         <div className="flex min-w-0 items-center gap-5 lg:gap-10">
           <Link href={localizedHref("/")} onClick={() => trackEvent("nav_clicked", { item: "logo", target: "/" })} className="shrink-0 text-xl font-black leading-none tracking-tight sm:text-3xl">
-            dreamface
+            {t("nav.logo")}
           </Link>
           <span className="hidden h-7 w-px bg-black/12 lg:block" />
           <nav className="hidden gap-7 whitespace-nowrap text-base font-bold text-[#2f2f32] lg:flex">
@@ -106,7 +108,7 @@ export function TopNav() {
                 className={`rounded-full px-4 py-2 transition ${platformMenuOpen ? "bg-[#e8f7ff]" : ""} ${cleanPathname === "/" && active === "platform" ? "text-[#111]" : ""}`}
                 href={localizedHref("/#platform")}
               >
-                Platform
+                {t("nav.platform")}
               </a>
               <div
                 onMouseEnter={openPlatformMenu}
@@ -118,18 +120,18 @@ export function TopNav() {
                 <div className="overflow-hidden rounded-[2rem] border border-[#08bff1] bg-white shadow-[0_28px_90px_rgba(15,23,42,0.16)]">
                   <div className="grid gap-10 px-8 py-8 xl:grid-cols-[0.8fr_1.2fr]">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#303238]">Products</p>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#303238]">{t("nav.products")}</p>
                       <div className="mt-6 space-y-5 border-t border-[#1dc9ff] pt-5">
                         <Link href="/studio?view=home" className="block rounded-2xl bg-[linear-gradient(120deg,#10bff3,#a3adff_58%,#f29df7)] px-5 py-4 text-white shadow-[0_18px_38px_rgba(16,191,243,0.24)]">
-                          <span className="rounded-full border border-white/35 bg-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em]">Featured</span>
-                          <span className="mt-3 block text-xl font-black">Creative AI Toolkit</span>
-                          <span className="mt-1 block text-sm font-semibold text-white/86">Open every DreamFace workspace from one hub</span>
+                          <span className="rounded-full border border-white/35 bg-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em]">{t("nav.featured")}</span>
+                          <span className="mt-3 block text-xl font-black">{t("nav.creativeToolkit")}</span>
+                          <span className="mt-1 block text-sm font-semibold text-white/86">{t("nav.creativeToolkitDescription")}</span>
                         </Link>
                         {[
-                          ["AI Image Studio", "Create images from prompts or reference assets", "/studio?mode=image&workflow=text-to-image"],
-                          ["AI Video Studio", "Turn text or images into polished video", "/studio?mode=video&workflow=text-to-video"],
-                          ["AI Audio Generator", "Generate ElevenLabs voiceovers from scripts", "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts"],
-                          ["Projects", "Manage creations, prompts, refunds, and history", "/studio?view=projects"]
+                          [t("nav.imageStudio"), t("nav.imageStudioDescription"), "/studio?mode=image&workflow=text-to-image"],
+                          [t("nav.videoStudio"), t("nav.videoStudioDescription"), "/studio?mode=video&workflow=text-to-video"],
+                          [t("nav.audioGenerator"), t("nav.audioGeneratorDescription"), "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts"],
+                          [t("nav.projects"), t("nav.projectsDescription"), "/studio?view=projects"]
                         ].map(([title, body, href]) => (
                           <Link key={title} href={href} className="block rounded-2xl px-4 py-2 transition hover:bg-[#f3f8ff]">
                             <span className="block text-lg font-black text-[#202124]">{title}</span>
@@ -139,16 +141,16 @@ export function TopNav() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#303238]">Create</p>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#303238]">{t("nav.create")}</p>
                       <div className="mt-6 grid gap-x-10 gap-y-5 border-t border-[#1dc9ff] pt-7 md:grid-cols-2">
                         {[
-                          ["Text to Image", "Generate polished ads, posters, thumbnails, and concepts", "/studio?mode=image&workflow=text-to-image"],
-                          ["Image to Image", "Edit, restyle, or extend reference images", "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image"],
-                          ["Image Enhance", "Upscale and clean up owned images", "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image"],
-                          ["Background Remove", "Remove backgrounds and export transparent PNG assets", "/studio?mode=image&workflow=background-remove&provider=bria-background-remove"],
-                          ["Text to Video", "Turn written scenes into short motion clips", "/studio?mode=video&workflow=text-to-video"],
-                          ["Image to Video", "Animate a product, portrait, or reference frame", "/studio?mode=video&workflow=image-to-video"],
-                          ["Text to Audio", "Create natural voiceovers from scripts", "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts"]
+                          [t("nav.textToImage"), t("nav.textToImageDescription"), "/studio?mode=image&workflow=text-to-image"],
+                          [t("nav.imageToImage"), t("nav.imageToImageDescription"), "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image"],
+                          [t("nav.imageEnhance"), t("nav.imageEnhanceDescription"), "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image"],
+                          [t("nav.backgroundRemove"), t("nav.backgroundRemoveDescription"), "/studio?mode=image&workflow=background-remove&provider=bria-background-remove"],
+                          [t("nav.textToVideo"), t("nav.textToVideoDescription"), "/studio?mode=video&workflow=text-to-video"],
+                          [t("nav.imageToVideo"), t("nav.imageToVideoDescription"), "/studio?mode=video&workflow=image-to-video"],
+                          [t("nav.textToAudio"), t("nav.textToAudioDescription"), "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts"]
                         ].map(([title, body, href]) => (
                           <Link key={title} href={href} className="block rounded-2xl px-4 py-3 transition hover:bg-[#f7fbff]">
                             <span className="block text-lg font-black text-[#202124]">{title}</span>
@@ -160,17 +162,17 @@ export function TopNav() {
                   </div>
                   <Link href={localizedHref("/price")} className="flex items-center justify-between bg-[linear-gradient(90deg,#10bff3,#9cb3ff_58%,#f29df7)] px-8 py-5 text-white">
                     <span>
-                      <span className="rounded-full border border-white/40 bg-white/15 px-4 py-1 text-xs font-black uppercase tracking-[0.14em]">Pay as you go</span>
-                      <span className="ml-5 text-xl font-black">Credit packs for individuals</span>
+                      <span className="rounded-full border border-white/40 bg-white/15 px-4 py-1 text-xs font-black uppercase tracking-[0.14em]">{t("nav.payAsYouGo")}</span>
+                      <span className="ml-5 text-xl font-black">{t("nav.creditPacksForIndividuals")}</span>
                     </span>
                     <span className="text-2xl font-black">-&gt;</span>
                   </Link>
                 </div>
               </div>
             </div>
-            <a onClick={() => trackEvent("nav_clicked", { item: "providers", target: "/#providers" })} className={cleanPathname === "/" && active === "providers" ? "text-[#111]" : ""} href={localizedHref("/#providers")}>Providers</a>
-            <Link onClick={() => trackEvent("nav_clicked", { item: "gallery", target: "/gallery" })} className={pathname?.startsWith("/gallery") ? "text-[#111]" : ""} href="/gallery">Gallery</Link>
-            <Link onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className={cleanPathname.startsWith("/price") || cleanPathname.startsWith("/billing") || (cleanPathname === "/" && active === "pricing") ? "text-[#111]" : ""} href={localizedHref("/price")}>Pricing</Link>
+            <a onClick={() => trackEvent("nav_clicked", { item: "providers", target: "/#providers" })} className={cleanPathname === "/" && active === "providers" ? "text-[#111]" : ""} href={localizedHref("/#providers")}>{t("nav.providers")}</a>
+            <Link onClick={() => trackEvent("nav_clicked", { item: "gallery", target: "/gallery" })} className={pathname?.startsWith("/gallery") ? "text-[#111]" : ""} href="/gallery">{t("nav.gallery")}</Link>
+            <Link onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className={cleanPathname.startsWith("/price") || cleanPathname.startsWith("/billing") || (cleanPathname === "/" && active === "pricing") ? "text-[#111]" : ""} href={localizedHref("/price")}>{t("nav.pricing")}</Link>
           </nav>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -184,29 +186,29 @@ export function TopNav() {
                 }}
                 className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] sm:inline-flex"
               >
-                Sign out
+                {t("nav.logout")}
               </button>
               <Link href="/studio?view=projects" onClick={() => trackEvent("nav_clicked", { item: "projects", target: "/studio?view=projects" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
-                Projects
+                {t("nav.projects")}
               </Link>
               <LanguageSwitcher />
               <Link href={localizedHref("/price")} onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
-                Pricing
+                {t("nav.pricing")}
               </Link>
               <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
-                <span className="sm:hidden">Studio</span>
-                <span className="hidden sm:inline">Open Studio</span>
+                <span className="sm:hidden">{t("nav.studio")}</span>
+                <span className="hidden sm:inline">{t("nav.openStudio")}</span>
               </Link>
             </>
           ) : (
             <>
               <LanguageSwitcher />
               <Link href={localizedHref("/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image")} onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
-                Sign in
+                {t("nav.login")}
               </Link>
               <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="inline-flex items-center gap-2 rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
-                <span className="sm:hidden">Studio</span>
-                <span className="hidden sm:inline">Open Studio</span>
+                <span className="sm:hidden">{t("nav.studio")}</span>
+                <span className="hidden sm:inline">{t("nav.openStudio")}</span>
                 <span aria-hidden="true" className="hidden sm:inline">-&gt;</span>
               </Link>
             </>
