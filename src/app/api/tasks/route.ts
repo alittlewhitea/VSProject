@@ -4,6 +4,12 @@ import { getUserFromBearerToken } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { fetchFal } from "../../../lib/fal-fetch";
 import { refundCredits } from "../../../lib/credits";
+import {
+  falApiErrorFromResponse,
+  falRefundCreditsFromCost,
+  formatFalFailureReason,
+  parseFalFailure
+} from "../../../lib/fal-errors";
 
 const TASK_HISTORY_TIMEOUT_MS = 4500;
 const TASK_SYNC_LIMIT = 5;
@@ -255,7 +261,8 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
         const effectiveResponseUrl = providerResponseUrl || task.response_url;
         let result: unknown = null;
 
-        if (upperStatus === "COMPLETED" && isAllowedFalUrl(effectiveResponseUrl)) {
+        let responseFailureInfo: ReturnType<typeof parseFalFailure> | null = null;
+        if ((upperStatus === "COMPLETED" || upperStatus === "FAILED" || upperStatus === "ERROR") && isAllowedFalUrl(effectiveResponseUrl)) {
           const resultRes = await fetchFal(effectiveResponseUrl, {
             attempts: 1,
             timeoutMs: 5000,
@@ -266,12 +273,21 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
           });
           if (resultRes.ok) {
             result = await resultRes.json();
+          } else {
+            const falError = await falApiErrorFromResponse(resultRes);
+            responseFailureInfo = falError.info;
+            result = falError.info.details;
           }
         }
 
-        if (normalized === "failed" && task.estimated_credits > 0) {
-          await refundCredits(admin, userId, task.estimated_credits, "generation_refund", task.id);
+        const failureInfo = normalized === "failed" ? responseFailureInfo || parseFalFailure(result || statusPayload) : null;
+        const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits) : 0;
+        if (normalized === "failed" && refundCreditsAmount > 0) {
+          await refundCredits(admin, userId, refundCreditsAmount, "generation_refund", task.id);
         }
+        const failureReason = failureInfo
+          ? formatFalFailureReason(failureInfo, task.estimated_credits, refundCreditsAmount)
+          : null;
 
         await admin
           .from("generation_tasks")
@@ -280,8 +296,8 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
             response_url: effectiveResponseUrl,
             output_url: extractMediaUrl(result),
             raw_result: result,
-            failure_code: normalized === "failed" ? "provider_failed" : null,
-            failure_reason: normalized === "failed" ? "The provider reported this task as failed." : null,
+            failure_code: failureInfo?.code || (normalized === "failed" ? "provider_failed" : null),
+            failure_reason: failureReason,
             last_checked_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })

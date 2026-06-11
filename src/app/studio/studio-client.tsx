@@ -2310,6 +2310,8 @@ function StudioContent() {
       } else {
         setStatusText("Task queued via fal.ai live API. Waiting for provider...");
         let finalStatus: "COMPLETED" | "FAILED" | "CANCELED" | "ERROR" | null = null;
+        let finalFailureReason: string | null = null;
+        let finalActualCredits: number | null = null;
         const maxPollAttempts = frontendPollAttempts(modeForPricing(mode), provider);
 
         for (let i = 0; i < maxPollAttempts; i += 1) {
@@ -2336,6 +2338,7 @@ function StudioContent() {
             failureReason?: string;
             refundLedgerId?: number | string | null;
             refundedCredits?: number;
+            actualCredits?: number;
           };
           if (typeof statusPayload.balance === "number") {
             setCreditBalance(statusPayload.balance);
@@ -2360,6 +2363,8 @@ function StudioContent() {
               );
             }
             finalStatus = rawStatus as "COMPLETED" | "FAILED" | "CANCELED" | "ERROR";
+            finalFailureReason = statusPayload.failureReason || null;
+            finalActualCredits = typeof statusPayload.actualCredits === "number" ? statusPayload.actualCredits : null;
             break;
           }
         }
@@ -2375,11 +2380,11 @@ function StudioContent() {
         } else {
           if (finalStatus) {
             setTasks((prev) =>
-              prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: 0 } : task))
+              prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: finalActualCredits ?? 0, failureReason: finalFailureReason } : task))
             );
             setStatusTone("error");
-            setStatusText("fal.ai task did not complete successfully. Credits are refunded automatically when the provider failure is confirmed.");
-            trackEvent("generation_failed", { mode, provider, task_id: payload.taskId, transport: "real", final_status: finalStatus }, liveToken);
+            setStatusText(finalFailureReason || "fal.ai task did not complete successfully. Credits are refunded automatically when the provider failure is confirmed.");
+            trackEvent("generation_failed", { mode, provider, task_id: payload.taskId, transport: "real", final_status: finalStatus, failure_reason: finalFailureReason }, liveToken);
           } else {
             setTasks((prev) =>
               prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Running" } : task))

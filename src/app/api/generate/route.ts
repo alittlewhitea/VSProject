@@ -4,6 +4,13 @@ import { getUserFromBearerToken } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { fetchFal } from "../../../lib/fal-fetch";
 import {
+  FalApiError,
+  falApiErrorFromResponse,
+  falRefundCreditsFromCost,
+  formatFalFailureReason,
+  parseFalFailure
+} from "../../../lib/fal-errors";
+import {
   claimSignupBonusForIp,
   ensureCreditAccount,
   getCreditAccount,
@@ -517,8 +524,7 @@ async function submitFalQueue(falKey: string, modelId: string, input: unknown) {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`fal.ai request failed: ${response.status} ${errorText}`);
+    throw await falApiErrorFromResponse(response);
   }
 
   return (await response.json()) as {
@@ -527,6 +533,14 @@ async function submitFalQueue(falKey: string, modelId: string, input: unknown) {
     status_url: string;
     response_url?: string;
   };
+}
+
+function falFailureInfoFromError(error: unknown) {
+  if (error instanceof FalApiError) return error.info;
+  return parseFalFailure({
+    detail: error instanceof Error ? error.message : "fal.ai request failed.",
+    error_type: "provider_submit_failed"
+  });
 }
 
 async function waitForFalResponse(falKey: string, submitPayload: { status_url: string; response_url?: string }, timeoutMs: number) {
@@ -863,30 +877,38 @@ export async function POST(request: Request) {
       }
       submitPayload = await submitFalQueue(falKey, modelId, buildFalInput(body, prompt));
     } catch (networkError) {
-      const balance = await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
+      const failureInfo = falFailureInfoFromError(networkError);
+      const refundedCredits = falRefundCreditsFromCost(failureInfo.costUsd, estimatedCredits);
+      const balance =
+        refundedCredits > 0
+          ? await refundCredits(admin, user.id, refundedCredits, "generation_refund", taskId)
+          : spendResult.balance;
       const failedSurface = isAvatarProvider ? "Avatar generation" : "provider generation";
+      const failureReason =
+        networkError instanceof FalApiError
+          ? formatFalFailureReason(failureInfo, estimatedCredits, refundedCredits)
+          : `fal.ai error before ${failedSurface} started. ${formatFalFailureReason(failureInfo, estimatedCredits, refundedCredits)}`;
       await admin
         .from("generation_tasks")
         .update({
           status: "failed",
-          failure_code: "provider_submit_failed",
-          failure_reason:
-            networkError instanceof Error
-              ? `fal.ai error before ${failedSurface} started. Credits were refunded automatically. ${networkError.message}`
-              : `fal.ai error before ${failedSurface} started. Credits were refunded automatically.`,
+          failure_code: failureInfo.code || "provider_submit_failed",
+          failure_reason: failureReason,
+          raw_result: failureInfo.details,
           updated_at: new Date().toISOString()
         })
         .eq("id", taskId)
         .eq("user_id", user.id);
       return NextResponse.json(
         {
-          error:
-            networkError instanceof Error
-              ? networkError.message
-              : "fal.ai network error.",
+          error: failureReason,
+          failureCode: failureInfo.code,
+          failureReason,
+          refundedCredits,
+          actualCredits: Math.max(0, estimatedCredits - refundedCredits),
           balance
         },
-        { status: 502 }
+        { status: networkError instanceof FalApiError && networkError.status < 500 ? 422 : 502 }
       );
     }
 

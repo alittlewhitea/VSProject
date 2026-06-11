@@ -3,6 +3,12 @@ import { getUserFromBearerToken } from "../../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { fetchFal } from "../../../../lib/fal-fetch";
 import { refundCredits } from "../../../../lib/credits";
+import {
+  falApiErrorFromResponse,
+  falRefundCreditsFromCost,
+  formatFalFailureReason,
+  parseFalFailure
+} from "../../../../lib/fal-errors";
 
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
@@ -64,11 +70,11 @@ async function refundAndReadLedger(
   admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
   userId: string,
   taskId: string,
-  estimatedCredits: number
+  refundCreditsAmount: number
 ): Promise<RefundInfo> {
   let balance: number | null = null;
-  if (estimatedCredits > 0) {
-    balance = await refundCredits(admin, userId, estimatedCredits, "generation_refund", taskId);
+  if (refundCreditsAmount > 0) {
+    balance = await refundCredits(admin, userId, refundCreditsAmount, "generation_refund", taskId);
   }
   const ledger = await readRefundLedger(admin, userId, taskId);
   return {
@@ -278,7 +284,8 @@ export async function GET(request: Request) {
     const effectiveResponseUrl = providerResponseUrl || responseUrl;
 
     let result: unknown = null;
-    if (upperStatus === "COMPLETED" && effectiveResponseUrl && isAllowedFalUrl(effectiveResponseUrl)) {
+    let responseFailureInfo: ReturnType<typeof parseFalFailure> | null = null;
+    if ((upperStatus === "COMPLETED" || upperStatus === "FAILED" || upperStatus === "ERROR") && effectiveResponseUrl && isAllowedFalUrl(effectiveResponseUrl)) {
       const resultRes = await fetchFal(effectiveResponseUrl, {
         attempts: 2,
         timeoutMs: 20000,
@@ -289,6 +296,10 @@ export async function GET(request: Request) {
       });
       if (resultRes.ok) {
         result = await resultRes.json();
+      } else {
+        const falError = await falApiErrorFromResponse(resultRes);
+        responseFailureInfo = falError.info;
+        result = falError.info.details;
       }
     }
     let statusMeta: Record<string, unknown> = {};
@@ -351,20 +362,26 @@ export async function GET(request: Request) {
           }
 
           let refund: RefundInfo = { balance: null, refundLedgerId: null, refundedCredits: 0 };
+          let failureCode: string | null = null;
+          let failureReason: string | null = null;
           if (normalized === "failed") {
             const estimatedCredits =
               taskForRefund && typeof taskForRefund.estimated_credits === "number"
                 ? taskForRefund.estimated_credits
                 : 0;
-            refund = await refundAndReadLedger(admin, user.id, taskId, estimatedCredits);
+            const failureInfo = responseFailureInfo || parseFalFailure(result || statusPayload);
+            const refundCredits = falRefundCreditsFromCost(failureInfo.costUsd, estimatedCredits);
+            refund = await refundAndReadLedger(admin, user.id, taskId, refundCredits);
+            failureCode = failureInfo.code || "provider_failed";
+            failureReason = formatFalFailureReason(failureInfo, estimatedCredits, refundCredits);
             statusMeta = {
-              failureCode: "provider_failed",
-              failureReason: "The provider reported this task as failed. Credits were refunded automatically.",
-              ...refund
+              failureCode,
+              failureReason,
+              actualCredits: Math.max(0, estimatedCredits - refundCredits),
+              ...refund,
             };
           }
 
-          const failureReason = normalized === "failed" ? "The provider reported this task as failed. Credits were refunded automatically." : null;
           await admin
             .from("generation_tasks")
             .update({
@@ -372,7 +389,7 @@ export async function GET(request: Request) {
               response_url: effectiveResponseUrl,
               output_url: mediaUrl,
               raw_result: result,
-              failure_code: normalized === "failed" ? "provider_failed" : null,
+              failure_code: failureCode,
               failure_reason: failureReason,
               last_checked_at: new Date().toISOString(),
               updated_at: new Date().toISOString()

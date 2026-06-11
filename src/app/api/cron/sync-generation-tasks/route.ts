@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { refundCredits } from "../../../../lib/credits";
 import { fetchFal } from "../../../../lib/fal-fetch";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
+import {
+  falApiErrorFromResponse,
+  falRefundCreditsFromCost,
+  formatFalFailureReason,
+  parseFalFailure
+} from "../../../../lib/fal-errors";
 
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
@@ -172,7 +178,8 @@ async function syncTask(task: PendingTaskRow, falKey: string) {
   }
 
   let result: unknown = null;
-  if (upperStatus === "COMPLETED" && isAllowedFalUrl(effectiveResponseUrl)) {
+  let responseFailureInfo: ReturnType<typeof parseFalFailure> | null = null;
+  if ((upperStatus === "COMPLETED" || upperStatus === "FAILED" || upperStatus === "ERROR") && isAllowedFalUrl(effectiveResponseUrl)) {
     const resultRes = await fetchFal(effectiveResponseUrl, {
       attempts: 2,
       timeoutMs: 20000,
@@ -181,12 +188,21 @@ async function syncTask(task: PendingTaskRow, falKey: string) {
     });
     if (resultRes.ok) {
       result = await resultRes.json();
+    } else {
+      const falError = await falApiErrorFromResponse(resultRes);
+      responseFailureInfo = falError.info;
+      result = falError.info.details;
     }
   }
 
+  const failureInfo = normalized === "failed" ? responseFailureInfo || parseFalFailure(result || statusPayload) : null;
+  const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits) : 0;
   if (normalized === "failed") {
-    await refundTaskCredits(task);
+    await refundTaskCredits({ ...task, estimated_credits: refundCreditsAmount });
   }
+  const failureReason = failureInfo
+    ? formatFalFailureReason(failureInfo, task.estimated_credits, refundCreditsAmount)
+    : null;
 
   await admin
     .from("generation_tasks")
@@ -195,8 +211,8 @@ async function syncTask(task: PendingTaskRow, falKey: string) {
       response_url: effectiveResponseUrl,
       output_url: normalized === "completed" ? extractMediaUrl(result) : null,
       raw_result: result,
-      failure_code: normalized === "failed" ? "provider_failed" : null,
-      failure_reason: normalized === "failed" ? "Cron sync: the provider reported this task as failed. Credits were refunded." : null,
+      failure_code: failureInfo?.code || (normalized === "failed" ? "provider_failed" : null),
+      failure_reason: failureReason,
       last_checked_at: now,
       updated_at: now
     })

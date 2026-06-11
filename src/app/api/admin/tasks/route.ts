@@ -3,6 +3,12 @@ import { getAdminUserFromRequest } from "../../../../lib/admin-auth";
 import { refundCredits } from "../../../../lib/credits";
 import { fetchFal } from "../../../../lib/fal-fetch";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
+import {
+  falApiErrorFromResponse,
+  falRefundCreditsFromCost,
+  formatFalFailureReason,
+  parseFalFailure
+} from "../../../../lib/fal-errors";
 
 const TASK_SELECT =
   "id,user_id,mode,provider,prompt,status,estimated_credits,transport,provider_request_id,status_url,response_url,output_url,created_at,updated_at,title,is_favorite,failure_code,failure_reason,last_checked_at,timed_out_at";
@@ -201,7 +207,8 @@ async function syncProviderTask(
     : task.response_url;
 
   let result: unknown = null;
-  if (upperStatus === "COMPLETED" && isAllowedFalUrl(responseUrl)) {
+  let responseFailureInfo: ReturnType<typeof parseFalFailure> | null = null;
+  if ((upperStatus === "COMPLETED" || upperStatus === "FAILED" || upperStatus === "ERROR") && isAllowedFalUrl(responseUrl)) {
     const resultRes = await fetchFal(responseUrl, {
       attempts: 2,
       timeoutMs: 20000,
@@ -209,9 +216,12 @@ async function syncProviderTask(
       cache: "no-store"
     });
     if (!resultRes.ok) {
-      throw new Error(`Provider result fetch failed (${resultRes.status}).`);
+      const falError = await falApiErrorFromResponse(resultRes);
+      responseFailureInfo = falError.info;
+      result = falError.info.details;
+    } else {
+      result = await resultRes.json();
     }
-    result = await resultRes.json();
   }
 
   const now = new Date().toISOString();
@@ -225,12 +235,20 @@ async function syncProviderTask(
     failureCode = "task_timeout";
     failureReason = `Admin sync: provider task exceeded ${taskTimeoutMinutes()} minutes. Credits were refunded.`;
   } else if (normalized === "failed") {
-    failureCode = "provider_failed";
-    failureReason = "Admin sync: the provider reported this task as failed. Credits were refunded.";
+    const failureInfo = responseFailureInfo || parseFalFailure(result || statusPayload);
+    const refundCreditsAmount = falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits);
+    failureCode = failureInfo.code || "provider_failed";
+    failureReason = formatFalFailureReason(failureInfo, task.estimated_credits, refundCreditsAmount);
   }
 
   if (finalStatus === "failed" && task.estimated_credits > 0) {
-    await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", task.id);
+    const failureInfo = normalized === "failed" && !timedOut ? responseFailureInfo || parseFalFailure(result || statusPayload) : null;
+    const refundCreditsAmount = failureInfo
+      ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits)
+      : task.estimated_credits;
+    if (refundCreditsAmount > 0) {
+      await refundCredits(admin, task.user_id, refundCreditsAmount, "generation_refund", task.id);
+    }
   }
 
   await admin

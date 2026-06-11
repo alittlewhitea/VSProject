@@ -107,7 +107,7 @@ function nanoFeatureCredits(input: Pick<GenerationEstimateInput, "enableWebSearc
   return credits;
 }
 
-function creditsFromFalUsd(amountUsd: number, minimumCredits: number) {
+export function creditsFromFalUsd(amountUsd: number, minimumCredits: number) {
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) return minimumCredits;
   return Math.max(minimumCredits, Math.ceil(amountUsd * CREDIT_USD_TO_CREDITS * CREDIT_MARKUP_MULTIPLIER));
 }
