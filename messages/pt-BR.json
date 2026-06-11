@@ -1,393 +1,397 @@
 {
   "nav": {
     "logo": "dreamface",
-    "platform": "Platform",
-    "providers": "Providers",
-    "gallery": "Gallery",
-    "pricing": "Pricing",
-    "login": "Sign in",
-    "logout": "Sign out",
-    "projects": "Projects",
+    "platform": "Plataforma",
+    "providers": "Modelos",
+    "gallery": "Galeria",
+    "pricing": "Pre?os",
+    "login": "Entrar",
+    "logout": "Sair",
+    "projects": "Projetos",
     "studio": "Studio",
-    "openStudio": "Open Studio",
-    "products": "Products",
-    "create": "Create",
-    "featured": "Featured",
-    "creativeToolkit": "Creative AI Toolkit",
-    "creativeToolkitDescription": "Open every DreamFace workspace from one hub",
-    "imageStudio": "AI Image Studio",
-    "imageStudioDescription": "Create images from prompts or reference assets",
-    "videoStudio": "AI Video Studio",
-    "videoStudioDescription": "Turn text or images into polished video",
-    "audioGenerator": "AI Audio Generator",
-    "audioGeneratorDescription": "Generate ElevenLabs voiceovers from scripts",
-    "projectsDescription": "Manage creations, prompts, refunds, and history",
-    "textToImage": "Text to Image",
-    "textToImageDescription": "Generate polished ads, posters, thumbnails, and concepts",
-    "imageToImage": "Image to Image",
-    "imageToImageDescription": "Edit, restyle, or extend reference images",
-    "imageEnhance": "Image Enhance",
-    "imageEnhanceDescription": "Upscale and clean up owned images",
-    "backgroundRemove": "Background Remove",
-    "backgroundRemoveDescription": "Remove backgrounds and export transparent PNG assets",
-    "textToVideo": "Text to Video",
-    "textToVideoDescription": "Turn written scenes into short motion clips",
-    "imageToVideo": "Image to Video",
-    "imageToVideoDescription": "Animate a product, portrait, or reference frame",
-    "textToAudio": "Text to Audio",
-    "textToAudioDescription": "Create natural voiceovers from scripts",
-    "payAsYouGo": "Pay as you go",
-    "creditPacksForIndividuals": "Credit packs for individuals"
+    "openStudio": "Abrir Studio",
+    "products": "Produtos",
+    "create": "Criar",
+    "featured": "Destaque",
+    "creativeToolkit": "Kit criativo com IA",
+    "creativeToolkitDescription": "Abra todos os espa?os de cria??o da DreamFace em um s? lugar",
+    "imageStudio": "Studio de Imagens com IA",
+    "imageStudioDescription": "Crie imagens com prompts ou refer?ncias visuais",
+    "videoStudio": "Studio de V?deo com IA",
+    "videoStudioDescription": "Transforme texto ou imagens em v?deos prontos para usar",
+    "audioGenerator": "Gerador de Voz com IA",
+    "audioGeneratorDescription": "Gere narra??es naturais com ElevenLabs a partir de roteiros",
+    "projectsDescription": "Gerencie cria??es, prompts, reembolsos e hist?rico",
+    "textToImage": "Texto para Imagem",
+    "textToImageDescription": "Gere an?ncios, p?steres, thumbnails e conceitos visuais",
+    "imageToImage": "Imagem para Imagem",
+    "imageToImageDescription": "Edite, estilize ou expanda imagens de refer?ncia",
+    "imageEnhance": "Melhorar Imagem",
+    "imageEnhanceDescription": "Aumente e limpe imagens pr?prias",
+    "backgroundRemove": "Remover Fundo",
+    "backgroundRemoveDescription": "Remova fundos e exporte PNGs transparentes",
+    "textToVideo": "Texto para V?deo",
+    "textToVideoDescription": "Transforme cenas escritas em clipes curtos com movimento",
+    "imageToVideo": "Imagem para V?deo",
+    "imageToVideoDescription": "Anime um produto, retrato ou frame de refer?ncia",
+    "textToAudio": "Texto para ?udio",
+    "textToAudioDescription": "Crie narra??es naturais a partir de roteiros",
+    "payAsYouGo": "Pague conforme usar",
+    "creditPacksForIndividuals": "Pacotes de cr?ditos para criadores"
   },
   "hero": {
-    "titleLine1": "Turn your ideas into",
-    "titleLine2": "videos in minutes",
-    "title": "Turn your ideas into videos in minutes",
-    "subtitle": "Go from script, image, presentation, or prompt to finished creative. No cameras, no crew, no editing skills required.",
-    "ctaGoogle": "Continue with Google",
-    "ctaPrimary": "Get Started for Free"
+    "titleLine1": "Transforme suas ideias em",
+    "titleLine2": "v?deos em minutos",
+    "title": "Transforme suas ideias em v?deos em minutos",
+    "subtitle": "V? de roteiro, imagem, apresenta??o ou prompt para uma pe?a criativa pronta. Sem c?meras, sem equipe e sem experi?ncia em edi??o.",
+    "ctaGoogle": "Continuar com Google",
+    "ctaPrimary": "Come?ar gr?tis"
   },
   "home": {
     "gallery": {
-      "eyebrow": "Prompt Gallery",
-      "title": "Explore creator-ready AI visuals",
-      "description": "Browse reusable prompts, model examples, and curated references before opening the studio.",
-      "cta": "View More"
+      "eyebrow": "Galeria de Prompts",
+      "title": "Explore visuais de IA prontos para criar",
+      "description": "Veja prompts reutiliz?veis, exemplos de modelos e refer?ncias selecionadas antes de abrir o Studio.",
+      "cta": "Ver mais"
     },
     "platform": {
-      "titleLine1": "Platform tools for every",
-      "titleLine2": "creative workflow",
-      "description": "Open the right workspace for image generation, video creation, product ads, UGC concepts, and model-powered production from one platform hub.",
+      "titleLine1": "Ferramentas para todo",
+      "titleLine2": "fluxo criativo",
+      "description": "Abra o espa?o certo para gera??o de imagens, cria??o de v?deos, an?ncios de produto, conceitos UGC e produ??o com modelos em um ?nico hub.",
       "card": {
-        "textToVideo": "Text to Video",
-        "photoToVideo": "Photo to Video",
-        "productAds": "Product Ads",
-        "ugcAds": "UGC ads",
-        "aiModels": "AI Models"
+        "textToVideo": "Texto para V?deo",
+        "photoToVideo": "Foto para V?deo",
+        "productAds": "An?ncios de Produto",
+        "ugcAds": "An?ncios UGC",
+        "aiModels": "Modelos de IA"
       }
     },
     "textToVideo": {
-      "eyebrow": "Text to Video",
-      "title": "Turn text into video with AI",
-      "description": "Create complete AI videos from a script using text to video AI. Describe the scene, pacing, voice, camera motion, and output style, then generate polished video clips for explainers, ads, sales, onboarding, or social content.",
-      "cta": "Get Started For Free"
+      "eyebrow": "Texto para V?deo",
+      "title": "Transforme texto em v?deo com IA",
+      "description": "Crie v?deos completos a partir de um roteiro. Descreva cena, ritmo, voz, movimento de c?mera e estilo final para gerar clipes prontos para explicativos, an?ncios, vendas, onboarding ou redes sociais.",
+      "cta": "Come?ar gr?tis"
     },
     "photoToVideo": {
-      "eyebrow": "Photo to Video",
-      "title": "Transform Photos into Videos",
-      "description": "Turn any image into a video in seconds. Upload an image, add a script or motion prompt, and transform it into a dynamic AI-generated video with natural movement, smooth pacing, and export-ready framing.",
-      "cta": "Get Started For Free"
+      "eyebrow": "Foto para V?deo",
+      "title": "Transforme fotos em v?deos",
+      "description": "D? movimento a qualquer imagem em segundos. Envie uma imagem, adicione roteiro ou prompt de movimento e gere um v?deo com movimento natural, ritmo fluido e enquadramento pronto para exportar.",
+      "cta": "Come?ar gr?tis"
     },
     "pricing": {
-      "title": "Credits that never feel like a subscription",
-      "cta": "View price",
-      "getCredits": "Get credits",
+      "title": "Cr?ditos flex?veis, sem sensa??o de assinatura pesada",
+      "cta": "Ver pre?os",
+      "getCredits": "Comprar cr?ditos",
       "trial": {
-        "name": "Trial Credits",
-        "price": "Free",
-        "note": "For new accounts",
-        "credits": "100 signup credits included"
+        "name": "Cr?ditos de teste",
+        "price": "Gr?tis",
+        "note": "Para novas contas",
+        "credits": "Inclui 100 cr?ditos de cadastro"
       },
-      "bestValue": "Best value",
-      "topUpWhenNeeded": "Top up when needed"
+      "bestValue": "Melhor valor",
+      "topUpWhenNeeded": "Recarregue quando precisar"
     },
     "faq": {
-      "eyebrow": "DreamFace FAQ",
-      "title": "Frequently asked questions",
-      "description": "Learn how the DreamFace AI image generator, AI video generator, text-to-image, image-to-image, and text-to-video workflows fit into one creative studio with model routing, prompt references, credits, and creation history.",
+      "eyebrow": "FAQ DreamFace",
+      "title": "Perguntas frequentes",
+      "description": "Entenda como a DreamFace re?ne gera??o de imagens, gera??o de v?deo, texto para imagem, imagem para imagem e texto para v?deo em um Studio criativo com roteamento de modelos, refer?ncias, cr?ditos e hist?rico.",
       "whatIsDreamFace": {
-        "question": "What is DreamFace?",
-        "answer": "DreamFace is an AI creative studio for generating images and videos in one workspace. Creators can move from prompt ideas to AI image generation, AI image editing, and AI video tasks while keeping models, credits, history, and outputs organized."
+        "question": "O que ? a DreamFace?",
+        "answer": "A DreamFace ? um Studio criativo de IA para gerar imagens e v?deos em um s? lugar. Criadores podem sair de ideias em prompts para gera??o de imagens, edi??o de imagens e tarefas de v?deo mantendo modelos, cr?ditos, hist?rico e resultados organizados."
       },
       "videoGenerators": {
-        "question": "What are AI video generators?",
-        "answer": "AI video generators are tools that turn prompts, images, scripts, or reference assets into video clips with AI. They can help creators produce social videos, product demos, B-roll, and marketing visuals without traditional filming or advanced editing skills."
+        "question": "O que s?o geradores de v?deo com IA?",
+        "answer": "S?o ferramentas que transformam prompts, imagens, roteiros ou refer?ncias em clipes de v?deo com IA. Elas ajudam criadores a produzir v?deos sociais, demos de produto, B-roll e pe?as de marketing sem filmagem tradicional ou edi??o avan?ada."
       },
       "bestVideoGenerator": {
-        "question": "What is the best AI video generator for marketers and creators?",
-        "answer": "The best AI video generator depends on your workflow, model preferences, budget, and output style. DreamFace is built for creators and marketers who want image generation, image editing, text-to-video, image-to-video, credit estimates, and project history in one workspace."
+        "question": "Qual ? o melhor gerador de v?deo com IA para marketing e cria??o?",
+        "answer": "Depende do fluxo de trabalho, modelos preferidos, or?amento e estilo de sa?da. A DreamFace foi criada para criadores e marketers que querem imagem, edi??o, texto para v?deo, imagem para v?deo, estimativas de cr?ditos e hist?rico em um s? lugar."
       },
       "availableTools": {
-        "question": "Which AI generation tools are available in DreamFace?",
-        "answer": "DreamFace includes tools for text-to-image, image-to-image, text-to-video, image-to-video, photo enhancement workflows, and reusable project history. The studio is designed around choosing what you want to create first, then routing to a suitable AI model."
+        "question": "Quais ferramentas de IA est?o dispon?veis na DreamFace?",
+        "answer": "A DreamFace inclui texto para imagem, imagem para imagem, texto para v?deo, imagem para v?deo, melhoria de fotos e hist?rico reutiliz?vel. O Studio come?a pelo que voc? quer criar e ent?o direciona para um modelo adequado."
       },
       "textImageSupport": {
-        "question": "Does DreamFace support text-to-image and image-to-image?",
-        "answer": "Yes. You can create an image from a text prompt or add reference images for image-to-image editing. The studio keeps prompt controls and model selection in the same composer so you can choose the right image workflow without changing tools."
+        "question": "A DreamFace suporta texto para imagem e imagem para imagem?",
+        "answer": "Sim. Voc? pode criar imagens a partir de texto ou adicionar imagens de refer?ncia para editar. O Studio mant?m prompt e sele??o de modelo no mesmo compositor para escolher o fluxo certo sem trocar de ferramenta."
       },
       "videoSupport": {
-        "question": "Does DreamFace support text-to-video and image-to-video?",
-        "answer": "Yes. DreamFace separates text-to-video and image-to-video workflows so you can either describe a scene from scratch or animate a reference image. Available settings and quality depend on the selected video model."
+        "question": "A DreamFace suporta texto para v?deo e imagem para v?deo?",
+        "answer": "Sim. Os fluxos s?o separados para voc? descrever uma cena do zero ou animar uma imagem de refer?ncia. Configura??es e qualidade dependem do modelo de v?deo escolhido."
       },
       "videoInputs": {
-        "question": "What types of input can I use to create AI videos in DreamFace?",
-        "answer": "You can start from a text prompt, a reference image, or a short creative brief. For image-to-video, upload or paste an image reference and describe motion, camera style, subject behavior, and the final mood."
+        "question": "Que tipos de entrada posso usar para criar v?deos?",
+        "answer": "Voc? pode come?ar com prompt de texto, imagem de refer?ncia ou briefing curto. Em imagem para v?deo, envie uma refer?ncia e descreva movimento, c?mera, comportamento do assunto e clima final."
       },
       "referenceImage": {
-        "question": "Can I create AI videos using a reference image?",
-        "answer": "Yes. Image-to-video workflows let you use a product shot, portrait, character image, or visual concept as the starting frame. DreamFace then sends the reference and prompt to the selected model to generate motion."
+        "question": "Posso criar v?deos usando uma imagem de refer?ncia?",
+        "answer": "Sim. Fluxos de imagem para v?deo usam foto de produto, retrato, personagem ou conceito visual como frame inicial, e a DreamFace envia refer?ncia e prompt ao modelo escolhido."
       },
       "videoOfMyself": {
-        "question": "How do I create an AI video of myself?",
-        "answer": "Use a clear reference image or source clip that you have rights to use, then describe the motion, scene, and style you want. DreamFace can help route image-to-video jobs, but you should only upload likenesses you own or have permission to use."
+        "question": "Como crio um v?deo de IA de mim mesmo?",
+        "answer": "Use uma imagem ou clipe claro que voc? tenha direito de usar e descreva movimento, cena e estilo desejados. Envie apenas likenesses suas ou autorizadas."
       },
       "socialMedia": {
-        "question": "Can I make AI videos for TikTok, ads, or social media?",
-        "answer": "Yes. DreamFace is designed for short-form creative work such as social clips, product teasers, ad concepts, thumbnails, and campaign assets. You can generate visuals, save outputs to Projects, and reuse prompts or references for new variations."
+        "question": "Posso criar v?deos para TikTok, an?ncios ou redes sociais?",
+        "answer": "Sim. A DreamFace foi pensada para clipes sociais, teasers de produto, conceitos de an?ncio, thumbnails e assets de campanha. Voc? pode gerar, salvar em Projetos e reutilizar prompts ou refer?ncias."
       },
       "models": {
-        "question": "Which AI models can I use?",
-        "answer": "Model options depend on the workflow. Image creation includes providers such as GPT Image 2, Nano Banana 2, and FLUX Schnell, and video creation includes routed providers such as Seedance, Kling, Veo, and Grok Imagine Video."
+        "question": "Quais modelos de IA posso usar?",
+        "answer": "As op??es dependem do fluxo. Imagem inclui GPT Image 2, Nano Banana 2 e FLUX Schnell; v?deo inclui provedores como Seedance, Kling, Veo e Grok Imagine Video."
       },
       "videoTiming": {
-        "question": "How long does it take to generate an AI video?",
-        "answer": "Generation time depends on the provider queue, duration, resolution, and model. Short clips can often complete in a few minutes, while heavier video jobs may take longer. DreamFace keeps the task visible in Projects while it runs."
+        "question": "Quanto tempo leva para gerar um v?deo?",
+        "answer": "Depende da fila do provedor, dura??o, resolu??o e modelo. Clipes curtos costumam terminar em poucos minutos; tarefas mais pesadas podem levar mais. A DreamFace mant?m o status vis?vel em Projetos."
       },
       "noEditing": {
-        "question": "Can I create AI videos without editing experience?",
-        "answer": "Yes. DreamFace is built around simple creative inputs: choose a workflow, write a prompt, add a reference if needed, select model options, and generate. You do not need timeline editing experience to start producing AI video clips."
+        "question": "D? para criar v?deos sem experi?ncia em edi??o?",
+        "answer": "Sim. Escolha um fluxo, escreva um prompt, adicione refer?ncia se necess?rio, selecione op??es e gere. Voc? n?o precisa dominar timeline de edi??o para come?ar."
       },
       "costBeforeCreate": {
-        "question": "Can I see generation cost before I create?",
-        "answer": "Yes. DreamFace uses credits and shows the estimated credit cost on the generation action before a task is submitted. Billing and creation history keep purchases, balances, and generation tasks easier to trace."
+        "question": "Posso ver o custo antes de gerar?",
+        "answer": "Sim. A DreamFace usa cr?ditos e mostra o custo estimado antes do envio da tarefa. Billing e hist?rico ajudam a acompanhar compras, saldo e gera??es."
       },
       "freeTrial": {
-        "question": "Is DreamFace free to try?",
-        "answer": "New accounts receive signup credits so they can test supported generation workflows. Paid credit packs are available when you need more image or video generations."
+        "question": "A DreamFace ? gr?tis para testar?",
+        "answer": "Novas contas recebem cr?ditos de cadastro para testar fluxos compat?veis. Pacotes pagos ficam dispon?veis quando voc? precisar gerar mais imagens ou v?deos."
       },
       "failedTask": {
-        "question": "What happens if an AI generation task fails?",
-        "answer": "Generation tasks keep a visible status trail. Failed jobs can show charge and refund information in task details so paid image and video generation stays understandable instead of disappearing behind a spinner."
+        "question": "O que acontece se uma gera??o falhar?",
+        "answer": "As tarefas mant?m trilha de status. Falhas podem mostrar cobran?a e reembolso nos detalhes para que a gera??o paga seja clara, n?o um spinner infinito."
       },
       "promptGallery": {
-        "question": "Can I browse prompts before opening the studio?",
-        "answer": "Yes. The DreamFace prompt gallery is a starting point for visual ideas, model examples, and reusable prompts before you open the AI image or video workspace."
+        "question": "Posso ver prompts antes de abrir o Studio?",
+        "answer": "Sim. A galeria da DreamFace ajuda a come?ar com ideias visuais, exemplos de modelos e prompts reutiliz?veis antes de entrar no Studio."
       },
       "audioSupport": {
-        "question": "Does DreamFace include AI music or AI voice generation?",
-        "answer": "DreamFace is focused on visual generation first, with image and video workflows available in the studio. Audio and voice-related tools may appear as product coverage expands, but current availability depends on the live workspace."
+        "question": "A DreamFace inclui m?sica ou voz com IA?",
+        "answer": "O foco atual ? gera??o visual, com fluxos de imagem e v?deo no Studio. Ferramentas de ?udio e voz podem aparecer conforme o produto evolui."
       },
       "replaceProduction": {
-        "question": "Can AI videos replace traditional video production?",
-        "answer": "AI videos can replace traditional production for many early creative, marketing, testing, training, and social workflows. For high-stakes shoots, talent usage, brand approvals, and regulated industries, teams should still review outputs carefully before publishing."
+        "question": "V?deos de IA substituem produ??o tradicional?",
+        "answer": "Podem substituir muitas etapas iniciais de cria??o, marketing, testes, treinamento e social. Para usos de alto risco, talentos, marca ou setores regulados, revise tudo antes de publicar."
       },
       "securityEthics": {
-        "question": "Is DreamFace secure and ethical for AI video generation?",
-        "answer": "DreamFace is designed to keep projects, prompts, credits, and outputs organized in your account. You are responsible for using inputs lawfully, respecting likeness rights, avoiding misleading impersonation, and following the terms of the selected model provider."
+        "question": "A DreamFace ? segura e ?tica para v?deo com IA?",
+        "answer": "A DreamFace organiza projetos, prompts, cr?ditos e resultados na sua conta. Voc? ? respons?vel por usar entradas legalmente, respeitar direitos de imagem e seguir os termos do provedor."
       },
       "commercialUse": {
-        "question": "Can I use generated content in client or commercial projects?",
-        "answer": "Use depends on the applicable DreamFace terms, the selected provider or model, your inputs, and third-party rights such as trademarks, copyrighted material, and personal likeness. Review the license and terms for the project before publishing or monetizing output."
+        "question": "Posso usar conte?do gerado em projetos comerciais?",
+        "answer": "O uso depende dos termos da DreamFace, do modelo escolhido, das suas entradas e de direitos de terceiros. Revise licen?a e termos antes de publicar ou monetizar."
       }
     },
     "finalCta": {
-      "title": "Design less around APIs. Build more around outcomes.",
-      "description": "Launch faster with one clean studio for image and video generation.",
-      "primary": "Start in Studio",
-      "secondary": "Contact sales"
+      "title": "Pense menos em APIs. Crie mais resultados.",
+      "description": "Lance mais r?pido com um Studio limpo para gera??o de imagem e v?deo.",
+      "primary": "Come?ar no Studio",
+      "secondary": "Falar com vendas"
     }
   },
   "footer": {
     "brand": "dreamface",
-    "description": "Unified image + video generation infrastructure.",
-    "platform": "Platform",
-    "imageStudio": "Image Studio",
-    "videoStudio": "Video Studio",
-    "providerRouting": "Provider routing",
-    "creditsBilling": "Credits billing",
-    "company": "Company",
-    "about": "About Us",
-    "documentation": "Documentation",
-    "contact": "Contact",
-    "licenseTerms": "License & Terms",
-    "copyright": "(c) 2026 DreamFace. All rights reserved."
+    "description": "Infraestrutura unificada para gera??o de imagem + v?deo.",
+    "platform": "Plataforma",
+    "imageStudio": "Studio de Imagem",
+    "videoStudio": "Studio de V?deo",
+    "providerRouting": "Roteamento de modelos",
+    "creditsBilling": "Cr?ditos e cobran?a",
+    "company": "Empresa",
+    "about": "Sobre n?s",
+    "documentation": "Documenta??o",
+    "contact": "Contato",
+    "licenseTerms": "Licen?a e Termos",
+    "copyright": "(c) 2026 DreamFace. Todos os direitos reservados."
   },
   "auth": {
     "brand": "dreamface",
-    "backHome": "Back to home",
+    "backHome": "Voltar ao in?cio",
     "eyebrow": "DreamFace Studio",
     "signup": {
-      "title": "Start creating videos in minutes.",
-      "description": "Sign in once to unlock your free credits, save every prompt, and keep generated images and videos organized in Projects."
+      "title": "Comece a criar v?deos em minutos.",
+      "description": "Entre uma vez para liberar cr?ditos gr?tis, salvar prompts e organizar imagens e v?deos gerados em Projetos."
     },
     "benefit": {
-      "freeCredits": "100 free credits",
-      "projectHistory": "Project history",
-      "google": "Google in one click"
+      "freeCredits": "100 cr?ditos gr?tis",
+      "projectHistory": "Hist?rico de projetos",
+      "google": "Google em um clique"
     },
     "login": {
-      "eyebrow": "Authentication",
-      "title": "Create your free account",
-      "description": "Continue with Google for the fastest start, or receive a secure email magic link."
+      "eyebrow": "Autentica??o",
+      "title": "Crie sua conta gr?tis",
+      "description": "Continue com Google para come?ar mais r?pido ou receba um link seguro por email."
     },
-    "google": "Continue with Google",
-    "googleOpening": "Opening Google...",
+    "google": "Continuar com Google",
+    "googleOpening": "Abrindo Google...",
     "emailDivider": "Email",
     "emailLabel": "Email",
-    "emailPlaceholder": "you@company.com",
-    "sendMagicLink": "Send magic link",
-    "pleaseWait": "Please wait...",
-    "successMagicLink": "Verification link sent. Please check your email.",
-    "emailFailed": "Email sign-in failed.",
-    "googleFailed": "Google sign-in failed.",
-    "footerNote": "By continuing, you can access Studio, credits, billing, and saved Projects."
+    "emailPlaceholder": "voce@empresa.com",
+    "sendMagicLink": "Enviar link m?gico",
+    "pleaseWait": "Aguarde...",
+    "successMagicLink": "Link de verifica??o enviado. Confira seu email.",
+    "emailFailed": "Falha ao entrar por email.",
+    "googleFailed": "Falha ao entrar com Google.",
+    "footerNote": "Ao continuar, voc? acessa Studio, cr?ditos, billing e Projetos salvos."
   },
   "pricing": {
-    "title": "Premium AI creation plans",
-    "subtitle": "Choose a Premium membership for watermark-free creation, faster queues, commercial use, and credits that renew with your billing cycle. Extra credits are available when you need a top-up.",
-    "eyebrow": "Price",
-    "forIndividuals": "For Individuals",
-    "currentBalance": "Current balance",
-    "credits": "credits",
-    "refresh": "Refresh",
-    "refreshing": "Refreshing",
+    "title": "Planos Premium para cria??o com IA",
+    "subtitle": "Escolha uma assinatura Premium para cria??o sem marca d??gua, filas mais r?pidas, uso comercial e cr?ditos que renovam no ciclo de cobran?a. Cr?ditos extras ficam dispon?veis quando precisar.",
+    "eyebrow": "Pre?o",
+    "forIndividuals": "Para indiv?duos",
+    "currentBalance": "Saldo atual",
+    "credits": "cr?ditos",
+    "refresh": "Atualizar",
+    "refreshing": "Atualizando",
     "free": {
-      "name": "Free",
-      "badge": "Free",
-      "priceInterval": "mo",
-      "credits": "100 trial credits",
-      "eligible": "for eligible new accounts",
-      "description": "Start with the basics: image generation, editing, limited voice, limited video, watermark, and standard queue.",
-      "cta": "Start Free"
+      "name": "Gr?tis",
+      "badge": "Gr?tis",
+      "priceInterval": "m?s",
+      "credits": "100 cr?ditos de teste",
+      "eligible": "para novas contas eleg?veis",
+      "description": "Comece pelo b?sico: gera??o e edi??o de imagem, voz limitada, v?deo limitado, marca d??gua e fila padr?o.",
+      "cta": "Come?ar gr?tis"
     },
     "freeFeatures": {
-      "image": "Try image generation",
-      "editing": "Try image editing",
-      "voice": "Limited voice generation",
-      "video": "Limited video generation",
-      "watermark": "Watermark included",
-      "queue": "Standard queue"
+      "image": "Testar gera??o de imagem",
+      "editing": "Testar edi??o de imagem",
+      "voice": "Gera??o de voz limitada",
+      "video": "Gera??o de v?deo limitada",
+      "watermark": "Marca d??gua inclu?da",
+      "queue": "Fila padr?o"
     },
     "plan": {
       "premiumLite": {
         "name": "Premium Lite",
-        "badge": "Most Popular",
-        "cta": "Start Premium Lite",
-        "bestFor": "Casual creators, image generation, image editing, and short AI tests.",
-        "feature.fullImage": "Full image generation",
-        "feature.fullEditing": "Full image editing",
-        "feature.voice": "Voice generation",
-        "feature.basicVideo": "Basic video generation",
-        "feature.commercial": "Commercial use",
-        "feature.noWatermark": "No watermark",
-        "feature.refund": "Credit refund protection",
-        "feature.queue": "Faster queue",
-        "feature.history": "Prompt history"
+        "badge": "Mais popular",
+        "cta": "Come?ar Premium Lite",
+        "bestFor": "Criadores casuais, gera??o de imagem, edi??o de imagem e testes curtos de IA.",
+        "feature": {
+          "fullImage": "Gera??o completa de imagens",
+          "fullEditing": "Edi??o completa de imagens",
+          "voice": "Gera??o de voz",
+          "basicVideo": "Gera??o b?sica de v?deo",
+          "commercial": "Uso comercial",
+          "noWatermark": "Sem marca d??gua",
+          "refund": "Prote??o de reembolso de cr?ditos",
+          "queue": "Fila mais r?pida",
+          "history": "Hist?rico de prompts"
+        }
       },
       "premium": {
         "name": "Premium",
-        "badge": "Best Value",
-        "cta": "Upgrade to Premium",
-        "bestFor": "Video generation, heavy creators, marketers, agencies, and content teams.",
-        "feature.everything": "Everything in Premium Lite",
-        "feature.video": "Higher video capacity",
-        "feature.queue": "Priority generation queue",
-        "feature.models": "Advanced AI models",
-        "feature.tests": "More Kling, Seedance, and Veo tests",
-        "feature.processing": "Faster processing",
-        "feature.early": "Early access features"
+        "badge": "Melhor valor",
+        "cta": "Fazer upgrade para Premium",
+        "bestFor": "V?deo, criadores intensivos, marketers, ag?ncias e equipes de conte?do.",
+        "feature": {
+          "everything": "Tudo do Premium Lite",
+          "video": "Maior capacidade de v?deo",
+          "queue": "Fila priorit?ria",
+          "models": "Modelos avan?ados de IA",
+          "tests": "Mais testes com Kling, Seedance e Veo",
+          "processing": "Processamento mais r?pido",
+          "early": "Acesso antecipado a recursos"
+        }
       }
     },
     "creditPack": {
       "starter": {
         "name": "Starter Pack",
-        "idealFor": "Great for exploring the studio across image, audio, and light video workflows."
+        "idealFor": "?timo para explorar o Studio com imagem, ?udio e v?deo leve."
       },
       "creator": {
         "name": "Creator Pack",
-        "idealFor": "Best for creators making several visual directions before choosing the final output."
+        "idealFor": "Ideal para criar v?rias dire??es visuais antes de escolher a vers?o final."
       },
       "studio": {
         "name": "Studio Pack",
-        "idealFor": "Best value when you want room for images, audio, and multiple short video drafts."
+        "idealFor": "Melhor valor quando voc? precisa de espa?o para imagens, ?udio e v?rios rascunhos de v?deo."
       },
       "proTopup": {
         "name": "Pro Top-up",
-        "idealFor": "For occasional high-volume usage when a Premium subscription needs temporary extra capacity."
+        "idealFor": "Para picos ocasionais de volume quando a assinatura Premium precisa de capacidade extra."
       }
     },
     "extraCredits": {
-      "eyebrow": "Extra credits",
-      "title": "Need Extra Credits?",
-      "description": "For occasional usage. Most creators get better value with a Premium subscription.",
-      "buy": "Buy extra credits",
-      "opening": "Opening..."
+      "eyebrow": "Cr?ditos extras",
+      "title": "Precisa de mais cr?ditos?",
+      "description": "Para uso ocasional. A maioria dos criadores tem melhor valor com Premium.",
+      "buy": "Comprar cr?ditos extras",
+      "opening": "Abrindo..."
     },
     "faq": {
-      "title": "Price FAQs"
+      "title": "FAQ de pre?os"
     },
     "features": {
-      "eyebrow": "Plan features",
-      "title": "Compare credit packs and creation capacity",
-      "description": "Each pack uses the same DreamFace studio. The main difference is how many assets you can generate before topping up again."
+      "eyebrow": "Recursos dos planos",
+      "title": "Compare pacotes de cr?ditos e capacidade criativa",
+      "description": "Todos os pacotes usam o mesmo Studio. A diferen?a ? quantos assets voc? pode gerar antes de recarregar."
     },
     "testimonials": {
-      "eyebrow": "Testimonials",
-      "title": "What customers are saying about us",
-      "description": "Spoiler, they have got some pretty nice things to say."
+      "eyebrow": "Depoimentos",
+      "title": "O que clientes dizem sobre n?s",
+      "description": "Spoiler: eles t?m coisas bem boas para contar."
     },
     "modelGuide": {
-      "eyebrow": "Model guide",
-      "title": "Typical credit costs",
-      "description": "Exact pricing appears next to the Generate button. Live fal pricing is used when available, with fallback estimates for continuity."
+      "eyebrow": "Guia de modelos",
+      "title": "Custos t?picos em cr?ditos",
+      "description": "O pre?o exato aparece ao lado do bot?o Generate. Quando dispon?vel, usamos pre?o fal ao vivo com estimativas de fallback."
     }
   },
   "billing": {
-    "title": "Manage credits and top ups",
-    "subtitle": "Choose a pay-as-you-go credit pack, refresh your balance, and review credit activity or Stripe purchases from one wallet page.",
+    "title": "Gerencie cr?ditos e recargas",
+    "subtitle": "Escolha um pacote sob demanda, atualize o saldo e acompanhe atividades de cr?dito ou compras Stripe em uma s? carteira.",
     "eyebrow": "Billing",
-    "currentBalance": "Current balance",
-    "creditsAvailable": "credits available",
-    "refreshBalance": "Refresh balance",
-    "signInToView": "Sign in to view",
+    "currentBalance": "Saldo atual",
+    "creditsAvailable": "cr?ditos dispon?veis",
+    "refreshBalance": "Atualizar saldo",
+    "signInToView": "Entrar para ver",
     "subscription": {
-      "eyebrow": "Subscription",
-      "noActive": "No active membership",
-      "choosePlan": "Choose Premium Lite or Premium to unlock membership benefits and renewable credits.",
-      "manage": "Manage billing"
+      "eyebrow": "Assinatura",
+      "noActive": "Nenhuma assinatura ativa",
+      "choosePlan": "Escolha Premium Lite ou Premium para liberar benef?cios e cr?ditos renov?veis.",
+      "manage": "Gerenciar cobran?a"
     },
     "success": {
-      "title": "Checkout success",
-      "paymentReceived": "Payment received",
-      "description": "Stripe confirmation is still syncing. Your balance refreshes automatically on this page.",
-      "creditsAdded": "{credits} credits added"
+      "title": "Pagamento conclu?do",
+      "paymentReceived": "Pagamento recebido",
+      "description": "A confirma??o da Stripe ainda est? sincronizando. Seu saldo ser? atualizado automaticamente nesta p?gina.",
+      "creditsAdded": "{credits} cr?ditos adicionados"
     },
     "subscriptionSuccess": {
-      "eyebrow": "Subscription checkout",
-      "title": "Membership checkout completed",
-      "description": "Stripe is confirming your subscription. Membership credits and benefits will appear after confirmation is fully enabled."
+      "eyebrow": "Checkout da assinatura",
+      "title": "Assinatura conclu?da",
+      "description": "A Stripe est? confirmando sua assinatura. Cr?ditos e benef?cios aparecer?o ap?s a confirma??o."
     },
     "cancel": {
-      "title": "Checkout was cancelled"
+      "title": "Pagamento cancelado"
     },
-    "lowBalance": "Your balance is below {threshold} credits. Top up before larger video renders or high-quality image batches.",
+    "lowBalance": "Seu saldo est? abaixo de {threshold} cr?ditos. Recarregue antes de v?deos maiores ou lotes de imagens em alta qualidade.",
     "membership": {
-      "eyebrow": "Membership",
-      "title": "Choose a Premium plan",
-      "description": "Premium memberships renew credits on a weekly, monthly, or yearly cycle and unlock watermark-free creation, faster queues, and commercial usage."
+      "eyebrow": "Assinatura",
+      "title": "Escolha um plano Premium",
+      "description": "Planos Premium renovam cr?ditos semanal, mensal ou anualmente e liberam cria??o sem marca d??gua, filas mais r?pidas e uso comercial."
     },
     "extraCredits": {
-      "eyebrow": "Extra credits",
-      "title": "Need Extra Credits?",
-      "description": "For occasional usage. Most creators get better value with a Premium subscription."
+      "eyebrow": "Cr?ditos extras",
+      "title": "Precisa de mais cr?ditos?",
+      "description": "Para uso ocasional. A maioria dos criadores tem melhor valor com Premium."
     },
-    "creditActivity": "Credit activity",
-    "noCreditActivity": "No credit activity yet.",
-    "signInCreditActivity": "Sign in to view your credit activity.",
-    "stripePurchases": "Stripe purchases",
+    "creditActivity": "Atividade de cr?ditos",
+    "noCreditActivity": "Ainda n?o h? atividade de cr?ditos.",
+    "signInCreditActivity": "Entre para ver sua atividade de cr?ditos.",
+    "stripePurchases": "Compras Stripe",
     "stripeCheckoutId": "Stripe checkout ID",
-    "noStripePurchases": "No Stripe purchases yet.",
-    "signInStripePurchases": "Sign in to view Stripe purchases.",
-    "openingCheckout": "Opening checkout...",
-    "recharge": "Recharge",
+    "noStripePurchases": "Ainda n?o h? compras Stripe.",
+    "signInStripePurchases": "Entre para ver compras Stripe.",
+    "openingCheckout": "Abrindo checkout...",
+    "recharge": "Recarregar",
     "cycle": {
-      "weekly": "Weekly",
-      "monthly": "Monthly",
-      "yearly": "Yearly"
+      "weekly": "Semanal",
+      "monthly": "Mensal",
+      "yearly": "Anual"
     },
-    "onlyMonthly": "Only {price}/mo ? {savings}",
-    "creditsPerInterval": "{credits} credits / {interval}",
-    "creditCount": "{credits} credits",
-    "renewsEvery": "renews every {interval}"
+    "onlyMonthly": "Apenas {price}/m?s ? {savings}",
+    "creditsPerInterval": "{credits} cr?ditos / {interval}",
+    "creditCount": "{credits} cr?ditos",
+    "renewsEvery": "renova a cada {interval}"
   }
 }

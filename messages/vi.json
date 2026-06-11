@@ -1,393 +1,397 @@
 {
   "nav": {
     "logo": "dreamface",
-    "platform": "Platform",
-    "providers": "Providers",
-    "gallery": "Gallery",
-    "pricing": "Pricing",
-    "login": "Sign in",
-    "logout": "Sign out",
-    "projects": "Projects",
+    "platform": "N?n t?ng",
+    "providers": "M? h?nh",
+    "gallery": "Th? vi?n",
+    "pricing": "B?ng gi?",
+    "login": "??ng nh?p",
+    "logout": "??ng xu?t",
+    "projects": "D? ?n",
     "studio": "Studio",
-    "openStudio": "Open Studio",
-    "products": "Products",
-    "create": "Create",
-    "featured": "Featured",
-    "creativeToolkit": "Creative AI Toolkit",
-    "creativeToolkitDescription": "Open every DreamFace workspace from one hub",
-    "imageStudio": "AI Image Studio",
-    "imageStudioDescription": "Create images from prompts or reference assets",
-    "videoStudio": "AI Video Studio",
-    "videoStudioDescription": "Turn text or images into polished video",
-    "audioGenerator": "AI Audio Generator",
-    "audioGeneratorDescription": "Generate ElevenLabs voiceovers from scripts",
-    "projectsDescription": "Manage creations, prompts, refunds, and history",
-    "textToImage": "Text to Image",
-    "textToImageDescription": "Generate polished ads, posters, thumbnails, and concepts",
-    "imageToImage": "Image to Image",
-    "imageToImageDescription": "Edit, restyle, or extend reference images",
-    "imageEnhance": "Image Enhance",
-    "imageEnhanceDescription": "Upscale and clean up owned images",
-    "backgroundRemove": "Background Remove",
-    "backgroundRemoveDescription": "Remove backgrounds and export transparent PNG assets",
-    "textToVideo": "Text to Video",
-    "textToVideoDescription": "Turn written scenes into short motion clips",
-    "imageToVideo": "Image to Video",
-    "imageToVideoDescription": "Animate a product, portrait, or reference frame",
-    "textToAudio": "Text to Audio",
-    "textToAudioDescription": "Create natural voiceovers from scripts",
-    "payAsYouGo": "Pay as you go",
-    "creditPacksForIndividuals": "Credit packs for individuals"
+    "openStudio": "M? Studio",
+    "products": "S?n ph?m",
+    "create": "T?o",
+    "featured": "N?i b?t",
+    "creativeToolkit": "B? c?ng c? s?ng t?o AI",
+    "creativeToolkitDescription": "M? m?i kh?ng gian s?ng t?o c?a DreamFace t? m?t trung t?m",
+    "imageStudio": "Studio ?nh AI",
+    "imageStudioDescription": "T?o ?nh t? prompt ho?c h?nh tham chi?u",
+    "videoStudio": "Studio Video AI",
+    "videoStudioDescription": "Bi?n v?n b?n ho?c h?nh ?nh th?nh video ho?n ch?nh",
+    "audioGenerator": "Tr?nh t?o gi?ng n?i AI",
+    "audioGeneratorDescription": "T?o voiceover ElevenLabs t? nhi?n t? k?ch b?n",
+    "projectsDescription": "Qu?n l? t?c ph?m, prompt, ho?n credit v? l?ch s?",
+    "textToImage": "V?n b?n th?nh ?nh",
+    "textToImageDescription": "T?o qu?ng c?o, poster, thumbnail v? concept h?nh ?nh",
+    "imageToImage": "?nh th?nh ?nh",
+    "imageToImageDescription": "Ch?nh s?a, ??i phong c?ch ho?c m? r?ng ?nh tham chi?u",
+    "imageEnhance": "N?ng c?p ?nh",
+    "imageEnhanceDescription": "Ph?ng to v? l?m s?ch h?nh ?nh b?n s? h?u",
+    "backgroundRemove": "X?a N?n",
+    "backgroundRemoveDescription": "X?a n?n v? xu?t PNG trong su?t",
+    "textToVideo": "V?n b?n th?nh Video",
+    "textToVideoDescription": "Bi?n c?nh vi?t b?ng ch? th?nh clip ng?n c? chuy?n ??ng",
+    "imageToVideo": "?nh th?nh Video",
+    "imageToVideoDescription": "T?o chuy?n ??ng cho s?n ph?m, ch?n dung ho?c khung tham chi?u",
+    "textToAudio": "V?n b?n th?nh ?m thanh",
+    "textToAudioDescription": "T?o voiceover t? nhi?n t? k?ch b?n",
+    "payAsYouGo": "Tr? theo nhu c?u",
+    "creditPacksForIndividuals": "G?i credit cho nh? s?ng t?o"
   },
   "hero": {
-    "titleLine1": "Turn your ideas into",
-    "titleLine2": "videos in minutes",
-    "title": "Turn your ideas into videos in minutes",
-    "subtitle": "Go from script, image, presentation, or prompt to finished creative. No cameras, no crew, no editing skills required.",
-    "ctaGoogle": "Continue with Google",
-    "ctaPrimary": "Get Started for Free"
+    "titleLine1": "Bi?n ? t??ng th?nh",
+    "titleLine2": "video trong v?i ph?t",
+    "title": "Bi?n ? t??ng th?nh video trong v?i ph?t",
+    "subtitle": "T? k?ch b?n, h?nh ?nh, b?i thuy?t tr?nh ho?c prompt ??n n?i dung s?ng t?o ho?n ch?nh. Kh?ng c?n m?y quay, ekip hay k? n?ng d?ng phim.",
+    "ctaGoogle": "Ti?p t?c v?i Google",
+    "ctaPrimary": "B?t ??u mi?n ph?"
   },
   "home": {
     "gallery": {
-      "eyebrow": "Prompt Gallery",
-      "title": "Explore creator-ready AI visuals",
-      "description": "Browse reusable prompts, model examples, and curated references before opening the studio.",
-      "cta": "View More"
+      "eyebrow": "Th? vi?n Prompt",
+      "title": "Kh?m ph? h?nh ?nh AI s?n s?ng cho s?ng t?o",
+      "description": "Xem prompt t?i s? d?ng, v? d? m? h?nh v? h?nh tham chi?u tuy?n ch?n tr??c khi m? Studio.",
+      "cta": "Xem th?m"
     },
     "platform": {
-      "titleLine1": "Platform tools for every",
-      "titleLine2": "creative workflow",
-      "description": "Open the right workspace for image generation, video creation, product ads, UGC concepts, and model-powered production from one platform hub.",
+      "titleLine1": "C?ng c? cho m?i",
+      "titleLine2": "quy tr?nh s?ng t?o",
+      "description": "M? ??ng kh?ng gian cho t?o ?nh, t?o video, qu?ng c?o s?n ph?m, concept UGC v? s?n xu?t b?ng m? h?nh AI t? m?t trung t?m duy nh?t.",
       "card": {
-        "textToVideo": "Text to Video",
-        "photoToVideo": "Photo to Video",
-        "productAds": "Product Ads",
-        "ugcAds": "UGC ads",
-        "aiModels": "AI Models"
+        "textToVideo": "V?n b?n th?nh Video",
+        "photoToVideo": "?nh th?nh Video",
+        "productAds": "Qu?ng c?o S?n ph?m",
+        "ugcAds": "Qu?ng c?o UGC",
+        "aiModels": "M? h?nh AI"
       }
     },
     "textToVideo": {
-      "eyebrow": "Text to Video",
-      "title": "Turn text into video with AI",
-      "description": "Create complete AI videos from a script using text to video AI. Describe the scene, pacing, voice, camera motion, and output style, then generate polished video clips for explainers, ads, sales, onboarding, or social content.",
-      "cta": "Get Started For Free"
+      "eyebrow": "V?n b?n th?nh Video",
+      "title": "Bi?n v?n b?n th?nh video b?ng AI",
+      "description": "T?o video ho?n ch?nh t? k?ch b?n. M? t? c?nh, nh?p, gi?ng, chuy?n ??ng camera v? phong c?ch ??u ra ?? t?o clip cho gi?i th?ch, qu?ng c?o, b?n h?ng, onboarding ho?c m?ng x? h?i.",
+      "cta": "B?t ??u mi?n ph?"
     },
     "photoToVideo": {
-      "eyebrow": "Photo to Video",
-      "title": "Transform Photos into Videos",
-      "description": "Turn any image into a video in seconds. Upload an image, add a script or motion prompt, and transform it into a dynamic AI-generated video with natural movement, smooth pacing, and export-ready framing.",
-      "cta": "Get Started For Free"
+      "eyebrow": "?nh th?nh Video",
+      "title": "Bi?n ?nh th?nh video",
+      "description": "L?m cho b?t k? h?nh ?nh n?o chuy?n ??ng trong v?i gi?y. T?i ?nh l?n, th?m k?ch b?n ho?c prompt chuy?n ??ng v? t?o video AI v?i chuy?n ??ng t? nhi?n, nh?p m??t v? khung h?nh s?n s?ng xu?t.",
+      "cta": "B?t ??u mi?n ph?"
     },
     "pricing": {
-      "title": "Credits that never feel like a subscription",
-      "cta": "View price",
-      "getCredits": "Get credits",
+      "title": "Credit linh ho?t, kh?ng t?o c?m gi?c b? kh?a b?i g?i thu? bao",
+      "cta": "Xem gi?",
+      "getCredits": "Nh?n credit",
       "trial": {
-        "name": "Trial Credits",
-        "price": "Free",
-        "note": "For new accounts",
-        "credits": "100 signup credits included"
+        "name": "Credit d?ng th?",
+        "price": "Mi?n ph?",
+        "note": "Cho t?i kho?n m?i",
+        "credits": "Bao g?m 100 credit khi ??ng k?"
       },
-      "bestValue": "Best value",
-      "topUpWhenNeeded": "Top up when needed"
+      "bestValue": "Gi? tr? t?t nh?t",
+      "topUpWhenNeeded": "N?p th?m khi c?n"
     },
     "faq": {
-      "eyebrow": "DreamFace FAQ",
-      "title": "Frequently asked questions",
-      "description": "Learn how the DreamFace AI image generator, AI video generator, text-to-image, image-to-image, and text-to-video workflows fit into one creative studio with model routing, prompt references, credits, and creation history.",
+      "eyebrow": "FAQ DreamFace",
+      "title": "C?u h?i th??ng g?p",
+      "description": "T?m hi?u c?ch DreamFace k?t h?p t?o ?nh AI, t?o video AI, v?n b?n th?nh ?nh, ?nh th?nh ?nh v? v?n b?n th?nh video trong m?t Studio s?ng t?o c? ??nh tuy?n m? h?nh, tham chi?u prompt, credit v? l?ch s?.",
       "whatIsDreamFace": {
-        "question": "What is DreamFace?",
-        "answer": "DreamFace is an AI creative studio for generating images and videos in one workspace. Creators can move from prompt ideas to AI image generation, AI image editing, and AI video tasks while keeping models, credits, history, and outputs organized."
+        "question": "DreamFace l? g??",
+        "answer": "DreamFace l? Studio s?ng t?o AI ?? t?o ?nh v? video trong m?t kh?ng gian. Nh? s?ng t?o c? th? ?i t? ? t??ng prompt ??n t?o ?nh, ch?nh s?a ?nh v? video, ??ng th?i qu?n l? m? h?nh, credit, l?ch s? v? k?t qu?."
       },
       "videoGenerators": {
-        "question": "What are AI video generators?",
-        "answer": "AI video generators are tools that turn prompts, images, scripts, or reference assets into video clips with AI. They can help creators produce social videos, product demos, B-roll, and marketing visuals without traditional filming or advanced editing skills."
+        "question": "Tr?nh t?o video AI l? g??",
+        "answer": "?? l? c?ng c? bi?n prompt, h?nh ?nh, k?ch b?n ho?c t?i li?u tham chi?u th?nh video clip b?ng AI, gi?p t?o video m?ng x? h?i, demo s?n ph?m, B-roll v? n?i dung marketing m? kh?ng c?n quay phim truy?n th?ng."
       },
       "bestVideoGenerator": {
-        "question": "What is the best AI video generator for marketers and creators?",
-        "answer": "The best AI video generator depends on your workflow, model preferences, budget, and output style. DreamFace is built for creators and marketers who want image generation, image editing, text-to-video, image-to-video, credit estimates, and project history in one workspace."
+        "question": "Tr?nh t?o video AI t?t nh?t cho marketer v? creator l? g??",
+        "answer": "?i?u n?y ph? thu?c v?o workflow, m? h?nh ?a th?ch, ng?n s?ch v? phong c?ch ??u ra. DreamFace ph? h?p v?i ng??i mu?n t?o ?nh, ch?nh ?nh, text-to-video, image-to-video, ??c t?nh credit v? l?ch s? d? ?n ? c?ng m?t n?i."
       },
       "availableTools": {
-        "question": "Which AI generation tools are available in DreamFace?",
-        "answer": "DreamFace includes tools for text-to-image, image-to-image, text-to-video, image-to-video, photo enhancement workflows, and reusable project history. The studio is designed around choosing what you want to create first, then routing to a suitable AI model."
+        "question": "DreamFace c? nh?ng c?ng c? AI n?o?",
+        "answer": "DreamFace c? v?n b?n th?nh ?nh, ?nh th?nh ?nh, v?n b?n th?nh video, ?nh th?nh video, n?ng c?p ?nh v? l?ch s? d? ?n t?i s? d?ng. Studio b?t ??u t? vi?c b?n mu?n t?o g? r?i ??nh tuy?n ??n m? h?nh ph? h?p."
       },
       "textImageSupport": {
-        "question": "Does DreamFace support text-to-image and image-to-image?",
-        "answer": "Yes. You can create an image from a text prompt or add reference images for image-to-image editing. The studio keeps prompt controls and model selection in the same composer so you can choose the right image workflow without changing tools."
+        "question": "DreamFace c? h? tr? v?n b?n th?nh ?nh v? ?nh th?nh ?nh kh?ng?",
+        "answer": "C?. B?n c? th? t?o ?nh t? prompt ho?c th?m ?nh tham chi?u ?? ch?nh s?a. Prompt control v? ch?n m? h?nh n?m trong c?ng composer ?? chuy?n workflow d? d?ng."
       },
       "videoSupport": {
-        "question": "Does DreamFace support text-to-video and image-to-video?",
-        "answer": "Yes. DreamFace separates text-to-video and image-to-video workflows so you can either describe a scene from scratch or animate a reference image. Available settings and quality depend on the selected video model."
+        "question": "DreamFace c? h? tr? v?n b?n th?nh video v? ?nh th?nh video kh?ng?",
+        "answer": "C?. DreamFace t?ch ri?ng hai workflow ?? b?n m? t? c?nh t? ??u ho?c l?m ?nh tham chi?u chuy?n ??ng. C?i ??t v? ch?t l??ng ph? thu?c v?o m? h?nh video."
       },
       "videoInputs": {
-        "question": "What types of input can I use to create AI videos in DreamFace?",
-        "answer": "You can start from a text prompt, a reference image, or a short creative brief. For image-to-video, upload or paste an image reference and describe motion, camera style, subject behavior, and the final mood."
+        "question": "C? th? d?ng lo?i input n?o ?? t?o video AI?",
+        "answer": "B?n c? th? b?t ??u b?ng prompt v?n b?n, ?nh tham chi?u ho?c brief ng?n. V?i image-to-video, h?y t?i ?nh l?n v? m? t? chuy?n ??ng, camera, h?nh vi ch? th? v? mood cu?i c?ng."
       },
       "referenceImage": {
-        "question": "Can I create AI videos using a reference image?",
-        "answer": "Yes. Image-to-video workflows let you use a product shot, portrait, character image, or visual concept as the starting frame. DreamFace then sends the reference and prompt to the selected model to generate motion."
+        "question": "C? th? t?o video AI b?ng ?nh tham chi?u kh?ng?",
+        "answer": "C?. Workflow image-to-video d?ng ?nh s?n ph?m, ch?n dung, nh?n v?t ho?c concept l?m khung ??u, r?i g?i ?nh v? prompt ??n m? h?nh ?? ch?n."
       },
       "videoOfMyself": {
-        "question": "How do I create an AI video of myself?",
-        "answer": "Use a clear reference image or source clip that you have rights to use, then describe the motion, scene, and style you want. DreamFace can help route image-to-video jobs, but you should only upload likenesses you own or have permission to use."
+        "question": "L?m sao t?o video AI c?a ch?nh m?nh?",
+        "answer": "D?ng ?nh ho?c clip r? n?t m? b?n c? quy?n s? d?ng, sau ?? m? t? chuy?n ??ng, c?nh v? phong c?ch mong mu?n. Ch? t?i l?n likeness c?a b?n ho?c ?? ???c cho ph?p."
       },
       "socialMedia": {
-        "question": "Can I make AI videos for TikTok, ads, or social media?",
-        "answer": "Yes. DreamFace is designed for short-form creative work such as social clips, product teasers, ad concepts, thumbnails, and campaign assets. You can generate visuals, save outputs to Projects, and reuse prompts or references for new variations."
+        "question": "C? th? t?o video cho TikTok, qu?ng c?o ho?c m?ng x? h?i kh?ng?",
+        "answer": "C?. DreamFace ???c thi?t k? cho clip ng?n, teaser s?n ph?m, concept qu?ng c?o, thumbnail v? asset chi?n d?ch. B?n c? th? t?o, l?u v?o D? ?n v? d?ng l?i prompt ho?c ?nh tham chi?u."
       },
       "models": {
-        "question": "Which AI models can I use?",
-        "answer": "Model options depend on the workflow. Image creation includes providers such as GPT Image 2, Nano Banana 2, and FLUX Schnell, and video creation includes routed providers such as Seedance, Kling, Veo, and Grok Imagine Video."
+        "question": "C? th? d?ng nh?ng m? h?nh AI n?o?",
+        "answer": "T?y workflow. ?nh c? GPT Image 2, Nano Banana 2, FLUX Schnell; video c? Seedance, Kling, Veo v? Grok Imagine Video."
       },
       "videoTiming": {
-        "question": "How long does it take to generate an AI video?",
-        "answer": "Generation time depends on the provider queue, duration, resolution, and model. Short clips can often complete in a few minutes, while heavier video jobs may take longer. DreamFace keeps the task visible in Projects while it runs."
+        "question": "T?o video AI m?t bao l?u?",
+        "answer": "T?y h?ng ??i provider, th?i l??ng, ?? ph?n gi?i v? m? h?nh. Clip ng?n th??ng ho?n t?t trong v?i ph?t; t?c v? n?ng h?n c? th? l?u h?n."
       },
       "noEditing": {
-        "question": "Can I create AI videos without editing experience?",
-        "answer": "Yes. DreamFace is built around simple creative inputs: choose a workflow, write a prompt, add a reference if needed, select model options, and generate. You do not need timeline editing experience to start producing AI video clips."
+        "question": "Kh?ng bi?t d?ng phim c? t?o video AI ???c kh?ng?",
+        "answer": "C?. Ch?n workflow, vi?t prompt, th?m tham chi?u n?u c?n, ch?n t?y ch?n m? h?nh v? generate. B?n kh?ng c?n kinh nghi?m timeline editing."
       },
       "costBeforeCreate": {
-        "question": "Can I see generation cost before I create?",
-        "answer": "Yes. DreamFace uses credits and shows the estimated credit cost on the generation action before a task is submitted. Billing and creation history keep purchases, balances, and generation tasks easier to trace."
+        "question": "C? xem ???c chi ph? tr??c khi t?o kh?ng?",
+        "answer": "C?. DreamFace d?ng credit v? hi?n th? chi ph? ??c t?nh tr??c khi g?i t?c v?. Billing v? l?ch s? gi?p theo d?i mua credit, s? d? v? generation."
       },
       "freeTrial": {
-        "question": "Is DreamFace free to try?",
-        "answer": "New accounts receive signup credits so they can test supported generation workflows. Paid credit packs are available when you need more image or video generations."
+        "question": "DreamFace c? d?ng th? mi?n ph? kh?ng?",
+        "answer": "T?i kho?n m?i nh?n credit ??ng k? ?? th? c?c workflow ???c h? tr?. Khi c?n t?o nhi?u h?n, b?n c? th? mua g?i credit."
       },
       "failedTask": {
-        "question": "What happens if an AI generation task fails?",
-        "answer": "Generation tasks keep a visible status trail. Failed jobs can show charge and refund information in task details so paid image and video generation stays understandable instead of disappearing behind a spinner."
+        "question": "N?u t?c v? AI th?t b?i th? sao?",
+        "answer": "T?c v? gi? tr?ng th?i r? r?ng. Job l?i c? th? hi?n th? ph? v? ho?n credit trong chi ti?t ?? vi?c tr? ph? d? hi?u h?n."
       },
       "promptGallery": {
-        "question": "Can I browse prompts before opening the studio?",
-        "answer": "Yes. The DreamFace prompt gallery is a starting point for visual ideas, model examples, and reusable prompts before you open the AI image or video workspace."
+        "question": "C? th? xem prompt tr??c khi m? Studio kh?ng?",
+        "answer": "C?. Th? vi?n prompt DreamFace l? n?i b?t ??u cho ? t??ng h?nh ?nh, v? d? m? h?nh v? prompt t?i s? d?ng."
       },
       "audioSupport": {
-        "question": "Does DreamFace include AI music or AI voice generation?",
-        "answer": "DreamFace is focused on visual generation first, with image and video workflows available in the studio. Audio and voice-related tools may appear as product coverage expands, but current availability depends on the live workspace."
+        "question": "DreamFace c? nh?c AI ho?c gi?ng n?i AI kh?ng?",
+        "answer": "DreamFace hi?n t?p trung v?o t?o h?nh ?nh v? video. C?ng c? ?m thanh v? gi?ng n?i c? th? xu?t hi?n khi s?n ph?m m? r?ng."
       },
       "replaceProduction": {
-        "question": "Can AI videos replace traditional video production?",
-        "answer": "AI videos can replace traditional production for many early creative, marketing, testing, training, and social workflows. For high-stakes shoots, talent usage, brand approvals, and regulated industries, teams should still review outputs carefully before publishing."
+        "question": "Video AI c? thay th? s?n xu?t truy?n th?ng kh?ng?",
+        "answer": "C? th? thay th? nhi?u b??c ? giai ?o?n ? t??ng, marketing, test, ??o t?o v? m?ng x? h?i. V?i n?i dung nh?y c?m, th??ng hi?u ho?c ng?nh ???c qu?n l?, h?y ki?m duy?t k? tr??c khi xu?t b?n."
       },
       "securityEthics": {
-        "question": "Is DreamFace secure and ethical for AI video generation?",
-        "answer": "DreamFace is designed to keep projects, prompts, credits, and outputs organized in your account. You are responsible for using inputs lawfully, respecting likeness rights, avoiding misleading impersonation, and following the terms of the selected model provider."
+        "question": "DreamFace c? an to?n v? ph? h?p ??o ??c cho video AI kh?ng?",
+        "answer": "DreamFace t? ch?c d? ?n, prompt, credit v? k?t qu? trong t?i kho?n. B?n ch?u tr?ch nhi?m s? d?ng input h?p ph?p, t?n tr?ng quy?n h?nh ?nh v? tu?n th? ?i?u kho?n provider."
       },
       "commercialUse": {
-        "question": "Can I use generated content in client or commercial projects?",
-        "answer": "Use depends on the applicable DreamFace terms, the selected provider or model, your inputs, and third-party rights such as trademarks, copyrighted material, and personal likeness. Review the license and terms for the project before publishing or monetizing output."
+        "question": "C? d?ng n?i dung t?o ra cho d? ?n th??ng m?i kh?ng?",
+        "answer": "Vi?c s? d?ng ph? thu?c v?o ?i?u kho?n DreamFace, m? h?nh ?? ch?n, input c?a b?n v? quy?n b?n th? ba. H?y xem license v? ?i?u kho?n tr??c khi xu?t b?n ho?c ki?m ti?n."
       }
     },
     "finalCta": {
-      "title": "Design less around APIs. Build more around outcomes.",
-      "description": "Launch faster with one clean studio for image and video generation.",
-      "primary": "Start in Studio",
-      "secondary": "Contact sales"
+      "title": "?t lo v? API h?n. T?p trung v?o k?t qu? h?n.",
+      "description": "Ra m?t nhanh h?n v?i m?t Studio g?n g?ng cho t?o ?nh v? video.",
+      "primary": "B?t ??u trong Studio",
+      "secondary": "Li?n h? sales"
     }
   },
   "footer": {
     "brand": "dreamface",
-    "description": "Unified image + video generation infrastructure.",
-    "platform": "Platform",
-    "imageStudio": "Image Studio",
-    "videoStudio": "Video Studio",
-    "providerRouting": "Provider routing",
-    "creditsBilling": "Credits billing",
-    "company": "Company",
-    "about": "About Us",
-    "documentation": "Documentation",
-    "contact": "Contact",
-    "licenseTerms": "License & Terms",
-    "copyright": "(c) 2026 DreamFace. All rights reserved."
+    "description": "H? t?ng th?ng nh?t cho t?o ?nh + video.",
+    "platform": "N?n t?ng",
+    "imageStudio": "Studio ?nh",
+    "videoStudio": "Studio Video",
+    "providerRouting": "??nh tuy?n provider",
+    "creditsBilling": "Credit v? thanh to?n",
+    "company": "C?ng ty",
+    "about": "V? ch?ng t?i",
+    "documentation": "T?i li?u",
+    "contact": "Li?n h?",
+    "licenseTerms": "Gi?y ph?p & ?i?u kho?n",
+    "copyright": "(c) 2026 DreamFace. B?o l?u m?i quy?n."
   },
   "auth": {
     "brand": "dreamface",
-    "backHome": "Back to home",
+    "backHome": "V? trang ch?",
     "eyebrow": "DreamFace Studio",
     "signup": {
-      "title": "Start creating videos in minutes.",
-      "description": "Sign in once to unlock your free credits, save every prompt, and keep generated images and videos organized in Projects."
+      "title": "B?t ??u t?o video trong v?i ph?t.",
+      "description": "??ng nh?p m?t l?n ?? m? credit mi?n ph?, l?u m?i prompt v? s?p x?p ?nh/video ?? t?o trong D? ?n."
     },
     "benefit": {
-      "freeCredits": "100 free credits",
-      "projectHistory": "Project history",
-      "google": "Google in one click"
+      "freeCredits": "100 credit mi?n ph?",
+      "projectHistory": "L?ch s? d? ?n",
+      "google": "Google m?t ch?m"
     },
     "login": {
-      "eyebrow": "Authentication",
-      "title": "Create your free account",
-      "description": "Continue with Google for the fastest start, or receive a secure email magic link."
+      "eyebrow": "??ng nh?p",
+      "title": "T?o t?i kho?n mi?n ph?",
+      "description": "Ti?p t?c v?i Google ?? b?t ??u nhanh nh?t, ho?c nh?n magic link an to?n qua email."
     },
-    "google": "Continue with Google",
-    "googleOpening": "Opening Google...",
+    "google": "Ti?p t?c v?i Google",
+    "googleOpening": "?ang m? Google...",
     "emailDivider": "Email",
     "emailLabel": "Email",
-    "emailPlaceholder": "you@company.com",
-    "sendMagicLink": "Send magic link",
-    "pleaseWait": "Please wait...",
-    "successMagicLink": "Verification link sent. Please check your email.",
-    "emailFailed": "Email sign-in failed.",
-    "googleFailed": "Google sign-in failed.",
-    "footerNote": "By continuing, you can access Studio, credits, billing, and saved Projects."
+    "emailPlaceholder": "ban@congty.com",
+    "sendMagicLink": "G?i magic link",
+    "pleaseWait": "Vui l?ng ch?...",
+    "successMagicLink": "?? g?i link x?c minh. H?y ki?m tra email.",
+    "emailFailed": "??ng nh?p b?ng email th?t b?i.",
+    "googleFailed": "??ng nh?p Google th?t b?i.",
+    "footerNote": "Ti?p t?c ?? truy c?p Studio, credit, billing v? D? ?n ?? l?u."
   },
   "pricing": {
-    "title": "Premium AI creation plans",
-    "subtitle": "Choose a Premium membership for watermark-free creation, faster queues, commercial use, and credits that renew with your billing cycle. Extra credits are available when you need a top-up.",
-    "eyebrow": "Price",
-    "forIndividuals": "For Individuals",
-    "currentBalance": "Current balance",
-    "credits": "credits",
-    "refresh": "Refresh",
-    "refreshing": "Refreshing",
+    "title": "G?i Premium cho s?ng t?o AI",
+    "subtitle": "Ch?n Premium ?? t?o kh?ng watermark, h?ng ??i nhanh h?n, s? d?ng th??ng m?i v? credit t? gia h?n theo chu k? thanh to?n. C? th? mua th?m credit khi c?n.",
+    "eyebrow": "Gi?",
+    "forIndividuals": "Cho c? nh?n",
+    "currentBalance": "S? d? hi?n t?i",
+    "credits": "credit",
+    "refresh": "L?m m?i",
+    "refreshing": "?ang l?m m?i",
     "free": {
-      "name": "Free",
-      "badge": "Free",
-      "priceInterval": "mo",
-      "credits": "100 trial credits",
-      "eligible": "for eligible new accounts",
-      "description": "Start with the basics: image generation, editing, limited voice, limited video, watermark, and standard queue.",
-      "cta": "Start Free"
+      "name": "Mi?n ph?",
+      "badge": "Mi?n ph?",
+      "priceInterval": "th?ng",
+      "credits": "100 credit d?ng th?",
+      "eligible": "cho t?i kho?n m?i ?? ?i?u ki?n",
+      "description": "B?t ??u v?i c?c t?nh n?ng c? b?n: t?o ?nh, ch?nh ?nh, gi?ng n?i gi?i h?n, video gi?i h?n, watermark v? h?ng ??i ti?u chu?n.",
+      "cta": "B?t ??u mi?n ph?"
     },
     "freeFeatures": {
-      "image": "Try image generation",
-      "editing": "Try image editing",
-      "voice": "Limited voice generation",
-      "video": "Limited video generation",
-      "watermark": "Watermark included",
-      "queue": "Standard queue"
+      "image": "Th? t?o ?nh",
+      "editing": "Th? ch?nh ?nh",
+      "voice": "T?o gi?ng n?i gi?i h?n",
+      "video": "T?o video gi?i h?n",
+      "watermark": "C? watermark",
+      "queue": "H?ng ??i ti?u chu?n"
     },
     "plan": {
       "premiumLite": {
         "name": "Premium Lite",
-        "badge": "Most Popular",
-        "cta": "Start Premium Lite",
-        "bestFor": "Casual creators, image generation, image editing, and short AI tests.",
-        "feature.fullImage": "Full image generation",
-        "feature.fullEditing": "Full image editing",
-        "feature.voice": "Voice generation",
-        "feature.basicVideo": "Basic video generation",
-        "feature.commercial": "Commercial use",
-        "feature.noWatermark": "No watermark",
-        "feature.refund": "Credit refund protection",
-        "feature.queue": "Faster queue",
-        "feature.history": "Prompt history"
+        "badge": "Ph? bi?n nh?t",
+        "cta": "B?t ??u Premium Lite",
+        "bestFor": "Ph? h?p creator nh?, t?o ?nh, ch?nh ?nh v? th? nghi?m AI ng?n.",
+        "feature": {
+          "fullImage": "T?o ?nh ??y ??",
+          "fullEditing": "Ch?nh ?nh ??y ??",
+          "voice": "T?o gi?ng n?i",
+          "basicVideo": "T?o video c? b?n",
+          "commercial": "S? d?ng th??ng m?i",
+          "noWatermark": "Kh?ng watermark",
+          "refund": "B?o v? ho?n credit",
+          "queue": "H?ng ??i nhanh h?n",
+          "history": "L?ch s? prompt"
+        }
       },
       "premium": {
         "name": "Premium",
-        "badge": "Best Value",
-        "cta": "Upgrade to Premium",
-        "bestFor": "Video generation, heavy creators, marketers, agencies, and content teams.",
-        "feature.everything": "Everything in Premium Lite",
-        "feature.video": "Higher video capacity",
-        "feature.queue": "Priority generation queue",
-        "feature.models": "Advanced AI models",
-        "feature.tests": "More Kling, Seedance, and Veo tests",
-        "feature.processing": "Faster processing",
-        "feature.early": "Early access features"
+        "badge": "Gi? tr? t?t nh?t",
+        "cta": "N?ng c?p Premium",
+        "bestFor": "Cho video, creator d?ng nhi?u, marketer, agency v? ??i n?i dung.",
+        "feature": {
+          "everything": "M?i th? trong Premium Lite",
+          "video": "Dung l??ng video cao h?n",
+          "queue": "H?ng ??i ?u ti?n",
+          "models": "M? h?nh AI n?ng cao",
+          "tests": "Th?m l??t th? Kling, Seedance v? Veo",
+          "processing": "X? l? nhanh h?n",
+          "early": "Truy c?p s?m t?nh n?ng m?i"
+        }
       }
     },
     "creditPack": {
       "starter": {
         "name": "Starter Pack",
-        "idealFor": "Great for exploring the studio across image, audio, and light video workflows."
+        "idealFor": "T?t ?? kh?m ph? Studio qua ?nh, ?m thanh v? video nh?."
       },
       "creator": {
         "name": "Creator Pack",
-        "idealFor": "Best for creators making several visual directions before choosing the final output."
+        "idealFor": "Ph? h?p creator t?o nhi?u h??ng h?nh ?nh tr??c khi ch?n b?n cu?i."
       },
       "studio": {
         "name": "Studio Pack",
-        "idealFor": "Best value when you want room for images, audio, and multiple short video drafts."
+        "idealFor": "Gi? tr? t?t khi b?n c?n nhi?u kh?ng gian cho ?nh, ?m thanh v? nhi?u b?n nh?p video ng?n."
       },
       "proTopup": {
         "name": "Pro Top-up",
-        "idealFor": "For occasional high-volume usage when a Premium subscription needs temporary extra capacity."
+        "idealFor": "Cho nhu c?u t?ng dung l??ng t?m th?i ngo?i chu k? Premium."
       }
     },
     "extraCredits": {
-      "eyebrow": "Extra credits",
-      "title": "Need Extra Credits?",
-      "description": "For occasional usage. Most creators get better value with a Premium subscription.",
-      "buy": "Buy extra credits",
-      "opening": "Opening..."
+      "eyebrow": "Credit b? sung",
+      "title": "C?n th?m credit?",
+      "description": "D?nh cho nhu c?u d?ng th?m th?nh tho?ng. H?u h?t creator c? gi? tr? t?t h?n v?i Premium.",
+      "buy": "Mua th?m credit",
+      "opening": "?ang m?..."
     },
     "faq": {
-      "title": "Price FAQs"
+      "title": "FAQ v? gi?"
     },
     "features": {
-      "eyebrow": "Plan features",
-      "title": "Compare credit packs and creation capacity",
-      "description": "Each pack uses the same DreamFace studio. The main difference is how many assets you can generate before topping up again."
+      "eyebrow": "T?nh n?ng g?i",
+      "title": "So s?nh g?i credit v? s?c t?o n?i dung",
+      "description": "M?i g?i d?ng c?ng m?t DreamFace Studio. Kh?c bi?t ch?nh l? b?n c? th? t?o bao nhi?u asset tr??c khi n?p th?m."
     },
     "testimonials": {
-      "eyebrow": "Testimonials",
-      "title": "What customers are saying about us",
-      "description": "Spoiler, they have got some pretty nice things to say."
+      "eyebrow": "??nh gi?",
+      "title": "Kh?ch h?ng n?i g? v? ch?ng t?i",
+      "description": "B?t m?: h? c? kh? nhi?u ?i?u t?t ??p ?? n?i."
     },
     "modelGuide": {
-      "eyebrow": "Model guide",
-      "title": "Typical credit costs",
-      "description": "Exact pricing appears next to the Generate button. Live fal pricing is used when available, with fallback estimates for continuity."
+      "eyebrow": "H??ng d?n m? h?nh",
+      "title": "Chi ph? credit th??ng g?p",
+      "description": "Gi? ch?nh x?c xu?t hi?n c?nh n?t Generate. Khi c? th?, ch?ng t?i d?ng gi? fal tr?c ti?p; n?u kh?ng, d?ng ??c t?nh d? ph?ng."
     }
   },
   "billing": {
-    "title": "Manage credits and top ups",
-    "subtitle": "Choose a pay-as-you-go credit pack, refresh your balance, and review credit activity or Stripe purchases from one wallet page.",
-    "eyebrow": "Billing",
-    "currentBalance": "Current balance",
-    "creditsAvailable": "credits available",
-    "refreshBalance": "Refresh balance",
-    "signInToView": "Sign in to view",
+    "title": "Qu?n l? credit v? n?p th?m",
+    "subtitle": "Ch?n g?i credit tr? theo nhu c?u, l?m m?i s? d? v? xem ho?t ??ng credit ho?c mua h?ng Stripe trong m?t trang v?.",
+    "eyebrow": "Thanh to?n",
+    "currentBalance": "S? d? hi?n t?i",
+    "creditsAvailable": "credit kh? d?ng",
+    "refreshBalance": "L?m m?i s? d?",
+    "signInToView": "??ng nh?p ?? xem",
     "subscription": {
-      "eyebrow": "Subscription",
-      "noActive": "No active membership",
-      "choosePlan": "Choose Premium Lite or Premium to unlock membership benefits and renewable credits.",
-      "manage": "Manage billing"
+      "eyebrow": "G?i thu? bao",
+      "noActive": "Ch?a c? g?i ?ang ho?t ??ng",
+      "choosePlan": "Ch?n Premium Lite ho?c Premium ?? m? quy?n l?i v? credit t? gia h?n.",
+      "manage": "Qu?n l? thanh to?n"
     },
     "success": {
-      "title": "Checkout success",
-      "paymentReceived": "Payment received",
-      "description": "Stripe confirmation is still syncing. Your balance refreshes automatically on this page.",
-      "creditsAdded": "{credits} credits added"
+      "title": "Thanh to?n th?nh c?ng",
+      "paymentReceived": "?? nh?n thanh to?n",
+      "description": "X?c nh?n Stripe v?n ?ang ??ng b?. S? d? c?a b?n s? t? c?p nh?t tr?n trang n?y.",
+      "creditsAdded": "?? th?m {credits} credit"
     },
     "subscriptionSuccess": {
-      "eyebrow": "Subscription checkout",
-      "title": "Membership checkout completed",
-      "description": "Stripe is confirming your subscription. Membership credits and benefits will appear after confirmation is fully enabled."
+      "eyebrow": "Checkout g?i thu? bao",
+      "title": "?? ho?n t?t thanh to?n g?i",
+      "description": "Stripe ?ang x?c nh?n g?i c?a b?n. Credit v? quy?n l?i s? xu?t hi?n sau khi x?c nh?n xong."
     },
     "cancel": {
-      "title": "Checkout was cancelled"
+      "title": "?? h?y thanh to?n"
     },
-    "lowBalance": "Your balance is below {threshold} credits. Top up before larger video renders or high-quality image batches.",
+    "lowBalance": "S? d? c?a b?n d??i {threshold} credit. H?y n?p th?m tr??c khi render video l?n ho?c t?o ?nh ch?t l??ng cao theo l?.",
     "membership": {
-      "eyebrow": "Membership",
-      "title": "Choose a Premium plan",
-      "description": "Premium memberships renew credits on a weekly, monthly, or yearly cycle and unlock watermark-free creation, faster queues, and commercial usage."
+      "eyebrow": "G?i th?nh vi?n",
+      "title": "Ch?n g?i Premium",
+      "description": "Premium t? gia h?n credit theo tu?n, th?ng ho?c n?m v? m? t?o n?i dung kh?ng watermark, h?ng ??i nhanh h?n, s? d?ng th??ng m?i."
     },
     "extraCredits": {
-      "eyebrow": "Extra credits",
-      "title": "Need Extra Credits?",
-      "description": "For occasional usage. Most creators get better value with a Premium subscription."
+      "eyebrow": "Credit b? sung",
+      "title": "C?n th?m credit?",
+      "description": "D?nh cho nhu c?u d?ng th?m th?nh tho?ng. H?u h?t creator c? gi? tr? t?t h?n v?i Premium."
     },
-    "creditActivity": "Credit activity",
-    "noCreditActivity": "No credit activity yet.",
-    "signInCreditActivity": "Sign in to view your credit activity.",
-    "stripePurchases": "Stripe purchases",
+    "creditActivity": "Ho?t ??ng credit",
+    "noCreditActivity": "Ch?a c? ho?t ??ng credit.",
+    "signInCreditActivity": "??ng nh?p ?? xem ho?t ??ng credit.",
+    "stripePurchases": "Mua h?ng Stripe",
     "stripeCheckoutId": "Stripe checkout ID",
-    "noStripePurchases": "No Stripe purchases yet.",
-    "signInStripePurchases": "Sign in to view Stripe purchases.",
-    "openingCheckout": "Opening checkout...",
-    "recharge": "Recharge",
+    "noStripePurchases": "Ch?a c? mua h?ng Stripe.",
+    "signInStripePurchases": "??ng nh?p ?? xem mua h?ng Stripe.",
+    "openingCheckout": "?ang m? checkout...",
+    "recharge": "N?p th?m",
     "cycle": {
-      "weekly": "Weekly",
-      "monthly": "Monthly",
-      "yearly": "Yearly"
+      "weekly": "H?ng tu?n",
+      "monthly": "H?ng th?ng",
+      "yearly": "H?ng n?m"
     },
-    "onlyMonthly": "Only {price}/mo ? {savings}",
-    "creditsPerInterval": "{credits} credits / {interval}",
-    "creditCount": "{credits} credits",
-    "renewsEvery": "renews every {interval}"
+    "onlyMonthly": "Ch? {price}/th?ng ? {savings}",
+    "creditsPerInterval": "{credits} credit / {interval}",
+    "creditCount": "{credits} credit",
+    "renewsEvery": "gia h?n m?i {interval}"
   }
 }

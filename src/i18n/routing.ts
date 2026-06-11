@@ -5,11 +5,11 @@ export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "en";
 
 export const localeLabels: Record<Locale, string> = {
-  en: "EN",
-  "zh-CN": "简中",
-  "pt-BR": "PT",
-  ru: "RU",
-  vi: "VI"
+  en: "English",
+  "zh-CN": "简体中文",
+  "pt-BR": "Português",
+  ru: "Русский",
+  vi: "Tiếng Việt"
 };
 
 export const localizedMarketingPaths = ["/", "/price", "/auth", "/billing"] as const;

@@ -264,28 +264,32 @@
         "badge": "Most Popular",
         "cta": "Start Premium Lite",
         "bestFor": "Casual creators, image generation, image editing, and short AI tests.",
-        "feature.fullImage": "Full image generation",
-        "feature.fullEditing": "Full image editing",
-        "feature.voice": "Voice generation",
-        "feature.basicVideo": "Basic video generation",
-        "feature.commercial": "Commercial use",
-        "feature.noWatermark": "No watermark",
-        "feature.refund": "Credit refund protection",
-        "feature.queue": "Faster queue",
-        "feature.history": "Prompt history"
+        "feature": {
+          "fullImage": "Full image generation",
+          "fullEditing": "Full image editing",
+          "voice": "Voice generation",
+          "basicVideo": "Basic video generation",
+          "commercial": "Commercial use",
+          "noWatermark": "No watermark",
+          "refund": "Credit refund protection",
+          "queue": "Faster queue",
+          "history": "Prompt history"
+        }
       },
       "premium": {
         "name": "Premium",
         "badge": "Best Value",
         "cta": "Upgrade to Premium",
         "bestFor": "Video generation, heavy creators, marketers, agencies, and content teams.",
-        "feature.everything": "Everything in Premium Lite",
-        "feature.video": "Higher video capacity",
-        "feature.queue": "Priority generation queue",
-        "feature.models": "Advanced AI models",
-        "feature.tests": "More Kling, Seedance, and Veo tests",
-        "feature.processing": "Faster processing",
-        "feature.early": "Early access features"
+        "feature": {
+          "everything": "Everything in Premium Lite",
+          "video": "Higher video capacity",
+          "queue": "Priority generation queue",
+          "models": "Advanced AI models",
+          "tests": "More Kling, Seedance, and Veo tests",
+          "processing": "Faster processing",
+          "early": "Early access features"
+        }
       }
     },
     "creditPack": {
