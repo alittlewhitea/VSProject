@@ -12,12 +12,14 @@ import {
   parseFalFailure
 } from "../../../lib/fal-errors";
 
-const TASK_HISTORY_TIMEOUT_MS = 4500;
+const DEFAULT_TASK_HISTORY_TIMEOUT_MS = 12000;
+const DEFAULT_TASK_SYNC_TIMEOUT_MS = 3500;
 const TASK_SYNC_LIMIT = 5;
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
-const TASK_SELECT =
-  "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, raw_result, request_settings, created_at, updated_at, title, is_favorite, failure_code, failure_reason, last_checked_at, timed_out_at";
+const TASK_LIST_SELECT =
+  "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, request_settings, created_at, updated_at, title, is_favorite, failure_code, failure_reason, last_checked_at, timed_out_at";
+const TASK_DETAIL_SELECT = `${TASK_LIST_SELECT}, raw_result`;
 
 type TaskHistoryResult = {
   data: TaskRow[] | null;
@@ -80,6 +82,19 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
       .catch(reject)
       .finally(() => clearTimeout(timer));
   });
+}
+
+function positiveTimeout(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function taskHistoryTimeoutMs() {
+  return positiveTimeout(process.env.TASK_HISTORY_TIMEOUT_MS, DEFAULT_TASK_HISTORY_TIMEOUT_MS);
+}
+
+function taskSyncTimeoutMs() {
+  return positiveTimeout(process.env.TASK_SYNC_TIMEOUT_MS, DEFAULT_TASK_SYNC_TIMEOUT_MS);
 }
 
 function isAllowedFalUrl(url: string | null): url is string {
@@ -326,14 +341,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
   }
 
-  await withTimeout(syncPendingFalTasks(admin, user.id), TASK_HISTORY_TIMEOUT_MS).catch(() => null);
+  await withTimeout(syncPendingFalTasks(admin, user.id), taskSyncTimeoutMs()).catch(() => null);
 
+  const historyStartedAt = Date.now();
+  const historyTimeoutMs = taskHistoryTimeoutMs();
   const { data, error } = await withTimeout<TaskHistoryResult>(
     (() => {
       const id = new URL(request.url).searchParams.get("id");
       let query = admin
         .from("generation_tasks")
-        .select(TASK_SELECT)
+        .select(id ? TASK_DETAIL_SELECT : TASK_LIST_SELECT)
         .eq("user_id", user.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
@@ -344,13 +361,19 @@ export async function GET(request: Request) {
       }
       return query as unknown as Promise<TaskHistoryResult>;
     })(),
-    TASK_HISTORY_TIMEOUT_MS
+    historyTimeoutMs
   ).catch((error: unknown) => ({
     data: [],
     error: error instanceof Error ? error : new Error("Task history request failed.")
   }));
 
   if (error) {
+    console.error("[tasks] task history query failed", {
+      userId: user.id,
+      durationMs: Date.now() - historyStartedAt,
+      timeoutMs: historyTimeoutMs,
+      message: error.message
+    });
     return NextResponse.json(
       {
         tasks: [],
@@ -360,7 +383,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const tasksWithLedger = await withTimeout(attachCreditLedger(admin, user.id, data ?? []), TASK_HISTORY_TIMEOUT_MS).catch(
+  const tasksWithLedger = await withTimeout(attachCreditLedger(admin, user.id, data ?? []), taskHistoryTimeoutMs()).catch(
     () => data ?? []
   );
   return NextResponse.json({ tasks: tasksWithLedger });
@@ -410,7 +433,7 @@ export async function PATCH(request: Request) {
     .eq("id", payload.id)
     .eq("user_id", user.id)
     .is("deleted_at", null)
-    .select(TASK_SELECT)
+    .select(TASK_DETAIL_SELECT)
     .maybeSingle();
 
   if (error) {

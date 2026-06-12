@@ -1487,8 +1487,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           failureReason: t.failure_reason || null
         }));
         const sessionTasks = readSessionTasks(userId);
+        if (payload.storageWarning) {
+          setTasks((currentTasks) => mergeTasks(currentTasks, sessionTasks));
+          setTaskHistoryNote(
+            sessionTasks.length
+              ? st("studio.projects.historyBrowserFallback")
+              : payload.storageWarning
+          );
+          return;
+        }
         setTasks(mergeTasks(remoteTasks, sessionTasks));
-        setTaskHistoryNote(payload.storageWarning || (sessionTasks.length ? st("studio.projects.browserTasks") : ""));
+        setTaskHistoryNote(sessionTasks.length ? st("studio.projects.browserTasks") : "");
       } catch (error) {
         const sessionTasks = readSessionTasks(userId);
         setTasks(sessionTasks);
