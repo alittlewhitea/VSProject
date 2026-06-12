@@ -178,7 +178,7 @@ export function TopNav() {
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {email ? (
             <>
-              <p className="hidden max-w-[180px] truncate text-xs font-semibold text-[#5f6779] xl:block">{email}</p>
+              <p className="hidden max-w-[160px] truncate text-xs font-semibold text-[#5f6779] 2xl:block">{email}</p>
               <button
                 onClick={async () => {
                   const supabase = createBrowserSupabaseClient();
@@ -192,7 +192,7 @@ export function TopNav() {
                 {t("nav.projects")}
               </Link>
               <LanguageSwitcher />
-              <Link href={localizedHref("/price")} onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
+              <Link href={localizedHref("/price")} onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex lg:hidden">
                 {t("nav.pricing")}
               </Link>
               <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
