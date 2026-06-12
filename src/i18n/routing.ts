@@ -4,6 +4,18 @@ export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = "en";
 
+export const localeStorageKey = "dreamface_locale";
+export const localeCookieKey = "dreamface_locale";
+export const localeCookieMaxAge = 60 * 60 * 24 * 365;
+
+export function persistLocalePreference(locale: Locale) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(localeStorageKey, locale);
+  document.cookie = `${localeCookieKey}=${encodeURIComponent(locale)}; Path=/; Max-Age=${localeCookieMaxAge}; SameSite=Lax${
+    window.location.protocol === "https:" ? "; Secure" : ""
+  }`;
+}
+
 export const localeLabels: Record<Locale, string> = {
   en: "English",
   "zh-CN": "简体中文",

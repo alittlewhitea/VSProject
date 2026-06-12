@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,7 +7,9 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { AppButton } from "../../components/ui/button";
 import { trackEvent } from "../../lib/analytics";
 import { CREDIT_PACKS, SUBSCRIPTION_PLANS, formatUsd, type BillingCycle } from "../../lib/billing";
+import type { Locale } from "../../i18n/routing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, estimateGenerationCredits } from "../../lib/model-pricing";
+import { useStudioI18n } from "../../lib/studio-i18n";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 
 type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
@@ -98,6 +100,7 @@ type StudioIconName =
   | "motion"
   | "cleanup"
   | "audio"
+  | "globe"
   | "menu"
   | "x"
   | "chevron-left"
@@ -225,11 +228,6 @@ const TOOLKIT_APPS: Array<{
 ];
 
 const STUDIO_BILLING_CYCLES: BillingCycle[] = ["weekly", "monthly", "yearly"];
-const STUDIO_BILLING_CYCLE_LABELS: Record<BillingCycle, string> = {
-  weekly: "Weekly",
-  monthly: "Monthly",
-  yearly: "Yearly"
-};
 
 const KLING_AVATAR_DEFAULT_SCRIPT =
   "Welcome to Cat Facts, where we explore the fascinating world of our feline friends. Did you know that cats spend 70% of their lives sleeping, which means a three-year-old cat has only been awake for about nine months of its life?";
@@ -337,6 +335,16 @@ function StudioIcon({ name, className = "h-5 w-5" }: { name: StudioIconName; cla
         <path d="M9 18V5l10-2v13" />
         <circle cx="6" cy="18" r="3" />
         <circle cx="16" cy="16" r="3" />
+      </svg>
+    );
+  }
+  if (name === "globe") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18" />
+        <path d="M12 3a15 15 0 0 1 0 18" />
+        <path d="M12 3a15 15 0 0 0 0 18" />
       </svg>
     );
   }
@@ -1130,7 +1138,37 @@ function frontendPollAttempts(mode: "image" | "video" | "audio", provider: strin
   return 100;
 }
 
-function StudioContent() {
+function StudioContent({ initialLocale }: { initialLocale: Locale }) {
+  const studioI18n = useStudioI18n(initialLocale);
+  const st = studioI18n.t;
+  const localizeStudioError = (message: string, status?: number) => {
+    const normalized = message.toLowerCase();
+    if (status === 401 || normalized.includes("unauthorized") || normalized.includes("access token")) {
+      return st("studio.error.sessionExpired");
+    }
+    if (normalized.includes("not enough credits") || normalized.includes("insufficient_credits")) {
+      return st("studio.error.notEnoughCredits");
+    }
+    if (status === 413 || normalized.includes("file is too large") || normalized.includes("uploaded file is too large")) {
+      return st("studio.error.uploadTooLarge");
+    }
+    if (normalized.includes("cannot trim audio") || normalized.includes("audio file could not be trimmed")) {
+      return st("studio.status.audioTrimFailed");
+    }
+    if (
+      status === 422 ||
+      normalized.includes("nsfw") ||
+      normalized.includes("safety policy") ||
+      normalized.includes("content policy") ||
+      normalized.includes("moderation")
+    ) {
+      return st("studio.error.contentRejected");
+    }
+    if (status && status >= 500) {
+      return st("studio.error.providerUnavailable");
+    }
+    return message;
+  };
   const router = useRouter();
   const sp = useSearchParams();
   const mode: StudioMode = sp.get("mode") === "image" ? "image" : sp.get("mode") === "audio" ? "audio" : sp.get("mode") === "avatar" ? "avatar" : "video";
@@ -1246,7 +1284,7 @@ function StudioContent() {
           safeRemoveLocalStorage("nova_access_token");
         }
       }
-      if (!token) setCreditNote("Sign in to generate and see your credit balance.");
+      if (!token) setCreditNote(st("studio.status.signInCredit"));
       if (token && nextUserId && trackedLoginSuccessRef.current !== nextUserId) {
         trackedLoginSuccessRef.current = nextUserId;
         trackEvent("login_success", { surface: "studio", mode, provider }, token);
@@ -1450,16 +1488,16 @@ function StudioContent() {
         }));
         const sessionTasks = readSessionTasks(userId);
         setTasks(mergeTasks(remoteTasks, sessionTasks));
-        setTaskHistoryNote(payload.storageWarning || (sessionTasks.length ? "Showing saved tasks from this browser session." : ""));
+        setTaskHistoryNote(payload.storageWarning || (sessionTasks.length ? st("studio.projects.browserTasks") : ""));
       } catch (error) {
         const sessionTasks = readSessionTasks(userId);
         setTasks(sessionTasks);
         setTaskHistoryNote(
           sessionTasks.length
-            ? "Task history is temporarily unavailable. Showing saved tasks from this browser session."
+            ? st("studio.projects.historyBrowserFallback")
             : error instanceof Error
               ? error.message
-              : "Task history is temporarily unavailable."
+              : st("studio.projects.historyUnavailable")
         );
       }
     })();
@@ -1474,7 +1512,7 @@ function StudioContent() {
       if (cachedBalance && Number.isFinite(Number(cachedBalance))) {
         hasCachedBalance = true;
         setCreditBalance(Number(cachedBalance));
-        setCreditNote("Showing browser-saved credit balance while cloud balance refreshes.");
+        setCreditNote(st("studio.status.browserBalance"));
       }
     }
 
@@ -1492,7 +1530,9 @@ function StudioContent() {
           storageWarning?: string;
           error?: string;
         };
-        if (!response.ok) throw new Error(payload.error || "Unable to load credits.");
+        if (!response.ok) {
+          throw new Error(localizeStudioError(payload.error || st("studio.status.balanceUnavailable"), response.status));
+        }
         if (typeof payload.balance === "number") {
           setCreditBalance(payload.balance);
           if (typeof window !== "undefined") {
@@ -1505,13 +1545,13 @@ function StudioContent() {
         if (payload.storageWarning) {
           setCreditNote(
             hasCachedBalance
-              ? "Cloud credit balance is temporarily unavailable. Showing browser-saved balance."
-              : payload.storageWarning
+              ? st("studio.status.cloudBalanceUnavailable")
+              : st("studio.status.balanceUnavailable")
           );
         } else {
           setCreditNote(
             payload.signupBonusBlockedByIp
-              ? "Trial credits are not available for this account. Purchased credits can still be used normally."
+              ? st("studio.status.trialUnavailable")
               : ""
           );
         }
@@ -1520,8 +1560,8 @@ function StudioContent() {
           !hasCachedBalance
             ? error instanceof Error
               ? error.message
-              : "Credit balance is temporarily unavailable."
-            : "Cloud credit balance is temporarily unavailable. Showing browser-saved balance."
+              : st("studio.status.balanceUnavailable")
+            : st("studio.status.cloudBalanceUnavailable")
         );
       }
     })();
@@ -1570,9 +1610,13 @@ function StudioContent() {
   const avatarScriptMeta = isAvatarWorkflow
     ? prompt.trim()
       ? isDefaultAvatarScript
-        ? "Sample script / video 15s"
-        : `${prompt.trim().length.toLocaleString()} chars / voice ${avatarScriptSeconds}s / video ${Number.parseInt(avatarDuration, 10)}s`
-      : "0 chars / max 15s video"
+        ? st("studio.avatar.sampleMeta")
+        : st("studio.avatar.scriptMeta", {
+            characters: prompt.trim().length.toLocaleString(),
+            voiceSeconds: avatarScriptSeconds,
+            videoSeconds: Number.parseInt(avatarDuration, 10)
+          })
+      : st("studio.avatar.emptyMeta")
     : "";
   const audioCharacterCount = mode === "audio" ? prompt.trim().length : 0;
   const avatarSelectedSeconds = Math.max(1, Number.parseInt(avatarDuration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
@@ -1606,7 +1650,45 @@ function StudioContent() {
   const selectedProjectTask = selectedProjectId
     ? tasks.find((task) => task.id === selectedProjectId) || tasks[0] || null
     : tasks[0] || null;
-  const activeHomeSlide = HOME_SLIDES[homeSlideIndex % HOME_SLIDES.length];
+  const localizedHomeSlides = HOME_SLIDES.map((slide, index) => {
+    const key = index === 0 ? "image" : index === 1 ? "video" : "avatar";
+    return {
+      ...slide,
+      eyebrow: st(`studio.home.slide.${key}.eyebrow`),
+      title: st(`studio.home.slide.${key}.title`),
+      body: st(`studio.home.slide.${key}.body`),
+      cta: st(`studio.home.slide.${key}.cta`),
+      stats: st(`studio.home.slide.${key}.stats`).split("|")
+    };
+  });
+  const activeHomeSlide = localizedHomeSlides[homeSlideIndex % localizedHomeSlides.length];
+  const toolkitTitleKeys = [
+    "studio.nav.avatar",
+    "studio.workflow.text-to-image",
+    "studio.workflow.image-to-image",
+    "studio.workflow.text-to-video",
+    "studio.workflow.image-to-video",
+    "studio.workflow.enhance-cleanup",
+    "studio.workflow.background-remove",
+    "studio.workflow.text-to-audio"
+  ];
+  const toolkitBodyKeys = [
+    "studio.home.quick.avatar",
+    "studio.home.quick.textImage",
+    "studio.home.quick.imageImage",
+    "studio.home.quick.textVideo",
+    "studio.home.quick.imageVideo",
+    "studio.home.quick.enhance",
+    "studio.home.quick.remove",
+    "studio.home.quick.audio"
+  ];
+  const localizedToolkitApps = TOOLKIT_APPS.map((app, index) => ({
+    ...app,
+    title: st(toolkitTitleKeys[index]),
+    body: st(toolkitBodyKeys[index])
+  }));
+  const taskStatusLabel = (status: TaskStatus) => st(`studio.task.${status.toLowerCase()}`);
+  const taskTypeLabel = (type: TaskItem["type"]) => st(`studio.task.${type.toLowerCase()}`);
   const latestActiveTask = activeTasks[0] || null;
   const latestActiveProgress = latestActiveTask ? taskProgress(latestActiveTask, isAvatarWorkflow ? avatarDuration : duration) : 0;
   const selectedImageSize = getImageSizePreset(imageSize);
@@ -1614,30 +1696,22 @@ function StudioContent() {
   const previewAspectRatio = mode === "image" ? `${selectedImageSize.width} / ${selectedImageSize.height}` : mode === "audio" ? "16 / 7" : videoPreviewRatio;
   const modelPreviewUrl = hasCompletedCreation ? null : defaultPreviewForProvider(provider);
   const isModelPreviewVideo = provider === "grok-video" || isAvatarProvider(provider);
-  const providerNote =
-    provider === "flux-image"
-      ? "FLUX Schnell is best for fast visual drafts. Use OpenAI GPT-Image-2 for exact text, counting, or strict layout instructions."
-      : provider === "flux-dev"
-        ? "FLUX Dev is better for higher quality drafts when you want more refined composition than Schnell."
-        : provider === "chatgpt-image"
-        ? "GPT Image 2 supports preset output sizes. The preview frame updates to match the selected canvas."
-        : provider === "topaz-image"
-          ? "Topaz Upscale enhances an uploaded image with 2x upscale, clarity, and face enhancement."
-        : provider === "kling-avatar-standard"
-          ? "Kling AI Avatar v2 Standard creates talking avatar videos from one avatar image and an ElevenLabs script."
-        : provider === "kling-avatar-pro"
-          ? "Kling AI Avatar v2 Pro is the premium talking avatar endpoint. ElevenLabs voice is generated first and recorded as a sub-step."
-        : provider === "grok-video"
-          ? "Grok Imagine Video supports text-to-video and image-to-video with 1-15 second clips, aspect ratio controls, and 480p/720p output resolution."
-          : provider === "seedance-video"
-            ? "Seedance 2 supports text-to-video and image-to-video with 480p/720p/1080p, 4-15 second clips, and optional synchronized audio."
-            : provider === "kling-video"
-              ? "Kling v3 Pro supports 3-15 second text-to-video and image-to-video with cinematic motion and optional native audio."
-              : provider === "veo-video"
-                ? "Veo 3.1 supports prompt-led video with 4s, 6s, or 8s duration, 720p/1080p/4k output, and optional audio."
-                : provider === "elevenlabs-tts"
-                  ? "ElevenLabs Eleven v3 turns your script into an MP3 voiceover. Pricing scales by character count."
-          : "Use clear subject, style, composition, and constraints for better instruction following.";
+  const providerNoteKey = [
+    "flux-image",
+    "flux-dev",
+    "chatgpt-image",
+    "topaz-image",
+    "kling-avatar-standard",
+    "kling-avatar-pro",
+    "grok-video",
+    "seedance-video",
+    "kling-video",
+    "veo-video",
+    "elevenlabs-tts"
+  ].includes(provider)
+    ? provider
+    : "default";
+  const providerNote = st(`studio.model.${providerNoteKey}`);
   const videoRatioOptions = isAvatarProvider(provider)
     ? ["source"]
     : provider === "grok-video"
@@ -1674,16 +1748,16 @@ function StudioContent() {
   const showTextToImageTemplates = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "text-to-image";
   const providerSettingsLabel =
     provider === "chatgpt-image"
-      ? `${imageQuality} quality / ${outputFormat.toUpperCase()} / ${numImages} image${numImages > 1 ? "s" : ""}`
+      ? `${imageQuality} / ${outputFormat.toUpperCase()} / ${numImages}`
     : provider === "flux-image" || provider === "flux-dev"
-        ? `${numInferenceSteps} steps / guidance ${guidanceScale} / ${outputFormat.toUpperCase()}`
+        ? `${numInferenceSteps} / ${guidanceScale} / ${outputFormat.toUpperCase()}`
         : mode === "image"
-          ? `${editResolution} / safety ${safetyTolerance} / ${numImages} image${numImages > 1 ? "s" : ""}`
+          ? `${editResolution} / ${safetyTolerance} / ${numImages}`
           : mode === "audio"
-            ? `${prompt.trim().length || 0} chars / ${ttsVoice} / stability ${ttsStability.toFixed(2)}`
+            ? `${prompt.trim().length || 0} / ${ttsVoice} / ${ttsStability.toFixed(2)}`
           : isAvatarWorkflow
-            ? `${avatarDuration} Avatar / ${ttsVoice} voice`
-            : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / audio on" : " / audio off" : ""}`;
+            ? `${avatarDuration} / ${ttsVoice}`
+            : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / ON" : " / OFF" : ""}`;
 
   useEffect(() => {
     if (mode !== "avatar") return;
@@ -1697,7 +1771,7 @@ function StudioContent() {
     setAvatarAudioUrl("");
     setAvatarAudioTrimSeconds(null);
     setStatusTone("idle");
-    setStatusText(`Avatar duration changed to ${avatarSelectedSeconds}s. Please choose the audio file again so DreamFace can trim it to the new length.`);
+    setStatusText(st("studio.status.avatarDurationChanged", { seconds: avatarSelectedSeconds }));
   }, [avatarAudioTrimSeconds, avatarAudioUrl, avatarSelectedSeconds, isAvatarWorkflow]);
 
   useEffect(() => {
@@ -1719,7 +1793,7 @@ function StudioContent() {
     setGalleryTemplateNote("");
     fetch("/api/gallery?sort=featured&limit=18")
       .then((response) => {
-        if (!response.ok) throw new Error("Gallery templates could not be loaded.");
+        if (!response.ok) throw new Error(st("studio.status.galleryUnavailable"));
         return response.json();
       })
       .then((payload: { items?: GalleryTemplate[] }) => {
@@ -1729,7 +1803,7 @@ function StudioContent() {
       .catch((error) => {
         if (cancelled) return;
         setGalleryTemplates([]);
-        setGalleryTemplateNote(error instanceof Error ? error.message : "Gallery templates could not be loaded.");
+        setGalleryTemplateNote(error instanceof Error ? error.message : st("studio.status.galleryUnavailable"));
       });
     return () => {
       cancelled = true;
@@ -1938,25 +2012,37 @@ function StudioContent() {
     if (!file) return;
     if (!file.type.startsWith("audio/")) {
       setStatusTone("error");
-      setStatusText("Please choose an audio file for AI Avatar.");
+      setStatusText(st("studio.status.audioFileRequired"));
       return;
     }
     const targetSeconds = Math.max(1, Number.parseInt(duration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
     try {
       setStatusTone("idle");
-      setStatusText(`Trimming ${file.name} to the selected ${targetSeconds}s Avatar length...`);
+      setStatusText(st("studio.status.audioTrimming", { file: file.name, seconds: targetSeconds }));
       const result = await trimAudioFileToDataUrl(file, targetSeconds);
       setAvatarAudioUrl(result.dataUrl);
       setAvatarAudioTrimSeconds(targetSeconds);
       setStatusTone("idle");
       setStatusText(
         result.trimmed
-          ? `${file.name} was trimmed from ${formatSeconds(result.originalSeconds)} to ${formatSeconds(result.outputSeconds)} for this Avatar.`
-          : `${file.name} is ${formatSeconds(result.originalSeconds)} and fits the selected ${targetSeconds}s Avatar length.`
+          ? st("studio.status.audioTrimmed", {
+              file: file.name,
+              original: formatSeconds(result.originalSeconds),
+              output: formatSeconds(result.outputSeconds)
+            })
+          : st("studio.status.audioFits", {
+              file: file.name,
+              duration: formatSeconds(result.originalSeconds),
+              seconds: targetSeconds
+            })
       );
     } catch (error) {
       setStatusTone("error");
-      setStatusText(error instanceof Error ? error.message : "Audio file could not be trimmed.");
+      setStatusText(
+        error instanceof Error
+          ? localizeStudioError(error.message)
+          : st("studio.status.audioTrimFailed")
+      );
     }
   }
 
@@ -2052,7 +2138,7 @@ function StudioContent() {
     setDuration(draft.duration);
     setPrompt(draft.prompt);
     setStatusTone("idle");
-    setStatusText(draft.autoSubmit ? "Your setup was restored. Continuing generation..." : "Your previous setup was restored.");
+    setStatusText(draft.autoSubmit ? st("studio.status.restoredContinue") : st("studio.status.restored"));
 
     setLoginDraftNonce((value) => value + 1);
   }, [accessToken, authReady]);
@@ -2076,7 +2162,7 @@ function StudioContent() {
     );
     setIsSubmitting(true);
     setStatusTone("idle");
-    setStatusText("Submitting task...");
+    setStatusText(st("studio.status.submitting"));
 
     const taskType: TaskItem["type"] = mode === "image" ? "Image" : mode === "audio" ? "Audio" : "Video";
     let idempotencyStorageKey: string | null = null;
@@ -2084,14 +2170,17 @@ function StudioContent() {
       if (isAvatarWorkflow && avatarAudioUrl.trim()) {
         if (avatarAudioUrl.startsWith("data:audio/")) {
           if (avatarAudioTrimSeconds !== avatarSelectedSeconds) {
-            throw new Error(`Please choose the audio file again so DreamFace can trim it to the selected ${avatarSelectedSeconds}s Avatar length.`);
+            throw new Error(st("studio.status.audioReselect", { seconds: avatarSelectedSeconds }));
           }
         } else {
-          setStatusText("Checking Avatar audio length...");
+          setStatusText(st("studio.status.audioChecking"));
           const remoteAudioSeconds = await readAudioDurationFromUrl(avatarAudioUrl.trim());
           if (remoteAudioSeconds > avatarSelectedSeconds + 0.5) {
             throw new Error(
-              `The pasted audio URL is ${formatSeconds(remoteAudioSeconds)}, longer than the selected ${avatarSelectedSeconds}s Avatar length. Upload the audio file so DreamFace can trim the first ${avatarSelectedSeconds}s, or choose a matching URL.`
+              st("studio.status.remoteAudioTooLong", {
+                duration: formatSeconds(remoteAudioSeconds),
+                seconds: avatarSelectedSeconds
+              })
             );
           }
         }
@@ -2114,8 +2203,8 @@ function StudioContent() {
         setStatusTone(saved ? "idle" : "error");
         setStatusText(
           saved
-            ? "We saved your setup. Sign in, then DreamFace will continue this generation automatically."
-            : "Your browser could not save this draft before sign-in. Large uploaded images may exceed local storage."
+            ? st("studio.status.savedLoginDraft")
+            : st("studio.status.draftSaveFailed")
         );
         router.push(`/auth?next=${encodeURIComponent(next)}`);
         return;
@@ -2187,7 +2276,7 @@ function StudioContent() {
       if (!response.ok) {
         const errorPayload = (await response.json().catch(() => null)) as { error?: string } | null;
         clearPersistentIdempotency(idempotencyStorageKey);
-        throw new Error(errorPayload?.error || "Generation request failed.");
+        throw new Error(localizeStudioError(errorPayload?.error || st("studio.status.requestFailed"), response.status));
       }
 
       const payload = (await response.json()) as {
@@ -2249,10 +2338,10 @@ function StudioContent() {
         liveToken
       );
       if (payload.duplicate) {
-        setStatusText("This request was already submitted. Reopened the existing task instead of charging again.");
+        setStatusText(st("studio.status.reusedTask"));
       }
       if (payload.storageWarning) {
-        setTaskHistoryNote("This task is running, but task history could not be saved yet. It will remain visible in this browser session.");
+        setTaskHistoryNote(st("studio.projects.historySavePending"));
       }
       if (payload.status === "failed") {
         trackEvent(
@@ -2261,7 +2350,7 @@ function StudioContent() {
           liveToken
         );
         setStatusTone("error");
-        setStatusText(payload.failureReason || "This existing task has already failed. Credits should be visible in the refund ledger.");
+        setStatusText(payload.failureReason || st("studio.status.existingFailed"));
         return;
       }
       if (payload.transport === "mock") {
@@ -2285,7 +2374,7 @@ function StudioContent() {
         setTasks((prev) =>
           prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Running" } : task))
         );
-        setStatusText("Task queued via local mock bridge. Set FAL_KEY and FAL model env vars for live provider.");
+        setStatusText(st("studio.status.mockQueued"));
 
         await new Promise((resolve) => setTimeout(resolve, 1200));
         const shouldFail = prompt.toLowerCase().includes("fail");
@@ -2295,7 +2384,7 @@ function StudioContent() {
             prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: 0 } : task))
           );
           setStatusTone("error");
-          setStatusText("Generation failed. Try a clearer prompt or another provider.");
+          setStatusText(st("studio.status.mockFailed"));
           trackEvent("generation_failed", { mode, provider, task_id: payload.taskId, transport: "mock" }, liveToken);
         } else {
           await updateMockStatus("completed").catch(() => null);
@@ -2304,11 +2393,11 @@ function StudioContent() {
           );
           clearCompletedWorkbench();
           setStatusTone("ok");
-          setStatusText("Generation completed. Your result is now in Projects.");
+          setStatusText(st("studio.status.mockCompleted"));
           trackEvent("generation_completed", { mode, provider, task_id: payload.taskId, transport: "mock" }, liveToken);
         }
       } else {
-        setStatusText("Task queued via fal.ai live API. Waiting for provider...");
+        setStatusText(st("studio.status.falQueued"));
         let finalStatus: "COMPLETED" | "FAILED" | "CANCELED" | "ERROR" | null = null;
         let finalFailureReason: string | null = null;
         let finalActualCredits: number | null = null;
@@ -2349,12 +2438,12 @@ function StudioContent() {
             setTasks((prev) =>
               prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Queued" } : task))
             );
-            setStatusText("Task is in queue on fal.ai...");
+            setStatusText(st("studio.status.falQueue"));
           } else if (rawStatus === "IN_PROGRESS") {
             setTasks((prev) =>
               prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Running" } : task))
             );
-            setStatusText("Task is running on fal.ai...");
+            setStatusText(st("studio.status.falRunning"));
           } else if (["COMPLETED", "FAILED", "CANCELED", "ERROR"].includes(rawStatus)) {
             if (rawStatus === "COMPLETED") {
               const mediaUrl = pickMediaUrl(statusPayload.result);
@@ -2375,7 +2464,7 @@ function StudioContent() {
           );
           clearCompletedWorkbench();
           setStatusTone("ok");
-          setStatusText("Generation completed via fal.ai. Your result is now in Projects.");
+          setStatusText(st("studio.status.falCompleted"));
           trackEvent("generation_completed", { mode, provider, task_id: payload.taskId, transport: "real" }, liveToken);
         } else {
           if (finalStatus) {
@@ -2383,7 +2472,7 @@ function StudioContent() {
               prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: finalActualCredits ?? 0, failureReason: finalFailureReason } : task))
             );
             setStatusTone("error");
-            setStatusText(finalFailureReason || "fal.ai task did not complete successfully. Credits are refunded automatically when the provider failure is confirmed.");
+            setStatusText(finalFailureReason ? localizeStudioError(finalFailureReason) : st("studio.status.falFailedRefund"));
             trackEvent("generation_failed", { mode, provider, task_id: payload.taskId, transport: "real", final_status: finalStatus, failure_reason: finalFailureReason }, liveToken);
           } else {
             setTasks((prev) =>
@@ -2391,7 +2480,7 @@ function StudioContent() {
             );
             setStatusTone("idle");
             setStatusText(
-              "This task is still running in the background. You can leave this page and check Projects later; DreamFace will keep refreshing the provider status."
+              st("studio.status.backgroundRunning")
             );
           }
         }
@@ -2405,8 +2494,8 @@ function StudioContent() {
       setStatusTone("error");
       setStatusText(
         error instanceof Error
-          ? `${error.message}${idempotencyStorageKey ? " If the request reached the server, retry will reuse the same task key." : ""}`
-          : "Unable to submit generation task."
+          ? `${localizeStudioError(error.message)}${idempotencyStorageKey ? st("studio.status.retryReuse") : ""}`
+          : st("studio.status.submitFailed")
       );
     } finally {
       setIsSubmitting(false);
@@ -2435,14 +2524,14 @@ function StudioContent() {
         body: JSON.stringify({ amount })
       });
       const payload = (await response.json()) as { balance?: number; error?: string };
-      if (!response.ok) throw new Error(payload.error || "Unable to add credits.");
+      if (!response.ok) throw new Error(localizeStudioError(payload.error || st("studio.status.topUpFailed"), response.status));
       if (typeof payload.balance === "number") {
         setCreditBalance(payload.balance);
         cacheCreditBalance(payload.balance);
       }
-      setCreditNote(`${amount} credits added. Payment integration can replace this dev top-up later.`);
+      setCreditNote(st("studio.status.topUpAdded", { credits: amount }));
     } catch (error) {
-      setCreditNote(error instanceof Error ? error.message : "Unable to add credits.");
+      setCreditNote(error instanceof Error ? localizeStudioError(error.message) : st("studio.status.topUpFailed"));
     }
   }
 
@@ -2479,10 +2568,12 @@ function StudioContent() {
         body: JSON.stringify({ packId })
       });
       const payload = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !payload.url) throw new Error(payload.error || "Unable to start checkout.");
+      if (!response.ok || !payload.url) {
+        throw new Error(response.status === 401 ? st("studio.error.sessionExpired") : st("studio.billing.checkoutFailed"));
+      }
       window.location.href = payload.url;
     } catch (error) {
-      setBillingMessage(error instanceof Error ? error.message : "Unable to start checkout.");
+      setBillingMessage(error instanceof Error ? error.message : st("studio.billing.checkoutFailed"));
       setLoadingBillingItem(null);
     }
   }
@@ -2523,10 +2614,12 @@ function StudioContent() {
         body: JSON.stringify({ type: "subscription", planId, cycle })
       });
       const payload = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !payload.url) throw new Error(payload.error || "Unable to start subscription checkout.");
+      if (!response.ok || !payload.url) {
+        throw new Error(response.status === 401 ? st("studio.error.sessionExpired") : st("studio.billing.subscriptionCheckoutFailed"));
+      }
       window.location.href = payload.url;
     } catch (error) {
-      setBillingMessage(error instanceof Error ? error.message : "Unable to start subscription checkout.");
+      setBillingMessage(error instanceof Error ? error.message : st("studio.billing.subscriptionCheckoutFailed"));
       setLoadingBillingItem(null);
     }
   }
@@ -2581,7 +2674,7 @@ function StudioContent() {
         </header>
         {!authReady ? (
           <section className="mb-4 rounded-2xl border border-black/[0.06] bg-white/82 p-6 text-sm text-[#667085] shadow-sm">
-            Checking your session...
+            {st("studio.checkingSession")}
           </section>
         ) : null}
 
@@ -2599,7 +2692,7 @@ function StudioContent() {
               <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#08bff1,#8b5cf6,#f6b431)]" />
               <button
                 type="button"
-                aria-label="Close pricing"
+                aria-label={st("studio.billing.close")}
                 onClick={() => {
                   if (!loadingBillingItem) setBillingModalOpen(false);
                 }}
@@ -2617,10 +2710,10 @@ function StudioContent() {
                       <span className="absolute left-1/2 top-2 h-3.5 w-3.5 -translate-x-1/2 rotate-45 bg-[#f6a91f]" />
                     </span>
                   </div>
-                  <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-[#08a8d8]">DreamFace Premium</p>
-                  <h2 className="mt-2 text-3xl font-black tracking-tight text-[#151922] md:text-5xl">Plans that fit your creative scale</h2>
+                  <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-[#08a8d8]">{st("studio.billing.premium")}</p>
+                  <h2 className="mt-2 text-3xl font-black tracking-tight text-[#151922] md:text-5xl">{st("studio.billing.plansTitle")}</h2>
                   <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#667085] md:text-base">
-                    Upgrade for renewable credits, faster queues, watermark-free output, and more room for image, video, avatar, and audio generation.
+                    {st("studio.billing.description")}
                   </p>
                   <div className="mt-5 inline-flex rounded-full border border-black/10 bg-[#f3f6fb] p-1">
                     {STUDIO_BILLING_CYCLES.map((cycle) => (
@@ -2638,7 +2731,7 @@ function StudioContent() {
                             : "text-[#6b7280] hover:text-[#111827]"
                         }`}
                       >
-                        {STUDIO_BILLING_CYCLE_LABELS[cycle]}
+                        {st(`studio.billing.cycle.${cycle}`)}
                       </button>
                     ))}
                   </div>
@@ -2652,18 +2745,18 @@ function StudioContent() {
 
                 <div className="mt-7 grid gap-4 lg:grid-cols-3">
                   <article className="flex min-h-[460px] flex-col rounded-[1.35rem] border border-black/10 bg-[#f8fafc] p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
-                    <h3 className="text-2xl font-black text-[#151922]">Free</h3>
+                    <h3 className="text-2xl font-black text-[#151922]">{st("studio.billing.free")}</h3>
                     <p className="mt-5 text-5xl font-black">$0</p>
-                    <p className="mt-2 text-sm font-semibold text-[#667085]">Trial credits for eligible new accounts.</p>
+                    <p className="mt-2 text-sm font-semibold text-[#667085]">{st("studio.billing.trialCredits")}</p>
                     <button
                       type="button"
                       disabled
                       className="mt-7 rounded-xl bg-[#e9edf3] px-5 py-3 text-sm font-black text-[#a1a8b3]"
                     >
-                      Current Plan
+                      {st("studio.billing.currentPlan")}
                     </button>
                     <div className="mt-8 space-y-3 text-sm font-semibold leading-6 text-[#394150]">
-                      {["Try image and audio workflows", "Project history", "Credit refund protection"].map((feature) => (
+                      {[st("studio.billing.freeFeature.imageAudio"), st("studio.billing.freeFeature.history"), st("studio.billing.freeFeature.refund")].map((feature) => (
                         <p key={feature} className="flex gap-3">
                           <span className="text-[#08bff1]">+</span>
                           <span>{feature}</span>
@@ -2688,9 +2781,9 @@ function StudioContent() {
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${plan.highlight ? "bg-[#08bff1] text-[#061215]" : "bg-white text-[#6d55c7]"}`}>
-                              {plan.badge}
+                              {st(`studio.billing.plan.${plan.id}.badge`)}
                             </p>
-                            <h3 className="mt-4 text-2xl font-black text-[#151922]">{plan.name}</h3>
+                            <h3 className="mt-4 text-2xl font-black text-[#151922]">{st(`studio.billing.plan.${plan.id}.name`)}</h3>
                           </div>
                           <select
                             value={cycle}
@@ -2704,7 +2797,7 @@ function StudioContent() {
                           >
                             {STUDIO_BILLING_CYCLES.map((item) => (
                               <option key={item} value={item}>
-                                {STUDIO_BILLING_CYCLE_LABELS[item]}
+                                {st(`studio.billing.cycle.${item}`)}
                               </option>
                             ))}
                           </select>
@@ -2713,10 +2806,13 @@ function StudioContent() {
                         <div className="mt-6">
                           <p className="text-5xl font-black tracking-tight">
                             {formatUsd(price.amountCents).replace(".00", "")}
-                            <span className="text-lg font-bold text-[#5d6675]"> / {price.interval}</span>
+                            <span className="text-lg font-bold text-[#5d6675]"> / {st(`studio.billing.interval.${price.interval}`)}</span>
                           </p>
                           <p className="mt-2 text-sm font-semibold text-[#667085]">
-                            {price.credits.toLocaleString()} credits renew every {price.interval}
+                            {st("studio.billing.creditsRenew", {
+                              credits: price.credits.toLocaleString(),
+                              interval: st(`studio.billing.interval.${price.interval}`)
+                            })}
                           </p>
                         </div>
 
@@ -2728,14 +2824,14 @@ function StudioContent() {
                             plan.highlight ? "bg-[#08bff1] text-[#061215]" : "bg-[#151922] text-white"
                           }`}
                         >
-                          {loading ? "Opening checkout..." : plan.cta}
+                          {loading ? st("studio.billing.openingCheckout") : st(`studio.billing.plan.${plan.id}.cta`)}
                         </button>
 
                         <div className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#394150]">
-                          {plan.features.slice(0, 6).map((feature) => (
+                          {plan.features.slice(0, 6).map((feature, index) => (
                             <p key={feature} className="flex gap-3">
                               <span className="text-[#08bff1]">+</span>
-                              <span>{feature}</span>
+                              <span>{st(`studio.billing.plan.${plan.id}.feature.${index}`)}</span>
                             </p>
                           ))}
                         </div>
@@ -2747,11 +2843,11 @@ function StudioContent() {
                 <section className="mt-6 rounded-[1.35rem] border border-black/10 bg-[#fbfcff] p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">Extra credits</p>
-                      <h3 className="mt-2 text-2xl font-black text-[#151922]">Top up without changing plans</h3>
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">{st("studio.billing.extraCredits")}</p>
+                      <h3 className="mt-2 text-2xl font-black text-[#151922]">{st("studio.billing.topUpTitle")}</h3>
                     </div>
                     <p className="text-sm font-semibold text-[#667085]">
-                      Current balance: {creditBalance === null ? "--" : creditBalance.toLocaleString()} credits
+                      {st("studio.billing.currentBalance", { balance: creditBalance === null ? "--" : creditBalance.toLocaleString() })}
                     </p>
                   </div>
                   <div className="mt-5 grid gap-3 md:grid-cols-4">
@@ -2759,16 +2855,16 @@ function StudioContent() {
                       const loading = loadingBillingItem === `credits:${pack.id}`;
                       return (
                         <article key={pack.id} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
-                          <h4 className="text-base font-black text-[#151922]">{pack.name}</h4>
+                          <h4 className="text-base font-black text-[#151922]">{st(`studio.billing.pack.${pack.id}`)}</h4>
                           <p className="mt-2 text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
-                          <p className="mt-1 text-sm font-semibold text-[#667085]">{pack.credits.toLocaleString()} credits</p>
+                          <p className="mt-1 text-sm font-semibold text-[#667085]">{st("studio.billing.creditCount", { credits: pack.credits.toLocaleString() })}</p>
                           <button
                             type="button"
                             onClick={() => startStudioCreditCheckout(pack.id)}
                             disabled={Boolean(loadingBillingItem)}
                             className="mt-4 w-full rounded-xl bg-[#151922] px-4 py-2.5 text-sm font-black text-white transition active:scale-[0.98] disabled:opacity-60"
                           >
-                            {loading ? "Opening..." : "Recharge"}
+                            {loading ? st("studio.billing.opening") : st("studio.billing.recharge")}
                           </button>
                         </article>
                       );
@@ -2789,12 +2885,12 @@ function StudioContent() {
               </a>
               <nav className="mt-9 flex flex-1 flex-col items-center gap-4">
                 {[
-                  { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName },
-                  { label: "Avatar", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName },
-                  { label: "Image", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName },
-                  { label: "Video", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName },
-                  { label: "Audio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName },
-                  { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName }
+                  { label: "Home", display: st("studio.nav.home"), href: "/studio?view=home", icon: "home" as StudioIconName },
+                  { label: "Avatar", display: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName },
+                  { label: "Image", display: st("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName },
+                  { label: "Video", display: st("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName },
+                  { label: "Audio", display: st("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName },
+                  { label: "Projects", display: st("studio.nav.projects"), href: "/studio?view=projects", icon: "projects" as StudioIconName }
                 ].map((item) => {
                   const active =
                     (item.label === "Home" && isAppsHome) ||
@@ -2817,7 +2913,7 @@ function StudioContent() {
                           }`}>
                             <StudioIcon name={item.icon} className="h-4 w-4" />
                           </span>
-                          Image
+                          {item.display}
                         </Link>
                         <div className="pointer-events-none absolute left-full top-0 z-50 w-64 translate-x-2 pl-3 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100">
                           <div className="rounded-3xl border border-black/[0.06] bg-white/95 p-2 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur-xl">
@@ -2873,24 +2969,24 @@ function StudioContent() {
                       }`}>
                         <StudioIcon name={item.icon} className="h-4 w-4" />
                       </span>
-                      {item.label}
+                      {item.display}
                     </Link>
                   );
                 })}
               </nav>
               <Link href="/billing" className="flex w-full items-center justify-center rounded-2xl bg-[#ecfeff] px-2 py-2 text-[11px] font-semibold text-[#06b6d4]">
-                Billing
+                {st("studio.billing.open")}
               </Link>
             </aside>
 
             <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 gap-1 rounded-[1.4rem] border border-black/[0.08] bg-white/90 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl lg:hidden">
               {[
-                { label: "Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
-                { label: "Image", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
-                { label: "Avatar", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
-                { label: "Video", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
-                { label: "Audio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
-                { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView }
+                { label: st("studio.nav.home"), href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
+                { label: st("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
+                { label: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
+                { label: st("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
+                { label: st("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
+                { label: st("studio.nav.projects"), href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView }
               ].map((item) => (
                 <Link
                   key={item.label}
@@ -2911,33 +3007,33 @@ function StudioContent() {
                   <div className="relative shrink-0">
                     <button
                       type="button"
-                      aria-label={mobileStudioMenuOpen ? "Close studio menu" : "Open studio menu"}
+                      aria-label={mobileStudioMenuOpen ? st("studio.menu.close") : st("studio.menu.open")}
                       aria-expanded={mobileStudioMenuOpen}
                       onClick={() => setMobileStudioMenuOpen((open) => !open)}
                       className="relative z-[65] grid h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-[#202633] shadow-sm transition hover:bg-[#f8fbff] lg:hidden"
                     >
                       <StudioIcon name={mobileStudioMenuOpen ? "x" : "menu"} className="h-5 w-5" />
                     </button>
-                    <Link href="/studio?view=home" aria-label="Studio home" className="hidden h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-[#202633] shadow-sm transition hover:bg-[#f8fbff] lg:grid">
+                    <Link href="/studio?view=home" aria-label={st("studio.menu.studioHome")} className="hidden h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-[#202633] shadow-sm transition hover:bg-[#f8fbff] lg:grid">
                       <StudioIcon name="home" className="h-5 w-5" />
                     </Link>
                     {mobileStudioMenuOpen ? (
                       <>
                       <button
                         type="button"
-                        aria-label="Close studio menu"
+                        aria-label={st("studio.menu.close")}
                         onClick={() => setMobileStudioMenuOpen(false)}
                         className="fixed inset-0 z-[55] cursor-default bg-transparent lg:hidden"
                       />
-                      <div className="fixed left-4 top-[4.45rem] z-[60] w-[min(17rem,calc(100vw-2rem))] rounded-[1.15rem] border border-black/[0.08] bg-white p-1.5 shadow-[0_18px_52px_rgba(15,23,42,0.20)] lg:hidden">
+                      <div className="fixed left-4 top-[4.45rem] z-[60] max-h-[calc(100dvh-6rem)] w-[min(17rem,calc(100vw-2rem))] overflow-y-auto rounded-[1.15rem] border border-black/[0.08] bg-white p-1.5 shadow-[0_18px_52px_rgba(15,23,42,0.20)] lg:hidden">
                         {[
-                          { label: "DreamFace Home", href: "https://dreamface.io/", icon: "home" as StudioIconName, active: false },
-                          { label: "Studio Home", href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
-                          { label: "AI Avatar", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
-                          { label: "Image Studio", href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
-                          { label: "Video Studio", href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
-                          { label: "Audio Studio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
-                          { label: "Projects", href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView }
+                          { label: st("studio.menu.dreamfaceHome"), href: "https://dreamface.io/", icon: "home" as StudioIconName, active: false },
+                          { label: st("studio.menu.studioHome"), href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
+                          { label: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
+                          { label: st("studio.header.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
+                          { label: st("studio.header.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
+                          { label: st("studio.header.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
+                          { label: st("studio.nav.projects"), href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView }
                         ].map((item) => (
                           <Link
                             key={item.label}
@@ -2955,25 +3051,60 @@ function StudioContent() {
                             {item.label}
                           </Link>
                         ))}
+                        <div className="mt-1 border-t border-black/[0.06] px-2 pb-1 pt-3">
+                          <div className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold text-[#8b95a7]">
+                            <StudioIcon name="globe" className="h-4 w-4" />
+                            <span>{st("studio.language")}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            {studioI18n.locales.map((locale) => (
+                              <button
+                                key={locale}
+                                type="button"
+                                onClick={() => {
+                                  studioI18n.setLocale(locale);
+                                  setMobileStudioMenuOpen(false);
+                                }}
+                                className={`min-h-10 rounded-xl px-2 py-2 text-left text-xs font-bold transition ${
+                                  studioI18n.locale === locale
+                                    ? "bg-[#e8f7ff] text-[#0284c7]"
+                                    : "bg-[#f8fafc] text-[#485164] hover:bg-[#f1f5f9]"
+                                }`}
+                              >
+                                {studioI18n.localeLabels[locale]}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                       </>
                     ) : null}
                   </div>
                   <div>
-                    <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7] sm:block">DreamFace Apps</p>
+                    <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7] sm:block">{st("studio.header.apps")}</p>
                     <h1 className="truncate text-lg font-semibold tracking-tight text-[#202633] sm:text-xl md:text-3xl">
-                      {isProjectsView ? "Projects" : isAppsHome ? "Creative AI Toolkit" : mode === "image" ? "AI Image Generator" : mode === "audio" ? "AI Audio Generator" : mode === "avatar" ? "AI Avatar Generator" : "AI Video Generator"}
+                      {isProjectsView
+                        ? st("studio.header.projects")
+                        : isAppsHome
+                          ? st("studio.header.toolkit")
+                          : mode === "image"
+                            ? st("studio.header.image")
+                            : mode === "audio"
+                              ? st("studio.header.audio")
+                              : mode === "avatar"
+                                ? st("studio.header.avatar")
+                                : st("studio.header.video")}
                     </h1>
                     <p className="mt-1 hidden text-sm text-[#8b95a7] sm:block">
                       {isProjectsView
-                        ? "Manage generated assets, prompts, credits, retries, and reference reuse inside the studio."
+                        ? st("studio.header.projectsDescription")
                         : isAppsHome
-                        ? "Image, video, audio, and cleanup tools in one production workspace."
+                        ? st("studio.header.toolkitDescription")
                         : mode === "image"
-                          ? "Create image assets from text, references, or both in one focused workspace."
+                          ? st("studio.header.imageDescription")
                           : mode === "avatar"
-                            ? "Upload one avatar image, write the words, and generate a talking video with ElevenLabs voice."
-                            : "Create AI-generated motion from prompts or animate a reference image."}
+                            ? st("studio.header.avatarDescription")
+                            : st("studio.header.videoDescription")}
                     </p>
                   </div>
                 </div>
@@ -2983,12 +3114,26 @@ function StudioContent() {
                     onClick={() => openBillingModal("balance")}
                     className="rounded-full border border-black/[0.06] bg-white px-3 py-2 text-xs font-semibold text-[#485164] shadow-[0_10px_28px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-[#08bff1]/45 hover:text-[#0f172a] hover:shadow-[0_16px_36px_rgba(8,191,241,0.14)] md:rounded-2xl md:px-4 md:text-sm"
                   >
-                    {creditBalance === null ? "--" : creditBalance.toLocaleString()} credits
+                    {st("studio.billing.creditCount", { credits: creditBalance === null ? "--" : creditBalance.toLocaleString() })}
                   </button>
+                  <label className="hidden items-center gap-2 rounded-full border border-black/[0.06] bg-white px-3 py-2 text-xs font-semibold text-[#485164] shadow-[0_10px_28px_rgba(15,23,42,0.08)] md:inline-flex">
+                    <span className="sr-only">{st("studio.language")}</span>
+                    <select
+                      value={studioI18n.locale}
+                      onChange={(event) => studioI18n.setLocale(event.target.value as typeof studioI18n.locale)}
+                      className="bg-transparent text-xs font-black outline-none"
+                    >
+                      {studioI18n.locales.map((locale) => (
+                        <option key={locale} value={locale}>
+                          {studioI18n.localeLabels[locale]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <button
                     type="button"
-                    aria-label="Open Premium plans"
-                    title="Open Premium plans"
+                    aria-label={st("studio.billing.title")}
+                    title={st("studio.billing.title")}
                     onClick={() => openBillingModal("vip_badge")}
                     className="grid h-10 w-10 place-items-center rounded-full border-2 border-[#12bff3] bg-white text-[#f6b431] shadow-[0_12px_30px_rgba(8,191,241,0.18)] transition hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-[0_18px_42px_rgba(8,191,241,0.26)]"
                   >
@@ -2999,7 +3144,7 @@ function StudioContent() {
                   </button>
                   {accessToken ? (
                     <Link href="/studio?view=projects" className="hidden rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] sm:inline-flex">
-                      Projects
+                      {st("studio.nav.projects")}
                     </Link>
                   ) : mode === "audio" ? (
                     <button
@@ -3007,11 +3152,11 @@ function StudioContent() {
                       onClick={() => applyWorkflow("text-to-audio")}
                       className="rounded-full border border-[#bae6fd] bg-[#e8f7ff] px-4 py-2 text-sm font-semibold text-[#0284c7] shadow-sm"
                     >
-                      Text to Audio
+                      {st("studio.workflow.text-to-audio")}
                     </button>
                   ) : (
                     <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="rounded-full bg-[#202633] px-3 py-2 text-xs font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] md:rounded-2xl md:px-4 md:text-sm">
-                      Sign in
+                      {st("studio.auth.signIn")}
                     </Link>
                   )}
                 </div>
@@ -3035,16 +3180,16 @@ function StudioContent() {
                             <div className="flex gap-2">
                               <button
                                 type="button"
-                                aria-label="Previous slide"
-                                onClick={() => setHomeSlideIndex((index) => (index + HOME_SLIDES.length - 1) % HOME_SLIDES.length)}
+                                aria-label={st("studio.home.previous")}
+                                onClick={() => setHomeSlideIndex((index) => (index + localizedHomeSlides.length - 1) % localizedHomeSlides.length)}
                                 className="grid h-9 w-9 place-items-center rounded-full border border-black/[0.06] bg-white/80 text-[#667085] shadow-sm transition hover:bg-white hover:text-[#202633]"
                               >
                                 <StudioIcon name="chevron-left" className="h-4 w-4" />
                               </button>
                               <button
                                 type="button"
-                                aria-label="Next slide"
-                                onClick={() => setHomeSlideIndex((index) => (index + 1) % HOME_SLIDES.length)}
+                                aria-label={st("studio.home.next")}
+                                onClick={() => setHomeSlideIndex((index) => (index + 1) % localizedHomeSlides.length)}
                                 className="grid h-9 w-9 place-items-center rounded-full border border-black/[0.06] bg-white/80 text-[#667085] shadow-sm transition hover:bg-white hover:text-[#202633]"
                               >
                                 <StudioIcon name="chevron-right" className="h-4 w-4" />
@@ -3079,10 +3224,10 @@ function StudioContent() {
 
                       <div className="grid gap-3 sm:grid-cols-2">
                         {[
-                          { label: "AI Avatar", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, accent: "bg-[#eff6ff] text-[#2563eb]", note: "Talking presenter" },
-                          { label: "Text to Image", href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image", icon: "sparkles" as StudioIconName, accent: "bg-[#ecfeff] text-[#0891b2]", note: "Ads and posters" },
-                          { label: "Image to Video", href: "/studio?mode=video&workflow=image-to-video&duration=5s", icon: "motion" as StudioIconName, accent: "bg-[#f0fdf4] text-[#16a34a]", note: "Animate a reference" },
-                          { label: "Enhance", href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image", icon: "cleanup" as StudioIconName, accent: "bg-[#fff7ed] text-[#f97316]", note: "Upscale and clean" }
+                          { label: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, accent: "bg-[#eff6ff] text-[#2563eb]", note: st("studio.home.quick.avatar") },
+                          { label: st("studio.workflow.text-to-image"), href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image", icon: "sparkles" as StudioIconName, accent: "bg-[#ecfeff] text-[#0891b2]", note: st("studio.home.quick.textImage") },
+                          { label: st("studio.workflow.image-to-video"), href: "/studio?mode=video&workflow=image-to-video&duration=5s", icon: "motion" as StudioIconName, accent: "bg-[#f0fdf4] text-[#16a34a]", note: st("studio.home.quick.imageVideo") },
+                          { label: st("studio.workflow.enhance-cleanup"), href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image", icon: "cleanup" as StudioIconName, accent: "bg-[#fff7ed] text-[#f97316]", note: st("studio.home.quick.enhance") }
                         ].map((item) => (
                           <Link
                             key={item.label}
@@ -3095,14 +3240,14 @@ function StudioContent() {
                             <span className="mt-5 block text-xl font-black tracking-tight text-[#202633]">{item.label}</span>
                             <span className="mt-1 block text-sm font-semibold text-[#667085]">{item.note}</span>
                             <span className="mt-5 inline-flex items-center gap-1 text-sm font-black text-[#0ea5e9]">
-                              Open <StudioIcon name="chevron-right" className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                              {st("studio.home.open")} <StudioIcon name="chevron-right" className="h-4 w-4 transition group-hover:translate-x-0.5" />
                             </span>
                           </Link>
                         ))}
                       </div>
                     </div>
                     <div className="mt-4 flex justify-center gap-2">
-                      {HOME_SLIDES.map((slide, index) => (
+                      {localizedHomeSlides.map((slide, index) => (
                         <button
                           key={slide.eyebrow}
                           type="button"
@@ -3117,7 +3262,7 @@ function StudioContent() {
                   </div>
 
                   <div className="mt-5 grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-4">
-                    {TOOLKIT_APPS.map((app, index) => (
+                    {localizedToolkitApps.map((app) => (
                       <Link
                         key={app.title}
                         href={app.href}
@@ -3134,7 +3279,7 @@ function StudioContent() {
                           </div>
                         </div>
                         <span className="relative mt-5 inline-flex items-center gap-1 text-sm font-black text-[#0ea5e9]">
-                          Open <StudioIcon name="chevron-right" className="h-4 w-4" />
+                          {st("studio.home.open")} <StudioIcon name="chevron-right" className="h-4 w-4" />
                         </span>
                       </Link>
                     ))}
@@ -3146,19 +3291,19 @@ function StudioContent() {
                 <div className="mx-auto mt-5 max-w-7xl md:mt-10">
                   <div className="mb-4 flex flex-col gap-4 md:mb-6 md:flex-row md:items-end md:justify-between">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b95a7]">Project workspace</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b95a7]">{st("studio.projects.eyebrow")}</p>
                       <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#202633] md:text-5xl">
-                        Creations live here.
+                        {st("studio.projects.title")}
                       </h2>
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-[#7a8496] md:mt-3">
-                        New jobs appear immediately, keep updating while the provider runs, and turn into reusable assets when complete.
+                        {st("studio.projects.description")}
                       </p>
                     </div>
                     <div className="grid grid-cols-3 gap-2 rounded-[1.5rem] border border-black/[0.06] bg-white/72 p-2 shadow-sm md:min-w-[300px]">
                       {[
-                        ["Active", activeTasks.length],
-                        ["Done", completedTasks.length],
-                        ["Failed", failedTasks.length]
+                        [st("studio.projects.active"), activeTasks.length],
+                        [st("studio.projects.done"), completedTasks.length],
+                        [st("studio.projects.failed"), failedTasks.length]
                       ].map(([label, value]) => (
                           <div key={label} className="rounded-2xl bg-[#f8fbff] px-3 py-2.5 text-center md:px-4 md:py-3">
                           <p className="text-lg font-semibold text-[#202633]">{value}</p>
@@ -3178,11 +3323,16 @@ function StudioContent() {
                     <aside className="order-2 rounded-[1.5rem] border border-black/[0.06] bg-white/76 p-3 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl md:rounded-[2rem] xl:order-1">
                       <div className="flex items-center justify-between px-3 py-2">
                         <div>
-                          <h3 className="text-sm font-semibold text-[#202633]">Project list</h3>
-                          <p className="text-xs font-medium text-[#8b95a7]">{tasks.length} saved task{tasks.length === 1 ? "" : "s"}</p>
+                          <h3 className="text-sm font-semibold text-[#202633]">{st("studio.projects.list")}</h3>
+                          <p className="text-xs font-medium text-[#8b95a7]">
+                            {st("studio.projects.savedTasks", {
+                              count: tasks.length,
+                              label: st(tasks.length === 1 ? "studio.projects.task" : "studio.projects.tasks")
+                            })}
+                          </p>
                         </div>
                         <Link href="/studio?mode=image&workflow=text-to-image" className="rounded-full bg-[#0ea5e9] px-4 py-2 text-xs font-semibold text-white shadow-[0_12px_26px_rgba(14,165,233,0.22)]">
-                          New
+                          {st("studio.projects.new")}
                         </Link>
                       </div>
                       <div className="mt-2 max-h-[360px] space-y-2 overflow-y-auto pr-1 md:max-h-[520px] xl:max-h-[680px]">
@@ -3207,21 +3357,21 @@ function StudioContent() {
                                     </p>
                                   </div>
                                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${statusPillClass(task.status)}`}>
-                                    {task.status}
+                                    {taskStatusLabel(task.status)}
                                   </span>
                                 </div>
-                                <p className="mt-3 line-clamp-2 text-xs leading-5 text-[#7a8496]">{task.prompt || "No prompt saved for this task."}</p>
+                                <p className="mt-3 line-clamp-2 text-xs leading-5 text-[#7a8496]">{task.prompt || st("studio.projects.noPrompt")}</p>
                                 <div className="mt-4 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9aa4b5]">
-                                  <span>{task.type}</span>
-                                  <span>{task.cost} credits</span>
+                                  <span>{taskTypeLabel(task.type)}</span>
+                                  <span>{task.cost} {st("studio.common.credits")}</span>
                                 </div>
                               </Link>
                             );
                           })
                         ) : (
                           <div className="rounded-[1.5rem] border border-dashed border-black/[0.08] bg-white/70 p-8 text-center">
-                            <p className="text-sm font-semibold text-[#202633]">No projects yet</p>
-                            <p className="mt-2 text-xs leading-5 text-[#8b95a7]">Generate an image or video and it will appear here instantly.</p>
+                            <p className="text-sm font-semibold text-[#202633]">{st("studio.projects.none")}</p>
+                            <p className="mt-2 text-xs leading-5 text-[#8b95a7]">{st("studio.projects.empty")}</p>
                           </div>
                         )}
                       </div>
@@ -3235,11 +3385,11 @@ function StudioContent() {
                             <div className="pointer-events-none absolute -right-16 bottom-10 h-64 w-64 rounded-full bg-[#c084fc]/18 blur-3xl" />
                             <div className="relative mb-4 flex items-center justify-between gap-3">
                               <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Preview</p>
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">{st("studio.projects.preview")}</p>
                                 <h3 className="mt-1 max-w-xl truncate text-base font-semibold text-white md:text-lg">{taskTitle(selectedProjectTask)}</h3>
                               </div>
                               <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${statusPillClass(selectedProjectTask.status)}`}>
-                                {selectedProjectTask.status}
+                                {taskStatusLabel(selectedProjectTask.status)}
                               </span>
                             </div>
                             <div className="relative grid min-h-[300px] place-items-center overflow-hidden rounded-[1.1rem] border border-white/10 bg-[radial-gradient(circle_at_50%_35%,rgba(96,165,250,0.16),transparent_35%),linear-gradient(180deg,#182131,#0d121d)] sm:min-h-[380px] md:min-h-[520px] md:rounded-[1.35rem]">
@@ -3248,7 +3398,7 @@ function StudioContent() {
                                   <video src={selectedProjectTask.mediaUrl} controls className="max-h-[420px] w-full rounded-[1.2rem] object-contain md:max-h-[620px]" />
                                 ) : selectedProjectTask.type === "Audio" ? (
                                   <div className="w-full max-w-xl rounded-[1.4rem] border border-white/10 bg-white/[0.08] p-6 text-white shadow-[0_30px_90px_rgba(0,0,0,0.25)]">
-                                    <p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-white/45">Voiceover</p>
+                                    <p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-white/45">{st("studio.projects.voiceover")}</p>
                                     <audio src={selectedProjectTask.mediaUrl} controls className="w-full" />
                                   </div>
                                 ) : (
@@ -3266,12 +3416,12 @@ function StudioContent() {
                                     {selectedProjectTask.status === "Failed" ? "!" : "..."}
                                   </div>
                                   <p className="mt-5 text-base font-semibold text-white">
-                                    {selectedProjectTask.status === "Failed" ? "Generation did not complete" : "Provider is still creating"}
+                                    {selectedProjectTask.status === "Failed" ? st("studio.projects.generationFailed") : st("studio.projects.providerCreating")}
                                   </p>
                                   <p className="mt-2 text-sm leading-6 text-white/55">
                                     {selectedProjectTask.status === "Failed"
-                                      ? selectedProjectTask.failureReason || "Credits are refunded automatically when the provider failure is confirmed."
-                                      : "You can stay here. This project will update automatically while the queue runs."}
+                                      ? selectedProjectTask.failureReason || st("studio.projects.refundDefault")
+                                      : st("studio.projects.providerCreatingDescription")}
                                   </p>
                                   {selectedProjectTask.status === "Queued" || selectedProjectTask.status === "Running" ? (
                                     <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/10">
@@ -3294,7 +3444,7 @@ function StudioContent() {
                                     href={`/api/generate/download?url=${encodeURIComponent(selectedProjectTask.mediaUrl)}&name=${encodeURIComponent(selectedProjectTask.id)}`}
                                     className="rounded-full bg-[#202633] px-4 py-2 text-sm font-semibold text-white"
                                   >
-                                    Download
+                                    {st("studio.projects.download")}
                                   </a>
                                 ) : null}
                                 <button
@@ -3304,36 +3454,36 @@ function StudioContent() {
                                   }}
                                   className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]"
                                 >
-                                  Copy prompt
+                                  {st("studio.projects.copyPrompt")}
                                 </button>
                                 <Link href={regenerateHref(selectedProjectTask)} className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]">
-                                  {selectedProjectTask.status === "Failed" ? "Retry" : "Regenerate"}
+                                  {selectedProjectTask.status === "Failed" ? st("studio.projects.retry") : st("studio.projects.regenerate")}
                                 </Link>
                                 {selectedProjectTask.mediaUrl && selectedProjectTask.type !== "Audio" ? (
                                   <Link href={useAsReferenceHref(selectedProjectTask)} className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]">
-                                    Use reference
+                                    {st("studio.projects.useReference")}
                                   </Link>
                                 ) : null}
                               </div>
                             </div>
 
                             <div className="rounded-[1.75rem] border border-black/[0.06] bg-white p-5 shadow-sm">
-                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">Prompt</p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">{st("studio.projects.prompt")}</p>
                               <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#354052]">
-                                {selectedProjectTask.prompt || "No prompt saved for this task."}
+                                {selectedProjectTask.prompt || st("studio.projects.noPrompt")}
                               </p>
                             </div>
 
                             <div className="rounded-[1.75rem] border border-black/[0.06] bg-white p-5 shadow-sm">
-                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">Details</p>
+                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">{st("studio.projects.details")}</p>
                               <dl className="mt-4 space-y-3 text-sm">
                                 {[
-                                  ["Model", providerLabel(selectedProjectTask.provider)],
-                                  ["Mode", selectedProjectTask.type],
-                                  ["Created", formatTaskDate(selectedProjectTask.createdAt)],
-                                  ["Charged", `${selectedProjectTask.chargedCredits ?? selectedProjectTask.cost} credits`],
-                                  ["Refund", selectedProjectTask.refundedCredits ? `${selectedProjectTask.refundedCredits} credits` : selectedProjectTask.refundStatus || "not_applicable"],
-                                  ["Transport", selectedProjectTask.transport || "real"]
+                                  [st("studio.projects.model"), providerLabel(selectedProjectTask.provider)],
+                                  [st("studio.projects.mode"), taskTypeLabel(selectedProjectTask.type)],
+                                  [st("studio.projects.created"), formatTaskDate(selectedProjectTask.createdAt)],
+                                  [st("studio.projects.charged"), `${selectedProjectTask.chargedCredits ?? selectedProjectTask.cost} ${st("studio.common.credits")}`],
+                                  [st("studio.projects.refund"), selectedProjectTask.refundedCredits ? `${selectedProjectTask.refundedCredits} ${st("studio.common.credits")}` : selectedProjectTask.refundStatus || "not_applicable"],
+                                  [st("studio.projects.transport"), selectedProjectTask.transport || "real"]
                                 ].map(([label, value]) => (
                                   <div key={label} className="flex items-center justify-between gap-4 border-b border-black/[0.05] pb-3 last:border-0 last:pb-0">
                                     <dt className="font-medium text-[#8b95a7]">{label}</dt>
@@ -3347,10 +3497,10 @@ function StudioContent() {
                       ) : (
                         <div className="grid min-h-[620px] place-items-center rounded-[1.75rem] border border-dashed border-black/[0.08] bg-white/70 text-center">
                           <div>
-                            <p className="text-lg font-semibold text-[#202633]">Start a project</p>
-                            <p className="mt-2 text-sm text-[#8b95a7]">Your generated assets and details will be organized here.</p>
+                            <p className="text-lg font-semibold text-[#202633]">{st("studio.projects.start")}</p>
+                            <p className="mt-2 text-sm text-[#8b95a7]">{st("studio.projects.startDescription")}</p>
                             <Link href="/studio?mode=image&workflow=text-to-image" className="mt-5 inline-flex rounded-full bg-[#0ea5e9] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(14,165,233,0.22)]">
-                              Create now
+                              {st("studio.projects.createNow")}
                             </Link>
                           </div>
                         </div>
@@ -3362,7 +3512,7 @@ function StudioContent() {
 
               <div className={`mx-auto mt-5 max-w-5xl text-center md:mt-16 ${isAppsHome || isProjectsView ? "hidden" : ""}`}>
                 <h2 className="hidden text-3xl font-semibold tracking-tight text-[#202633] sm:block md:text-5xl">
-                  What will you create today?
+                  {st("studio.heading.createToday")}
                 </h2>
                 <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:mt-5 md:mt-7">
                   {mode === "image" ? (
@@ -3381,7 +3531,7 @@ function StudioContent() {
                                   : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
                               }`}
                             >
-                              {WORKFLOW_META[workflow].label}
+                              {st(`studio.workflow.${workflow}`)}
                             </button>
                           );
                         })}
@@ -3408,7 +3558,7 @@ function StudioContent() {
                               : "border-black/[0.06] bg-white/78 text-[#667085] hover:bg-white hover:text-[#202633]"
                           }`}
                         >
-                          {WORKFLOW_META[workflow].label}
+                          {st(`studio.workflow.${workflow}`)}
                         </button>
                       );
                     })
@@ -3425,12 +3575,12 @@ function StudioContent() {
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={(event) => {
                           event.preventDefault();
-                          handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText("Image file could not be read."));
+                          handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText(st("studio.status.fileReadFailed")));
                         }}
                       >
                         <div className="mb-2 flex items-center justify-between gap-3">
-                          <span className="text-sm font-semibold text-[#202633]">Image URL<span className="text-[#2563eb]">*</span></span>
-                          <span className="rounded-full bg-[#ecfeff] px-3 py-1 text-xs font-semibold text-[#0891b2]">Transparent PNG</span>
+                          <span className="text-sm font-semibold text-[#202633]">{st("studio.field.imageUrl")}<span className="text-[#2563eb]">*</span></span>
+                          <span className="rounded-full bg-[#ecfeff] px-3 py-1 text-xs font-semibold text-[#0891b2]">{st("studio.field.transparentPng")}</span>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                           <input
@@ -3440,17 +3590,17 @@ function StudioContent() {
                             className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
                           />
                           <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-black/[0.08] bg-white px-5 text-sm font-semibold text-[#202633] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                            Choose image
+                            {st("studio.action.chooseImage")}
                             <input
                               type="file"
                               accept="image/*"
                               className="hidden"
-                              onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText("Image file could not be read."))}
+                              onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText(st("studio.status.fileReadFailed")))}
                             />
                           </label>
                         </div>
                         <p className="mt-3 text-xs leading-5 text-[#667085]">
-                          Upload or paste one image. Bria removes the background and returns a PNG with transparency.
+                          {st("studio.reference.backgroundHint")}
                         </p>
                       </div>
                     ) : (
@@ -3461,14 +3611,14 @@ function StudioContent() {
                         className="min-h-[190px] w-full resize-none bg-transparent text-[17px] leading-8 text-[#202633] outline-none placeholder:text-[#98a3b8] sm:min-h-[132px] sm:text-base sm:leading-7 md:min-h-[154px] md:text-lg md:leading-8"
                         placeholder={
                           mode === "image"
-                            ? "Type your prompt to create images. Add a reference with + when you want image-to-image..."
+                            ? st("studio.placeholder.image")
                             : mode === "audio"
-                              ? "Type the voiceover script you want ElevenLabs to speak..."
+                              ? st("studio.placeholder.audio")
                             : mode === "avatar"
-                              ? "Type the exact words you want this avatar to say. Keep it short, clear, and under about 15 seconds..."
+                              ? st("studio.placeholder.avatar")
                             : activeWorkflow === "image-to-video"
-                              ? "Describe how the uploaded image should move, the camera feel, and final mood..."
-                              : "Type your prompt to create AI video footage..."
+                              ? st("studio.placeholder.imageVideo")
+                              : st("studio.placeholder.video")
                         }
                       />
                     )}
@@ -3476,7 +3626,10 @@ function StudioContent() {
                       <div className="mt-4 border-t border-black/[0.06] pt-4">
                         <div className="mb-3 flex items-center justify-between">
                           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8791a3]">
-                            {referenceImageUrls.length} reference {referenceImageUrls.length === 1 ? "image" : "images"}
+                            {st("studio.reference.count", {
+                              count: referenceImageUrls.length,
+                              label: st(referenceImageUrls.length === 1 ? "studio.reference.image" : "studio.reference.images")
+                            })}
                           </p>
                           <button
                             type="button"
@@ -3488,7 +3641,7 @@ function StudioContent() {
                             }}
                             className="rounded-full border border-black/[0.06] bg-white px-3 py-1 text-xs font-semibold text-[#667085] hover:bg-[#f8fafc]"
                           >
-                            Clear
+                            {st("studio.action.clear")}
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -3507,12 +3660,12 @@ function StudioContent() {
                           onDragOver={(event) => event.preventDefault()}
                           onDrop={(event) => {
                             event.preventDefault();
-                            handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText("Image file could not be read."));
+                            handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText(st("studio.status.fileReadFailed")));
                           }}
                         >
                           <div className="mb-2 flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-[#202633]">Image URL<span className="text-[#2563eb]">*</span></span>
-                            <span className="rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-semibold text-[#2563eb]">Avatar image</span>
+                            <span className="text-sm font-semibold text-[#202633]">{st("studio.field.imageUrl")}<span className="text-[#2563eb]">*</span></span>
+                            <span className="rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-semibold text-[#2563eb]">{st("studio.field.avatarImage")}</span>
                           </div>
                           <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                             <input
@@ -3522,24 +3675,24 @@ function StudioContent() {
                               className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
                             />
                             <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-black/[0.08] bg-white px-5 text-sm font-semibold text-[#202633] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                              Choose...
+                              {st("studio.action.choose")}
                               <input
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText("Image file could not be read."))}
+                                onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText(st("studio.status.fileReadFailed")))}
                               />
                             </label>
                           </div>
                           <p className="mt-3 text-xs leading-5 text-[#667085]">
-                            Hint: paste an image URL or choose an image file. Accepted file types: jpg, jpeg, png, webp, gif, avif.
+                            {st("studio.reference.avatarHint")}
                           </p>
                           {referenceImageUrls.length ? (
                             <div className="mt-4 flex flex-wrap gap-2">
                               {referenceImageUrls.slice(0, 4).map((url, index) => (
                                 <div key={`${url.slice(0, 32)}-${index}`} className="relative h-24 w-24 overflow-hidden rounded-2xl border-2 border-[#7c3aed] bg-[#f2f6fb] shadow-sm">
                                   <img src={url} alt={`Avatar input ${index + 1}`} className="h-full w-full object-cover" />
-                                  <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-[#7c3aed] text-xs font-black text-white">✓</span>
+                                  <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-[#7c3aed] text-xs font-black text-white">?</span>
                                 </div>
                               ))}
                             </div>
@@ -3558,16 +3711,16 @@ function StudioContent() {
                             />
                           </div>
                           <div className="rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
-                            <p className="text-sm font-semibold text-[#202633]">Example output</p>
+                            <p className="text-sm font-semibold text-[#202633]">{st("studio.avatar.example")}</p>
                             <p className="mt-2 text-xs leading-5 text-[#667085]">
-                              This preview uses the default avatar image and sample script. Replace the image URL or upload your own avatar when you want a custom result.
+                              {st("studio.avatar.exampleDescription")}
                             </p>
                           </div>
                         </div>
 
                         <div className="mb-4 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
                           <div className="mb-2 flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-[#202633]">ElevenLabs voice</span>
+                            <span className="text-sm font-semibold text-[#202633]">{st("studio.avatar.voice")}</span>
                             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${avatarScriptTooLong ? "bg-[#fff1f2] text-[#e11d48]" : "bg-[#f0fdf4] text-[#16a34a]"}`}>
                               {avatarScriptMeta}
                             </span>
@@ -3584,7 +3737,7 @@ function StudioContent() {
                                     : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
                                 }`}
                               >
-                                {option.label}
+                                {st(`studio.voiceGender.${option.value}`)}
                               </button>
                             ))}
                           </div>
@@ -3604,11 +3757,13 @@ function StudioContent() {
                               className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
                             >
                               {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
-                                <option key={item.value || "auto"} value={item.value}>{item.label}</option>
+                                <option key={item.value || "auto"} value={item.value}>
+                                  {st(`studio.languageOption.${item.value || "auto"}`)}
+                                </option>
                               ))}
                             </select>
                             <label className="rounded-xl border border-black/[0.08] bg-white px-4 py-2.5">
-                              <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8791a3]">Stability {ttsStability.toFixed(2)}</span>
+                              <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8791a3]">{st("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
                               <input
                                 type="range"
                                 min="0"
@@ -3622,8 +3777,8 @@ function StudioContent() {
                           </div>
                           <p className={`mt-3 text-xs leading-5 ${avatarScriptTooLong ? "text-[#e11d48]" : "text-[#667085]"}`}>
                             {avatarScriptTooLong
-                              ? "This script is likely longer than the 15s Avatar limit after Kling adds a short buffer. Shorten it before generating."
-                              : `DreamFace will generate the voice first, then send it to Kling Avatar. Billing uses the estimated final video length: about ${avatarDuration}.`}
+                              ? st("studio.avatar.scriptTooLong")
+                              : st("studio.avatar.billingHint", { duration: avatarDuration })}
                           </p>
                         </div>
 
@@ -3634,9 +3789,9 @@ function StudioContent() {
                               onClick={startAvatarImageGuide}
                               className="rounded-2xl border border-[#bfdbfe] bg-[#eff6ff] p-4 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
                             >
-                              <span className="text-xs font-black uppercase tracking-[0.12em] text-[#2563eb]">Need an avatar image?</span>
-                              <span className="mt-2 block text-sm font-semibold text-[#202633]">Create a presenter portrait first</span>
-                              <span className="mt-1 block text-xs leading-5 text-[#667085]">Generate a clean front-facing character or host image, then use it here as the avatar reference.</span>
+                              <span className="text-xs font-black uppercase tracking-[0.12em] text-[#2563eb]">{st("studio.avatar.guideEyebrow")}</span>
+                              <span className="mt-2 block text-sm font-semibold text-[#202633]">{st("studio.avatar.guideTitle")}</span>
+                              <span className="mt-1 block text-xs leading-5 text-[#667085]">{st("studio.avatar.guideDescription")}</span>
                             </button>
                           </div>
                         ) : null}
@@ -3656,17 +3811,17 @@ function StudioContent() {
                   <div className="grid grid-cols-2 gap-2.5 border-t border-black/[0.06] bg-[#fbfcff] px-5 py-4 sm:flex sm:flex-wrap sm:items-center md:px-7">
                     {mode !== "audio" && !isPromptlessImageWorkflow ? (
                     <label
-                      title="Add reference images"
+                      title={st("studio.action.addReference")}
                       className="col-span-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-black/[0.08] bg-white text-sm font-semibold text-[#475467] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:grid sm:h-10 sm:w-10 sm:place-items-center sm:rounded-full sm:text-xl sm:font-light"
                     >
                       <span className="text-xl font-light leading-none">+</span>
-                      <span className="sm:hidden">Reference image</span>
+                      <span className="sm:hidden">{st("studio.action.referenceImage")}</span>
                       <input
                         type="file"
                         accept="image/*"
                         multiple
                         className="hidden"
-                        onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
+                        onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText(st("studio.status.fileReadFailed")))}
                       />
                     </label>
                     ) : null}
@@ -3694,7 +3849,7 @@ function StudioContent() {
                         >
                           {(provider === "nano-banana-pro" ? NANO_ASPECT_RATIO_OPTIONS.filter((item) => !["4:1", "1:4", "8:1", "1:8"].includes(item)) : NANO_ASPECT_RATIO_OPTIONS).map((item) => (
                             <option key={item} value={item}>
-                              {item === "auto" ? "Auto ratio" : item}
+                              {item === "auto" ? st("studio.option.autoRatio") : item}
                             </option>
                           ))}
                         </select>
@@ -3732,13 +3887,15 @@ function StudioContent() {
                           className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
                         >
                           {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
-                            <option key={item.value || "auto"} value={item.value}>{item.label}</option>
+                            <option key={item.value || "auto"} value={item.value}>
+                              {st(`studio.languageOption.${item.value || "auto"}`)}
+                            </option>
                           ))}
                         </select>
                       </>
                     ) : mode === "avatar" ? (
                       <span className={`rounded-full border px-4 py-2.5 text-center text-sm font-semibold sm:py-2 ${avatarScriptTooLong ? "border-[#fecdd3] bg-[#fff1f2] text-[#e11d48]" : "border-black/[0.06] bg-white text-[#667085]"}`}>
-                        {avatarDuration} auto
+                        {avatarDuration} {st("studio.option.automatic")}
                       </span>
                     ) : (
                       <>
@@ -3749,7 +3906,7 @@ function StudioContent() {
                         </select>
                         <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={(provider === "kling-video" && activeWorkflow === "image-to-video") || isAvatarWorkflow} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none disabled:opacity-70 sm:w-auto">
                           {videoRatioOptions.map((item) => (
-                            <option key={item} value={item}>{item === "source" ? "Source image" : item}</option>
+                            <option key={item} value={item}>{item === "source" ? st("studio.option.sourceImage") : item}</option>
                           ))}
                         </select>
                         {showVideoResolutionControl ? (
@@ -3762,7 +3919,7 @@ function StudioContent() {
                       </>
                     )}
                     <span className="rounded-full border border-black/[0.06] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#667085] sm:py-2">
-                      {estCredits} credits
+                      {st("studio.generate.estimate", { credits: estCredits })}
                     </span>
                     <button
                       type="button"
@@ -3770,18 +3927,18 @@ function StudioContent() {
                       disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
                       className="col-span-2 min-h-12 rounded-full bg-[#171a22] px-7 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(23,26,34,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(23,26,34,0.26)] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:min-h-11"
                     >
-                      {isSubmitting ? "Creating..." : accessToken ? "Generate" : "Sign in to Generate"}
+                      {isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}
                     </button>
                   </div>
                   {mode === "audio" ? (
                     <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">ElevenLabs settings</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">{st("studio.field.modelSettings")}</p>
                         <p className="text-xs font-medium text-[#8b95a7]">{providerSettingsLabel}</p>
                       </div>
                       <div className="grid gap-3 lg:grid-cols-4">
                         <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <span className="mb-2 block text-xs font-semibold text-[#667085]">Voice</span>
+                          <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.field.voice")}</span>
                           <select
                             value={ttsVoice}
                             onChange={(e) => setTtsVoice(e.target.value)}
@@ -3793,7 +3950,7 @@ function StudioContent() {
                           </select>
                         </label>
                         <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <span className="mb-2 block text-xs font-semibold text-[#667085]">Stability {ttsStability.toFixed(2)}</span>
+                          <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
                           <input
                             type="range"
                             min="0"
@@ -3805,26 +3962,30 @@ function StudioContent() {
                           />
                         </label>
                         <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <span className="mb-2 block text-xs font-semibold text-[#667085]">Language</span>
+                          <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.field.language")}</span>
                           <select
                             value={ttsLanguageCode}
                             onChange={(e) => setTtsLanguageCode(e.target.value)}
                             className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none"
                           >
-                            {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
-                              <option key={item.value || "auto"} value={item.value}>{item.label}</option>
+                          {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
+                              <option key={item.value || "auto"} value={item.value}>
+                                {st(`studio.languageOption.${item.value || "auto"}`)}
+                              </option>
                             ))}
                           </select>
                         </label>
                         <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <span className="mb-2 block text-xs font-semibold text-[#667085]">Text normalization</span>
+                          <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.field.textNormalization")}</span>
                           <select
                             value={textNormalization}
                             onChange={(e) => setTextNormalization(e.target.value)}
                             className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none"
                           >
-                            {TEXT_NORMALIZATION_OPTIONS.map((item) => (
-                              <option key={item.value} value={item.value}>{item.label}</option>
+                          {TEXT_NORMALIZATION_OPTIONS.map((item) => (
+                              <option key={item.value} value={item.value}>
+                                {st(`studio.textNormalization.${item.value}`)}
+                              </option>
                             ))}
                           </select>
                         </label>
@@ -3832,8 +3993,8 @@ function StudioContent() {
                       <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                         <label className="flex items-center justify-between gap-4 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                           <span>
-                            <span className="block text-sm font-semibold text-[#485164]">Word timestamps</span>
-                            <span className="mt-1 block text-xs text-[#8b95a7]">Ask fal to include word timing metadata with the generated audio.</span>
+                            <span className="block text-sm font-semibold text-[#485164]">{st("studio.field.wordTimestamps")}</span>
+                            <span className="mt-1 block text-xs text-[#8b95a7]">{st("studio.audio.wordTimestampsDescription")}</span>
                           </span>
                           <input
                             type="checkbox"
@@ -3843,20 +4004,23 @@ function StudioContent() {
                           />
                         </label>
                         <p className="rounded-2xl border border-black/[0.06] bg-white px-4 py-3 text-sm font-semibold text-[#667085]">
-                          {audioCharacterCount.toLocaleString()} chars / about {estCredits} credits now
+                          {st("studio.audio.creditEstimate", {
+                            characters: audioCharacterCount.toLocaleString(),
+                            credits: estCredits
+                          })}
                         </p>
                       </div>
                     </div>
                   ) : mode === "image" && !isPromptlessImageWorkflow ? (
                     <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">Model settings</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">{st("studio.field.modelSettings")}</p>
                         <p className="text-xs font-medium text-[#8b95a7]">{providerSettingsLabel}</p>
                       </div>
                       <div className="grid gap-3 lg:grid-cols-4">
                         {provider === "chatgpt-image" ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">Quality</p>
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.quality")}</p>
                             <div className="grid grid-cols-4 gap-1">
                               {(["auto", "low", "medium", "high"] as const).map((quality) => (
                                 <button
@@ -3876,7 +4040,7 @@ function StudioContent() {
                         {provider === "flux-image" || provider === "flux-dev" ? (
                           <>
                             <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                              <p className="mb-2 text-xs font-semibold text-[#667085]">Steps</p>
+                              <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.steps")}</p>
                               <div className="grid grid-cols-4 gap-1">
                                 {(provider === "flux-image" ? [1, 2, 4, 8, 12] : [4, 8, 16, 28, 50]).map((steps) => (
                                   <button
@@ -3893,7 +4057,7 @@ function StudioContent() {
                               </div>
                             </div>
                             <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                              <p className="mb-2 text-xs font-semibold text-[#667085]">Guidance</p>
+                              <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.guidance")}</p>
                               <input
                                 type="range"
                                 min="1"
@@ -3909,7 +4073,7 @@ function StudioContent() {
                         ) : null}
                         {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">Resolution</p>
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.resolution")}</p>
                             <div className="grid grid-cols-4 gap-1">
                               {(provider === "nano-banana-pro" ? ["1K", "2K", "4K"] : ["0.5K", "1K", "2K", "4K"]).map((resolution) => (
                                 <button
@@ -3927,7 +4091,7 @@ function StudioContent() {
                           </div>
                         ) : null}
                         <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <p className="mb-2 text-xs font-semibold text-[#667085]">Output</p>
+                          <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.output")}</p>
                           <div className="grid grid-cols-3 gap-1">
                             {(provider === "flux-image" || provider === "flux-dev" ? ["jpeg", "png"] : ["png", "jpeg", "webp"]).map((format) => (
                               <button
@@ -3944,7 +4108,7 @@ function StudioContent() {
                           </div>
                         </div>
                         <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <p className="mb-2 text-xs font-semibold text-[#667085]">Count</p>
+                          <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.count")}</p>
                           <div className="grid grid-cols-4 gap-1">
                             {[1, 2, 3, 4].map((count) => (
                               <button
@@ -3962,7 +4126,7 @@ function StudioContent() {
                         </div>
                         {provider === "flux-image" || provider === "flux-dev" ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">Safety</p>
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.safety")}</p>
                             <button
                               type="button"
                               onClick={() => setEnableSafetyChecker((value) => !value)}
@@ -3970,13 +4134,13 @@ function StudioContent() {
                                 enableSafetyChecker ? "bg-[#e8f7ff] text-[#0284c7]" : "bg-white text-[#667085]"
                               }`}
                             >
-                              {enableSafetyChecker ? "Enabled" : "Disabled"}
+                              {enableSafetyChecker ? st("studio.state.enabled") : st("studio.state.disabled")}
                             </button>
                           </div>
                         ) : null}
                         {provider === "flux-image" || provider === "flux-dev" ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">Acceleration</p>
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.acceleration")}</p>
                             <div className="grid grid-cols-3 gap-1">
                               {["none", "regular", "high"].map((item) => (
                                 <button
@@ -3995,7 +4159,7 @@ function StudioContent() {
                         ) : null}
                         {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">Safety tolerance</p>
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.safetyTolerance")}</p>
                             <div className="grid grid-cols-6 gap-1">
                               {["1", "2", "3", "4", "5", "6"].map((item) => (
                                 <button
@@ -4014,7 +4178,7 @@ function StudioContent() {
                         ) : null}
                         {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">Limit generations</p>
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.limitGenerations")}</p>
                             <button
                               type="button"
                               onClick={() => setLimitGenerations((value) => !value)}
@@ -4022,13 +4186,13 @@ function StudioContent() {
                                 limitGenerations ? "bg-[#e8f7ff] text-[#0284c7]" : "bg-white text-[#667085]"
                               }`}
                             >
-                              {limitGenerations ? "On" : "Off"}
+                              {limitGenerations ? st("studio.state.on") : st("studio.state.off")}
                             </button>
                           </div>
                         ) : null}
                         {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">Web search</p>
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.webSearch")}</p>
                             <button
                               type="button"
                               onClick={() => setEnableWebSearch((value) => !value)}
@@ -4036,18 +4200,18 @@ function StudioContent() {
                                 enableWebSearch ? "bg-[#e8f7ff] text-[#0284c7]" : "bg-white text-[#667085]"
                               }`}
                             >
-                              {enableWebSearch ? "Enabled" : "Disabled"}
+                              {enableWebSearch ? st("studio.state.enabled") : st("studio.state.disabled")}
                             </button>
                           </div>
                         ) : null}
                         {provider === "nano-banana-image" ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">Thinking</p>
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.thinking")}</p>
                             <div className="grid grid-cols-3 gap-1">
                               {[
-                                { value: "", label: "Off" },
-                                { value: "minimal", label: "Minimal" },
-                                { value: "high", label: "High" }
+                                { value: "", label: st("studio.state.off") },
+                                { value: "minimal", label: st("studio.state.minimal") },
+                                { value: "high", label: st("studio.state.high") }
                               ].map((item) => (
                                 <button
                                   key={item.value || "off"}
@@ -4064,23 +4228,23 @@ function StudioContent() {
                           </div>
                         ) : null}
                         <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <p className="mb-2 text-xs font-semibold text-[#667085]">Seed</p>
+                          <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.seed")}</p>
                           <input
                             value={seed}
                             onChange={(e) => setSeed(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
-                            placeholder="Random"
+                            placeholder={st("studio.placeholder.random")}
                             inputMode="numeric"
                             className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-xs font-semibold text-[#202633] outline-none placeholder:text-[#a2aabc]"
                           />
                         </div>
                         {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
                           <div className="lg:col-span-2 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">System prompt</p>
+                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.systemPrompt")}</p>
                             <textarea
                               rows={2}
                               value={systemPrompt}
                               onChange={(e) => setSystemPrompt(e.target.value)}
-                              placeholder="Optional model-level instruction"
+                              placeholder={st("studio.placeholder.system")}
                               className="w-full resize-none rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-xs font-medium leading-5 text-[#202633] outline-none placeholder:text-[#a2aabc]"
                             />
                           </div>
@@ -4412,7 +4576,7 @@ function StudioContent() {
               </label>
 
               <label className="block">
-                <span className="text-sm text-[#5f6779]">{mode === "image" ? "Output Size" : "Aspect Ratio"}</span>
+                <span className="text-sm text-[#5f6779]">{mode === "image" ? st("studio.field.outputSize") : st("studio.field.aspectRatio")}</span>
                 {mode === "image" ? (
                   <select
                     value={imageSize}
@@ -4489,7 +4653,7 @@ function StudioContent() {
               </label>
               {mode === "image" ? (
                 <label className="block">
-                  <span className="text-sm text-[#5f6779]">Output Format</span>
+                  <span className="text-sm text-[#5f6779]">{st("studio.field.outputFormat")}</span>
                   <select
                     value={outputFormat}
                     onChange={(e) => setOutputFormat(e.target.value)}
@@ -4502,7 +4666,7 @@ function StudioContent() {
                 </label>
               ) : showVideoResolutionControl ? (
                 <label className="block">
-                  <span className="text-sm text-[#5f6779]">Resolution</span>
+                  <span className="text-sm text-[#5f6779]">{st("studio.field.resolution")}</span>
                   <select
                     value={videoResolution}
                     onChange={(e) => {
@@ -4567,13 +4731,13 @@ function StudioContent() {
                 )}
               </label>
               <div className="rounded-2xl bg-white/[0.045] px-3 py-2 shadow-sm">
-                <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/35">Quality</span>
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/35">{st("studio.field.quality")}</span>
                 <p className="mt-1 text-sm font-semibold text-white">
                   {mode === "image" && provider === "nano-banana-image" ? editResolution : mode === "video" ? videoResolution : "High"}
                 </p>
               </div>
               <div className="rounded-2xl bg-white/[0.045] px-3 py-2 shadow-sm">
-                <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/35">Output</span>
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/35">{st("studio.field.output")}</span>
                 <p className="mt-1 text-sm font-semibold text-white">{mode === "video" ? duration : "1 image"}</p>
               </div>
               <div className="rounded-2xl bg-[#1c6be1] px-3 py-2 text-white shadow-[0_12px_24px_rgba(28,107,225,0.22)]">
@@ -4602,7 +4766,7 @@ function StudioContent() {
                         accept="image/*"
                         multiple
                         className="hidden"
-                        onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
+                        onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText(st("studio.status.fileReadFailed")))}
                       />
                     </label>
                   ) : null}
@@ -4628,7 +4792,7 @@ function StudioContent() {
                         }}
                         className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-semibold text-white/58"
                       >
-                        Clear
+                        {st("studio.action.clear")}
                       </button>
                     </div>
                     <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
@@ -4647,12 +4811,12 @@ function StudioContent() {
                       onDragOver={(event) => event.preventDefault()}
                       onDrop={(event) => {
                         event.preventDefault();
-                        handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText("Image file could not be read."));
+                        handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText(st("studio.status.fileReadFailed")));
                       }}
                     >
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="text-sm font-semibold text-white/82">Image URL<span className="text-[#93c5fd]">*</span></span>
-                        <span className="rounded-full bg-[#1d4ed8]/25 px-2.5 py-1 text-[11px] font-semibold text-[#bfdbfe]">Avatar image</span>
+                        <span className="text-sm font-semibold text-white/82">{st("studio.field.imageUrl")}<span className="text-[#93c5fd]">*</span></span>
+                        <span className="rounded-full bg-[#1d4ed8]/25 px-2.5 py-1 text-[11px] font-semibold text-[#bfdbfe]">{st("studio.field.avatarImage")}</span>
                       </div>
                       <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                         <input
@@ -4662,12 +4826,12 @@ function StudioContent() {
                           className="min-h-11 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-sm font-semibold text-white outline-none placeholder:text-white/28 focus:border-[#77a8e8]"
                         />
                         <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] px-4 text-sm font-semibold text-white/82 transition hover:bg-white/[0.12]">
-                          Choose...
+                          {st("studio.action.choose")}
                           <input
                             type="file"
                             accept="image/*"
                             className="hidden"
-                            onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText("Image file could not be read."))}
+                            onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText(st("studio.status.fileReadFailed")))}
                           />
                         </label>
                       </div>
@@ -4686,14 +4850,14 @@ function StudioContent() {
                         className="aspect-video w-full bg-black object-cover"
                       />
                       <div className="border-t border-white/10 px-3 py-2">
-                        <p className="text-xs font-semibold text-white/72">Example output</p>
+                        <p className="text-xs font-semibold text-white/72">{st("studio.avatar.example")}</p>
                         <p className="mt-1 text-xs leading-5 text-white/38">Uses the default avatar image and sample script.</p>
                       </div>
                     </div>
 
                     <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="text-sm font-semibold text-white/82">ElevenLabs voice</span>
+                        <span className="text-sm font-semibold text-white/82">{st("studio.avatar.voice")}</span>
                         <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${avatarScriptTooLong ? "bg-[#be123c]/25 text-[#fecdd3]" : "bg-[#15803d]/25 text-[#bbf7d0]"}`}>{avatarScriptMeta}</span>
                       </div>
                       <div className="mb-2 grid grid-cols-3 rounded-full border border-white/10 bg-white/[0.06] p-1">
@@ -4769,20 +4933,20 @@ function StudioContent() {
                 className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
               >
                 <span>
-                  <span className="block text-sm font-semibold text-white/82">Advanced settings</span>
+                  <span className="block text-sm font-semibold text-white/82">{st("studio.field.advanced")}</span>
                   <span className="mt-1 block text-xs text-white/38">
                     {mode === "image" ? `${selectedImageSize.label} / ${outputFormat.toUpperCase()}` : `${duration} / ${ratio}`}
                   </span>
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-sm font-semibold text-white/52">
-                  {advancedOpen ? "Hide" : "Show"}
+                  {advancedOpen ? st("studio.action.hide") : st("studio.action.show")}
                 </span>
               </button>
               {advancedOpen ? (
                 <div className="grid gap-4 border-t border-white/10 p-4 md:grid-cols-2">
                   {mode === "image" ? (
                     <label className="block">
-                      <span className="text-sm text-white/50">Output Size</span>
+                      <span className="text-sm text-white/50">{st("studio.field.outputSize")}</span>
                       <select
                         value={imageSize}
                         onChange={(e) => {
@@ -4808,7 +4972,7 @@ function StudioContent() {
                     </label>
                   ) : (
                     <label className="block">
-                      <span className="text-sm text-white/50">Aspect Ratio</span>
+                      <span className="text-sm text-white/50">{st("studio.field.aspectRatio")}</span>
                       <select
                         value={ratio}
                         onChange={(e) => {
@@ -4828,7 +4992,7 @@ function StudioContent() {
 
                   {mode === "image" && provider === "nano-banana-image" ? (
                     <label className="block">
-                      <span className="text-sm text-white/50">Resolution</span>
+                      <span className="text-sm text-white/50">{st("studio.field.resolution")}</span>
                       <select
                         value={editResolution}
                         onChange={(e) => setEditResolution(e.target.value)}
@@ -4842,7 +5006,7 @@ function StudioContent() {
                     </label>
                   ) : mode === "video" ? (
                     <label className="block">
-                      <span className="text-sm text-white/50">Duration</span>
+                      <span className="text-sm text-white/50">{st("studio.field.duration")}</span>
                       <select
                         value={duration}
                         onChange={(e) => setDuration(e.target.value)}
@@ -4855,7 +5019,7 @@ function StudioContent() {
                     </label>
                   ) : (
                     <label className="block">
-                      <span className="text-sm text-white/50">Output Format</span>
+                      <span className="text-sm text-white/50">{st("studio.field.outputFormat")}</span>
                       <select
                         value={outputFormat}
                         onChange={(e) => setOutputFormat(e.target.value)}
@@ -4870,7 +5034,7 @@ function StudioContent() {
 
                   {showVideoResolutionControl ? (
                     <label className="block">
-                      <span className="text-sm text-white/50">Resolution</span>
+                      <span className="text-sm text-white/50">{st("studio.field.resolution")}</span>
                       <select
                         value={videoResolution}
                         onChange={(e) => setVideoResolution(e.target.value)}
@@ -4887,8 +5051,8 @@ function StudioContent() {
                   {showVideoAudioControl ? (
                     <label className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.05] p-3">
                       <span>
-                        <span className="block text-sm font-semibold text-white/72">Native audio</span>
-                        <span className="mt-1 block text-xs text-white/38">Adds provider-generated sound when supported.</span>
+                        <span className="block text-sm font-semibold text-white/72">{st("studio.field.nativeAudio")}</span>
+                        <span className="mt-1 block text-xs text-white/38">{st("studio.field.nativeAudioDescription")}</span>
                       </span>
                       <input
                         type="checkbox"
@@ -4917,7 +5081,7 @@ function StudioContent() {
                         accept="image/*"
                         multiple
                         className="hidden"
-                        onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText("Image file could not be read."))}
+                        onChange={(e) => handleReferenceFiles(e.target.files).catch(() => setStatusText(st("studio.status.fileReadFailed")))}
                       />
                     </label>
                   ) : null}
@@ -4943,7 +5107,7 @@ function StudioContent() {
                         }}
                         className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold text-[#667084]"
                       >
-                        Clear
+                        {st("studio.action.clear")}
                       </button>
                     </div>
                     <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
@@ -4965,7 +5129,11 @@ function StudioContent() {
                 disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
                 className="min-h-[64px] w-full rounded-[1.35rem] bg-gradient-to-br from-[#1c6be1] to-[#3f86ff] text-base shadow-[0_18px_42px_rgba(28,107,225,0.34),0_0_0_1px_rgba(255,255,255,0.14)_inset] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_26px_60px_rgba(28,107,225,0.42)] active:translate-y-0 active:shadow-[0_16px_34px_rgba(28,107,225,0.34)]"
               >
-                {isSubmitting ? "Creating..." : accessToken ? `Generate / ${estCredits} credits` : "Sign in to Generate"}
+                {isSubmitting
+                  ? st("studio.generate.creating")
+                  : accessToken
+                    ? st("studio.generate.buttonWithCredits", { credits: estCredits })
+                    : st("studio.auth.signInToGenerate")}
               </AppButton>
               <button
                 type="button"
@@ -4976,28 +5144,28 @@ function StudioContent() {
                 disabled={isSubmitting}
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-semibold text-white/68 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Random Prompt
+                {st("studio.action.randomPrompt")}
               </button>
             </div>
             <p className="mt-3 text-sm text-white/46">
               {!isAvatarWorkflow && !isPromptValid
-                ? "Use at least 8 characters in your prompt."
+                ? st("studio.validation.promptLength")
                 : isAvatarWorkflow && avatarScriptTooLong
-                  ? "Shorten the Avatar script to stay within 15 seconds."
+                  ? st("studio.validation.avatarLength")
                 : !hasRequiredReference
-                  ? "Add at least one reference image for this workflow."
+                  ? st("studio.validation.referenceRequired")
                   : isPromptlessImageWorkflow
-                    ? "Image ready. Background Remove will return a transparent PNG."
-                    : "Prompt looks good. Ready to generate."}
+                    ? st("studio.validation.backgroundReady")
+                    : st("studio.validation.ready")}
             </p>
             <p className="mt-2 text-xs text-white/35">{providerNote}</p>
             {accessToken && !hasEnoughCredits ? (
               <p className="mt-2 rounded-xl border border-[#ff7b87]/25 bg-[#ff5161]/10 px-3 py-2 text-xs font-semibold text-[#ffb3ba]">
-                Your balance is below this estimate. Top up before generating.
+                {st("studio.generate.lowBalance")}
               </p>
             ) : accessToken && lowBalanceAfterGeneration ? (
               <p className="mt-2 rounded-xl border border-[#f5d061]/20 bg-[#f5d061]/10 px-3 py-2 text-xs font-semibold text-[#f5d989]">
-                Low balance warning: this job would leave fewer than {CREDIT_LOW_BALANCE_THRESHOLD} credits.
+                {st("studio.generate.lowBalanceWarning", { threshold: CREDIT_LOW_BALANCE_THRESHOLD })}
               </p>
             ) : null}
             {statusText ? (
@@ -5277,7 +5445,7 @@ function StudioContent() {
                   onClick={() => setPreviewModal(null)}
                   className="rounded-full border border-white/30 bg-black/40 px-3 py-1 text-sm font-semibold text-white"
                 >
-                  Close
+                  {st("studio.modal.close")}
                 </button>
               </div>
               {previewModal.type === "Video" ? (
@@ -5293,12 +5461,10 @@ function StudioContent() {
   );
 }
 
-export function StudioPageClient() {
+export function StudioPageClient({ initialLocale }: { initialLocale: Locale }) {
   return (
     <Suspense fallback={null}>
-      <StudioContent />
+      <StudioContent initialLocale={initialLocale} />
     </Suspense>
   );
 }
-
-

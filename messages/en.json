@@ -200,7 +200,14 @@
     "documentation": "Documentation",
     "contact": "Contact",
     "licenseTerms": "License & Terms",
-    "copyright": "(c) 2026 DreamFace. All rights reserved."
+    "copyright": "(c) 2026 DreamFace. All rights reserved.",
+    "legal": {
+      "license": "DreamFace License",
+      "terms": "Terms of Use",
+      "business-terms": "Business Terms of Use",
+      "copyright-policy": "Copyright Policy",
+      "privacy-policy": "Privacy Policy"
+    }
   },
   "auth": {
     "brand": "dreamface",
@@ -318,7 +325,45 @@
       "opening": "Opening..."
     },
     "faq": {
-      "title": "Price FAQs"
+      "title": "Price FAQs",
+      "items": {
+        "test": {
+          "q": "How can I test DreamFace?",
+          "a": "Create a free account and use trial credits to try image generation, image editing, voice, and short video workflows before upgrading."
+        },
+        "cost": {
+          "q": "How much does DreamFace cost?",
+          "a": "DreamFace offers Premium Lite and Premium subscriptions, plus optional extra credit packs for occasional top-ups."
+        },
+        "credits": {
+          "q": "What are credits?",
+          "a": "Credits are DreamFace's single balance for creative work. Different providers and models use different amounts, so the studio shows an estimated cost before you submit a generation."
+        },
+        "rollover": {
+          "q": "Do credits roll over?",
+          "a": "Subscription credits renew each billing cycle according to the current product rules. Purchased extra credit packs stay in your wallet while your account is active."
+        },
+        "cancel": {
+          "q": "Can I cancel anytime?",
+          "a": "Yes. You can cancel your subscription anytime."
+        },
+        "extra": {
+          "q": "Can I buy extra credits?",
+          "a": "Yes. Extra credits are available below the subscription plans for occasional usage."
+        },
+        "upgrade": {
+          "q": "Can I upgrade from Premium Lite to Premium?",
+          "a": "Yes. Users can upgrade anytime once subscription management is enabled for the account."
+        },
+        "video": {
+          "q": "Can I use credits for video?",
+          "a": "Yes. Video models usually cost more than image models because pricing scales with duration, resolution, and provider rules. The estimate appears before generation."
+        },
+        "failure": {
+          "q": "What happens if a generation fails?",
+          "a": "When a provider failure is confirmed, DreamFace records a refund entry in your ledger and returns the related credits to your balance."
+        }
+      }
     },
     "features": {
       "eyebrow": "Plan features",
@@ -328,12 +373,164 @@
     "testimonials": {
       "eyebrow": "Testimonials",
       "title": "What customers are saying about us",
-      "description": "Spoiler, they have got some pretty nice things to say."
+      "description": "Spoiler, they have got some pretty nice things to say.",
+      "rating": "5 out of 5 Stars",
+      "items": {
+        "campaigns": {
+          "title": "Campaigns feel faster",
+          "body": "We can test visual directions, voice options, and short motion ideas in one place without rebuilding the brief every time.",
+          "role": "Growth Lead"
+        },
+        "simple": {
+          "title": "Simple enough for non-designers",
+          "body": "The team stopped asking where to start. They open the studio, pick a workflow, and know the credit cost before running it.",
+          "role": "Creative Ops"
+        },
+        "iteration": {
+          "title": "Great for iteration",
+          "body": "We use it for thumbnail rounds, product moodboards, upscale passes, and early video concepts before production begins.",
+          "role": "Brand Producer"
+        },
+        "billing": {
+          "title": "No mystery billing",
+          "body": "The credit ledger makes internal approvals easier. We can see what was purchased, what was spent, and what was refunded.",
+          "role": "Studio Manager"
+        },
+        "polish": {
+          "title": "From prompt to polish",
+          "body": "The range is the win: fast drafts, premium image models, voice, enhancement, and video tests all share the same wallet.",
+          "role": "Content Director"
+        },
+        "repeat": {
+          "title": "Built for repeat work",
+          "body": "Saved projects and predictable credit estimates make it practical for weekly content cycles, not just one-off experiments.",
+          "role": "Marketing Lead"
+        }
+      }
     },
     "modelGuide": {
       "eyebrow": "Model guide",
       "title": "Typical credit costs",
       "description": "Exact pricing appears next to the Generate button. Live fal pricing is used when available, with fallback estimates for continuity."
+    },
+    "comparison": {
+      "getStarted": "Get started",
+      "value": {
+        "included": "Included",
+        "notIncluded": "Not included"
+      },
+      "plan": {
+        "free": "Free",
+        "premiumLite": "Premium Lite",
+        "premium": "Premium"
+      },
+      "section": {
+        "credits": {
+          "title": "Membership credits",
+          "row": {
+            "trialCredits": {
+              "label": "Trial credits",
+              "value1": "100 credits",
+              "value2": "Included by eligibility",
+              "value3": "Included by eligibility"
+            },
+            "monthlyCredits": {
+              "label": "Monthly credits",
+              "value1": "Not included",
+              "value2": "2,000 credits",
+              "value3": "4,500 credits"
+            },
+            "yearlyCredits": {
+              "label": "Yearly credits",
+              "value1": "Not included",
+              "value2": "26,000 credits",
+              "value3": "68,000 credits"
+            },
+            "extraCreditPacks": {
+              "label": "Extra credit packs",
+              "value1": "Available",
+              "value2": "Available",
+              "value3": "Available"
+            }
+          }
+        },
+        "access": {
+          "title": "Studio access",
+          "row": {
+            "textToImage": {
+              "label": "Text to image",
+              "value1": "Trial access",
+              "value2": "Full access",
+              "value3": "Full access"
+            },
+            "imageEditing": {
+              "label": "Image editing",
+              "value1": "Trial access",
+              "value2": "Full access",
+              "value3": "Full access"
+            },
+            "voiceGeneration": {
+              "label": "Voice generation",
+              "value1": "Limited",
+              "value2": "Included",
+              "value3": "Included"
+            },
+            "videoGeneration": {
+              "label": "Video generation",
+              "value1": "Limited",
+              "value2": "Basic video",
+              "value3": "Higher video capacity"
+            },
+            "premiumModelAccess": {
+              "label": "Premium model access",
+              "value1": "Limited",
+              "value2": "Included",
+              "value3": "Advanced access"
+            },
+            "promptHistory": {
+              "label": "Prompt history",
+              "value1": "Included",
+              "value2": "Included",
+              "value3": "Included"
+            }
+          }
+        },
+        "benefits": {
+          "title": "Membership benefits",
+          "row": {
+            "commercialUse": {
+              "label": "Commercial use",
+              "value1": "Not included",
+              "value2": "Included",
+              "value3": "Included"
+            },
+            "watermark": {
+              "label": "Watermark",
+              "value1": "Included",
+              "value2": "No watermark",
+              "value3": "No watermark"
+            },
+            "queue": {
+              "label": "Queue",
+              "value1": "Standard",
+              "value2": "Faster queue",
+              "value3": "Priority queue"
+            },
+            "refunds": {
+              "label": "Failed provider job refunds",
+              "value1": "Included",
+              "value2": "Included",
+              "value3": "Included"
+            },
+            "bestFor": {
+              "label": "Best for",
+              "value1": "Testing tools",
+              "value2": "Casual creators",
+              "value3": "Heavy creators and teams"
+            }
+          }
+        }
+      }
     }
   },
   "billing": {
@@ -348,13 +545,19 @@
       "eyebrow": "Subscription",
       "noActive": "No active membership",
       "choosePlan": "Choose Premium Lite or Premium to unlock membership benefits and renewable credits.",
-      "manage": "Manage billing"
+      "manage": "Manage billing",
+      "currentDescription": "{credits} credits per {cycle}. {status}",
+      "cancellationScheduled": "Cancellation is scheduled at period end.",
+      "manageThroughStripe": "Manage billing through Stripe.",
+      "accessUntil": "Access until",
+      "renews": "Renews"
     },
     "success": {
       "title": "Checkout success",
       "paymentReceived": "Payment received",
       "description": "Stripe confirmation is still syncing. Your balance refreshes automatically on this page.",
-      "creditsAdded": "{credits} credits added"
+      "creditsAdded": "{credits} credits added",
+      "purchaseSummary": "{packId} package - {amount} - {status}"
     },
     "subscriptionSuccess": {
       "eyebrow": "Subscription checkout",
@@ -362,7 +565,8 @@
       "description": "Stripe is confirming your subscription. Membership credits and benefits will appear after confirmation is fully enabled."
     },
     "cancel": {
-      "title": "Checkout was cancelled"
+      "title": "Checkout was cancelled",
+      "description": "No charge was made. You can choose a plan or credit pack whenever you are ready."
     },
     "lowBalance": "Your balance is below {threshold} credits. Top up before larger video renders or high-quality image batches.",
     "membership": {
@@ -392,6 +596,52 @@
     "onlyMonthly": "Only {price}/mo ? {savings}",
     "creditsPerInterval": "{credits} credits / {interval}",
     "creditCount": "{credits} credits",
-    "renewsEvery": "renews every {interval}"
+    "renewsEvery": "renews every {interval}",
+    "message": {
+      "trialUnavailable": "Trial credits are not available for this account. Purchased credits can still be used normally.",
+      "balanceUnavailable": "Credit balance is temporarily unavailable.",
+      "subscriptionChecking": "Subscription checkout completed. Confirming your membership with Stripe...",
+      "subscriptionConfirmed": "Subscription confirmed. Membership credits have been added to your balance.",
+      "subscriptionProcessing": "Subscription completed. Stripe confirmation may still be processing; refresh again in a moment.",
+      "paymentChecking": "Payment completed. Refreshing your balance from Stripe confirmation...",
+      "paymentConfirmed": "Payment confirmed. Credits have been added to your balance.",
+      "paymentProcessing": "Payment completed. Stripe confirmation may still be processing; refresh again in a moment.",
+      "checkoutCancelled": "Checkout was cancelled. No credits were added.",
+      "unableCheckout": "Unable to start checkout.",
+      "unableSubscriptionCheckout": "Unable to start subscription checkout.",
+      "unablePortal": "Unable to open billing portal."
+    },
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "failed": "Failed"
+    },
+    "reason": {
+      "signup_bonus": "Signup bonus",
+      "stripe_checkout": "Credit purchase",
+      "stripe_subscription": "Subscription credits",
+      "generation_task": "Generation",
+      "generation_refund": "Failed generation refund",
+      "manual_top_up_dev": "Development top-up"
+    }
+  },
+  "metadata": {
+    "home": {
+      "title": "DreamFace AI Image and Video Generator",
+      "description": "Create AI images and videos from prompts, photos, and scripts with DreamFace. Open image, video, avatar, audio, credits, and project tools from one creative studio."
+    },
+    "price": {
+      "title": "DreamFace Pricing and Credit Packs",
+      "description": "Compare DreamFace Premium plans, credit packs, model access, faster queues, watermark-free exports, and pay-as-you-go credits for AI image and video creation."
+    },
+    "auth": {
+      "title": "Sign in to DreamFace",
+      "description": "Sign in or create a free DreamFace account to claim credits, save prompts, manage projects, and start creating AI images and videos."
+    },
+    "billing": {
+      "title": "DreamFace Billing and Credits",
+      "description": "Manage DreamFace credits, Premium subscriptions, Stripe checkout status, top-ups, purchases, and billing history from one secure page."
+    }
   }
 }

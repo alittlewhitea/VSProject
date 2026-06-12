@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
+import { defaultLocale, isLocale } from "../i18n/routing";
 import { LEGAL_DOCUMENTS } from "../lib/legal";
 
-export function SiteFooter() {
-  const t = useTranslations();
+export async function SiteFooter() {
+  const requestLocale = headers().get("x-dreamface-locale");
+  const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
+  const t = await getTranslations({ locale });
 
   return (
     <footer className="mt-16 rounded-3xl bg-gradient-to-br from-[#dff3fa] via-[#e8f8ff] to-[#efeefe] px-7 py-9">
@@ -33,7 +37,7 @@ export function SiteFooter() {
           <div className="mt-2 grid gap-1">
             {LEGAL_DOCUMENTS.map((document) => (
               <Link key={document.slug} href={`/legal/${document.slug}`} className="text-sm text-[#4f5a67] hover:text-[#1d1d1f]">
-                {document.title}
+                {t(`footer.legal.${document.slug}`)}
               </Link>
             ))}
           </div>

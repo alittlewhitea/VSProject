@@ -1,397 +1,647 @@
 {
   "nav": {
     "logo": "dreamface",
-    "platform": "N?n t?ng",
-    "providers": "M? h?nh",
-    "gallery": "Th? vi?n",
-    "pricing": "B?ng gi?",
-    "login": "??ng nh?p",
-    "logout": "??ng xu?t",
-    "projects": "D? ?n",
+    "platform": "Nền tảng",
+    "providers": "Mô hình",
+    "gallery": "Thư viện",
+    "pricing": "Bảng giá",
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "projects": "Dự án",
     "studio": "Studio",
-    "openStudio": "M? Studio",
-    "products": "S?n ph?m",
-    "create": "T?o",
-    "featured": "N?i b?t",
-    "creativeToolkit": "B? c?ng c? s?ng t?o AI",
-    "creativeToolkitDescription": "M? m?i kh?ng gian s?ng t?o c?a DreamFace t? m?t trung t?m",
-    "imageStudio": "Studio ?nh AI",
-    "imageStudioDescription": "T?o ?nh t? prompt ho?c h?nh tham chi?u",
-    "videoStudio": "Studio Video AI",
-    "videoStudioDescription": "Bi?n v?n b?n ho?c h?nh ?nh th?nh video ho?n ch?nh",
-    "audioGenerator": "Tr?nh t?o gi?ng n?i AI",
-    "audioGeneratorDescription": "T?o voiceover ElevenLabs t? nhi?n t? k?ch b?n",
-    "projectsDescription": "Qu?n l? t?c ph?m, prompt, ho?n credit v? l?ch s?",
-    "textToImage": "V?n b?n th?nh ?nh",
-    "textToImageDescription": "T?o qu?ng c?o, poster, thumbnail v? concept h?nh ?nh",
-    "imageToImage": "?nh th?nh ?nh",
-    "imageToImageDescription": "Ch?nh s?a, ??i phong c?ch ho?c m? r?ng ?nh tham chi?u",
-    "imageEnhance": "N?ng c?p ?nh",
-    "imageEnhanceDescription": "Ph?ng to v? l?m s?ch h?nh ?nh b?n s? h?u",
-    "backgroundRemove": "X?a N?n",
-    "backgroundRemoveDescription": "X?a n?n v? xu?t PNG trong su?t",
-    "textToVideo": "V?n b?n th?nh Video",
-    "textToVideoDescription": "Bi?n c?nh vi?t b?ng ch? th?nh clip ng?n c? chuy?n ??ng",
-    "imageToVideo": "?nh th?nh Video",
-    "imageToVideoDescription": "T?o chuy?n ??ng cho s?n ph?m, ch?n dung ho?c khung tham chi?u",
-    "textToAudio": "V?n b?n th?nh ?m thanh",
-    "textToAudioDescription": "T?o voiceover t? nhi?n t? k?ch b?n",
-    "payAsYouGo": "Tr? theo nhu c?u",
-    "creditPacksForIndividuals": "G?i credit cho nh? s?ng t?o"
+    "openStudio": "Mở Studio",
+    "products": "Sản phẩm",
+    "create": "Tạo",
+    "featured": "Nổi bật",
+    "creativeToolkit": "Bộ công cụ sáng tạo AI",
+    "creativeToolkitDescription": "Mở mọi không gian sáng tạo của DreamFace từ một trung tâm",
+    "imageStudio": "Studio ảnh AI",
+    "imageStudioDescription": "Tạo ảnh từ prompt hoặc hình tham chiếu",
+    "videoStudio": "Studio video AI",
+    "videoStudioDescription": "Biến văn bản hoặc hình ảnh thành video hoàn chỉnh",
+    "audioGenerator": "Trình tạo giọng nói AI",
+    "audioGeneratorDescription": "Tạo voiceover ElevenLabs tự nhiên từ kịch bản",
+    "projectsDescription": "Quản lý tác phẩm, prompt, hoàn credit và lịch sử",
+    "textToImage": "Văn bản thành ảnh",
+    "textToImageDescription": "Tạo quảng cáo, poster, thumbnail và concept hình ảnh.",
+    "imageToImage": "Ảnh thành ảnh",
+    "imageToImageDescription": "Chỉnh sửa, đổi phong cách hoặc mở rộng ảnh tham chiếu.",
+    "imageEnhance": "Nâng cấp ảnh",
+    "imageEnhanceDescription": "Nâng cấp và làm sạch hình ảnh bạn sở hữu.",
+    "backgroundRemove": "Xóa nền",
+    "backgroundRemoveDescription": "Xóa nền và xuất PNG trong suốt.",
+    "textToVideo": "Văn bản thành video",
+    "textToVideoDescription": "Biến cảnh viết bằng chữ thành clip ngắn có chuyển động.",
+    "imageToVideo": "Ảnh thành video",
+    "imageToVideoDescription": "Làm sản phẩm, chân dung hoặc ảnh tham chiếu chuyển động.",
+    "textToAudio": "Văn bản thành âm thanh",
+    "textToAudioDescription": "Tạo voiceover tự nhiên từ kịch bản.",
+    "payAsYouGo": "Trả theo nhu cầu",
+    "creditPacksForIndividuals": "Gói credit cho nhà sáng tạo"
   },
   "hero": {
-    "titleLine1": "Bi?n ? t??ng th?nh",
-    "titleLine2": "video trong v?i ph?t",
-    "title": "Bi?n ? t??ng th?nh video trong v?i ph?t",
-    "subtitle": "T? k?ch b?n, h?nh ?nh, b?i thuy?t tr?nh ho?c prompt ??n n?i dung s?ng t?o ho?n ch?nh. Kh?ng c?n m?y quay, ekip hay k? n?ng d?ng phim.",
-    "ctaGoogle": "Ti?p t?c v?i Google",
-    "ctaPrimary": "B?t ??u mi?n ph?"
+    "titleLine1": "Biến ý tưởng thành",
+    "titleLine2": "video trong vài phút",
+    "title": "Biến ý tưởng thành video trong vài phút",
+    "subtitle": "Từ kịch bản, hình ảnh, bài thuyết trình hoặc prompt đến nội dung sáng tạo hoàn chỉnh. Không cần máy quay, ekip hay kỹ năng dựng phim.",
+    "ctaGoogle": "Tiếp tục với Google",
+    "ctaPrimary": "Bắt đầu miễn phí"
   },
   "home": {
     "gallery": {
-      "eyebrow": "Th? vi?n Prompt",
-      "title": "Kh?m ph? h?nh ?nh AI s?n s?ng cho s?ng t?o",
-      "description": "Xem prompt t?i s? d?ng, v? d? m? h?nh v? h?nh tham chi?u tuy?n ch?n tr??c khi m? Studio.",
-      "cta": "Xem th?m"
+      "eyebrow": "Thư viện prompt",
+      "title": "Khám phá ý tưởng hình ảnh AI sẵn sàng dùng",
+      "description": "Xem prompt có thể tái sử dụng, ví dụ mô hình và hình tham chiếu trước khi mở studio.",
+      "cta": "Xem thêm"
     },
     "platform": {
-      "titleLine1": "C?ng c? cho m?i",
-      "titleLine2": "quy tr?nh s?ng t?o",
-      "description": "M? ??ng kh?ng gian cho t?o ?nh, t?o video, qu?ng c?o s?n ph?m, concept UGC v? s?n xu?t b?ng m? h?nh AI t? m?t trung t?m duy nh?t.",
+      "titleLine1": "Công cụ cho mọi",
+      "titleLine2": "quy trình sáng tạo",
+      "description": "Mở đúng không gian để tạo ảnh, tạo video, làm quảng cáo sản phẩm, thử ý tưởng UGC và sản xuất bằng mô hình AI trong một trung tâm.",
       "card": {
-        "textToVideo": "V?n b?n th?nh Video",
-        "photoToVideo": "?nh th?nh Video",
-        "productAds": "Qu?ng c?o S?n ph?m",
-        "ugcAds": "Qu?ng c?o UGC",
-        "aiModels": "M? h?nh AI"
+        "textToVideo": "Văn bản thành video",
+        "photoToVideo": "Ảnh thành video",
+        "productAds": "Quảng cáo sản phẩm",
+        "ugcAds": "Quảng cáo UGC",
+        "aiModels": "Mô hình AI"
       }
     },
     "textToVideo": {
-      "eyebrow": "V?n b?n th?nh Video",
-      "title": "Bi?n v?n b?n th?nh video b?ng AI",
-      "description": "T?o video ho?n ch?nh t? k?ch b?n. M? t? c?nh, nh?p, gi?ng, chuy?n ??ng camera v? phong c?ch ??u ra ?? t?o clip cho gi?i th?ch, qu?ng c?o, b?n h?ng, onboarding ho?c m?ng x? h?i.",
-      "cta": "B?t ??u mi?n ph?"
+      "eyebrow": "Văn bản thành video",
+      "title": "Biến văn bản thành video bằng AI",
+      "description": "Tạo video AI hoàn chỉnh từ kịch bản. Mô tả cảnh, nhịp, giọng, chuyển động camera và phong cách để tạo clip cho quảng cáo, bán hàng, onboarding hoặc mạng xã hội.",
+      "cta": "Bắt đầu miễn phí"
     },
     "photoToVideo": {
-      "eyebrow": "?nh th?nh Video",
-      "title": "Bi?n ?nh th?nh video",
-      "description": "L?m cho b?t k? h?nh ?nh n?o chuy?n ??ng trong v?i gi?y. T?i ?nh l?n, th?m k?ch b?n ho?c prompt chuy?n ??ng v? t?o video AI v?i chuy?n ??ng t? nhi?n, nh?p m??t v? khung h?nh s?n s?ng xu?t.",
-      "cta": "B?t ??u mi?n ph?"
+      "eyebrow": "Ảnh thành video",
+      "title": "Biến ảnh thành video",
+      "description": "Tải ảnh lên, thêm kịch bản hoặc chuyển động và tạo video AI sống động với chuyển động tự nhiên, nhịp mượt và khung hình sẵn sàng xuất.",
+      "cta": "Bắt đầu miễn phí"
     },
     "pricing": {
-      "title": "Credit linh ho?t, kh?ng t?o c?m gi?c b? kh?a b?i g?i thu? bao",
-      "cta": "Xem gi?",
-      "getCredits": "Nh?n credit",
+      "title": "Credit linh hoạt, không ép đăng ký dài hạn",
+      "cta": "Xem giá",
+      "getCredits": "Mua credit",
       "trial": {
-        "name": "Credit d?ng th?",
-        "price": "Mi?n ph?",
-        "note": "Cho t?i kho?n m?i",
-        "credits": "Bao g?m 100 credit khi ??ng k?"
+        "name": "Credit dùng thử",
+        "price": "Miễn phí",
+        "note": "Cho tài khoản mới",
+        "credits": "100 credit khi đăng ký"
       },
-      "bestValue": "Gi? tr? t?t nh?t",
-      "topUpWhenNeeded": "N?p th?m khi c?n"
+      "bestValue": "Đáng giá nhất",
+      "topUpWhenNeeded": "Nạp thêm khi cần"
     },
     "faq": {
-      "eyebrow": "FAQ DreamFace",
-      "title": "C?u h?i th??ng g?p",
-      "description": "T?m hi?u c?ch DreamFace k?t h?p t?o ?nh AI, t?o video AI, v?n b?n th?nh ?nh, ?nh th?nh ?nh v? v?n b?n th?nh video trong m?t Studio s?ng t?o c? ??nh tuy?n m? h?nh, tham chi?u prompt, credit v? l?ch s?.",
+      "eyebrow": "Câu hỏi thường gặp DreamFace",
+      "title": "Câu hỏi thường gặp",
+      "description": "Tìm hiểu cách tạo ảnh, chỉnh sửa, văn bản thành ảnh, ảnh thành ảnh, văn bản thành video và ảnh thành video hoạt động trong cùng một studio sáng tạo.",
       "whatIsDreamFace": {
-        "question": "DreamFace l? g??",
-        "answer": "DreamFace l? Studio s?ng t?o AI ?? t?o ?nh v? video trong m?t kh?ng gian. Nh? s?ng t?o c? th? ?i t? ? t??ng prompt ??n t?o ?nh, ch?nh s?a ?nh v? video, ??ng th?i qu?n l? m? h?nh, credit, l?ch s? v? k?t qu?."
+        "question": "DreamFace là gì?",
+        "answer": "DreamFace là studio AI để tạo ảnh, chỉnh sửa hình ảnh và tạo video trong một nơi, đồng thời quản lý mô hình, credit, lịch sử và kết quả."
       },
       "videoGenerators": {
-        "question": "Tr?nh t?o video AI l? g??",
-        "answer": "?? l? c?ng c? bi?n prompt, h?nh ?nh, k?ch b?n ho?c t?i li?u tham chi?u th?nh video clip b?ng AI, gi?p t?o video m?ng x? h?i, demo s?n ph?m, B-roll v? n?i dung marketing m? kh?ng c?n quay phim truy?n th?ng."
+        "question": "Trình tạo video AI là gì?",
+        "answer": "Đó là công cụ biến prompt, ảnh, kịch bản hoặc tài liệu tham chiếu thành clip video cho mạng xã hội, demo sản phẩm, quảng cáo và marketing."
       },
       "bestVideoGenerator": {
-        "question": "Tr?nh t?o video AI t?t nh?t cho marketer v? creator l? g??",
-        "answer": "?i?u n?y ph? thu?c v?o workflow, m? h?nh ?a th?ch, ng?n s?ch v? phong c?ch ??u ra. DreamFace ph? h?p v?i ng??i mu?n t?o ?nh, ch?nh ?nh, text-to-video, image-to-video, ??c t?nh credit v? l?ch s? d? ?n ? c?ng m?t n?i."
+        "question": "Trình tạo video AI nào phù hợp cho creator và marketing?",
+        "answer": "Điều này phụ thuộc quy trình, ngân sách, mô hình và phong cách đầu ra. DreamFace phù hợp khi bạn muốn ảnh, chỉnh sửa, video và credit trong một workspace."
       },
       "availableTools": {
-        "question": "DreamFace c? nh?ng c?ng c? AI n?o?",
-        "answer": "DreamFace c? v?n b?n th?nh ?nh, ?nh th?nh ?nh, v?n b?n th?nh video, ?nh th?nh video, n?ng c?p ?nh v? l?ch s? d? ?n t?i s? d?ng. Studio b?t ??u t? vi?c b?n mu?n t?o g? r?i ??nh tuy?n ??n m? h?nh ph? h?p."
+        "question": "DreamFace có những công cụ nào?",
+        "answer": "DreamFace có văn bản thành ảnh, ảnh thành ảnh, văn bản thành video, ảnh thành video, nâng cấp ảnh và lịch sử dự án."
       },
       "textImageSupport": {
-        "question": "DreamFace c? h? tr? v?n b?n th?nh ?nh v? ?nh th?nh ?nh kh?ng?",
-        "answer": "C?. B?n c? th? t?o ?nh t? prompt ho?c th?m ?nh tham chi?u ?? ch?nh s?a. Prompt control v? ch?n m? h?nh n?m trong c?ng composer ?? chuy?n workflow d? d?ng."
+        "question": "Có hỗ trợ văn bản thành ảnh và ảnh thành ảnh không?",
+        "answer": "Có. Bạn có thể tạo ảnh bằng prompt hoặc dùng ảnh tham chiếu để chỉnh sửa, đổi phong cách và mở rộng hình ảnh."
       },
       "videoSupport": {
-        "question": "DreamFace c? h? tr? v?n b?n th?nh video v? ?nh th?nh video kh?ng?",
-        "answer": "C?. DreamFace t?ch ri?ng hai workflow ?? b?n m? t? c?nh t? ??u ho?c l?m ?nh tham chi?u chuy?n ??ng. C?i ??t v? ch?t l??ng ph? thu?c v?o m? h?nh video."
+        "question": "Có hỗ trợ văn bản thành video và ảnh thành video không?",
+        "answer": "Có. Văn bản thành video tạo cảnh từ đầu, còn ảnh thành video làm sản phẩm, chân dung hoặc ảnh tham chiếu chuyển động."
       },
       "videoInputs": {
-        "question": "C? th? d?ng lo?i input n?o ?? t?o video AI?",
-        "answer": "B?n c? th? b?t ??u b?ng prompt v?n b?n, ?nh tham chi?u ho?c brief ng?n. V?i image-to-video, h?y t?i ?nh l?n v? m? t? chuy?n ??ng, camera, h?nh vi ch? th? v? mood cu?i c?ng."
+        "question": "Có thể dùng đầu vào nào để tạo video?",
+        "answer": "Bạn có thể dùng prompt, ảnh tham chiếu hoặc brief ngắn với mô tả chuyển động, camera, nhịp và cảm xúc cuối."
       },
       "referenceImage": {
-        "question": "C? th? t?o video AI b?ng ?nh tham chi?u kh?ng?",
-        "answer": "C?. Workflow image-to-video d?ng ?nh s?n ph?m, ch?n dung, nh?n v?t ho?c concept l?m khung ??u, r?i g?i ?nh v? prompt ??n m? h?nh ?? ch?n."
+        "question": "Có thể tạo video bằng ảnh tham chiếu không?",
+        "answer": "Có. Tải ảnh sản phẩm, chân dung, nhân vật hoặc concept lên, DreamFace sẽ gửi ảnh và prompt đến mô hình đã chọn."
       },
       "videoOfMyself": {
-        "question": "L?m sao t?o video AI c?a ch?nh m?nh?",
-        "answer": "D?ng ?nh ho?c clip r? n?t m? b?n c? quy?n s? d?ng, sau ?? m? t? chuy?n ??ng, c?nh v? phong c?ch mong mu?n. Ch? t?i l?n likeness c?a b?n ho?c ?? ???c cho ph?p."
+        "question": "Làm sao tạo video AI của chính tôi?",
+        "answer": "Dùng ảnh hoặc clip rõ nét mà bạn có quyền sử dụng, sau đó mô tả chuyển động, cảnh và phong cách."
       },
       "socialMedia": {
-        "question": "C? th? t?o video cho TikTok, qu?ng c?o ho?c m?ng x? h?i kh?ng?",
-        "answer": "C?. DreamFace ???c thi?t k? cho clip ng?n, teaser s?n ph?m, concept qu?ng c?o, thumbnail v? asset chi?n d?ch. B?n c? th? t?o, l?u v?o D? ?n v? d?ng l?i prompt ho?c ?nh tham chi?u."
+        "question": "Có thể làm video cho TikTok, quảng cáo hoặc mạng xã hội không?",
+        "answer": "Có. DreamFace phù hợp cho clip ngắn, teaser sản phẩm, concept quảng cáo, thumbnail và chiến dịch."
       },
       "models": {
-        "question": "C? th? d?ng nh?ng m? h?nh AI n?o?",
-        "answer": "T?y workflow. ?nh c? GPT Image 2, Nano Banana 2, FLUX Schnell; video c? Seedance, Kling, Veo v? Grok Imagine Video."
+        "question": "Có thể dùng mô hình AI nào?",
+        "answer": "Tùy quy trình. Ảnh có GPT Image 2, Nano Banana 2 và FLUX Schnell; video có Seedance, Kling, Veo và Grok Imagine Video."
       },
       "videoTiming": {
-        "question": "T?o video AI m?t bao l?u?",
-        "answer": "T?y h?ng ??i provider, th?i l??ng, ?? ph?n gi?i v? m? h?nh. Clip ng?n th??ng ho?n t?t trong v?i ph?t; t?c v? n?ng h?n c? th? l?u h?n."
+        "question": "Tạo video AI mất bao lâu?",
+        "answer": "Tùy hàng đợi, thời lượng, độ phân giải và nhà cung cấp. Clip ngắn thường hoàn tất trong vài phút."
       },
       "noEditing": {
-        "question": "Kh?ng bi?t d?ng phim c? t?o video AI ???c kh?ng?",
-        "answer": "C?. Ch?n workflow, vi?t prompt, th?m tham chi?u n?u c?n, ch?n t?y ch?n m? h?nh v? generate. B?n kh?ng c?n kinh nghi?m timeline editing."
+        "question": "Có cần biết dựng phim không?",
+        "answer": "Không. Chọn quy trình, viết prompt, thêm ảnh tham chiếu nếu cần, chọn mô hình và tạo."
       },
       "costBeforeCreate": {
-        "question": "C? xem ???c chi ph? tr??c khi t?o kh?ng?",
-        "answer": "C?. DreamFace d?ng credit v? hi?n th? chi ph? ??c t?nh tr??c khi g?i t?c v?. Billing v? l?ch s? gi?p theo d?i mua credit, s? d? v? generation."
+        "question": "Có xem được chi phí trước khi tạo không?",
+        "answer": "Có. DreamFace hiển thị ước tính credit trước khi gửi tác vụ."
       },
       "freeTrial": {
-        "question": "DreamFace c? d?ng th? mi?n ph? kh?ng?",
-        "answer": "T?i kho?n m?i nh?n credit ??ng k? ?? th? c?c workflow ???c h? tr?. Khi c?n t?o nhi?u h?n, b?n c? th? mua g?i credit."
+        "question": "DreamFace có dùng thử miễn phí không?",
+        "answer": "Tài khoản mới nhận credit dùng thử. Sau đó bạn có thể mua credit hoặc chọn gói đăng ký."
       },
       "failedTask": {
-        "question": "N?u t?c v? AI th?t b?i th? sao?",
-        "answer": "T?c v? gi? tr?ng th?i r? r?ng. Job l?i c? th? hi?n th? ph? v? ho?n credit trong chi ti?t ?? vi?c tr? ph? d? hi?u h?n."
+        "question": "Nếu tạo thất bại thì sao?",
+        "answer": "Khi lỗi từ nhà cung cấp được xác nhận, DreamFace ghi nhận hoàn credit và trả lại credit liên quan."
       },
       "promptGallery": {
-        "question": "C? th? xem prompt tr??c khi m? Studio kh?ng?",
-        "answer": "C?. Th? vi?n prompt DreamFace l? n?i b?t ??u cho ? t??ng h?nh ?nh, v? d? m? h?nh v? prompt t?i s? d?ng."
+        "question": "Có thể xem prompt trước khi mở studio không?",
+        "answer": "Có. Thư viện giúp bạn tìm ý tưởng hình ảnh, ví dụ mô hình và prompt có thể dùng lại."
       },
       "audioSupport": {
-        "question": "DreamFace c? nh?c AI ho?c gi?ng n?i AI kh?ng?",
-        "answer": "DreamFace hi?n t?p trung v?o t?o h?nh ?nh v? video. C?ng c? ?m thanh v? gi?ng n?i c? th? xu?t hi?n khi s?n ph?m m? r?ng."
+        "question": "Có AI music hoặc giọng nói không?",
+        "answer": "DreamFace tập trung vào hình ảnh và video, nhưng một số quy trình có khả năng giọng nói. Tính năng thực tế phụ thuộc workspace."
       },
       "replaceProduction": {
-        "question": "Video AI c? thay th? s?n xu?t truy?n th?ng kh?ng?",
-        "answer": "C? th? thay th? nhi?u b??c ? giai ?o?n ? t??ng, marketing, test, ??o t?o v? m?ng x? h?i. V?i n?i dung nh?y c?m, th??ng hi?u ho?c ng?nh ???c qu?n l?, h?y ki?m duy?t k? tr??c khi xu?t b?n."
+        "question": "Video AI có thay thế sản xuất truyền thống không?",
+        "answer": "Trong ý tưởng, thử nghiệm, đào tạo và mạng xã hội, nó có thể giảm chi phí đáng kể. Trước khi xuất bản, hãy kiểm tra quyền và tuân thủ."
       },
       "securityEthics": {
-        "question": "DreamFace c? an to?n v? ph? h?p ??o ??c cho video AI kh?ng?",
-        "answer": "DreamFace t? ch?c d? ?n, prompt, credit v? k?t qu? trong t?i kho?n. B?n ch?u tr?ch nhi?m s? d?ng input h?p ph?p, t?n tr?ng quy?n h?nh ?nh v? tu?n th? ?i?u kho?n provider."
+        "question": "DreamFace có an toàn và có trách nhiệm không?",
+        "answer": "DreamFace quản lý dự án, prompt, credit và kết quả trong tài khoản. Bạn chịu trách nhiệm dùng tài liệu hợp pháp và tôn trọng quyền chân dung."
       },
       "commercialUse": {
-        "question": "C? d?ng n?i dung t?o ra cho d? ?n th??ng m?i kh?ng?",
-        "answer": "Vi?c s? d?ng ph? thu?c v?o ?i?u kho?n DreamFace, m? h?nh ?? ch?n, input c?a b?n v? quy?n b?n th? ba. H?y xem license v? ?i?u kho?n tr??c khi xu?t b?n ho?c ki?m ti?n."
+        "question": "Có thể dùng nội dung tạo ra cho thương mại không?",
+        "answer": "Điều này phụ thuộc điều khoản DreamFace, mô hình đã chọn, đầu vào của bạn và quyền bên thứ ba. Hãy kiểm tra giấy phép trước khi kiếm tiền."
       }
     },
     "finalCta": {
-      "title": "?t lo v? API h?n. T?p trung v?o k?t qu? h?n.",
-      "description": "Ra m?t nhanh h?n v?i m?t Studio g?n g?ng cho t?o ?nh v? video.",
-      "primary": "B?t ??u trong Studio",
-      "secondary": "Li?n h? sales"
+      "title": "Bớt lo về API. Tập trung tạo kết quả.",
+      "description": "Ra mắt nhanh hơn với một studio gọn gàng cho ảnh và video AI.",
+      "primary": "Mở Studio",
+      "secondary": "Liên hệ sales"
     }
   },
   "footer": {
     "brand": "dreamface",
-    "description": "H? t?ng th?ng nh?t cho t?o ?nh + video.",
-    "platform": "N?n t?ng",
-    "imageStudio": "Studio ?nh",
-    "videoStudio": "Studio Video",
-    "providerRouting": "??nh tuy?n provider",
-    "creditsBilling": "Credit v? thanh to?n",
-    "company": "C?ng ty",
-    "about": "V? ch?ng t?i",
-    "documentation": "T?i li?u",
-    "contact": "Li?n h?",
-    "licenseTerms": "Gi?y ph?p & ?i?u kho?n",
-    "copyright": "(c) 2026 DreamFace. B?o l?u m?i quy?n."
+    "description": "Hạ tầng hợp nhất cho tạo ảnh và video AI.",
+    "platform": "Nền tảng",
+    "imageStudio": "Studio ảnh",
+    "videoStudio": "Studio video",
+    "providerRouting": "Điều hướng mô hình",
+    "creditsBilling": "Credit & thanh toán",
+    "company": "Công ty",
+    "about": "Về chúng tôi",
+    "documentation": "Tài liệu",
+    "contact": "Liên hệ",
+    "licenseTerms": "Giấy phép & Điều khoản",
+    "copyright": "(c) 2026 DreamFace. Đã đăng ký bản quyền.",
+    "legal": {
+      "license": "Giấy phép DreamFace",
+      "terms": "Điều khoản sử dụng",
+      "business-terms": "Điều khoản sử dụng cho doanh nghiệp",
+      "copyright-policy": "Chính sách bản quyền",
+      "privacy-policy": "Chính sách quyền riêng tư"
+    }
   },
   "auth": {
     "brand": "dreamface",
-    "backHome": "V? trang ch?",
-    "eyebrow": "DreamFace Studio",
+    "backHome": "Về trang chủ",
+    "eyebrow": "Tài khoản sáng tạo miễn phí",
     "signup": {
-      "title": "B?t ??u t?o video trong v?i ph?t.",
-      "description": "??ng nh?p m?t l?n ?? m? credit mi?n ph?, l?u m?i prompt v? s?p x?p ?nh/video ?? t?o trong D? ?n."
+      "title": "Bắt đầu tạo video chỉ trong vài phút.",
+      "description": "Đăng nhập một lần để nhận credit miễn phí, lưu prompt và quản lý ảnh, video đã tạo trong Dự án."
     },
     "benefit": {
-      "freeCredits": "100 credit mi?n ph?",
-      "projectHistory": "L?ch s? d? ?n",
-      "google": "Google m?t ch?m"
+      "freeCredits": "Nhận credit miễn phí khi đăng nhập",
+      "projectHistory": "Lưu lịch sử dự án tự động",
+      "google": "Đăng nhập nhanh bằng Google"
     },
     "login": {
-      "eyebrow": "??ng nh?p",
-      "title": "T?o t?i kho?n mi?n ph?",
-      "description": "Ti?p t?c v?i Google ?? b?t ??u nhanh nh?t, ho?c nh?n magic link an to?n qua email."
+      "eyebrow": "Đăng nhập",
+      "title": "Tạo tài khoản miễn phí",
+      "description": "Tiếp tục với Google để bắt đầu nhanh nhất, hoặc nhận liên kết đăng nhập an toàn qua email."
     },
-    "google": "Ti?p t?c v?i Google",
-    "googleOpening": "?ang m? Google...",
+    "google": "Tiếp tục với Google",
+    "googleOpening": "Đang mở Google...",
     "emailDivider": "Email",
     "emailLabel": "Email",
     "emailPlaceholder": "ban@congty.com",
-    "sendMagicLink": "G?i magic link",
-    "pleaseWait": "Vui l?ng ch?...",
-    "successMagicLink": "?? g?i link x?c minh. H?y ki?m tra email.",
-    "emailFailed": "??ng nh?p b?ng email th?t b?i.",
-    "googleFailed": "??ng nh?p Google th?t b?i.",
-    "footerNote": "Ti?p t?c ?? truy c?p Studio, credit, billing v? D? ?n ?? l?u."
+    "sendMagicLink": "Gửi liên kết đăng nhập",
+    "pleaseWait": "Vui lòng chờ...",
+    "successMagicLink": "Đã gửi liên kết xác minh. Hãy kiểm tra email.",
+    "emailFailed": "Đăng nhập bằng email thất bại.",
+    "googleFailed": "Đăng nhập bằng Google thất bại.",
+    "footerNote": "Đã bao gồm"
   },
   "pricing": {
-    "title": "G?i Premium cho s?ng t?o AI",
-    "subtitle": "Ch?n Premium ?? t?o kh?ng watermark, h?ng ??i nhanh h?n, s? d?ng th??ng m?i v? credit t? gia h?n theo chu k? thanh to?n. C? th? mua th?m credit khi c?n.",
-    "eyebrow": "Gi?",
-    "forIndividuals": "Cho c? nh?n",
-    "currentBalance": "S? d? hi?n t?i",
+    "title": "Gói Premium cho sáng tạo AI",
+    "subtitle": "Chọn Premium để tạo nội dung không watermark, vào hàng đợi nhanh hơn, dùng cho mục đích thương mại và nhận credit theo chu kỳ thanh toán.",
+    "eyebrow": "Đã bao gồm",
+    "forIndividuals": "Đã bao gồm",
+    "currentBalance": "Đã bao gồm",
     "credits": "credit",
-    "refresh": "L?m m?i",
-    "refreshing": "?ang l?m m?i",
+    "refresh": "Làm mới",
+    "refreshing": "Đang làm mới",
     "free": {
-      "name": "Mi?n ph?",
-      "badge": "Mi?n ph?",
-      "priceInterval": "th?ng",
-      "credits": "100 credit d?ng th?",
-      "eligible": "cho t?i kho?n m?i ?? ?i?u ki?n",
-      "description": "B?t ??u v?i c?c t?nh n?ng c? b?n: t?o ?nh, ch?nh ?nh, gi?ng n?i gi?i h?n, video gi?i h?n, watermark v? h?ng ??i ti?u chu?n.",
-      "cta": "B?t ??u mi?n ph?"
+      "name": "Miễn phí",
+      "badge": "Miễn phí",
+      "priceInterval": "tháng",
+      "credits": "100 credit dùng thử",
+      "eligible": "cho tài khoản mới đủ điều kiện",
+      "description": "Bắt đầu với tính năng cơ bản: tạo ảnh, chỉnh sửa, giọng nói giới hạn, video giới hạn, watermark và hàng đợi tiêu chuẩn.",
+      "cta": "Bắt đầu miễn phí"
     },
     "freeFeatures": {
-      "image": "Th? t?o ?nh",
-      "editing": "Th? ch?nh ?nh",
-      "voice": "T?o gi?ng n?i gi?i h?n",
-      "video": "T?o video gi?i h?n",
-      "watermark": "C? watermark",
-      "queue": "H?ng ??i ti?u chu?n"
+      "image": "Đã bao gồm",
+      "editing": "Đã bao gồm",
+      "voice": "Đã bao gồm",
+      "video": "Đã bao gồm",
+      "watermark": "Đã bao gồm",
+      "queue": "Đã bao gồm"
     },
     "plan": {
       "premiumLite": {
         "name": "Premium Lite",
-        "badge": "Ph? bi?n nh?t",
-        "cta": "B?t ??u Premium Lite",
-        "bestFor": "Ph? h?p creator nh?, t?o ?nh, ch?nh ?nh v? th? nghi?m AI ng?n.",
+        "badge": "Đã bao gồm",
+        "cta": "Đã bao gồm",
+        "bestFor": "Đã bao gồm",
         "feature": {
-          "fullImage": "T?o ?nh ??y ??",
-          "fullEditing": "Ch?nh ?nh ??y ??",
-          "voice": "T?o gi?ng n?i",
-          "basicVideo": "T?o video c? b?n",
-          "commercial": "S? d?ng th??ng m?i",
-          "noWatermark": "Kh?ng watermark",
-          "refund": "B?o v? ho?n credit",
-          "queue": "H?ng ??i nhanh h?n",
-          "history": "L?ch s? prompt"
+          "fullImage": "Đã bao gồm",
+          "fullEditing": "Đã bao gồm",
+          "voice": "Đã bao gồm",
+          "basicVideo": "Đã bao gồm",
+          "commercial": "Đã bao gồm",
+          "noWatermark": "Đã bao gồm",
+          "refund": "Đã bao gồm",
+          "queue": "Đã bao gồm",
+          "history": "Đã bao gồm"
         }
       },
       "premium": {
         "name": "Premium",
-        "badge": "Gi? tr? t?t nh?t",
-        "cta": "N?ng c?p Premium",
-        "bestFor": "Cho video, creator d?ng nhi?u, marketer, agency v? ??i n?i dung.",
+        "badge": "Đã bao gồm",
+        "cta": "Đã bao gồm",
+        "bestFor": "Đã bao gồm",
         "feature": {
-          "everything": "M?i th? trong Premium Lite",
-          "video": "Dung l??ng video cao h?n",
-          "queue": "H?ng ??i ?u ti?n",
-          "models": "M? h?nh AI n?ng cao",
-          "tests": "Th?m l??t th? Kling, Seedance v? Veo",
-          "processing": "X? l? nhanh h?n",
-          "early": "Truy c?p s?m t?nh n?ng m?i"
+          "everything": "Đã bao gồm",
+          "video": "Đã bao gồm",
+          "queue": "Đã bao gồm",
+          "models": "Đã bao gồm",
+          "tests": "Đã bao gồm",
+          "processing": "Đã bao gồm",
+          "early": "Đã bao gồm"
         }
       }
     },
     "creditPack": {
       "starter": {
-        "name": "Starter Pack",
-        "idealFor": "T?t ?? kh?m ph? Studio qua ?nh, ?m thanh v? video nh?."
+        "name": "Gói khởi đầu",
+        "idealFor": "Phù hợp để thử prompt, ảnh, âm thanh và một vài video ngắn."
       },
       "creator": {
-        "name": "Creator Pack",
-        "idealFor": "Ph? h?p creator t?o nhi?u h??ng h?nh ?nh tr??c khi ch?n b?n cu?i."
+        "name": "Gói creator",
+        "idealFor": "Tốt cho creator muốn thử nhiều hướng hình ảnh trước khi chọn bản cuối."
       },
       "studio": {
-        "name": "Studio Pack",
-        "idealFor": "Gi? tr? t?t khi b?n c?n nhi?u kh?ng gian cho ?nh, ?m thanh v? nhi?u b?n nh?p video ng?n."
+        "name": "Gói Studio",
+        "idealFor": "Đáng giá khi bạn cần chỗ cho ảnh, âm thanh và nhiều bản nháp video ngắn."
       },
       "proTopup": {
-        "name": "Pro Top-up",
-        "idealFor": "Cho nhu c?u t?ng dung l??ng t?m th?i ngo?i chu k? Premium."
+        "name": "Nạp thêm Pro",
+        "idealFor": "Cho nhu cầu dùng nhiều tạm thời khi gói Premium cần thêm dung lượng."
       }
     },
     "extraCredits": {
-      "eyebrow": "Credit b? sung",
-      "title": "C?n th?m credit?",
-      "description": "D?nh cho nhu c?u d?ng th?m th?nh tho?ng. H?u h?t creator c? gi? tr? t?t h?n v?i Premium.",
-      "buy": "Mua th?m credit",
-      "opening": "?ang m?..."
+      "eyebrow": "Credit bổ sung",
+      "title": "Cần thêm credit?",
+      "description": "Dành cho nhu cầu phát sinh. Phần lớn nhà sáng tạo sẽ tiết kiệm hơn với gói Premium.",
+      "buy": "Mua thêm credit",
+      "opening": "Đang mở..."
     },
     "faq": {
-      "title": "FAQ v? gi?"
+      "title": "Câu hỏi về giá",
+      "items": {
+        "test": {
+          "q": "Làm sao thử DreamFace?",
+          "a": "Tạo tài khoản miễn phí và dùng credit thử để trải nghiệm tạo ảnh, chỉnh sửa ảnh, giọng nói và video ngắn trước khi nâng cấp."
+        },
+        "cost": {
+          "q": "DreamFace có giá bao nhiêu?",
+          "a": "DreamFace có gói Premium Lite, Premium và các gói credit bổ sung cho nhu cầu nạp thêm."
+        },
+        "credits": {
+          "q": "Credit là gì?",
+          "a": "Credit là số dư chung cho mọi tác vụ sáng tạo trên DreamFace. Mô hình khác nhau dùng lượng credit khác nhau, studio sẽ hiển thị ước tính trước khi tạo."
+        },
+        "rollover": {
+          "q": "Credit có được chuyển tiếp không?",
+          "a": "Credit đăng ký được cấp lại theo chu kỳ. Credit mua thêm nằm trong ví khi tài khoản còn hoạt động."
+        },
+        "cancel": {
+          "q": "Có thể hủy bất cứ lúc nào không?",
+          "a": "Có. Bạn có thể hủy đăng ký bất cứ lúc nào."
+        },
+        "extra": {
+          "q": "Có thể mua thêm credit không?",
+          "a": "Có. Credit bổ sung nằm bên dưới các gói đăng ký cho nhu cầu phát sinh."
+        },
+        "upgrade": {
+          "q": "Có thể nâng cấp từ Premium Lite lên Premium không?",
+          "a": "Có. Người dùng có thể nâng cấp khi tài khoản đã bật quản lý đăng ký."
+        },
+        "video": {
+          "q": "Credit có dùng cho video được không?",
+          "a": "Có. Mô hình video thường tốn nhiều hơn ảnh vì phụ thuộc thời lượng, độ phân giải và quy tắc nhà cung cấp."
+        },
+        "failure": {
+          "q": "Nếu tạo thất bại thì sao?",
+          "a": "Khi xác nhận lỗi từ nhà cung cấp, DreamFace ghi nhận hoàn credit trong lịch sử và trả lại credit liên quan vào số dư."
+        }
+      }
     },
     "features": {
-      "eyebrow": "T?nh n?ng g?i",
-      "title": "So s?nh g?i credit v? s?c t?o n?i dung",
-      "description": "M?i g?i d?ng c?ng m?t DreamFace Studio. Kh?c bi?t ch?nh l? b?n c? th? t?o bao nhi?u asset tr??c khi n?p th?m."
+      "eyebrow": "Tính năng gói",
+      "title": "So sánh gói credit và năng lực sáng tạo",
+      "description": "Mỗi gói dùng cùng một studio DreamFace. Khác biệt là số lượng nội dung có thể tạo trước khi nạp thêm."
     },
     "testimonials": {
-      "eyebrow": "??nh gi?",
-      "title": "Kh?ch h?ng n?i g? v? ch?ng t?i",
-      "description": "B?t m?: h? c? kh? nhi?u ?i?u t?t ??p ?? n?i."
+      "eyebrow": "Đánh giá",
+      "title": "Khách hàng nói gì về chúng tôi",
+      "description": "Creator dùng DreamFace để thử ý tưởng và sản xuất nội dung nhanh hơn.",
+      "rating": "5 trên 5 sao",
+      "items": {
+        "campaigns": {
+          "title": "Chiến dịch nhanh hơn",
+          "body": "Chúng tôi thử hướng hình ảnh, giọng nói và ý tưởng chuyển động ngắn trong một nơi mà không phải viết lại brief.",
+          "role": "Trưởng nhóm tăng trưởng"
+        },
+        "simple": {
+          "title": "Đủ đơn giản cho người không thiết kế",
+          "body": "Đội chỉ cần mở studio, chọn quy trình và biết chi phí credit trước khi chạy.",
+          "role": "Vận hành sáng tạo"
+        },
+        "iteration": {
+          "title": "Rất hợp để lặp lại",
+          "body": "Chúng tôi dùng cho thumbnail, moodboard sản phẩm, nâng cấp ảnh và concept video sớm.",
+          "role": "Nhà sản xuất thương hiệu"
+        },
+        "billing": {
+          "title": "Thanh toán rõ ràng",
+          "body": "Lịch sử credit giúp duyệt nội bộ dễ hơn vì thấy được mua, dùng và hoàn credit.",
+          "role": "Quản lý studio"
+        },
+        "polish": {
+          "title": "Từ prompt đến bản hoàn thiện",
+          "body": "Điểm mạnh là phạm vi: bản nháp nhanh, mô hình ảnh premium, giọng nói, nâng cấp và thử video chung một ví.",
+          "role": "Giám đốc nội dung"
+        },
+        "repeat": {
+          "title": "Dành cho công việc lặp lại",
+          "body": "Dự án đã lưu và ước tính credit rõ ràng giúp phù hợp với chu kỳ nội dung hàng tuần.",
+          "role": "Trưởng nhóm marketing"
+        }
+      }
     },
     "modelGuide": {
-      "eyebrow": "H??ng d?n m? h?nh",
-      "title": "Chi ph? credit th??ng g?p",
-      "description": "Gi? ch?nh x?c xu?t hi?n c?nh n?t Generate. Khi c? th?, ch?ng t?i d?ng gi? fal tr?c ti?p; n?u kh?ng, d?ng ??c t?nh d? ph?ng."
+      "eyebrow": "Hướng dẫn mô hình",
+      "title": "Chi phí credit thường gặp",
+      "description": "Giá chính xác hiển thị cạnh nút Tạo. Khi có thể, hệ thống dùng giá fal trực tiếp cùng ước tính dự phòng."
+    },
+    "comparison": {
+      "getStarted": "Bắt đầu",
+      "value": {
+        "included": "Đã bao gồm",
+        "notIncluded": "Không bao gồm"
+      },
+      "plan": {
+        "free": "Miễn phí",
+        "premiumLite": "Premium Lite",
+        "premium": "Premium"
+      },
+      "section": {
+        "credits": {
+          "title": "Credit thành viên",
+          "row": {
+            "trialCredits": {
+              "label": "Credit dùng thử",
+              "value1": "100 credit",
+              "value2": "Bao gồm nếu đủ điều kiện",
+              "value3": "Bao gồm nếu đủ điều kiện"
+            },
+            "monthlyCredits": {
+              "label": "Credit hàng tháng",
+              "value1": "Không bao gồm",
+              "value2": "2.000 credit",
+              "value3": "4.500 credit"
+            },
+            "yearlyCredits": {
+              "label": "Credit hàng năm",
+              "value1": "Không bao gồm",
+              "value2": "26.000 credit",
+              "value3": "68.000 credit"
+            },
+            "extraCreditPacks": {
+              "label": "Gói credit bổ sung",
+              "value1": "Có sẵn",
+              "value2": "Có sẵn",
+              "value3": "Có sẵn"
+            }
+          }
+        },
+        "access": {
+          "title": "Quyền truy cập Studio",
+          "row": {
+            "textToImage": {
+              "label": "Văn bản thành ảnh",
+              "value1": "Quyền dùng thử",
+              "value2": "Truy cập đầy đủ",
+              "value3": "Truy cập đầy đủ"
+            },
+            "imageEditing": {
+              "label": "Chỉnh sửa ảnh",
+              "value1": "Quyền dùng thử",
+              "value2": "Truy cập đầy đủ",
+              "value3": "Truy cập đầy đủ"
+            },
+            "voiceGeneration": {
+              "label": "Tạo giọng nói",
+              "value1": "Giới hạn",
+              "value2": "Đã bao gồm",
+              "value3": "Đã bao gồm"
+            },
+            "videoGeneration": {
+              "label": "Tạo video",
+              "value1": "Giới hạn",
+              "value2": "Video cơ bản",
+              "value3": "Dung lượng video cao hơn"
+            },
+            "premiumModelAccess": {
+              "label": "Truy cập mô hình premium",
+              "value1": "Giới hạn",
+              "value2": "Đã bao gồm",
+              "value3": "Truy cập nâng cao"
+            },
+            "promptHistory": {
+              "label": "Lịch sử prompt",
+              "value1": "Đã bao gồm",
+              "value2": "Đã bao gồm",
+              "value3": "Đã bao gồm"
+            }
+          }
+        },
+        "benefits": {
+          "title": "Quyền lợi thành viên",
+          "row": {
+            "commercialUse": {
+              "label": "Dùng thương mại",
+              "value1": "Không bao gồm",
+              "value2": "Đã bao gồm",
+              "value3": "Đã bao gồm"
+            },
+            "watermark": {
+              "label": "D?u m?",
+              "value1": "Có watermark",
+              "value2": "Không watermark",
+              "value3": "Không watermark"
+            },
+            "queue": {
+              "label": "Hàng đợi",
+              "value1": "Tiêu chuẩn",
+              "value2": "Hàng đợi nhanh hơn",
+              "value3": "Hàng đợi ưu tiên"
+            },
+            "refunds": {
+              "label": "Hoàn credit khi nhà cung cấp lỗi",
+              "value1": "Đã bao gồm",
+              "value2": "Đã bao gồm",
+              "value3": "Đã bao gồm"
+            },
+            "bestFor": {
+              "label": "Phù hợp cho",
+              "value1": "Thử công cụ",
+              "value2": "Creator nhẹ",
+              "value3": "Creator dùng nhiều và đội nhóm"
+            }
+          }
+        }
+      }
     }
   },
   "billing": {
-    "title": "Qu?n l? credit v? n?p th?m",
-    "subtitle": "Ch?n g?i credit tr? theo nhu c?u, l?m m?i s? d? v? xem ho?t ??ng credit ho?c mua h?ng Stripe trong m?t trang v?.",
-    "eyebrow": "Thanh to?n",
-    "currentBalance": "S? d? hi?n t?i",
-    "creditsAvailable": "credit kh? d?ng",
-    "refreshBalance": "L?m m?i s? d?",
-    "signInToView": "??ng nh?p ?? xem",
+    "title": "Quản lý credit và nạp thêm",
+    "subtitle": "Chọn gói credit trả theo nhu cầu, làm mới số dư và xem lịch sử credit hoặc thanh toán Stripe trên một trang.",
+    "eyebrow": "Thanh toán",
+    "currentBalance": "Số dư hiện tại",
+    "creditsAvailable": "credit khả dụng",
+    "refreshBalance": "Làm mới số dư",
+    "signInToView": "Đăng nhập để xem và quản lý các bản ghi này.",
     "subscription": {
-      "eyebrow": "G?i thu? bao",
-      "noActive": "Ch?a c? g?i ?ang ho?t ??ng",
-      "choosePlan": "Ch?n Premium Lite ho?c Premium ?? m? quy?n l?i v? credit t? gia h?n.",
-      "manage": "Qu?n l? thanh to?n"
+      "eyebrow": "Đăng ký",
+      "noActive": "Chưa có gói thành viên hoạt động",
+      "choosePlan": "Chọn Premium Lite hoặc Premium để mở quyền lợi thành viên và credit định kỳ.",
+      "manage": "Quản lý thanh toán",
+      "currentDescription": "{credits} credit mỗi {cycle}. {status}",
+      "cancellationScheduled": "Đã lên lịch hủy vào cuối chu kỳ.",
+      "manageThroughStripe": "Quản lý thanh toán qua Stripe.",
+      "accessUntil": "Truy cập đến",
+      "renews": "Gia hạn vào"
     },
     "success": {
-      "title": "Thanh to?n th?nh c?ng",
-      "paymentReceived": "?? nh?n thanh to?n",
-      "description": "X?c nh?n Stripe v?n ?ang ??ng b?. S? d? c?a b?n s? t? c?p nh?t tr?n trang n?y.",
-      "creditsAdded": "?? th?m {credits} credit"
+      "title": "Thanh toán thành công",
+      "paymentReceived": "Đã nhận thanh toán",
+      "description": "Xác nhận từ Stripe vẫn đang đồng bộ. Số dư của bạn sẽ tự động làm mới trên trang này.",
+      "creditsAdded": "Đã thêm {credits} credit",
+      "purchaseSummary": "Gói {packId} - {amount} - {status}"
     },
     "subscriptionSuccess": {
-      "eyebrow": "Checkout g?i thu? bao",
-      "title": "?? ho?n t?t thanh to?n g?i",
-      "description": "Stripe ?ang x?c nh?n g?i c?a b?n. Credit v? quy?n l?i s? xu?t hi?n sau khi x?c nh?n xong."
+      "eyebrow": "Checkout đăng ký",
+      "title": "Đã hoàn tất checkout thành viên",
+      "description": "Stripe đang xác nhận đăng ký. Credit và quyền lợi sẽ xuất hiện sau khi xác nhận hoàn tất."
     },
     "cancel": {
-      "title": "?? h?y thanh to?n"
+      "title": "Checkout đã bị hủy",
+      "description": "Bạn chưa bị tính phí. Có thể chọn lại gói hoặc mua credit bất cứ lúc nào."
     },
-    "lowBalance": "S? d? c?a b?n d??i {threshold} credit. H?y n?p th?m tr??c khi render video l?n ho?c t?o ?nh ch?t l??ng cao theo l?.",
+    "lowBalance": "Số dư của bạn dưới {threshold} credit. Hãy nạp thêm trước khi render video lớn hoặc tạo nhiều ảnh chất lượng cao.",
     "membership": {
-      "eyebrow": "G?i th?nh vi?n",
-      "title": "Ch?n g?i Premium",
-      "description": "Premium t? gia h?n credit theo tu?n, th?ng ho?c n?m v? m? t?o n?i dung kh?ng watermark, h?ng ??i nhanh h?n, s? d?ng th??ng m?i."
+      "eyebrow": "Thành viên",
+      "title": "Chọn gói Premium",
+      "description": "Gói Premium cấp credit định kỳ và mở tạo không watermark, hàng đợi nhanh hơn và dùng thương mại."
     },
     "extraCredits": {
-      "eyebrow": "Credit b? sung",
-      "title": "C?n th?m credit?",
-      "description": "D?nh cho nhu c?u d?ng th?m th?nh tho?ng. H?u h?t creator c? gi? tr? t?t h?n v?i Premium."
+      "eyebrow": "Credit bổ sung",
+      "title": "Cần thêm credit?",
+      "description": "Dành cho nhu cầu phát sinh. Phần lớn creator tiết kiệm hơn với Premium."
     },
-    "creditActivity": "Ho?t ??ng credit",
-    "noCreditActivity": "Ch?a c? ho?t ??ng credit.",
-    "signInCreditActivity": "??ng nh?p ?? xem ho?t ??ng credit.",
-    "stripePurchases": "Mua h?ng Stripe",
-    "stripeCheckoutId": "Stripe checkout ID",
-    "noStripePurchases": "Ch?a c? mua h?ng Stripe.",
-    "signInStripePurchases": "??ng nh?p ?? xem mua h?ng Stripe.",
-    "openingCheckout": "?ang m? checkout...",
-    "recharge": "N?p th?m",
+    "creditActivity": "Hoạt động credit",
+    "noCreditActivity": "Chưa có hoạt động credit.",
+    "signInCreditActivity": "Đăng nhập để xem hoạt động credit.",
+    "stripePurchases": "Giao dịch Stripe",
+    "stripeCheckoutId": "ID checkout Stripe",
+    "noStripePurchases": "Chưa có giao dịch Stripe.",
+    "signInStripePurchases": "Đăng nhập để xem giao dịch Stripe.",
+    "openingCheckout": "Đang mở checkout...",
+    "recharge": "Nạp thêm",
     "cycle": {
-      "weekly": "H?ng tu?n",
-      "monthly": "H?ng th?ng",
-      "yearly": "H?ng n?m"
+      "weekly": "Hàng tuần",
+      "monthly": "Hàng tháng",
+      "yearly": "Hàng năm"
     },
-    "onlyMonthly": "Ch? {price}/th?ng ? {savings}",
+    "onlyMonthly": "Chỉ {price}/tháng · {savings}",
     "creditsPerInterval": "{credits} credit / {interval}",
     "creditCount": "{credits} credit",
-    "renewsEvery": "gia h?n m?i {interval}"
+    "renewsEvery": "gia hạn mỗi {interval}",
+    "message": {
+      "trialUnavailable": "Tài khoản này hiện không có credit dùng thử. Credit đã mua vẫn sử dụng bình thường.",
+      "balanceUnavailable": "Tạm thời chưa thể tải số dư credit.",
+      "subscriptionChecking": "Checkout gói thành viên đã hoàn tất. Đang xác nhận với Stripe...",
+      "subscriptionConfirmed": "Đã xác nhận gói thành viên. Credit thành viên đã được cộng vào số dư.",
+      "subscriptionProcessing": "Gói thành viên đã hoàn tất. Stripe có thể vẫn đang đồng bộ; hãy làm mới sau ít phút.",
+      "paymentChecking": "Thanh toán đã hoàn tất. Đang cập nhật số dư từ xác nhận Stripe...",
+      "paymentConfirmed": "Thanh toán đã xác nhận. Credit đã được cộng vào số dư.",
+      "paymentProcessing": "Thanh toán đã hoàn tất. Stripe có thể vẫn đang đồng bộ; hãy làm mới sau ít phút.",
+      "checkoutCancelled": "Checkout đã bị hủy. Không có credit nào được cộng.",
+      "unableCheckout": "Không thể mở checkout.",
+      "unableSubscriptionCheckout": "Không thể mở checkout gói thành viên.",
+      "unablePortal": "Không thể mở cổng quản lý thanh toán."
+    },
+    "status": {
+      "pending": "Đang chờ",
+      "completed": "Hoàn tất",
+      "cancelled": "Đã hủy",
+      "failed": "Thất bại"
+    },
+    "reason": {
+      "signup_bonus": "Credit đăng ký",
+      "stripe_checkout": "Mua credit",
+      "stripe_subscription": "Credit gói thành viên",
+      "generation_task": "Tạo nội dung",
+      "generation_refund": "Hoàn credit do tạo thất bại",
+      "manual_top_up_dev": "Nạp thử nghiệm"
+    }
+  },
+  "metadata": {
+    "home": {
+      "title": "DreamFace - Trình tạo ảnh và video AI",
+      "description": "Tạo ảnh và video AI từ prompt, ảnh và kịch bản với DreamFace. Mở công cụ ảnh, video, avatar, âm thanh, credit và dự án trong một studio sáng tạo."
+    },
+    "price": {
+      "title": "Bảng giá và gói credit DreamFace",
+      "description": "So sánh gói Premium, gói credit, quyền truy cập model, hàng đợi nhanh hơn, xuất không watermark và credit dùng linh hoạt cho sáng tạo AI."
+    },
+    "auth": {
+      "title": "Đăng nhập DreamFace",
+      "description": "Đăng nhập hoặc tạo tài khoản DreamFace miễn phí để nhận credit, lưu prompt, quản lý dự án và bắt đầu tạo ảnh, video AI."
+    },
+    "billing": {
+      "title": "Thanh toán và credit DreamFace",
+      "description": "Quản lý credit, gói Premium, trạng thái checkout Stripe, nạp thêm, lịch sử mua hàng và thanh toán DreamFace trên một trang bảo mật."
+    }
   }
 }

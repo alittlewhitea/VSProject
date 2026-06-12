@@ -1,12 +1,5 @@
 import type { MetadataRoute } from "next";
-
-function siteUrl() {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") ||
-    process.env.SITE_URL?.trim().replace(/\/$/, "") ||
-    "http://127.0.0.1:3000"
-  );
-}
+import { siteUrl } from "../lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = siteUrl();
