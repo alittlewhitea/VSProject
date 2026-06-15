@@ -6,7 +6,13 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { AppButton } from "../../components/ui/button";
 import { trackEvent } from "../../lib/analytics";
-import { CREDIT_PACKS, SUBSCRIPTION_PLANS, formatUsd, type BillingCycle } from "../../lib/billing";
+import {
+  CREDIT_PACKS,
+  SUBSCRIPTION_PLANS,
+  creditUsageCapacity,
+  formatUsd,
+  type BillingCycle
+} from "../../lib/billing";
 import type { Locale } from "../../i18n/routing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, estimateGenerationCredits } from "../../lib/model-pricing";
 import { useStudioI18n } from "../../lib/studio-i18n";
@@ -228,6 +234,45 @@ const TOOLKIT_APPS: Array<{
 ];
 
 const STUDIO_BILLING_CYCLES: BillingCycle[] = ["weekly", "monthly", "yearly"];
+
+function StudioCreditUsageExamples({
+  credits,
+  t,
+  compact = false
+}: {
+  credits: number;
+  t: (key: string, values?: Record<string, string | number | null | undefined>) => string;
+  compact?: boolean;
+}) {
+  const capacity = creditUsageCapacity(credits);
+  const examples = [
+    { key: "images", value: capacity.images, label: t("studio.billing.usage.images") },
+    { key: "videos", value: capacity.videos, label: t("studio.billing.usage.videos") },
+    { key: "voiceovers", value: capacity.voiceovers, label: t("studio.billing.usage.voiceovers") },
+    { key: "avatars", value: capacity.avatars, label: t("studio.billing.usage.avatars") }
+  ];
+
+  return (
+    <div className={compact ? "mt-3" : "mt-4"}>
+      <p className="text-[10px] font-black uppercase tracking-[0.13em] text-[#687386]">
+        {t("studio.billing.usage.title")}
+      </p>
+      <div className={`mt-2 grid grid-cols-2 ${compact ? "gap-1.5" : "gap-2"}`}>
+        {examples.map((example) => (
+          <div key={example.key} className="rounded-xl border border-black/[0.07] bg-white/85 px-2.5 py-2.5">
+            <p className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight text-[#151922]`}>
+              {example.value.toLocaleString()}
+            </p>
+            <p className="mt-0.5 text-[10px] font-semibold leading-4 text-[#667085]">{example.label}</p>
+          </div>
+        ))}
+      </div>
+      {!compact ? (
+        <p className="mt-2 text-[10px] font-medium leading-4 text-[#7b8492]">{t("studio.billing.usage.note")}</p>
+      ) : null}
+    </div>
+  );
+}
 
 const KLING_AVATAR_DEFAULT_SCRIPT =
   "Welcome to Cat Facts, where we explore the fascinating world of our feline friends. Did you know that cats spend 70% of their lives sleeping, which means a three-year-old cat has only been awake for about nine months of its life?";
@@ -2757,6 +2802,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     <h3 className="text-2xl font-black text-[#151922]">{st("studio.billing.free")}</h3>
                     <p className="mt-5 text-5xl font-black">$0</p>
                     <p className="mt-2 text-sm font-semibold text-[#667085]">{st("studio.billing.trialCredits")}</p>
+                    <div className="mt-4 rounded-2xl border border-black/10 bg-white px-4 py-3">
+                      <p className="text-3xl font-black tracking-tight text-[#151922]">
+                        100
+                        <span className="ml-2 text-xs font-black uppercase tracking-[0.1em] text-[#667085]">
+                          {st("studio.common.credits")}
+                        </span>
+                      </p>
+                      <StudioCreditUsageExamples credits={100} t={st} compact />
+                    </div>
                     <button
                       type="button"
                       disabled
@@ -2825,6 +2879,19 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           </p>
                         </div>
 
+                        <div className="mt-4 rounded-2xl border border-[#08bff1]/25 bg-[linear-gradient(135deg,#f0fbff_0%,#ffffff_55%,#f4f1ff_100%)] px-4 py-3 shadow-[0_10px_28px_rgba(8,191,241,0.08)]">
+                          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#487080]">
+                            {st("studio.billing.includedCredits")}
+                          </p>
+                          <p className="mt-1 text-3xl font-black tracking-tight text-[#151922]">
+                            {price.credits.toLocaleString()}
+                            <span className="ml-2 text-xs font-black uppercase tracking-[0.1em] text-[#667085]">
+                              {st("studio.common.credits")}
+                            </span>
+                          </p>
+                          <StudioCreditUsageExamples credits={price.credits} t={st} />
+                        </div>
+
                         <button
                           type="button"
                           onClick={() => startStudioSubscriptionCheckout(plan.id, cycle)}
@@ -2866,7 +2933,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         <article key={pack.id} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
                           <h4 className="text-base font-black text-[#151922]">{st(`studio.billing.pack.${pack.id}`)}</h4>
                           <p className="mt-2 text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
-                          <p className="mt-1 text-sm font-semibold text-[#667085]">{st("studio.billing.creditCount", { credits: pack.credits.toLocaleString() })}</p>
+                          <p className="mt-2 text-2xl font-black tracking-tight text-[#151922]">
+                            {pack.credits.toLocaleString()}
+                            <span className="ml-1 text-[10px] uppercase tracking-[0.1em] text-[#667085]">{st("studio.common.credits")}</span>
+                          </p>
+                          <StudioCreditUsageExamples credits={pack.credits} t={st} compact />
                           <button
                             type="button"
                             onClick={() => startStudioCreditCheckout(pack.id)}
