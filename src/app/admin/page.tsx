@@ -173,6 +173,10 @@ type OpsPayload = {
   tasks?: Task[];
   failedTasks?: Task[];
   error?: string;
+  runtimeConfig?: {
+    dreamfaceIoEnabled: boolean;
+    dreamfaceIoConfigured: boolean;
+  };
 };
 
 const USERS_PER_PAGE = 10;
@@ -318,6 +322,7 @@ export default function AdminHomePage() {
   const [adjustNote, setAdjustNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [repairing, setRepairing] = useState(false);
+  const [savingModelSwitch, setSavingModelSwitch] = useState(false);
   const [userPage, setUserPage] = useState(1);
 
   useEffect(() => {
@@ -424,6 +429,41 @@ export default function AdminHomePage() {
       setMessage(error instanceof Error ? error.message : "Generation safety repair failed.");
     } finally {
       setRepairing(false);
+    }
+  }
+
+  async function setDreamfaceIoEnabled(enabled: boolean) {
+    if (!token || savingModelSwitch) return;
+    setSavingModelSwitch(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/ops", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: "set_dreamface_io_enabled",
+          enabled
+        })
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Model switch could not be updated.");
+      setPayload((current) => current
+        ? {
+            ...current,
+            runtimeConfig: {
+              dreamfaceIoEnabled: enabled,
+              dreamfaceIoConfigured: current.runtimeConfig?.dreamfaceIoConfigured ?? false
+            }
+          }
+        : current);
+      setMessage(`DreamFace IO is now ${enabled ? "enabled" : "disabled"}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Model switch could not be updated.");
+    } finally {
+      setSavingModelSwitch(false);
     }
   }
 
@@ -556,6 +596,34 @@ export default function AdminHomePage() {
                 <AppButton disabled={saving}>{saving ? "Saving..." : "Save"}</AppButton>
               </div>
             </form>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-black/10 bg-[#fbfbfd] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold">DreamFace IO</p>
+                <p className="mt-1 text-xs text-[#6e6e73]">
+                  Master switch for the text-to-video and image-to-video model.
+                  {payload?.runtimeConfig?.dreamfaceIoConfigured ? "" : " API key is not configured."}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={Boolean(payload?.runtimeConfig?.dreamfaceIoEnabled)}
+                disabled={savingModelSwitch}
+                onClick={() => setDreamfaceIoEnabled(!payload?.runtimeConfig?.dreamfaceIoEnabled)}
+                className={`relative h-8 w-14 rounded-full transition ${
+                  payload?.runtimeConfig?.dreamfaceIoEnabled ? "bg-emerald-500" : "bg-[#d1d5db]"
+                } disabled:opacity-50`}
+              >
+                <span
+                  className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition ${
+                    payload?.runtimeConfig?.dreamfaceIoEnabled ? "left-7" : "left-1"
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
           {message ? (

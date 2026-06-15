@@ -10,6 +10,7 @@ import {
   formatFalFailureReason,
   parseFalFailure
 } from "../../../../lib/fal-errors";
+import { DREAMFACE_IO_PROVIDER, syncDreamfaceIoTask } from "../../../../lib/dreamface-io";
 
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
@@ -159,6 +160,31 @@ export async function GET(request: Request) {
     const responseUrl = searchParams.get("responseUrl");
     const taskId = searchParams.get("taskId");
     const mockStatus = searchParams.get("mockStatus");
+
+    if (taskId && !mockStatus) {
+      const admin = createSupabaseAdminClient();
+      if (admin) {
+        const { data: providerTask } = await admin
+          .from("generation_tasks")
+          .select("id,user_id,provider,status,estimated_credits,provider_request_id,status_url,request_settings,output_url,created_at,timed_out_at")
+          .eq("id", taskId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if ((providerTask as { provider?: string } | null)?.provider === DREAMFACE_IO_PROVIDER) {
+          try {
+            const synced = await syncDreamfaceIoTask(admin, providerTask as Parameters<typeof syncDreamfaceIoTask>[1]);
+            return NextResponse.json({
+              status: synced.status.toUpperCase(),
+              result: synced.result,
+              failureCode: synced.failureCode,
+              failureReason: synced.failureReason
+            });
+          } catch {
+            return NextResponse.json({ error: "Unable to fetch DreamFace IO task status." }, { status: 502 });
+          }
+        }
+      }
+    }
 
     if (mockStatus) {
       if (!taskId) {

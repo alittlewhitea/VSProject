@@ -10,9 +10,10 @@ import {
   formatFalFailureReason,
   parseFalFailure
 } from "../../../../lib/fal-errors";
+import { DREAMFACE_IO_PROVIDER, syncDreamfaceIoTask } from "../../../../lib/dreamface-io";
 
 const TASK_SELECT =
-  "id,user_id,mode,provider,prompt,status,estimated_credits,transport,provider_request_id,status_url,response_url,output_url,created_at,updated_at,title,is_favorite,failure_code,failure_reason,last_checked_at,timed_out_at";
+  "id,user_id,mode,provider,prompt,status,estimated_credits,transport,provider_request_id,status_url,response_url,output_url,request_settings,created_at,updated_at,title,is_favorite,failure_code,failure_reason,last_checked_at,timed_out_at";
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 
 type TaskRow = {
@@ -28,6 +29,7 @@ type TaskRow = {
   status_url: string | null;
   response_url: string | null;
   output_url: string | null;
+  request_settings: Record<string, unknown> | null;
   created_at: string;
   updated_at: string | null;
   title: string | null;
@@ -166,11 +168,6 @@ async function syncProviderTask(
   admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
   taskId: string
 ) {
-  const falKey = process.env.FAL_KEY;
-  if (!falKey) {
-    throw new Error("FAL_KEY is not configured.");
-  }
-
   const { data, error } = await admin
     .from("generation_tasks")
     .select(TASK_SELECT)
@@ -184,6 +181,19 @@ async function syncProviderTask(
   const task = data as TaskRow;
   if (task.transport !== "real") {
     throw new Error("Only real provider tasks can be synced.");
+  }
+  if (task.provider === DREAMFACE_IO_PROVIDER) {
+    const synced = await syncDreamfaceIoTask(admin, task as Parameters<typeof syncDreamfaceIoTask>[1]);
+    return {
+      providerStatus: synced.providerStatus,
+      timedOut: false,
+      task: await readTaskWithLedger(admin, task.id)
+    };
+  }
+
+  const falKey = process.env.FAL_KEY;
+  if (!falKey) {
+    throw new Error("FAL_KEY is not configured.");
   }
   if (!isAllowedFalUrl(task.status_url)) {
     throw new Error("Task does not have a valid fal.ai status URL.");

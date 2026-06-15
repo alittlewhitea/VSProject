@@ -11,6 +11,7 @@ import {
   formatFalFailureReason,
   parseFalFailure
 } from "../../../lib/fal-errors";
+import { DREAMFACE_IO_PROVIDER, syncDreamfaceIoTask } from "../../../lib/dreamface-io";
 
 const DEFAULT_TASK_HISTORY_TIMEOUT_MS = 12000;
 const DEFAULT_TASK_SYNC_TIMEOUT_MS = 3500;
@@ -66,6 +67,10 @@ type PendingTaskRow = {
   status_url: string | null;
   response_url: string | null;
   created_at: string;
+  provider?: string;
+  request_settings?: Record<string, unknown> | null;
+  output_url?: string | null;
+  timed_out_at?: string | null;
 };
 
 type TaskUpdatePayload = {
@@ -197,7 +202,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
 
   const { data } = await admin
     .from("generation_tasks")
-    .select("id,user_id,status,estimated_credits,transport,provider_request_id,status_url,response_url,created_at")
+    .select("id,user_id,provider,status,estimated_credits,transport,provider_request_id,status_url,response_url,request_settings,output_url,created_at,timed_out_at")
     .eq("user_id", userId)
     .eq("transport", "real")
     .in("status", ["queued", "running"])
@@ -208,6 +213,10 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
   await Promise.all(
     pendingTasks.map(async (task) => {
       try {
+        if (task.provider === DREAMFACE_IO_PROVIDER) {
+          await syncDreamfaceIoTask(admin, task as Parameters<typeof syncDreamfaceIoTask>[1]);
+          return;
+        }
         if (!isAllowedFalUrl(task.status_url)) {
           const now = new Date().toISOString();
           if (isOrphanTaskTimedOut(task.created_at)) {

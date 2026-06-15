@@ -230,6 +230,10 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 
   const seconds = secondsFromDuration(input.duration);
 
+  if (input.provider === "dreamface-io-video") {
+    return Math.ceil(seconds / 5) * 20;
+  }
+
   if (input.provider === "seedance-video") {
     const secondPrice = input.resolution === "1080p" ? 0.682 : input.resolution === "480p" ? 0.1407 : 0.3034;
     return creditsFromFalUsd(secondPrice * seconds, seconds * 35);
@@ -268,6 +272,16 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 }
 
 export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
+  {
+    provider: "dreamface-io-video",
+    label: "DreamFace IO",
+    mode: "video",
+    workflow: "Text / Image to Video",
+    endpointId: "dreamface-io",
+    falBasis: "DreamFace IO uses a private server-side video provider integration.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "dreamface-io-video", duration: "5s" }),
+    unitNote: "20 credits / 5 sec after daily free allowance"
+  },
   {
     provider: "chatgpt-image",
     label: "GPT Image 2",

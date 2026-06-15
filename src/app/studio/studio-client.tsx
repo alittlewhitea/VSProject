@@ -440,6 +440,7 @@ const VEO_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p", "4k"];
 const VIDEO_DURATION_OPTIONS = ["3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s"];
 const GROK_VIDEO_DURATION_OPTIONS = ["1s", "2s", ...VIDEO_DURATION_OPTIONS];
 const VEO_VIDEO_DURATION_OPTIONS = ["4s", "6s", "8s"];
+const DREAMFACE_IO_DURATION_OPTIONS = ["5s", "10s", "15s"];
 const DEFAULT_VIDEO_DURATION = "5s";
 const DEFAULT_VEO_VIDEO_DURATION = "8s";
 const NANO_ASPECT_RATIO_OPTIONS = ["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"];
@@ -591,6 +592,13 @@ const PROVIDER_META: Record<
     quality: "Expressive",
     bestFor: "Fast text-to-video and image-to-video ideas with 480p/720p output"
   },
+  "dreamface-io-video": {
+    label: "DreamFace IO",
+    shortLabel: "DreamFace IO",
+    speed: "Fast",
+    quality: "Everyday video",
+    bestFor: "Fast daily text-to-video and image-to-video creation with a free daily allowance"
+  },
   "elevenlabs-tts": {
     label: "ElevenLabs Eleven v3",
     shortLabel: "Eleven v3",
@@ -642,14 +650,14 @@ const WORKFLOW_META: Record<
   "text-to-video": {
     label: "Text to Video",
     description: "Turn a written scene into a short video.",
-    recommendedProvider: "grok-video",
-    providers: ["grok-video", "kling-video", "seedance-video", "veo-video"]
+    recommendedProvider: "dreamface-io-video",
+    providers: ["dreamface-io-video", "grok-video", "kling-video", "seedance-video", "veo-video"]
   },
   "image-to-video": {
     label: "Image to Video",
     description: "Animate a reference image into a short video.",
-    recommendedProvider: "kling-video",
-    providers: ["kling-video", "seedance-video", "grok-video"]
+    recommendedProvider: "dreamface-io-video",
+    providers: ["dreamface-io-video", "kling-video", "seedance-video", "grok-video"]
   },
   "text-to-audio": {
     label: "Text to Audio",
@@ -1148,7 +1156,7 @@ function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return ["elevenlabs-tts"].includes(provider);
   if (mode === "avatar") return ["kling-avatar-standard", "kling-avatar-pro"].includes(provider);
-  return ["seedance-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
+  return ["dreamface-io-video", "seedance-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
 }
 
 function workflowForMode(mode: StudioMode, workflow: string | null): StudioWorkflow {
@@ -1284,6 +1292,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [dreamfaceIoEnabled, setDreamfaceIoEnabled] = useState<boolean | null>(null);
+  const [dreamfaceIoEligible, setDreamfaceIoEligible] = useState(false);
+  const [dreamfaceIoRemainingUnits, setDreamfaceIoRemainingUnits] = useState(0);
   const [creditNote, setCreditNote] = useState("");
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loginDraftNonce, setLoginDraftNonce] = useState(0);
@@ -1302,6 +1313,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
   const trackedLoginSuccessRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/model-availability", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((payload: { models?: { dreamfaceIo?: boolean } }) => {
+        setDreamfaceIoEnabled(Boolean(payload.models?.dreamfaceIo));
+      })
+      .catch(() => setDreamfaceIoEnabled(false));
+  }, []);
 
   useEffect(() => {
     setMobileStudioMenuOpen(false);
@@ -1583,6 +1603,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           signupBonusBlockedByIp?: boolean;
           storageWarning?: string;
           error?: string;
+          dreamfaceIo?: {
+            enabled?: boolean;
+            eligible?: boolean;
+            remainingUnits?: number;
+          };
         };
         if (!response.ok) {
           throw new Error(localizeStudioError(payload.error || st("studio.status.balanceUnavailable"), response.status));
@@ -1595,6 +1620,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               safeSetLocalStorage(creditKey, String(payload.balance));
             }
           }
+        }
+        if (payload.dreamfaceIo) {
+          setDreamfaceIoEnabled(Boolean(payload.dreamfaceIo.enabled));
+          setDreamfaceIoEligible(Boolean(payload.dreamfaceIo.eligible));
+          setDreamfaceIoRemainingUnits(
+            typeof payload.dreamfaceIo.remainingUnits === "number" ? payload.dreamfaceIo.remainingUnits : 0
+          );
         }
         if (payload.storageWarning) {
           setCreditNote(
@@ -1635,9 +1667,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }, [tasks, userId]);
 
   const options = useMemo(
-    () => WORKFLOW_META[mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : mode === "avatar" ? "avatar-video" : videoWorkflow].providers.map((value) => ({ value, label: PROVIDER_META[value]?.label || value })),
-    [imageWorkflow, mode, videoWorkflow]
+    () => WORKFLOW_META[mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : mode === "avatar" ? "avatar-video" : videoWorkflow].providers
+      .filter((value) => value !== "dreamface-io-video" || dreamfaceIoEnabled !== false)
+      .map((value) => ({ value, label: PROVIDER_META[value]?.label || value })),
+    [dreamfaceIoEnabled, imageWorkflow, mode, videoWorkflow]
   );
+  useEffect(() => {
+    if (provider !== "dreamface-io-video" || dreamfaceIoEnabled !== false) return;
+    setProvider(videoWorkflow === "image-to-video" ? "kling-video" : "grok-video");
+  }, [dreamfaceIoEnabled, imageWorkflow, mode, provider, videoWorkflow]);
   const avatarVoiceOptions = useMemo(
     () => ELEVENLABS_VOICE_META.filter((voice) => avatarVoiceGender === "all" || voice.gender === avatarVoiceGender).map((voice) => voice.name) as string[],
     [avatarVoiceGender]
@@ -1675,7 +1713,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const audioCharacterCount = mode === "audio" ? prompt.trim().length : 0;
   const avatarSelectedSeconds = Math.max(1, Number.parseInt(avatarDuration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
 
-  const estCredits = estimateGenerationCredits({
+  const baseEstCredits = estimateGenerationCredits({
     mode: modeForPricing(mode),
     provider,
     imageSize,
@@ -1689,6 +1727,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     thinkingLevel,
     promptText: prompt
   });
+  const dreamfaceIoUnits = provider === "dreamface-io-video"
+    ? Math.max(1, Math.ceil((Number.parseInt(duration, 10) || 5) / 5))
+    : 0;
+  const usesDreamfaceIoFreeAllowance =
+    provider === "dreamface-io-video" &&
+    dreamfaceIoEligible &&
+    dreamfaceIoRemainingUnits >= dreamfaceIoUnits;
+  const estCredits = usesDreamfaceIoFreeAllowance ? 0 : baseEstCredits;
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const estimatedSeconds = estimateTaskSeconds(modeForPricing(mode), provider, isAvatarWorkflow ? avatarDuration : duration);
@@ -1758,6 +1804,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     "kling-avatar-standard",
     "kling-avatar-pro",
     "grok-video",
+    "dreamface-io-video",
     "seedance-video",
     "kling-video",
     "veo-video",
@@ -1782,7 +1829,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           ? VEO_VIDEO_RATIO_OPTIONS
           : DEFAULT_VIDEO_RATIO_OPTIONS;
   const videoDurationOptions =
-    provider === "veo-video"
+    provider === "dreamface-io-video"
+      ? DREAMFACE_IO_DURATION_OPTIONS
+    : provider === "veo-video"
       ? VEO_VIDEO_DURATION_OPTIONS
       : provider === "seedance-video"
         ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 4)
@@ -1792,12 +1841,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           ? GROK_VIDEO_DURATION_OPTIONS
           : VIDEO_DURATION_OPTIONS;
   const videoResolutionOptions =
-    provider === "seedance-video"
+    provider === "dreamface-io-video"
+      ? ["720p"]
+    : provider === "seedance-video"
       ? SEEDANCE_VIDEO_RESOLUTION_OPTIONS
       : provider === "veo-video"
         ? VEO_VIDEO_RESOLUTION_OPTIONS
         : GROK_VIDEO_RESOLUTION_OPTIONS;
-  const showVideoResolutionControl = mode === "video" && (provider === "grok-video" || provider === "seedance-video" || provider === "veo-video");
+  const showVideoResolutionControl = mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "veo-video");
   const showVideoAudioControl = mode === "video" && !isAvatarProvider(provider) && (provider === "seedance-video" || provider === "kling-video" || provider === "veo-video");
   const showTextToImageTemplates = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "text-to-image";
   const providerSettingsLabel =
@@ -2283,7 +2334,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         resolution:
           mode === "image"
             ? editResolution
-            : mode === "video" && (provider === "grok-video" || provider === "seedance-video" || provider === "veo-video")
+            : mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
         generateAudio: mode === "video" ? generateAudio : undefined,
@@ -2295,7 +2346,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         enableSafetyChecker: mode === "image" && !isPromptlessImageWorkflow ? enableSafetyChecker : undefined,
         acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
         limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
-        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "seedance-video" || provider === "veo-video") ? parsedSeed : undefined,
+        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "veo-video") ? parsedSeed : undefined,
         safetyTolerance: mode === "image" && !isPromptlessImageWorkflow ? safetyTolerance : undefined,
         systemPrompt: mode === "image" && !isPromptlessImageWorkflow && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" && !isPromptlessImageWorkflow ? enableWebSearch : undefined,
@@ -2346,12 +2397,18 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         balance?: number;
         duplicate?: boolean;
         failureReason?: string | null;
+        billingSource?: "credits" | "daily_free";
+        freeUnitsUsed?: number;
+        dailyUnitsRemaining?: number | null;
       };
       clearPersistentIdempotency(idempotencyStorageKey);
       clearStudioLoginDraft();
       if (typeof payload.balance === "number") {
         setCreditBalance(payload.balance);
         cacheCreditBalance(payload.balance);
+      }
+      if (provider === "dreamface-io-video" && typeof payload.dailyUnitsRemaining === "number") {
+        setDreamfaceIoRemainingUnits(payload.dailyUnitsRemaining);
       }
 
       const queuedTask: TaskItem = {
@@ -2365,7 +2422,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               : payload.status === "failed"
                 ? "Failed"
                 : "Queued",
-        cost: estCredits,
+        cost: typeof payload.estimatedCredits === "number" ? payload.estimatedCredits : estCredits,
         provider,
         prompt: prompt.trim(),
         ratio,
@@ -2451,7 +2508,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           trackEvent("generation_completed", { mode, provider, task_id: payload.taskId, transport: "mock" }, liveToken);
         }
       } else {
-        setStatusText(st("studio.status.falQueued"));
+        setStatusText(st(provider === "dreamface-io-video" ? "studio.status.dreamfaceIoQueued" : "studio.status.falQueued"));
         let finalStatus: "COMPLETED" | "FAILED" | "CANCELED" | "ERROR" | null = null;
         let finalFailureReason: string | null = null;
         let finalActualCredits: number | null = null;
@@ -2492,12 +2549,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
             setTasks((prev) =>
               prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Queued" } : task))
             );
-            setStatusText(st("studio.status.falQueue"));
+            setStatusText(st(provider === "dreamface-io-video" ? "studio.status.dreamfaceIoQueue" : "studio.status.falQueue"));
           } else if (rawStatus === "IN_PROGRESS") {
             setTasks((prev) =>
               prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Running" } : task))
             );
-            setStatusText(st("studio.status.falRunning"));
+            setStatusText(st(provider === "dreamface-io-video" ? "studio.status.dreamfaceIoRunning" : "studio.status.falRunning"));
           } else if (["COMPLETED", "FAILED", "CANCELED", "ERROR"].includes(rawStatus)) {
             if (rawStatus === "COMPLETED") {
               const mediaUrl = pickMediaUrl(statusPayload.result);
@@ -2518,7 +2575,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           );
           clearCompletedWorkbench();
           setStatusTone("ok");
-          setStatusText(st("studio.status.falCompleted"));
+          setStatusText(st(provider === "dreamface-io-video" ? "studio.status.dreamfaceIoCompleted" : "studio.status.falCompleted"));
           trackEvent("generation_completed", { mode, provider, task_id: payload.taskId, transport: "real" }, liveToken);
         } else {
           if (finalStatus) {
@@ -2526,7 +2583,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               prev.map((task) => (task.id === payload.taskId ? { ...task, status: "Failed", cost: finalActualCredits ?? 0, failureReason: finalFailureReason } : task))
             );
             setStatusTone("error");
-            setStatusText(finalFailureReason ? localizeStudioError(finalFailureReason) : st("studio.status.falFailedRefund"));
+            setStatusText(
+              finalFailureReason
+                ? localizeStudioError(finalFailureReason)
+                : st(provider === "dreamface-io-video" ? "studio.status.dreamfaceIoFailedRefund" : "studio.status.falFailedRefund")
+            );
             trackEvent("generation_failed", { mode, provider, task_id: payload.taskId, transport: "real", final_status: finalStatus, failure_reason: finalFailureReason }, liveToken);
           } else {
             setTasks((prev) =>
@@ -3999,7 +4060,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       </>
                     )}
                     <span className="rounded-full border border-black/[0.06] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#667085] sm:py-2">
-                      {st("studio.generate.estimate", { credits: estCredits })}
+                      {provider === "dreamface-io-video"
+                        ? usesDreamfaceIoFreeAllowance
+                          ? st("studio.generate.dailyFree", { remaining: dreamfaceIoRemainingUnits })
+                          : st("studio.generate.dailyPaid", { credits: estCredits })
+                        : st("studio.generate.estimate", { credits: estCredits })}
                     </span>
                     <button
                       type="button"
@@ -4010,6 +4075,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       {isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}
                     </button>
                   </div>
+                  {provider === "dreamface-io-video" ? (
+                    <p className="border-t border-black/[0.05] bg-amber-50/55 px-5 py-2.5 text-center text-xs font-medium text-amber-800/80 md:px-7">
+                      {st("studio.dreamfaceIo.qualityHint")}
+                    </p>
+                  ) : null}
                   {mode === "audio" ? (
                     <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

@@ -9,6 +9,7 @@ import {
   formatFalFailureReason,
   parseFalFailure
 } from "../../../../lib/fal-errors";
+import { DREAMFACE_IO_PROVIDER, syncDreamfaceIoTask } from "../../../../lib/dreamface-io";
 
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
@@ -25,6 +26,9 @@ type PendingTaskRow = {
   response_url: string | null;
   created_at: string;
   timed_out_at?: string | null;
+  provider: string;
+  request_settings?: Record<string, unknown> | null;
+  output_url?: string | null;
 };
 
 function taskTimeoutMinutes() {
@@ -110,6 +114,11 @@ async function syncTask(task: PendingTaskRow, falKey: string) {
   }
 
   const now = new Date().toISOString();
+
+  if (task.provider === DREAMFACE_IO_PROVIDER) {
+    const synced = await syncDreamfaceIoTask(admin, task as Parameters<typeof syncDreamfaceIoTask>[1]);
+    return { taskId: task.id, action: "synced", status: synced.status, providerStatus: synced.providerStatus };
+  }
 
   if (!isAllowedFalUrl(task.status_url)) {
     if (!isOlderThan(task.created_at, orphanTaskTimeoutMinutes())) {
@@ -237,14 +246,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
   }
 
-  const falKey = process.env.FAL_KEY;
-  if (!falKey) {
-    return NextResponse.json({ error: "FAL_KEY is not configured." }, { status: 500 });
-  }
+  const falKey = process.env.FAL_KEY || "";
 
   const { data, error } = await admin
     .from("generation_tasks")
-    .select("id,user_id,status,estimated_credits,transport,provider_request_id,status_url,response_url,created_at,timed_out_at")
+    .select("id,user_id,provider,status,estimated_credits,transport,provider_request_id,status_url,response_url,request_settings,output_url,created_at,timed_out_at")
     .eq("transport", "real")
     .in("status", ["queued", "running"])
     .is("deleted_at", null)

@@ -21,6 +21,19 @@ import {
   spendCredits
 } from "../../../lib/credits";
 import { estimateGenerationCreditsWithLivePricing } from "../../../lib/fal-pricing";
+import {
+  DREAMFACE_IO_PROVIDER,
+  dreamfaceIoCredits,
+  dreamfaceIoUnits,
+  ensureDreamfaceIoPublicImage,
+  isDreamfaceIoConfigured,
+  isDreamfaceIoDailyEligible,
+  refundDreamfaceIoBilling,
+  refundDreamfaceIoDailyUnits,
+  reserveDreamfaceIoDailyUnits,
+  submitDreamfaceIoVideo
+} from "../../../lib/dreamface-io";
+import { isDreamfaceIoEnabled } from "../../../lib/runtime-config";
 
 type GenerateMode = "image" | "video" | "audio" | "avatar";
 type StoredGenerateMode = "image" | "video" | "audio";
@@ -694,20 +707,29 @@ export async function POST(request: Request) {
     }
 
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
-    const estimatedCredits = await estimateGenerationCreditsWithLivePricing({
-      mode: storageMode,
-      provider: body.provider,
-      imageSize: body.imageSize,
-      duration: body.duration,
-      hasReferences: imageUrls.length > 0,
-      resolution: body.resolution,
-      quality: body.quality,
-      numImages: body.numImages,
-      enableWebSearch: body.enableWebSearch,
-      thinkingLevel: body.thinkingLevel,
-      generateAudio: body.generateAudio,
-      promptText: prompt
-    });
+    const isDreamfaceIo = body.provider === DREAMFACE_IO_PROVIDER;
+    if (isDreamfaceIo && (body.mode !== "video" || !["text-to-video", "image-to-video"].includes(body.videoWorkflow || ""))) {
+      return NextResponse.json({ error: "DreamFace IO is only available for text-to-video and image-to-video." }, { status: 400 });
+    }
+    if (isDreamfaceIo && !["5s", "10s", "15s"].includes(body.duration)) {
+      return NextResponse.json({ error: "DreamFace IO supports 5, 10, or 15 second videos." }, { status: 400 });
+    }
+    const baseEstimatedCredits = isDreamfaceIo
+      ? dreamfaceIoCredits(body.duration)
+      : await estimateGenerationCreditsWithLivePricing({
+          mode: storageMode,
+          provider: body.provider,
+          imageSize: body.imageSize,
+          duration: body.duration,
+          hasReferences: imageUrls.length > 0,
+          resolution: body.resolution,
+          quality: body.quality,
+          numImages: body.numImages,
+          enableWebSearch: body.enableWebSearch,
+          thinkingLevel: body.thinkingLevel,
+          generateAudio: body.generateAudio,
+          promptText: prompt
+        });
     if (body.mode === "image" && body.provider === "nano-banana-edit") {
       if (!imageUrls.length) {
         return NextResponse.json({ error: "Image to Image requires at least one reference image." }, { status: 400 });
@@ -728,14 +750,50 @@ export async function POST(request: Request) {
       }
     }
     const falKey = process.env.FAL_KEY;
-    const modelId = getModelId(storageMode, body.provider, hasInputImages(body));
+    const modelId = isDreamfaceIo ? "dreamface-io" : getModelId(storageMode, body.provider, hasInputImages(body));
     const taskId = generationTaskId(body.idempotencyKey);
 
     const admin = createSupabaseAdminClient();
     if (!admin) {
       return NextResponse.json({ error: "Server auth storage is not configured." }, { status: 500 });
     }
+    const existingTask = await findExistingTask(admin, user.id, taskId);
+    if (existingTask) {
+      return returnExistingTask(admin, user.id, existingTask);
+    }
+
+    if (isDreamfaceIo && (!(await isDreamfaceIoEnabled(admin)) || !isDreamfaceIoConfigured())) {
+      return NextResponse.json({ error: "DreamFace IO is currently unavailable." }, { status: 404 });
+    }
+    if (isDreamfaceIo && body.videoWorkflow === "image-to-video") {
+      try {
+        const publicImageUrl = await ensureDreamfaceIoPublicImage(admin, user.id, taskId, firstInputImage(body));
+        if (!publicImageUrl) {
+          return NextResponse.json({ error: "DreamFace IO image-to-video requires one reference image." }, { status: 400 });
+        }
+        body.imageUrls = [publicImageUrl];
+      } catch {
+        return NextResponse.json({ error: "DreamFace IO could not prepare this reference image." }, { status: 422 });
+      }
+    }
+
     const creditAccount = await ensureRequestCreditAccount(admin, user.id, request);
+    let estimatedCredits = baseEstimatedCredits;
+    let billingSource: "credits" | "daily_free" = "credits";
+    let freeUnitsUsed = 0;
+    let dailyUnitsRemaining: number | null = null;
+
+    if (isDreamfaceIo && await isDreamfaceIoDailyEligible(admin, user.id)) {
+      const units = dreamfaceIoUnits(body.duration);
+      const reservation = await reserveDreamfaceIoDailyUnits(admin, user.id, taskId, units);
+      dailyUnitsRemaining = reservation.remainingUnits;
+      if (reservation.allowed) {
+        estimatedCredits = 0;
+        billingSource = "daily_free";
+        freeUnitsUsed = units;
+      }
+    }
+
     if (creditAccount.balance < estimatedCredits) {
       return NextResponse.json(
         { error: `Not enough credits. This task needs ${estimatedCredits} credits, but your balance is ${creditAccount.balance}.` },
@@ -743,12 +801,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingTask = await findExistingTask(admin, user.id, taskId);
-    if (existingTask) {
-      return returnExistingTask(admin, user.id, existingTask);
-    }
-
-    const transport = !falKey || !modelId ? "mock" : "real";
+    const transport = isDreamfaceIo ? "real" : !falKey || !modelId ? "mock" : "real";
+    const requestSettings = {
+      ...buildRequestSettings(body, modelId),
+      billing_source: billingSource,
+      free_units_used: freeUnitsUsed
+    };
     try {
       const { error: insertError } = await admin.from("generation_tasks").insert({
         id: taskId,
@@ -759,7 +817,7 @@ export async function POST(request: Request) {
         status: "queued",
         estimated_credits: estimatedCredits,
         transport,
-        request_settings: buildRequestSettings(body, modelId)
+        request_settings: requestSettings
       });
       if (insertError) {
         const existingAfterConflict = await findExistingTask(admin, user.id, taskId);
@@ -773,6 +831,9 @@ export async function POST(request: Request) {
       if (existingAfterConflict) {
         return returnExistingTask(admin, user.id, existingAfterConflict);
       }
+      if (billingSource === "daily_free") {
+        await refundDreamfaceIoDailyUnits(admin, user.id, taskId).catch(() => null);
+      }
       return NextResponse.json(
         {
           error: `Task could not be saved, so credits were not charged: ${
@@ -783,7 +844,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const spendResult = await spendCredits(admin, user.id, estimatedCredits, "generation_task", taskId);
+    const spendResult = estimatedCredits > 0
+      ? await spendCredits(admin, user.id, estimatedCredits, "generation_task", taskId)
+      : { ok: true as const, balance: creditAccount.balance };
     if (!spendResult.ok) {
       await admin
         .from("generation_tasks")
@@ -809,10 +872,13 @@ export async function POST(request: Request) {
         mode: storageMode,
         provider: body.provider,
         estimatedCredits,
-        balance: spendResult.balance
+        balance: spendResult.balance,
+        billingSource,
+        freeUnitsUsed,
+        dailyUnitsRemaining
       });
     }
-    if (!falKey || !modelId) {
+    if (!isDreamfaceIo && (!falKey || !modelId)) {
       throw new Error("fal.ai model configuration is missing.");
     }
 
@@ -837,13 +903,27 @@ export async function POST(request: Request) {
       status: string;
       status_url: string;
       response_url?: string;
-    };
+    } | null = null;
     try {
-      if (isAvatarProvider && !body.audioUrl) {
+      if (isDreamfaceIo) {
+        const dreamfaceSubmit = await submitDreamfaceIoVideo({
+          prompt,
+          imageUrl: firstInputImage(body),
+          ratio: body.ratio,
+          resolution: "720p",
+          duration: body.duration,
+          seed: optionalSeed(body.seed)
+        });
+        submitPayload = {
+          request_id: dreamfaceSubmit.requestId,
+          status: dreamfaceSubmit.status,
+          status_url: dreamfaceSubmit.statusUrl
+        };
+      } else if (isAvatarProvider && !body.audioUrl) {
         const ttsModelId = getModelId("audio", "elevenlabs-tts") || "fal-ai/elevenlabs/tts/eleven-v3";
         const ttsInput = buildTtsInput(body, prompt);
-        const ttsSubmitPayload = await submitFalQueue(falKey, ttsModelId, ttsInput);
-        const ttsResult = await waitForFalResponse(falKey, ttsSubmitPayload, 90000);
+        const ttsSubmitPayload = await submitFalQueue(falKey as string, ttsModelId, ttsInput);
+        const ttsResult = await waitForFalResponse(falKey as string, ttsSubmitPayload, 90000);
         const audioUrl = pickAudioUrl(ttsResult);
         if (!audioUrl) {
           throw new Error("ElevenLabs voice generation did not return an audio URL.");
@@ -867,7 +947,7 @@ export async function POST(request: Request) {
           .from("generation_tasks")
           .update({
             request_settings: {
-              ...buildRequestSettings(body, modelId),
+              ...requestSettings,
               tts_step: ttsStep
             },
             updated_at: new Date().toISOString()
@@ -875,8 +955,39 @@ export async function POST(request: Request) {
           .eq("id", taskId)
           .eq("user_id", user.id);
       }
-      submitPayload = await submitFalQueue(falKey, modelId, buildFalInput(body, prompt));
+      if (!isDreamfaceIo) {
+        submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(body, prompt));
+      }
     } catch (networkError) {
+      if (isDreamfaceIo) {
+        await refundDreamfaceIoBilling(admin, {
+          id: taskId,
+          user_id: user.id,
+          estimated_credits: estimatedCredits,
+          request_settings: requestSettings
+        });
+        const failureReason = "DreamFace IO could not start this generation. Your generation allowance was returned.";
+        await admin
+          .from("generation_tasks")
+          .update({
+            status: "failed",
+            failure_code: "provider_submit_failed",
+            failure_reason: failureReason,
+            raw_result: { message: "DreamFace IO provider submission failed." },
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", taskId)
+          .eq("user_id", user.id);
+        return NextResponse.json(
+          {
+            error: failureReason,
+            failureCode: "provider_submit_failed",
+            refundedCredits: billingSource === "credits" ? estimatedCredits : 0,
+            balance: billingSource === "credits" ? creditAccount.balance : spendResult.balance
+          },
+          { status: 502 }
+        );
+      }
       const failureInfo = falFailureInfoFromError(networkError);
       const refundedCredits = falRefundCreditsFromCost(failureInfo.costUsd, estimatedCredits);
       const balance =
@@ -912,6 +1023,10 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!submitPayload) {
+      throw new Error("Provider submission did not return tracking information.");
+    }
+
     try {
       const normalizedStatus = submitPayload.status?.toUpperCase() === "IN_PROGRESS" ? "running" : "queued";
       const { error: updateError } = await admin
@@ -923,10 +1038,10 @@ export async function POST(request: Request) {
           response_url: submitPayload.response_url || null,
           request_settings: ttsStep
             ? {
-                ...buildRequestSettings(body, modelId),
+                ...requestSettings,
                 tts_step: ttsStep
               }
-            : buildRequestSettings(body, modelId),
+            : requestSettings,
           updated_at: new Date().toISOString()
         })
         .eq("id", taskId)
@@ -936,7 +1051,17 @@ export async function POST(request: Request) {
         throw updateError;
       }
     } catch (updateError) {
-      const balance = await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
+      if (isDreamfaceIo) {
+        await refundDreamfaceIoBilling(admin, {
+          id: taskId,
+          user_id: user.id,
+          estimated_credits: estimatedCredits,
+          request_settings: requestSettings
+        });
+      }
+      const balance = isDreamfaceIo
+        ? spendResult.balance
+        : await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
       try {
         await admin
           .from("generation_tasks")
@@ -970,6 +1095,9 @@ export async function POST(request: Request) {
       provider: body.provider,
       estimatedCredits,
       balance: spendResult.balance,
+      billingSource,
+      freeUnitsUsed,
+      dailyUnitsRemaining,
       statusUrl: submitPayload.status_url,
       responseUrl: submitPayload.response_url || null,
       providerRequestId: submitPayload.request_id

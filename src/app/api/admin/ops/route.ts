@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { getAdminUserFromRequest } from "../../../../lib/admin-auth";
 import { addCredits, refundCredits, spendCredits } from "../../../../lib/credits";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
+import { isDreamfaceIoEnabled, setDreamfaceIoEnabled } from "../../../../lib/runtime-config";
+import { DREAMFACE_IO_PROVIDER, isDreamfaceIoConfigured, refundDreamfaceIoBilling } from "../../../../lib/dreamface-io";
 
 const RECENT_LIMIT = 80;
 const ADMIN_DATA_LIMIT = 5000;
@@ -72,6 +74,7 @@ type TaskRow = {
   failure_reason: string | null;
   created_at: string;
   updated_at: string | null;
+  request_settings?: Record<string, unknown> | null;
 };
 
 type AnalyticsRow = {
@@ -97,10 +100,11 @@ type CountrySummaryRow = {
 };
 
 type AdjustmentPayload = {
-  action?: "credit_adjustment" | "repair_generation_safety";
+  action?: "credit_adjustment" | "repair_generation_safety" | "set_dreamface_io_enabled";
   userId?: string;
   amount?: number;
   note?: string;
+  enabled?: boolean;
 };
 
 type OpsFinding = {
@@ -305,7 +309,7 @@ async function repairGenerationSafety(admin: NonNullable<ReturnType<typeof creat
   let query = admin
     .from("generation_tasks")
     .select(
-      "id,user_id,mode,provider,prompt,status,estimated_credits,transport,provider_request_id,output_url,failure_code,failure_reason,created_at,updated_at"
+      "id,user_id,mode,provider,prompt,status,estimated_credits,transport,provider_request_id,output_url,request_settings,failure_code,failure_reason,created_at,updated_at"
     )
     .is("deleted_at", null)
     .in("status", ["queued", "running", "failed"])
@@ -340,8 +344,16 @@ async function repairGenerationSafety(admin: NonNullable<ReturnType<typeof creat
     const hasCharge = hasLedger(entries, "generation_task");
     const hasRefund = hasLedger(entries, "generation_refund");
 
-    if (task.status === "failed" && hasCharge && !hasRefund) {
-      await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", task.id);
+    const refundTask = async () => {
+      if (task.provider === DREAMFACE_IO_PROVIDER) {
+        await refundDreamfaceIoBilling(admin, task);
+      } else {
+        await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", task.id);
+      }
+    };
+
+    if (task.status === "failed" && ((hasCharge && !hasRefund) || task.provider === DREAMFACE_IO_PROVIDER)) {
+      await refundTask();
       failedRefunded += 1;
       continue;
     }
@@ -352,7 +364,7 @@ async function repairGenerationSafety(admin: NonNullable<ReturnType<typeof creat
       !task.provider_request_id &&
       isOlderThan(task.created_at, orphanTaskTimeoutMinutes())
     ) {
-      await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", task.id);
+      await refundTask();
       await admin
         .from("generation_tasks")
         .update({
@@ -375,7 +387,7 @@ async function repairGenerationSafety(admin: NonNullable<ReturnType<typeof creat
       Boolean(task.provider_request_id) &&
       isOlderThan(task.created_at, taskTimeoutMinutes())
     ) {
-      await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", task.id);
+      await refundTask();
       await admin
         .from("generation_tasks")
         .update({
@@ -775,9 +787,14 @@ export async function GET(request: Request) {
   const tasks = (tasksResult.data || []) as TaskRow[];
   const analytics = (analyticsResult.error ? [] : analyticsResult.data || []) as AnalyticsRow[];
   const users = buildUserRows(authUsers, accounts, ledger, purchases, tasks, subscriptions, analytics);
+  const dreamfaceIoEnabled = await isDreamfaceIoEnabled(admin);
 
   return NextResponse.json({
     adminEmail: adminUser.email,
+    runtimeConfig: {
+      dreamfaceIoEnabled,
+      dreamfaceIoConfigured: isDreamfaceIoConfigured()
+    },
     summary: {
       authUsers: authUsers.length,
       ...summarize(accounts, ledger, purchases, tasks, subscriptions)
@@ -819,6 +836,14 @@ export async function POST(request: Request) {
   if (action === "repair_generation_safety") {
     const repair = await repairGenerationSafety(admin, userId);
     return NextResponse.json({ ok: true, repair, adminEmail: adminUser.email });
+  }
+
+  if (action === "set_dreamface_io_enabled") {
+    if (typeof body?.enabled !== "boolean") {
+      return NextResponse.json({ error: "Enabled must be a boolean." }, { status: 400 });
+    }
+    const enabled = await setDreamfaceIoEnabled(admin, body.enabled, adminUser.email);
+    return NextResponse.json({ ok: true, enabled, adminEmail: adminUser.email });
   }
 
   const amount = Number(body?.amount);

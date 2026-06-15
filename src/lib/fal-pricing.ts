@@ -262,11 +262,11 @@ export async function getLiveModelPricingRows(): Promise<LiveModelPricingRow[]> 
   const checkedAt = new Date().toISOString();
   return Promise.all(
     MODEL_PRICING_ROWS.map(async (row) => {
-      const live = await getFalModelPricing(row.endpointId);
+      const live = row.provider === "dreamface-io-video" ? null : await getFalModelPricing(row.endpointId);
       const typicalCredits = estimateGenerationCredits({
         mode: row.mode,
         provider: row.provider,
-        duration: row.mode === "video" ? "6s" : undefined,
+        duration: row.provider === "dreamface-io-video" ? "5s" : row.mode === "video" ? "6s" : undefined,
         imageSize: row.provider === "flux-image" ? "landscape_16_9" : "default_4_3",
         hasReferences: row.workflow.toLowerCase().includes("image to image"),
         promptText: row.mode === "audio" ? "A 1000 character voiceover script." : undefined,

@@ -17,6 +17,7 @@ import { studioModelMessages } from "./studio-i18n-models";
 import { studioGermanMessages } from "./studio-i18n-de";
 import { studioFrenchMessages } from "./studio-i18n-fr";
 import { studioAdditionalMessages } from "./studio-i18n-additions";
+import { studioDreamfaceIoMessages } from "./studio-i18n-dreamface-io";
 
 type StudioMessages = Record<string, string>;
 
@@ -663,6 +664,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
 
   function t(key: string, values?: Record<string, string | number | null | undefined>) {
     let template =
+      studioDreamfaceIoMessages[locale]?.[key] ||
       (locale === "de" ? studioGermanMessages[key] : undefined) ||
       (locale === "fr" ? studioFrenchMessages[key] : undefined) ||
       studioAdditionalMessages[locale]?.[key] ||

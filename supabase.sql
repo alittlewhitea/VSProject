@@ -83,6 +83,160 @@ create table if not exists public.credit_ledger (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.runtime_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_by text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.model_daily_usage_events (
+  id bigserial primary key,
+  user_id uuid not null,
+  model_key text not null,
+  usage_date date not null default (timezone('utc', now()))::date,
+  units int not null check (units > 0),
+  reference_id text not null,
+  refunded_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'generation-inputs',
+  'generation-inputs',
+  true,
+  10485760,
+  array['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif']
+)
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+create unique index if not exists model_daily_usage_reference_unique_idx
+  on public.model_daily_usage_events (user_id, model_key, reference_id);
+
+create index if not exists model_daily_usage_lookup_idx
+  on public.model_daily_usage_events (user_id, model_key, usage_date);
+
+create or replace function public.get_model_daily_usage(
+  p_user_id uuid,
+  p_model_key text
+)
+returns table (used_units int)
+language sql
+security definer
+set search_path = public
+as $$
+  select coalesce(sum(units), 0)::int
+  from public.model_daily_usage_events
+  where user_id = p_user_id
+    and model_key = p_model_key
+    and usage_date = (timezone('utc', now()))::date
+    and refunded_at is null;
+$$;
+
+create or replace function public.reserve_model_daily_units(
+  p_user_id uuid,
+  p_model_key text,
+  p_reference_id text,
+  p_units int,
+  p_daily_limit int
+)
+returns table (
+  allowed boolean,
+  duplicate boolean,
+  used_units int,
+  remaining_units int
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_used int;
+  v_existing public.model_daily_usage_events%rowtype;
+begin
+  if p_units <= 0 or p_daily_limit <= 0 then
+    raise exception 'Daily usage values must be positive';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtext(p_user_id::text || ':' || p_model_key));
+
+  select *
+    into v_existing
+    from public.model_daily_usage_events
+    where user_id = p_user_id
+      and model_key = p_model_key
+      and reference_id = p_reference_id
+    limit 1;
+
+  select coalesce(sum(units), 0)::int
+    into v_used
+    from public.model_daily_usage_events
+    where user_id = p_user_id
+      and model_key = p_model_key
+      and usage_date = (timezone('utc', now()))::date
+      and refunded_at is null;
+
+  if v_existing.id is not null then
+    allowed := v_existing.refunded_at is null;
+    duplicate := true;
+    used_units := v_used;
+    remaining_units := greatest(0, p_daily_limit - v_used);
+    return next;
+    return;
+  end if;
+
+  if v_used + p_units > p_daily_limit then
+    allowed := false;
+    duplicate := false;
+    used_units := v_used;
+    remaining_units := greatest(0, p_daily_limit - v_used);
+    return next;
+    return;
+  end if;
+
+  insert into public.model_daily_usage_events (
+    user_id, model_key, usage_date, units, reference_id
+  ) values (
+    p_user_id, p_model_key, (timezone('utc', now()))::date, p_units, p_reference_id
+  );
+
+  allowed := true;
+  duplicate := false;
+  used_units := v_used + p_units;
+  remaining_units := greatest(0, p_daily_limit - used_units);
+  return next;
+end;
+$$;
+
+create or replace function public.refund_model_daily_units(
+  p_user_id uuid,
+  p_model_key text,
+  p_reference_id text
+)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.model_daily_usage_events
+  set refunded_at = coalesce(refunded_at, now())
+  where user_id = p_user_id
+    and model_key = p_model_key
+    and reference_id = p_reference_id;
+$$;
+
+revoke all on function public.get_model_daily_usage(uuid, text) from public, anon, authenticated;
+revoke all on function public.reserve_model_daily_units(uuid, text, text, int, int) from public, anon, authenticated;
+revoke all on function public.refund_model_daily_units(uuid, text, text) from public, anon, authenticated;
+grant execute on function public.get_model_daily_usage(uuid, text) to service_role;
+grant execute on function public.reserve_model_daily_units(uuid, text, text, int, int) to service_role;
+grant execute on function public.refund_model_daily_units(uuid, text, text) to service_role;
+
 create index if not exists credit_ledger_user_id_created_at_idx
   on public.credit_ledger (user_id, created_at desc);
 
@@ -257,6 +411,8 @@ create index if not exists user_subscriptions_status_idx
 alter table public.user_credit_accounts enable row level security;
 alter table public.signup_ip_claims enable row level security;
 alter table public.credit_ledger enable row level security;
+alter table public.runtime_settings enable row level security;
+alter table public.model_daily_usage_events enable row level security;
 alter table public.credit_purchases enable row level security;
 alter table public.user_subscriptions enable row level security;
 
