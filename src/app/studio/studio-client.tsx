@@ -4336,27 +4336,42 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
                   {(mode === "image"
-                    ? ["Product campaign", "Social ad", "Brand poster", "Reference edit"]
+                    ? [
+                        { label: st("studio.suggestion.productCampaign"), prompt: "Product campaign" },
+                        { label: st("studio.suggestion.socialAd"), prompt: "Social ad" },
+                        { label: st("studio.suggestion.brandPoster"), prompt: "Brand poster" },
+                        { label: st("studio.suggestion.referenceEdit"), prompt: "Reference edit" }
+                      ]
                     : activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video"
-                      ? ["Camera push-in", "Product reveal", "Cinematic loop", "Social motion"]
-                      : ["UGC-style ad", "Dynamic camera move", "Multi-scene cut", "B-roll footage"]
+                      ? [
+                          { label: st("studio.suggestion.cameraPushIn"), prompt: "Camera push-in" },
+                          { label: st("studio.suggestion.productReveal"), prompt: "Product reveal" },
+                          { label: st("studio.suggestion.cinematicLoop"), prompt: "Cinematic loop" },
+                          { label: st("studio.suggestion.socialMotion"), prompt: "Social motion" }
+                        ]
+                      : [
+                          { label: st("studio.suggestion.ugcAd"), prompt: "UGC-style ad" },
+                          { label: st("studio.suggestion.dynamicCamera"), prompt: "Dynamic camera move" },
+                          { label: st("studio.suggestion.multiScene"), prompt: "Multi-scene cut" },
+                          { label: st("studio.suggestion.broll"), prompt: "B-roll footage" }
+                        ]
                   ).map((item) => (
                     <button
-                      key={item}
+                      key={item.prompt}
                       type="button"
-                      onClick={() => setPrompt((current) => current || item)}
+                      onClick={() => setPrompt((current) => current || item.prompt)}
                       className="rounded-full border border-black/[0.06] bg-white/74 px-4 py-2 text-sm font-medium text-[#667085] shadow-sm transition hover:bg-white hover:text-[#202633]"
                     >
-                      {item}
+                      {item.label}
                     </button>
                   ))}
                 </div>
 
                 <div className="mt-10 grid gap-4 text-left md:grid-cols-3">
                   {[
-                    { title: "Model routing", body: PROVIDER_META[provider]?.bestFor || providerNote },
-                    { title: "Canvas", body: mode === "image" ? `${selectedImageSize.label} / ${selectedImageSize.dimensions}` : `${duration} / ${ratio === "source" ? "source image" : ratio}` },
-                    { title: "History", body: activeTasks.length ? `${activeTasks.length} running task${activeTasks.length > 1 ? "s" : ""}` : "Results save to Projects automatically" }
+                    { title: st("studio.summary.modelRouting"), body: providerNote },
+                    { title: st("studio.summary.canvas"), body: mode === "image" ? `${selectedImageSize.label} / ${selectedImageSize.dimensions}` : `${duration} / ${ratio === "source" ? st("studio.summary.sourceImage") : ratio}` },
+                    { title: st("studio.summary.history"), body: activeTasks.length ? st("studio.summary.runningTasks", { count: activeTasks.length }) : st("studio.summary.savedAutomatically") }
                   ].map((card) => (
                     <div key={card.title} className="rounded-[1.5rem] border border-black/[0.06] bg-white/62 p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur">
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">{card.title}</p>
@@ -4368,11 +4383,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   <section className="mt-12 text-left">
                     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#98a2b3]">Prompt gallery</p>
-                        <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[#202633]">Start from a proven visual direction</h3>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#98a2b3]">{st("studio.gallery.eyebrow")}</p>
+                        <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[#202633]">{st("studio.gallery.title")}</h3>
                       </div>
                       <Link href="/gallery" className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] shadow-sm transition hover:bg-[#f8fafc] hover:text-[#202633]">
-                        Browse Gallery
+                        {st("studio.gallery.browse")}
                       </Link>
                     </div>
                     {galleryTemplateNote ? (

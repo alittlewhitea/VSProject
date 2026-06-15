@@ -2,7 +2,7 @@ import type { Locale } from "../i18n/routing";
 
 type Messages = Record<string, string>;
 
-export const studioHomeMessages: Record<Locale, Messages> = {
+export const studioHomeMessages: Partial<Record<Locale, Messages>> = {
   en: {
     "studio.header.apps": "DreamFace Apps",
     "studio.header.projects": "Projects",

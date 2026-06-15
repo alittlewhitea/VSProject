@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import { loadMessages } from "../i18n/messages";
 import { defaultLocale, isLocale, locales, type Locale } from "../i18n/routing";
 import { siteUrl } from "./site-url";
 
 export type MarketingPage = "home" | "price" | "auth" | "billing";
+
+type MetadataCopy = {
+  title: string;
+  description: string;
+};
 
 const pagePath: Record<MarketingPage, string> = {
   home: "/",
@@ -16,12 +22,10 @@ const openGraphLocales: Record<Locale, string> = {
   "zh-CN": "zh_CN",
   "pt-BR": "pt_BR",
   ru: "ru_RU",
-  vi: "vi_VN"
+  vi: "vi_VN",
+  de: "de_DE",
+  fr: "fr_FR"
 };
-
-async function loadMessages(locale: Locale) {
-  return (await import(`../../messages/${locale}.json`)).default;
-}
 
 function localizedPath(locale: Locale, page: MarketingPage) {
   const path = pagePath[page];
@@ -31,7 +35,8 @@ function localizedPath(locale: Locale, page: MarketingPage) {
 export async function createLocalizedMetadata(rawLocale: string, page: MarketingPage): Promise<Metadata> {
   const locale = isLocale(rawLocale) ? rawLocale : defaultLocale;
   const messages = await loadMessages(locale);
-  const copy = messages.metadata?.[page] || messages.metadata?.home;
+  const metadataMessages = messages.metadata as Record<MarketingPage, MetadataCopy>;
+  const copy = metadataMessages[page] || metadataMessages.home;
   const baseUrl = siteUrl();
   const canonicalPath = localizedPath(locale, page);
   const languages = Object.fromEntries(locales.map((item) => [item, localizedPath(item, page)]));

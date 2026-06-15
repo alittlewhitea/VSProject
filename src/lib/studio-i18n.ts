@@ -14,10 +14,13 @@ import {
 import { studioHomeMessages } from "./studio-i18n-home";
 import { studioFeedbackMessages } from "./studio-i18n-feedback";
 import { studioModelMessages } from "./studio-i18n-models";
+import { studioGermanMessages } from "./studio-i18n-de";
+import { studioFrenchMessages } from "./studio-i18n-fr";
+import { studioAdditionalMessages } from "./studio-i18n-additions";
 
 type StudioMessages = Record<string, string>;
 
-const messages: Record<Locale, StudioMessages> = {
+const messages: Partial<Record<Locale, StudioMessages>> = {
   en: {
     "studio.language": "Language",
     "studio.checkingSession": "Checking your session...",
@@ -91,7 +94,28 @@ const messages: Record<Locale, StudioMessages> = {
     "studio.projects.charged": "Charged",
     "studio.projects.refund": "Refund",
     "studio.projects.failed": "Failed",
-    "studio.common.credits": "credits"
+    "studio.common.credits": "credits",
+    "studio.suggestion.productCampaign": "Product campaign",
+    "studio.suggestion.socialAd": "Social ad",
+    "studio.suggestion.brandPoster": "Brand poster",
+    "studio.suggestion.referenceEdit": "Reference edit",
+    "studio.suggestion.cameraPushIn": "Camera push-in",
+    "studio.suggestion.productReveal": "Product reveal",
+    "studio.suggestion.cinematicLoop": "Cinematic loop",
+    "studio.suggestion.socialMotion": "Social motion",
+    "studio.suggestion.ugcAd": "UGC-style ad",
+    "studio.suggestion.dynamicCamera": "Dynamic camera move",
+    "studio.suggestion.multiScene": "Multi-scene cut",
+    "studio.suggestion.broll": "B-roll footage",
+    "studio.summary.modelRouting": "Model routing",
+    "studio.summary.canvas": "Canvas",
+    "studio.summary.sourceImage": "source image",
+    "studio.summary.history": "History",
+    "studio.summary.runningTasks": "{count} running tasks",
+    "studio.summary.savedAutomatically": "Results save to Projects automatically",
+    "studio.gallery.eyebrow": "Prompt gallery",
+    "studio.gallery.title": "Start from a proven visual direction",
+    "studio.gallery.browse": "Browse Gallery"
   },
   "zh-CN": {
     "studio.language": "语言",
@@ -395,7 +419,7 @@ const messages: Record<Locale, StudioMessages> = {
   }
 };
 
-const workflowMessages: Record<Locale, StudioMessages> = {
+const workflowMessages: Partial<Record<Locale, StudioMessages>> = {
   en: {
     "studio.heading.createToday": "What will you create today?",
     "studio.workflow.text-to-image": "Text to Image",
@@ -617,6 +641,8 @@ function detectBrowserLocale(): Locale {
     if (normalized.startsWith("pt")) return "pt-BR";
     if (normalized.startsWith("ru")) return "ru";
     if (normalized.startsWith("vi")) return "vi";
+    if (normalized.startsWith("de")) return "de";
+    if (normalized.startsWith("fr")) return "fr";
   }
   return defaultLocale;
 }
@@ -637,16 +663,19 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
 
   function t(key: string, values?: Record<string, string | number | null | undefined>) {
     let template =
-      messages[locale][key] ||
-      workflowMessages[locale][key] ||
-      studioHomeMessages[locale][key] ||
-      studioFeedbackMessages[locale][key] ||
-      studioModelMessages[locale][key] ||
-      messages[defaultLocale][key] ||
-      workflowMessages[defaultLocale][key] ||
-      studioHomeMessages[defaultLocale][key] ||
-      studioFeedbackMessages[defaultLocale][key] ||
-      studioModelMessages[defaultLocale][key] ||
+      (locale === "de" ? studioGermanMessages[key] : undefined) ||
+      (locale === "fr" ? studioFrenchMessages[key] : undefined) ||
+      studioAdditionalMessages[locale]?.[key] ||
+      messages[locale]?.[key] ||
+      workflowMessages[locale]?.[key] ||
+      studioHomeMessages[locale]?.[key] ||
+      studioFeedbackMessages[locale]?.[key] ||
+      studioModelMessages[locale]?.[key] ||
+      messages[defaultLocale]?.[key] ||
+      workflowMessages[defaultLocale]?.[key] ||
+      studioHomeMessages[defaultLocale]?.[key] ||
+      studioFeedbackMessages[defaultLocale]?.[key] ||
+      studioModelMessages[defaultLocale]?.[key] ||
       key;
     if (values) {
       for (const [name, value] of Object.entries(values)) {

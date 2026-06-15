@@ -2,7 +2,7 @@ import type { Locale } from "../i18n/routing";
 
 type Messages = Record<string, string>;
 
-export const studioModelMessages: Record<Locale, Messages> = {
+export const studioModelMessages: Partial<Record<Locale, Messages>> = {
   en: {
     "studio.model.flux-image": "FLUX Schnell is ideal for fast visual drafts. Use GPT Image 2 when exact text, counting, or strict layouts matter.",
     "studio.model.flux-dev": "FLUX Dev creates more refined compositions when you want higher-quality drafts.",

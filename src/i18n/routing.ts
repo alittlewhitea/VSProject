@@ -1,4 +1,4 @@
-export const locales = ["en", "zh-CN", "pt-BR", "ru", "vi"] as const;
+export const locales = ["en", "zh-CN", "pt-BR", "ru", "vi", "de", "fr"] as const;
 
 export type Locale = (typeof locales)[number];
 
@@ -21,7 +21,9 @@ export const localeLabels: Record<Locale, string> = {
   "zh-CN": "简体中文",
   "pt-BR": "Português",
   ru: "Русский",
-  vi: "Tiếng Việt"
+  vi: "Tiếng Việt",
+  de: "Deutsch",
+  fr: "Français"
 };
 
 export const localizedMarketingPaths = ["/", "/price", "/auth", "/billing"] as const;

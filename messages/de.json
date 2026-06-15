@@ -1,0 +1,656 @@
+{
+  "nav": {
+    "logo": "dreamface",
+    "platform": "Plattform",
+    "providers": "Anbieter",
+    "gallery": "Galerie",
+    "pricing": "Preise",
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "projects": "Projekte",
+    "studio": "Studio",
+    "openStudio": "Studio öffnen",
+    "products": "Produkte",
+    "create": "Erstellen",
+    "featured": "Empfohlen",
+    "creativeToolkit": "Kreativ-Toolkit mit KI",
+    "creativeToolkitDescription": "Alle DreamFace-Arbeitsbereiche an einem Ort",
+    "imageStudio": "KI-Bildstudio",
+    "imageStudioDescription": "Bilder aus Prompts oder Referenzen erstellen",
+    "videoStudio": "KI-Videostudio",
+    "videoStudioDescription": "Text oder Bilder in hochwertige Videos verwandeln",
+    "audioGenerator": "KI-Audiogenerator",
+    "audioGeneratorDescription": "Natürlich klingende Voiceovers aus Skripten erstellen",
+    "projectsDescription": "Kreationen, Prompts, Erstattungen und Verlauf verwalten",
+    "textToImage": "Text zu Bild",
+    "textToImageDescription": "Anzeigen, Poster, Thumbnails und Konzepte erstellen",
+    "imageToImage": "Bild zu Bild",
+    "imageToImageDescription": "Referenzbilder bearbeiten, umgestalten oder erweitern",
+    "imageEnhance": "Bild verbessern",
+    "imageEnhanceDescription": "Eigene Bilder vergrößern und optimieren",
+    "backgroundRemove": "Hintergrund entfernen",
+    "backgroundRemoveDescription": "Hintergründe entfernen und transparente PNGs exportieren",
+    "textToVideo": "Text zu Video",
+    "textToVideoDescription": "Beschriebene Szenen in kurze Videoclips verwandeln",
+    "imageToVideo": "Bild zu Video",
+    "imageToVideoDescription": "Produkte, Porträts oder Referenzbilder animieren",
+    "textToAudio": "Text zu Audio",
+    "textToAudioDescription": "Natürliche Voiceovers aus Skripten erstellen",
+    "payAsYouGo": "Nach Verbrauch zahlen",
+    "creditPacksForIndividuals": "Credit-Pakete für Einzelpersonen"
+  },
+  "hero": {
+    "titleLine1": "Verwandle deine Ideen in",
+    "titleLine2": "Minutenschnelle Videos",
+    "title": "Verwandle deine Ideen in minutenschnelle Videos",
+    "subtitle": "Von Skript, Bild, Präsentation oder Prompt zum fertigen Inhalt. Keine Kamera, kein Team und keine Schnittkenntnisse erforderlich.",
+    "ctaGoogle": "Mit Google fortfahren",
+    "ctaPrimary": "Kostenlos starten"
+  },
+  "home": {
+    "gallery": {
+      "eyebrow": "Inspiration",
+      "title": "Entdecke, was du erstellen kannst",
+      "description": "Sieh dir Prompts und Ergebnisse aus Bild-, Video- und Audio-Workflows an.",
+      "cta": "Galerie ansehen"
+    },
+    "platform": {
+      "titleLine1": "Plattform-Tools für jeden",
+      "titleLine2": "kreativen Workflow",
+      "description": "Öffne den passenden Arbeitsbereich für Bildgenerierung, Videoerstellung, Produktanzeigen, UGC-Konzepte und modellgestützte Produktion über eine zentrale Plattform.",
+      "card": {
+        "textToVideo": "Text zu Video",
+        "photoToVideo": "Foto zu Video",
+        "productAds": "Produktanzeigen",
+        "ugcAds": "UGC-Anzeigen",
+        "aiModels": "KI-Modelle"
+      }
+    },
+    "textToVideo": {
+      "eyebrow": "Text zu Video",
+      "title": "Ideen direkt in Bewegung bringen",
+      "description": "Beschreibe eine Szene, wähle ein Modell und erstelle in wenigen Minuten einen Videoclip.",
+      "cta": "Video erstellen"
+    },
+    "photoToVideo": {
+      "eyebrow": "Bild zu Video",
+      "title": "Verleihe deinen Bildern Bewegung",
+      "description": "Animiere Produktbilder, Porträts und Illustrationen mit einer einfachen Beschreibung.",
+      "cta": "Bild animieren"
+    },
+    "pricing": {
+      "title": "Credits ganz ohne Abo-Gefühl",
+      "cta": "Preise ansehen",
+      "getCredits": "Credits erhalten",
+      "trial": {
+        "name": "Test-Credits",
+        "price": "Kostenlos",
+        "note": "Für neue Konten",
+        "credits": "100 Start-Credits enthalten"
+      },
+      "bestValue": "Bestes Preis-Leistungs-Verhältnis",
+      "topUpWhenNeeded": "Bei Bedarf Credits nachladen"
+    },
+    "faq": {
+      "eyebrow": "Häufige Fragen",
+      "title": "Alles, was du über DreamFace wissen musst",
+      "description": "Antworten zu Modellen, Credits, Erstellung und Nutzung.",
+      "whatIsDreamFace": {
+        "question": "Was ist DreamFace?",
+        "answer": "DreamFace ist ein KI-Kreativstudio zum Erstellen von Bildern und Videos in einem Arbeitsbereich. Von der ersten Prompt-Idee bis zu Bildgenerierung, Bildbearbeitung und Videoaufträgen bleiben Modelle, Credits, Verlauf und Ergebnisse übersichtlich organisiert."
+      },
+      "videoGenerators": {
+        "question": "Was sind KI-Videogeneratoren?",
+        "answer": "KI-Videogeneratoren verwandeln Prompts, Bilder, Skripte oder Referenzen in Videoclips. Damit lassen sich Social-Media-Videos, Produktdemos, B-Roll und Marketinginhalte ohne klassische Dreharbeiten oder fortgeschrittene Schnittkenntnisse erstellen."
+      },
+      "bestVideoGenerator": {
+        "question": "Welcher KI-Videogenerator eignet sich am besten für Marketing und Content-Erstellung?",
+        "answer": "Das hängt von Workflow, Modellvorlieben, Budget und gewünschtem Stil ab. DreamFace richtet sich an Kreative und Marketingteams, die Bildgenerierung, Bearbeitung, Text-zu-Video, Bild-zu-Video, Kostenschätzungen und Projektverlauf an einem Ort benötigen."
+      },
+      "availableTools": {
+        "question": "Welche KI-Werkzeuge sind in DreamFace verfügbar?",
+        "answer": "DreamFace bietet Text-zu-Bild, Bild-zu-Bild, Text-zu-Video, Bild-zu-Video, Bildverbesserung und einen wiederverwendbaren Projektverlauf. Du wählst zuerst das gewünschte Ergebnis, danach wird ein passendes KI-Modell verwendet."
+      },
+      "textImageSupport": {
+        "question": "Unterstützt DreamFace Text-zu-Bild und Bild-zu-Bild?",
+        "answer": "Ja. Du kannst Bilder aus Text erstellen oder Referenzbilder für Bearbeitungen hinzufügen. Prompt-Steuerung und Modellauswahl befinden sich im selben Editor, sodass du den passenden Bild-Workflow ohne Werkzeugwechsel nutzen kannst."
+      },
+      "videoSupport": {
+        "question": "Unterstützt DreamFace Text-zu-Video und Bild-zu-Video?",
+        "answer": "Ja. Mit Text-zu-Video beschreibst du eine neue Szene, mit Bild-zu-Video animierst du ein Referenzbild. Verfügbare Einstellungen und Qualität hängen vom gewählten Videomodell ab."
+      },
+      "videoInputs": {
+        "question": "Welche Eingaben kann ich für KI-Videos verwenden?",
+        "answer": "Du kannst mit einem Text-Prompt, einem Referenzbild oder einem kurzen Kreativ-Briefing beginnen. Beschreibe bei Bild-zu-Video Bewegung, Kamerastil, Verhalten des Motivs und die gewünschte Stimmung."
+      },
+      "referenceImage": {
+        "question": "Kann ich KI-Videos aus einem Referenzbild erstellen?",
+        "answer": "Ja. Produktbilder, Porträts, Charakterbilder oder visuelle Konzepte können als Startbild dienen. DreamFace übermittelt Referenz und Prompt an das gewählte Modell, das daraus Bewegung erzeugt."
+      },
+      "videoOfMyself": {
+        "question": "Wie erstelle ich ein KI-Video von mir selbst?",
+        "answer": "Verwende ein klares Referenzbild oder einen Quellclip, für den du die erforderlichen Rechte besitzt, und beschreibe Bewegung, Szene und Stil. Lade nur Abbildungen hoch, die dir gehören oder für deren Nutzung du eine Erlaubnis hast."
+      },
+      "socialMedia": {
+        "question": "Kann ich KI-Videos für TikTok, Anzeigen oder Social Media erstellen?",
+        "answer": "Ja. DreamFace eignet sich für kurze Social-Clips, Produktteaser, Anzeigenkonzepte, Thumbnails und Kampagnenmaterial. Ergebnisse lassen sich in Projekten speichern und Prompts oder Referenzen für neue Varianten wiederverwenden."
+      },
+      "models": {
+        "question": "Welche KI-Modelle kann ich verwenden?",
+        "answer": "Die Modellauswahl hängt vom Workflow ab. Für Bilder stehen unter anderem GPT Image 2, Nano Banana 2 und FLUX Schnell zur Verfügung; Videos werden beispielsweise über Seedance, Kling, Veo und Grok Imagine Video erstellt."
+      },
+      "videoTiming": {
+        "question": "Wie lange dauert die Erstellung eines KI-Videos?",
+        "answer": "Die Dauer hängt von Anbieterwarteschlange, Videolänge, Auflösung und Modell ab. Kurze Clips sind oft in wenigen Minuten fertig, aufwendigere Videoaufträge können länger dauern und bleiben währenddessen in Projekte sichtbar."
+      },
+      "noEditing": {
+        "question": "Kann ich KI-Videos ohne Erfahrung im Videoschnitt erstellen?",
+        "answer": "Ja. Wähle einen Workflow, schreibe einen Prompt, füge bei Bedarf eine Referenz hinzu, lege die Modelloptionen fest und starte die Erstellung. Kenntnisse in Timeline-basiertem Videoschnitt sind nicht erforderlich."
+      },
+      "costBeforeCreate": {
+        "question": "Sehe ich die Kosten vor der Erstellung?",
+        "answer": "Ja. DreamFace zeigt die geschätzten Credit-Kosten vor dem Absenden eines Auftrags direkt an der Erstellen-Schaltfläche. Abrechnung und Verlauf machen Käufe, Guthaben und Aufträge nachvollziehbar."
+      },
+      "freeTrial": {
+        "question": "Kann ich DreamFace kostenlos testen?",
+        "answer": "Neue Konten erhalten Start-Credits, um unterstützte Workflows auszuprobieren. Wenn du weitere Bilder oder Videos erstellen möchtest, kannst du zusätzliche Credit-Pakete kaufen."
+      },
+      "failedTask": {
+        "question": "Was passiert bei einer fehlgeschlagenen Erstellung?",
+        "answer": "Aufträge behalten einen sichtbaren Statusverlauf. Bei fehlgeschlagenen Aufgaben werden Belastung und Erstattung in den Auftragsdetails angezeigt, damit bezahlte Generierungen nachvollziehbar bleiben."
+      },
+      "promptGallery": {
+        "question": "Kann ich Prompts ansehen, bevor ich das Studio öffne?",
+        "answer": "Ja. Die DreamFace Prompt-Galerie bietet visuelle Ideen, Modellbeispiele und wiederverwendbare Prompts als Ausgangspunkt für Bild- und Video-Workflows."
+      },
+      "audioSupport": {
+        "question": "Bietet DreamFace KI-Musik oder KI-Sprachgenerierung?",
+        "answer": "DreamFace konzentriert sich auf visuelle Generierung und bietet zusätzlich Sprach- und Audio-Workflows. Die konkrete Verfügbarkeit hängt vom aktuellen Studio und den verbundenen Anbietern ab."
+      },
+      "replaceProduction": {
+        "question": "Können KI-Videos klassische Videoproduktion ersetzen?",
+        "answer": "Für frühe Konzepte, Marketingtests, Schulungen und Social-Media-Inhalte können KI-Videos viele klassische Produktionsschritte ersetzen. Bei wichtigen Drehs, Persönlichkeitsrechten, Markenfreigaben oder regulierten Branchen sollten Ergebnisse weiterhin sorgfältig geprüft werden."
+      },
+      "securityEthics": {
+        "question": "Ist DreamFace sicher und verantwortungsvoll für KI-Videos?",
+        "answer": "DreamFace organisiert Projekte, Prompts, Credits und Ergebnisse in deinem Konto. Du bist dafür verantwortlich, Eingaben rechtmäßig zu verwenden, Persönlichkeitsrechte zu respektieren, irreführende Imitationen zu vermeiden und die Bedingungen des jeweiligen Modellanbieters einzuhalten."
+      },
+      "commercialUse": {
+        "question": "Kann ich generierte Inhalte für Kunden oder kommerzielle Projekte nutzen?",
+        "answer": "Die Nutzung richtet sich nach den DreamFace-Bedingungen, dem gewählten Anbieter oder Modell, deinen Eingaben und Rechten Dritter. Prüfe vor Veröffentlichung oder Monetarisierung die für dein Projekt geltenden Lizenzbedingungen."
+      }
+    },
+    "finalCta": {
+      "title": "Bereit, deine nächste Idee umzusetzen?",
+      "description": "Öffne das Studio und erstelle Bilder, Videos, Avatare und Audio an einem Ort.",
+      "primary": "Kostenlos starten",
+      "secondary": "Preise ansehen"
+    }
+  },
+  "footer": {
+    "brand": "dreamface",
+    "description": "Eine gemeinsame Plattform für KI-Bild- und Videogenerierung.",
+    "platform": "Plattform",
+    "imageStudio": "Bildstudio",
+    "videoStudio": "Videostudio",
+    "providerRouting": "Anbieter-Routing",
+    "creditsBilling": "Credits und Abrechnung",
+    "company": "Unternehmen",
+    "about": "Über uns",
+    "documentation": "Dokumentation",
+    "contact": "Kontakt",
+    "licenseTerms": "Lizenz und Bedingungen",
+    "copyright": "(c) 2026 DreamFace. Alle Rechte vorbehalten.",
+    "legal": {
+      "license": "DreamFace-Lizenz",
+      "terms": "Nutzungsbedingungen",
+      "business-terms": "Geschäftsbedingungen",
+      "copyright-policy": "Urheberrechtsrichtlinie",
+      "privacy-policy": "Datenschutzrichtlinie"
+    }
+  },
+  "auth": {
+    "brand": "dreamface",
+    "backHome": "Zurück zur Startseite",
+    "eyebrow": "DreamFace Studio",
+    "signup": {
+      "title": "Erstelle Videos in wenigen Minuten.",
+      "description": "Melde dich an, sichere dir deine Test-Credits und verwalte Prompts, Bilder und Videos in deinen Projekten."
+    },
+    "benefit": {
+      "freeCredits": "100 kostenlose Credits",
+      "projectHistory": "Projektverlauf",
+      "google": "Google mit einem Klick"
+    },
+    "login": {
+      "eyebrow": "Anmeldung",
+      "title": "Kostenloses Konto erstellen",
+      "description": "Starte schnell mit Google oder erhalte einen sicheren Anmeldelink per E-Mail."
+    },
+    "google": "Mit Google fortfahren",
+    "googleOpening": "Google wird geöffnet...",
+    "emailDivider": "E-Mail",
+    "emailLabel": "E-Mail",
+    "emailPlaceholder": "du@unternehmen.de",
+    "sendMagicLink": "Anmeldelink senden",
+    "pleaseWait": "Bitte warten...",
+    "successMagicLink": "Bestätigungslink gesendet. Bitte prüfe dein E-Mail-Postfach.",
+    "emailFailed": "E-Mail-Anmeldung fehlgeschlagen.",
+    "googleFailed": "Google-Anmeldung fehlgeschlagen.",
+    "footerNote": "Mit der Anmeldung erhältst du Zugriff auf Studio, Credits, Abrechnung und gespeicherte Projekte."
+  },
+  "pricing": {
+    "title": "Premium-Pläne für KI-Kreationen",
+    "subtitle": "Wähle eine Premium-Mitgliedschaft für Kreationen ohne Wasserzeichen, schnellere Warteschlangen, kommerzielle Nutzung und regelmäßig erneuerte Credits.",
+    "eyebrow": "Preise",
+    "forIndividuals": "Für Einzelpersonen",
+    "currentBalance": "Aktueller Kontostand",
+    "credits": "Credits",
+    "refresh": "Aktualisieren",
+    "refreshing": "Wird aktualisiert",
+    "free": {
+      "name": "Kostenlos",
+      "badge": "Kostenlos",
+      "priceInterval": "Monat",
+      "credits": "100 Test-Credits",
+      "eligible": "für berechtigte neue Konten",
+      "description": "Teste Bildgenerierung, Bearbeitung, Sprache und kurze Videos mit Standardwarteschlange und Wasserzeichen.",
+      "cta": "Kostenlos starten"
+    },
+    "freeFeatures": {
+      "image": "Bildgenerierung testen",
+      "editing": "Bildbearbeitung testen",
+      "voice": "Begrenzte Sprachgenerierung",
+      "video": "Begrenzte Videogenerierung",
+      "watermark": "Mit Wasserzeichen",
+      "queue": "Standardwarteschlange"
+    },
+    "plan": {
+      "premiumLite": {
+        "name": "Premium Lite",
+        "badge": "Am beliebtesten",
+        "cta": "Premium Lite starten",
+        "bestFor": "Für gelegentliche Kreative, Bilder, Bearbeitungen und kurze KI-Tests.",
+        "feature": {
+          "fullImage": "Vollständige Bildgenerierung",
+          "fullEditing": "Vollständige Bildbearbeitung",
+          "voice": "Sprachgenerierung",
+          "basicVideo": "Grundlegende Videogenerierung",
+          "commercial": "Kommerzielle Nutzung",
+          "noWatermark": "Ohne Wasserzeichen",
+          "refund": "Credit-Erstattung bei Fehlern",
+          "queue": "Schnellere Warteschlange",
+          "history": "Prompt-Verlauf"
+        }
+      },
+      "premium": {
+        "name": "Premium",
+        "badge": "Bestes Angebot",
+        "cta": "Auf Premium upgraden",
+        "bestFor": "Für Videos, intensive Nutzung, Marketing, Agenturen und Content-Teams.",
+        "feature": {
+          "everything": "Alles aus Premium Lite",
+          "video": "Höhere Videokapazität",
+          "queue": "Bevorzugte Warteschlange",
+          "models": "Fortgeschrittene KI-Modelle",
+          "tests": "Mehr Tests mit Kling, Seedance und Veo",
+          "processing": "Schnellere Verarbeitung",
+          "early": "Früher Zugriff auf neue Funktionen"
+        }
+      }
+    },
+    "creditPack": {
+      "starter": {
+        "name": "Starter-Paket",
+        "idealFor": "Ideal, um Bild-, Audio- und einfache Video-Workflows im Studio kennenzulernen."
+      },
+      "creator": {
+        "name": "Creator-Paket",
+        "idealFor": "Für Kreative, die mehrere visuelle Richtungen testen möchten, bevor sie das endgültige Ergebnis wählen."
+      },
+      "studio": {
+        "name": "Studio-Paket",
+        "idealFor": "Bestes Preis-Leistungs-Verhältnis für Bilder, Audio und mehrere kurze Videoentwürfe."
+      },
+      "proTopup": {
+        "name": "Pro-Aufladung",
+        "idealFor": "Für gelegentliche hohe Nutzung, wenn ein Premium-Abonnement vorübergehend zusätzliche Kapazität benötigt."
+      }
+    },
+    "extraCredits": {
+      "eyebrow": "Zusätzliche Credits",
+      "title": "Mehr Credits benötigt?",
+      "description": "Für gelegentlichen Zusatzbedarf. Für die meisten Kreativen bietet eine Premium-Mitgliedschaft mehr Wert.",
+      "buy": "Credits kaufen",
+      "opening": "Wird geöffnet..."
+    },
+    "faq": {
+      "title": "Häufige Fragen zu Preisen",
+      "items": {
+        "test": {
+          "q": "Wie kann ich DreamFace testen?",
+          "a": "Erstelle ein kostenloses Konto und nutze Test-Credits für Bilder, Bearbeitung, Sprache und kurze Videos."
+        },
+        "cost": {
+          "q": "Wie viel kostet DreamFace?",
+          "a": "DreamFace bietet Premium Lite und Premium als Abonnements sowie optionale Credit-Pakete für gelegentliche Aufladungen."
+        },
+        "credits": {
+          "q": "Was sind Credits?",
+          "a": "Credits sind das gemeinsame Guthaben für alle DreamFace-Workflows. Modelle verbrauchen je nach Anbieter und Einstellungen unterschiedlich viele Credits."
+        },
+        "rollover": {
+          "q": "Werden nicht verbrauchte Credits übertragen?",
+          "a": "Abonnement-Credits werden entsprechend den aktuellen Produktregeln in jedem Abrechnungszeitraum erneuert. Gekaufte Zusatz-Credits bleiben verfügbar, solange dein Konto aktiv ist."
+        },
+        "cancel": {
+          "q": "Kann ich jederzeit kündigen?",
+          "a": "Ja. Du kannst dein Abonnement jederzeit kündigen."
+        },
+        "extra": {
+          "q": "Kann ich zusätzliche Credits kaufen?",
+          "a": "Ja. Unterhalb der Abonnements stehen Credit-Pakete für gelegentlichen Zusatzbedarf zur Verfügung."
+        },
+        "upgrade": {
+          "q": "Kann ich von Premium Lite auf Premium wechseln?",
+          "a": "Ja. Sobald die Abonnementverwaltung für dein Konto aktiviert ist, kannst du jederzeit ein Upgrade durchführen."
+        },
+        "video": {
+          "q": "Kann ich Credits für Videos verwenden?",
+          "a": "Ja. Videomodelle benötigen meist mehr Credits als Bildmodelle, da die Kosten von Dauer, Auflösung und Anbieterregeln abhängen. Die Schätzung wird vor der Erstellung angezeigt."
+        },
+        "failure": {
+          "q": "Was passiert, wenn eine Erstellung fehlschlägt?",
+          "a": "Bei einem bestätigten Anbieterfehler werden die zugehörigen Credits automatisch zurückerstattet."
+        }
+      }
+    },
+    "features": {
+      "eyebrow": "Planleistungen",
+      "title": "Credit-Pakete und Kapazität vergleichen",
+      "description": "Alle Pakete verwenden dasselbe DreamFace Studio. Sie unterscheiden sich vor allem durch die verfügbare Erstellungsmenge."
+    },
+    "modelGuide": {
+      "eyebrow": "Modellübersicht",
+      "title": "Typische Credit-Kosten",
+      "description": "Der genaue Preis steht neben der Schaltfläche Erstellen. Wenn verfügbar, werden aktuelle fal-Preise verwendet."
+    },
+    "testimonials": {
+      "eyebrow": "Kundenstimmen",
+      "title": "Das sagen unsere Kunden",
+      "description": "Ein kleiner Vorgeschmack: Die Rückmeldungen fallen ziemlich gut aus.",
+      "rating": "5 von 5 Sternen",
+      "items": {
+        "campaigns": {
+          "title": "Kampagnen entstehen schneller",
+          "body": "Wir können Bildrichtungen, Stimmen und kurze Bewegungsideen an einem Ort testen, ohne jedes Mal das Briefing neu aufzubauen.",
+          "role": "Growth Lead"
+        },
+        "simple": {
+          "title": "Einfach genug für Nicht-Designer",
+          "body": "Das Team weiß sofort, wo es anfangen soll: Studio öffnen, Workflow wählen und die Credit-Kosten vor dem Start sehen.",
+          "role": "Creative Operations"
+        },
+        "iteration": {
+          "title": "Ideal für Varianten",
+          "body": "Wir nutzen es für Thumbnail-Runden, Produkt-Moodboards, Bildverbesserung und erste Videokonzepte vor der Produktion.",
+          "role": "Brand Producer"
+        },
+        "billing": {
+          "title": "Nachvollziehbare Abrechnung",
+          "body": "Das Credit-Protokoll vereinfacht interne Freigaben. Wir sehen Käufe, Verbrauch und Erstattungen auf einen Blick.",
+          "role": "Studio Manager"
+        },
+        "polish": {
+          "title": "Vom Prompt zum fertigen Ergebnis",
+          "body": "Die Vielfalt überzeugt: schnelle Entwürfe, Premium-Bildmodelle, Sprache, Verbesserungen und Videotests verwenden dasselbe Guthaben.",
+          "role": "Content Director"
+        },
+        "repeat": {
+          "title": "Für wiederkehrende Arbeit gemacht",
+          "body": "Gespeicherte Projekte und vorhersehbare Credit-Schätzungen machen DreamFace für wöchentliche Content-Zyklen praktisch.",
+          "role": "Marketing Lead"
+        }
+      }
+    },
+    "comparison": {
+      "getStarted": "Loslegen",
+      "value": {
+        "included": "Enthalten",
+        "notIncluded": "Nicht enthalten"
+      },
+      "plan": {
+        "free": "Kostenlos",
+        "premiumLite": "Premium Lite",
+        "premium": "Premium"
+      },
+      "section": {
+        "credits": {
+          "title": "Mitgliedschafts-Credits",
+          "row": {
+            "trialCredits": {
+              "label": "Test-Credits",
+              "value1": "100 Credits",
+              "value2": "Bei Berechtigung enthalten",
+              "value3": "Bei Berechtigung enthalten"
+            },
+            "monthlyCredits": {
+              "label": "Monatliche Credits",
+              "value1": "Nicht enthalten",
+              "value2": "2.400 Credits",
+              "value3": "4.600 Credits"
+            },
+            "yearlyCredits": {
+              "label": "Jährliche Credits",
+              "value1": "Nicht enthalten",
+              "value2": "18.000 Credits",
+              "value3": "38.000 Credits"
+            },
+            "extraCreditPacks": {
+              "label": "Zusätzliche Credit-Pakete",
+              "value1": "Verfügbar",
+              "value2": "Verfügbar",
+              "value3": "Verfügbar"
+            }
+          }
+        },
+        "access": {
+          "title": "Studio-Zugriff",
+          "row": {
+            "textToImage": {
+              "label": "Text zu Bild",
+              "value1": "Testzugriff",
+              "value2": "Voller Zugriff",
+              "value3": "Voller Zugriff"
+            },
+            "imageEditing": {
+              "label": "Bildbearbeitung",
+              "value1": "Testzugriff",
+              "value2": "Voller Zugriff",
+              "value3": "Voller Zugriff"
+            },
+            "voiceGeneration": {
+              "label": "Sprachgenerierung",
+              "value1": "Begrenzt",
+              "value2": "Enthalten",
+              "value3": "Enthalten"
+            },
+            "videoGeneration": {
+              "label": "Videogenerierung",
+              "value1": "Begrenzt",
+              "value2": "Basis-Video",
+              "value3": "Höhere Videokapazität"
+            },
+            "premiumModelAccess": {
+              "label": "Zugriff auf Premium-Modelle",
+              "value1": "Begrenzt",
+              "value2": "Enthalten",
+              "value3": "Erweiterter Zugriff"
+            },
+            "promptHistory": {
+              "label": "Prompt-Verlauf",
+              "value1": "Enthalten",
+              "value2": "Enthalten",
+              "value3": "Enthalten"
+            }
+          }
+        },
+        "benefits": {
+          "title": "Mitgliedervorteile",
+          "row": {
+            "commercialUse": {
+              "label": "Kommerzielle Nutzung",
+              "value1": "Nicht enthalten",
+              "value2": "Enthalten",
+              "value3": "Enthalten"
+            },
+            "watermark": {
+              "label": "Wasserzeichen",
+              "value1": "Enthalten",
+              "value2": "Ohne Wasserzeichen",
+              "value3": "Ohne Wasserzeichen"
+            },
+            "queue": {
+              "label": "Warteschlange",
+              "value1": "Standard",
+              "value2": "Schnellere Warteschlange",
+              "value3": "Bevorzugte Warteschlange"
+            },
+            "refunds": {
+              "label": "Erstattung bei Anbieterfehlern",
+              "value1": "Enthalten",
+              "value2": "Enthalten",
+              "value3": "Enthalten"
+            },
+            "bestFor": {
+              "label": "Am besten geeignet für",
+              "value1": "Werkzeuge testen",
+              "value2": "Gelegentliche Kreative",
+              "value3": "Intensive Nutzung und Teams"
+            }
+          }
+        }
+      }
+    }
+  },
+  "billing": {
+    "title": "Credits und Aufladungen verwalten",
+    "subtitle": "Wähle ein Credit-Paket, aktualisiere dein Guthaben und prüfe Credit-Aktivitäten sowie Stripe-Käufe.",
+    "eyebrow": "Abrechnung",
+    "currentBalance": "Aktueller Kontostand",
+    "creditsAvailable": "Credits verfügbar",
+    "refreshBalance": "Guthaben aktualisieren",
+    "signInToView": "Zum Anzeigen anmelden",
+    "subscription": {
+      "eyebrow": "Abonnement",
+      "noActive": "Keine aktive Mitgliedschaft",
+      "choosePlan": "Wähle Premium Lite oder Premium für Mitgliedervorteile und erneuerbare Credits.",
+      "manage": "Abrechnung verwalten",
+      "currentDescription": "{credits} Credits pro {cycle}. {status}",
+      "cancellationScheduled": "Die Kündigung ist zum Ende des Abrechnungszeitraums geplant.",
+      "manageThroughStripe": "Abrechnung über Stripe verwalten.",
+      "accessUntil": "Zugriff bis",
+      "renews": "Verlängert sich"
+    },
+    "success": {
+      "title": "Zahlung erfolgreich",
+      "paymentReceived": "Zahlung erhalten",
+      "description": "Die Stripe-Bestätigung wird noch synchronisiert. Dein Guthaben wird auf dieser Seite automatisch aktualisiert.",
+      "creditsAdded": "{credits} Credits hinzugefügt",
+      "purchaseSummary": "Paket {packId} - {amount} - {status}"
+    },
+    "subscriptionSuccess": {
+      "eyebrow": "Abonnement-Zahlung",
+      "title": "Mitgliedschaft erfolgreich abgeschlossen",
+      "description": "Stripe bestätigt dein Abonnement. Credits und Mitgliedervorteile erscheinen, sobald die Bestätigung abgeschlossen ist."
+    },
+    "cancel": {
+      "title": "Zahlung wurde abgebrochen",
+      "description": "Es wurde nichts berechnet. Du kannst jederzeit einen Plan oder ein Credit-Paket auswählen."
+    },
+    "lowBalance": "Dein Guthaben liegt unter {threshold} Credits. Lade vor größeren Videorenderings oder hochwertigen Bildserien Credits auf.",
+    "membership": {
+      "eyebrow": "Mitgliedschaft",
+      "title": "Premium-Plan auswählen",
+      "description": "Premium-Mitgliedschaften erneuern Credits wöchentlich, monatlich oder jährlich und bieten Ergebnisse ohne Wasserzeichen, schnellere Warteschlangen und kommerzielle Nutzung."
+    },
+    "extraCredits": {
+      "eyebrow": "Zusätzliche Credits",
+      "title": "Mehr Credits benötigt?",
+      "description": "Für gelegentlichen Zusatzbedarf. Premium bietet den meisten Kreativen mehr Wert."
+    },
+    "creditActivity": "Credit-Aktivität",
+    "noCreditActivity": "Noch keine Credit-Aktivität.",
+    "signInCreditActivity": "Melde dich an, um deine Credit-Aktivität anzusehen.",
+    "stripePurchases": "Stripe-Käufe",
+    "stripeCheckoutId": "Stripe-Zahlungs-ID",
+    "noStripePurchases": "Noch keine Stripe-Käufe.",
+    "signInStripePurchases": "Melde dich an, um deine Stripe-Käufe anzusehen.",
+    "openingCheckout": "Kasse wird geöffnet...",
+    "recharge": "Aufladen",
+    "cycle": {
+      "weekly": "Wöchentlich",
+      "monthly": "Monatlich",
+      "yearly": "Jährlich"
+    },
+    "onlyMonthly": "Nur {price}/Monat - {savings}",
+    "creditsPerInterval": "{credits} Credits / {interval}",
+    "creditCount": "{credits} Credits",
+    "renewsEvery": "erneuert sich {interval}",
+    "includedCredits": "Enthaltene Credits",
+    "usage": {
+      "title": "Deine Credits reichen für bis zu",
+      "images": "FLUX-Schnell-Bilder",
+      "videos": "5-Sekunden-Grok-Videos in 480p",
+      "voiceovers": "Voiceovers mit 1.000 Zeichen",
+      "avatars": "5-Sekunden-Standard-Avatar-Videos",
+      "note": "Die Beispiele sind separate Höchstwerte und nicht kombinierbar. Der tatsächliche Verbrauch hängt von Modell, Dauer, Auflösung und Optionen ab."
+    },
+    "message": {
+      "trialUnavailable": "Für dieses Konto sind keine Test-Credits verfügbar. Gekaufte Credits können weiterhin normal verwendet werden.",
+      "balanceUnavailable": "Das Credit-Guthaben ist vorübergehend nicht verfügbar.",
+      "subscriptionChecking": "Abonnement abgeschlossen. Deine Mitgliedschaft wird bei Stripe bestätigt...",
+      "subscriptionConfirmed": "Abonnement bestätigt. Die Mitgliedschafts-Credits wurden deinem Guthaben hinzugefügt.",
+      "subscriptionProcessing": "Abonnement abgeschlossen. Die Stripe-Bestätigung wird möglicherweise noch verarbeitet. Aktualisiere die Seite gleich erneut.",
+      "paymentChecking": "Zahlung abgeschlossen. Das Guthaben wird anhand der Stripe-Bestätigung aktualisiert...",
+      "paymentConfirmed": "Zahlung bestätigt. Die Credits wurden deinem Guthaben hinzugefügt.",
+      "paymentProcessing": "Zahlung abgeschlossen. Die Stripe-Bestätigung wird möglicherweise noch verarbeitet. Aktualisiere die Seite gleich erneut.",
+      "checkoutCancelled": "Die Zahlung wurde abgebrochen. Es wurden keine Credits hinzugefügt.",
+      "unableCheckout": "Die Zahlung konnte nicht gestartet werden.",
+      "unableSubscriptionCheckout": "Die Abonnement-Zahlung konnte nicht gestartet werden.",
+      "unablePortal": "Das Abrechnungsportal konnte nicht geöffnet werden."
+    },
+    "status": {
+      "pending": "Ausstehend",
+      "completed": "Abgeschlossen",
+      "cancelled": "Storniert",
+      "failed": "Fehlgeschlagen"
+    },
+    "reason": {
+      "signup_bonus": "Startguthaben",
+      "stripe_checkout": "Credit-Kauf",
+      "stripe_subscription": "Abonnement-Credits",
+      "generation_task": "Erstellung",
+      "generation_refund": "Erstattung für fehlgeschlagene Erstellung",
+      "manual_top_up_dev": "Entwicklungs-Aufladung"
+    }
+  },
+  "metadata": {
+    "home": {
+      "title": "DreamFace KI-Bild- und Videogenerator",
+      "description": "Erstelle mit DreamFace KI-Bilder und Videos aus Prompts, Fotos und Skripten. Bild-, Video-, Avatar- und Audio-Tools in einem Studio."
+    },
+    "price": {
+      "title": "DreamFace Preise und Credit-Pakete",
+      "description": "Vergleiche DreamFace Premium-Pläne, Credit-Pakete, Modellzugriff und Credits für KI-Bilder und Videos."
+    },
+    "auth": {
+      "title": "Bei DreamFace anmelden",
+      "description": "Melde dich an oder erstelle ein kostenloses DreamFace-Konto, um Credits, Projekte sowie KI-Bilder und Videos zu verwalten."
+    },
+    "billing": {
+      "title": "DreamFace Abrechnung und Credits",
+      "description": "Verwalte DreamFace Credits, Premium-Abonnements, Stripe-Zahlungen, Aufladungen und deinen Abrechnungsverlauf."
+    }
+  }
+}

@@ -413,7 +413,6 @@
       "title": "Custos típicos em créditos",
       "description": "O preço exato aparece perto do botão Gerar. Quando disponível, usamos preço fal em tempo real com estimativas de reserva."
     },
-    "pricing": "Preços",
     "comparison": {
       "getStarted": "Começar",
       "value": {
@@ -610,12 +609,12 @@
     "message": {
       "trialUnavailable": "Créditos de teste não estão disponíveis para esta conta. Créditos comprados continuam funcionando normalmente.",
       "balanceUnavailable": "O saldo de créditos está temporariamente indisponível.",
-      "subscriptionChecking": "Checkout da assinatura concluído. Confirmando sua assinatura com a Stripe...",
+      "subscriptionChecking": "Checkout da assinatura concluído. Confirmando sua assinatura com o Stripe...",
       "subscriptionConfirmed": "Assinatura confirmada. Os créditos da assinatura foram adicionados ao seu saldo.",
-      "subscriptionProcessing": "Assinatura concluída. A confirmação da Stripe ainda pode estar processando; atualize em instantes.",
-      "paymentChecking": "Pagamento concluído. Atualizando seu saldo com a confirmação da Stripe...",
+      "subscriptionProcessing": "Assinatura concluída. A confirmação do Stripe ainda pode estar processando; atualize em instantes.",
+      "paymentChecking": "Pagamento concluído. Atualizando seu saldo com a confirmação do Stripe...",
       "paymentConfirmed": "Pagamento confirmado. Os créditos foram adicionados ao seu saldo.",
-      "paymentProcessing": "Pagamento concluído. A confirmação da Stripe ainda pode estar processando; atualize em instantes.",
+      "paymentProcessing": "Pagamento concluído. A confirmação do Stripe ainda pode estar processando; atualize em instantes.",
       "checkoutCancelled": "Checkout cancelado. Nenhum crédito foi adicionado.",
       "unableCheckout": "Não foi possível iniciar o checkout.",
       "unableSubscriptionCheckout": "Não foi possível iniciar o checkout da assinatura.",

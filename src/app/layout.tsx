@@ -2,7 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
-import { defaultLocale, isLocale, type Locale } from "../i18n/routing";
+import { loadMessages } from "../i18n/messages";
+import { defaultLocale, isLocale } from "../i18n/routing";
 
 export const metadata: Metadata = {
   title: {
@@ -48,10 +49,6 @@ export const metadata: Metadata = {
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }]
   }
 };
-
-async function loadMessages(locale: Locale) {
-  return (await import(`../../messages/${locale}.json`)).default;
-}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const requestLocale = headers().get("x-dreamface-locale");

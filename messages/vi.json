@@ -241,7 +241,7 @@
   },
   "pricing": {
     "title": "Gói Premium cho sáng tạo AI",
-    "subtitle": "Chọn Premium để tạo nội dung không watermark, vào hàng đợi nhanh hơn, dùng cho mục đích thương mại và nhận credit theo chu kỳ thanh toán.",
+    "subtitle": "Chọn Premium để tạo nội dung không hình mờ, vào hàng đợi nhanh hơn, dùng cho mục đích thương mại và nhận credit theo chu kỳ thanh toán.",
     "eyebrow": "Đã bao gồm",
     "forIndividuals": "Đã bao gồm",
     "currentBalance": "Đã bao gồm",
@@ -262,7 +262,7 @@
       "editing": "Đã bao gồm",
       "voice": "Đã bao gồm",
       "video": "Đã bao gồm",
-      "watermark": "Đã bao gồm",
+      "watermark": "Có hình mờ",
       "queue": "Đã bao gồm"
     },
     "plan": {
@@ -560,19 +560,19 @@
       "purchaseSummary": "Gói {packId} - {amount} - {status}"
     },
     "subscriptionSuccess": {
-      "eyebrow": "Checkout đăng ký",
-      "title": "Đã hoàn tất checkout thành viên",
+      "eyebrow": "Thanh toán gói thành viên",
+      "title": "Đã hoàn tất thanh toán gói thành viên",
       "description": "Stripe đang xác nhận đăng ký. Credit và quyền lợi sẽ xuất hiện sau khi xác nhận hoàn tất."
     },
     "cancel": {
-      "title": "Checkout đã bị hủy",
+      "title": "Thanh toán đã bị hủy",
       "description": "Bạn chưa bị tính phí. Có thể chọn lại gói hoặc mua credit bất cứ lúc nào."
     },
     "lowBalance": "Số dư của bạn dưới {threshold} credit. Hãy nạp thêm trước khi render video lớn hoặc tạo nhiều ảnh chất lượng cao.",
     "membership": {
       "eyebrow": "Thành viên",
       "title": "Chọn gói Premium",
-      "description": "Gói Premium cấp credit định kỳ và mở tạo không watermark, hàng đợi nhanh hơn và dùng thương mại."
+      "description": "Gói Premium cấp credit định kỳ, cho phép tạo nội dung không hình mờ, vào hàng đợi nhanh hơn và sử dụng thương mại."
     },
     "extraCredits": {
       "eyebrow": "Credit bổ sung",
@@ -583,10 +583,10 @@
     "noCreditActivity": "Chưa có hoạt động credit.",
     "signInCreditActivity": "Đăng nhập để xem hoạt động credit.",
     "stripePurchases": "Giao dịch Stripe",
-    "stripeCheckoutId": "ID checkout Stripe",
+    "stripeCheckoutId": "ID thanh toán Stripe",
     "noStripePurchases": "Chưa có giao dịch Stripe.",
     "signInStripePurchases": "Đăng nhập để xem giao dịch Stripe.",
-    "openingCheckout": "Đang mở checkout...",
+    "openingCheckout": "Đang mở trang thanh toán...",
     "recharge": "Nạp thêm",
     "cycle": {
       "weekly": "Hàng tuần",
@@ -609,15 +609,15 @@
     "message": {
       "trialUnavailable": "Tài khoản này hiện không có credit dùng thử. Credit đã mua vẫn sử dụng bình thường.",
       "balanceUnavailable": "Tạm thời chưa thể tải số dư credit.",
-      "subscriptionChecking": "Checkout gói thành viên đã hoàn tất. Đang xác nhận với Stripe...",
+      "subscriptionChecking": "Thanh toán gói thành viên đã hoàn tất. Đang xác nhận với Stripe...",
       "subscriptionConfirmed": "Đã xác nhận gói thành viên. Credit thành viên đã được cộng vào số dư.",
       "subscriptionProcessing": "Gói thành viên đã hoàn tất. Stripe có thể vẫn đang đồng bộ; hãy làm mới sau ít phút.",
       "paymentChecking": "Thanh toán đã hoàn tất. Đang cập nhật số dư từ xác nhận Stripe...",
       "paymentConfirmed": "Thanh toán đã xác nhận. Credit đã được cộng vào số dư.",
       "paymentProcessing": "Thanh toán đã hoàn tất. Stripe có thể vẫn đang đồng bộ; hãy làm mới sau ít phút.",
-      "checkoutCancelled": "Checkout đã bị hủy. Không có credit nào được cộng.",
-      "unableCheckout": "Không thể mở checkout.",
-      "unableSubscriptionCheckout": "Không thể mở checkout gói thành viên.",
+      "checkoutCancelled": "Thanh toán đã bị hủy. Không có credit nào được cộng.",
+      "unableCheckout": "Không thể mở trang thanh toán.",
+      "unableSubscriptionCheckout": "Không thể mở trang thanh toán gói thành viên.",
       "unablePortal": "Không thể mở cổng quản lý thanh toán."
     },
     "status": {
