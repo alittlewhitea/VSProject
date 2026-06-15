@@ -2999,23 +2999,23 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           <div className="rounded-3xl border border-black/[0.06] bg-white/95 p-2 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur-xl">
                             {[
                               {
-                                label: "Text to Image",
-                                body: "Prompt-led image generation",
+                                label: st("studio.workflow.text-to-image"),
+                                body: st("studio.home.quick.textImage"),
                                 href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image"
                               },
                               {
-                                label: "Image to Image",
-                                body: "Edit or restyle references",
+                                label: st("studio.workflow.image-to-image"),
+                                body: st("studio.home.quick.imageImage"),
                                 href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image"
                               },
                               {
-                                label: "Image Enhance",
-                                body: "Topaz upscale and cleanup",
+                                label: st("studio.workflow.enhance-cleanup"),
+                                body: st("studio.home.quick.enhance"),
                                 href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image"
                               },
                               {
-                                label: "Background Remove",
-                                body: "Transparent PNG cutouts",
+                                label: st("studio.workflow.background-remove"),
+                                body: st("studio.home.quick.remove"),
                                 href: "/studio?mode=image&workflow=background-remove&provider=bria-background-remove"
                               }
                             ].map((workflowItem) => (
