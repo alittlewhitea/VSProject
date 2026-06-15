@@ -437,14 +437,14 @@
             "monthlyCredits": {
               "label": "Credit hàng tháng",
               "value1": "Không bao gồm",
-              "value2": "2.000 credit",
-              "value3": "4.500 credit"
+              "value2": "2.400 credit",
+              "value3": "4.600 credit"
             },
             "yearlyCredits": {
               "label": "Credit hàng năm",
               "value1": "Không bao gồm",
-              "value2": "26.000 credit",
-              "value3": "68.000 credit"
+              "value2": "18.000 credit",
+              "value3": "38.000 credit"
             },
             "extraCreditPacks": {
               "label": "Gói credit bổ sung",
@@ -597,6 +597,15 @@
     "creditsPerInterval": "{credits} credit / {interval}",
     "creditCount": "{credits} credit",
     "renewsEvery": "gia hạn mỗi {interval}",
+    "includedCredits": "Credit được bao gồm",
+    "usage": {
+      "title": "Dùng credit để tạo tối đa",
+      "images": "ảnh FLUX Schnell",
+      "videos": "video Grok 480p dài 5 giây",
+      "voiceovers": "bản lồng tiếng 1.000 ký tự",
+      "avatars": "video Standard Avatar dài 5 giây",
+      "note": "Các ví dụ là giới hạn riêng khi dùng toàn bộ credit, không phải tổng quyền lợi cộng dồn. Mức dùng thực tế phụ thuộc model, thời lượng, độ phân giải và tùy chọn."
+    },
     "message": {
       "trialUnavailable": "Tài khoản này hiện không có credit dùng thử. Credit đã mua vẫn sử dụng bình thường.",
       "balanceUnavailable": "Tạm thời chưa thể tải số dư credit.",

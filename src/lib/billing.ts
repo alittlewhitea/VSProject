@@ -1,3 +1,5 @@
+import { estimateGenerationCredits } from "./model-pricing";
+
 export type CreditPack = {
   id: string;
   name: string;
@@ -35,6 +37,52 @@ export type SubscriptionPlan = {
   prices: Record<BillingCycle, SubscriptionPlanPrice>;
   features: string[];
 };
+
+export const CREDIT_USAGE_REFERENCE = {
+  image: {
+    credits: estimateGenerationCredits({
+      mode: "image",
+      provider: "flux-image",
+      imageSize: "landscape_16_9",
+      numImages: 1
+    })
+  },
+  video: {
+    credits: estimateGenerationCredits({
+      mode: "video",
+      provider: "grok-video",
+      duration: "5s",
+      resolution: "480p"
+    }),
+    seconds: 5
+  },
+  audio: {
+    credits: estimateGenerationCredits({
+      mode: "audio",
+      provider: "elevenlabs-tts",
+      promptText: "x".repeat(1000)
+    }),
+    characters: 1000
+  },
+  avatar: {
+    credits: estimateGenerationCredits({
+      mode: "video",
+      provider: "kling-avatar-standard",
+      duration: "5s",
+      hasReferences: true
+    }),
+    seconds: 5
+  }
+} as const;
+
+export function creditUsageCapacity(credits: number) {
+  return {
+    images: Math.floor(credits / CREDIT_USAGE_REFERENCE.image.credits),
+    videos: Math.floor(credits / CREDIT_USAGE_REFERENCE.video.credits),
+    voiceovers: Math.floor(credits / CREDIT_USAGE_REFERENCE.audio.credits),
+    avatars: Math.floor(credits / CREDIT_USAGE_REFERENCE.avatar.credits)
+  };
+}
 
 export const CREDIT_PACKS: CreditPack[] = [
   {
@@ -144,7 +192,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       },
       yearly: {
         amountCents: 9900,
-        credits: 26000,
+        credits: 18000,
         interval: "year",
         stripePriceEnv: "STRIPE_PRICE_PREMIUM_LITE_YEARLY",
         monthlyEquivalentCents: 825,
@@ -180,13 +228,13 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       },
       monthly: {
         amountCents: 2499,
-        credits: 5500,
+        credits: 4600,
         interval: "month",
         stripePriceEnv: "STRIPE_PRICE_PREMIUM_MONTHLY"
       },
       yearly: {
         amountCents: 19900,
-        credits: 68000,
+        credits: 38000,
         interval: "year",
         stripePriceEnv: "STRIPE_PRICE_PREMIUM_YEARLY",
         monthlyEquivalentCents: 1658,

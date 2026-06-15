@@ -80,7 +80,21 @@ function normalizeFalPricingEntry(entry: unknown): FalPricingResponse | null {
   const unitPrice = Number(data.unit_price ?? data.unitPrice ?? data.price);
   if (!Number.isFinite(unitPrice) || unitPrice <= 0) return null;
   const unit = typeof data.unit === "string" ? data.unit : null;
-  const supportedUnits = new Set(["image", "images", "second", "seconds", "megapixel", "megapixels", "character", "characters"]);
+  const supportedUnits = new Set([
+    "image",
+    "images",
+    "generation",
+    "generations",
+    "second",
+    "seconds",
+    "megapixel",
+    "megapixels",
+    "character",
+    "characters",
+    "1000 characters",
+    "unit",
+    "units"
+  ]);
   if (unit && !supportedUnits.has(unit.toLowerCase())) return null;
   return {
     unit_price: unitPrice,
@@ -239,7 +253,8 @@ export async function estimateGenerationCreditsWithLivePricing(input: {
   const livePricing = endpointId ? await getFalModelPricing(endpointId) : null;
   return estimateGenerationCredits({
     ...input,
-    falUnitPriceUsd: livePricing?.unit_price ?? null
+    falUnitPriceUsd: livePricing?.unit_price ?? null,
+    falUnit: livePricing?.unit ?? null
   });
 }
 
@@ -255,7 +270,8 @@ export async function getLiveModelPricingRows(): Promise<LiveModelPricingRow[]> 
         imageSize: row.provider === "flux-image" ? "landscape_16_9" : "default_4_3",
         hasReferences: row.workflow.toLowerCase().includes("image to image"),
         promptText: row.mode === "audio" ? "A 1000 character voiceover script." : undefined,
-        falUnitPriceUsd: live?.unit_price ?? null
+        falUnitPriceUsd: live?.unit_price ?? null,
+        falUnit: live?.unit ?? null
       });
 
       return {

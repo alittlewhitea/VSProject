@@ -8,6 +8,7 @@ export type GenerationEstimateInput = {
   hasReferences?: boolean;
   resolution?: string | null;
   falUnitPriceUsd?: number | null;
+  falUnit?: string | null;
   quality?: "low" | "medium" | "high" | string | null;
   numImages?: number | null;
   enableWebSearch?: boolean | null;
@@ -87,6 +88,16 @@ const FLUX_SCHNELL_BY_SIZE: Record<string, number> = {
   portrait_16_9: 8
 };
 
+const IMAGE_MEGAPIXELS_BY_SIZE: Record<string, number> = {
+  default_4_3: (1024 * 768) / 1_000_000,
+  landscape_4_3: (1024 * 768) / 1_000_000,
+  landscape_16_9: (1024 * 576) / 1_000_000,
+  square_hd: (1024 * 1024) / 1_000_000,
+  square: (512 * 512) / 1_000_000,
+  portrait_4_3: (768 * 1024) / 1_000_000,
+  portrait_16_9: (576 * 1024) / 1_000_000
+};
+
 function secondsFromDuration(duration?: string | null) {
   const parsed = Number.parseInt(String(duration || "5s"), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
@@ -98,6 +109,21 @@ function nanoBananaCredits(resolution?: string | null, isPro = false) {
   if (resolution === "4K") return base * 2;
   if (resolution === "2K") return Math.ceil(base * 1.5);
   return base;
+}
+
+function nanoResolutionMultiplier(resolution?: string | null, isPro = false) {
+  if (!isPro && resolution === "0.5K") return 0.75;
+  if (resolution === "4K") return 2;
+  if (!isPro && resolution === "2K") return 1.5;
+  return 1;
+}
+
+function normalizedFalUnit(unit?: string | null) {
+  return unit?.trim().toLowerCase() || null;
+}
+
+function isFalUnit(unit: string | null, ...values: string[]) {
+  return Boolean(unit && values.includes(unit));
 }
 
 function nanoFeatureCredits(input: Pick<GenerationEstimateInput, "enableWebSearch" | "thinkingLevel">) {
@@ -125,10 +151,11 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
   if (input.mode === "image") {
     const imageSize = input.imageSize || "default_4_3";
     const dynamicImagePrice = typeof input.falUnitPriceUsd === "number" ? input.falUnitPriceUsd : null;
+    const falUnit = normalizedFalUnit(input.falUnit);
     const multiplier = countMultiplier(input.numImages);
 
     if (input.provider === "chatgpt-image") {
-      if (dynamicImagePrice) {
+      if (dynamicImagePrice && isFalUnit(falUnit, "image", "images", "generation", "generations")) {
         return creditsFromFalUsd(dynamicImagePrice * multiplier, input.hasReferences ? 18 : 16);
       }
       if (input.hasReferences) {
@@ -139,29 +166,37 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
     }
 
     if (input.provider === "nano-banana-image" || input.provider === "nano-banana-edit") {
-      if (dynamicImagePrice) {
-        return creditsFromFalUsd(input.resolution === "4K" ? dynamicImagePrice * 2 : dynamicImagePrice, 10);
+      if (dynamicImagePrice && isFalUnit(falUnit, "image", "images")) {
+        const costUsd = dynamicImagePrice * nanoResolutionMultiplier(input.resolution) * multiplier;
+        return creditsFromFalUsd(costUsd, 10 * multiplier) + nanoFeatureCredits(input) * multiplier;
       }
       return (nanoBananaCredits(input.resolution) + nanoFeatureCredits(input)) * multiplier;
     }
 
     if (input.provider === "nano-banana-pro" || input.provider === "nano-banana-pro-edit") {
-      if (dynamicImagePrice) {
-        return creditsFromFalUsd(input.resolution === "4K" ? dynamicImagePrice * 2 : dynamicImagePrice, 18);
+      if (dynamicImagePrice && isFalUnit(falUnit, "image", "images")) {
+        const costUsd = dynamicImagePrice * nanoResolutionMultiplier(input.resolution, true) * multiplier;
+        return creditsFromFalUsd(costUsd, 18 * multiplier) + nanoFeatureCredits(input) * multiplier;
       }
       return (nanoBananaCredits(input.resolution, true) + nanoFeatureCredits(input)) * multiplier;
     }
 
     if (input.provider === "flux-image") {
-      if (dynamicImagePrice) {
-        return creditsFromFalUsd(dynamicImagePrice, 4);
+      if (dynamicImagePrice && isFalUnit(falUnit, "image", "images", "megapixel", "megapixels")) {
+        const billedUnits = isFalUnit(falUnit, "megapixel", "megapixels")
+          ? IMAGE_MEGAPIXELS_BY_SIZE[imageSize] || 1
+          : 1;
+        return creditsFromFalUsd(dynamicImagePrice * billedUnits * multiplier, 4 * multiplier);
       }
       return (FLUX_SCHNELL_BY_SIZE[imageSize] || 6) * multiplier;
     }
 
     if (input.provider === "flux-dev") {
-      if (dynamicImagePrice) {
-        return creditsFromFalUsd(dynamicImagePrice, 8);
+      if (dynamicImagePrice && isFalUnit(falUnit, "image", "images", "megapixel", "megapixels")) {
+        const billedUnits = isFalUnit(falUnit, "megapixel", "megapixels")
+          ? IMAGE_MEGAPIXELS_BY_SIZE[imageSize] || 1
+          : 1;
+        return creditsFromFalUsd(dynamicImagePrice * billedUnits * multiplier, 8 * multiplier);
       }
       return 16 * multiplier;
     }
@@ -171,10 +206,10 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
     }
 
     if (input.provider === "bria-background-remove") {
-      if (dynamicImagePrice) {
+      if (dynamicImagePrice && isFalUnit(falUnit, "image", "images", "generation", "generations")) {
         return creditsFromFalUsd(dynamicImagePrice, 4);
       }
-      return creditsFromFalUsd(0.01, 4);
+      return creditsFromFalUsd(0.018, 4);
     }
 
     return 12;
@@ -183,16 +218,20 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
   if (input.mode === "audio") {
     if (input.provider === "elevenlabs-tts") {
       const characters = Math.max(1, input.promptText?.trim().length || 1);
-      return creditsFromFalUsd((characters / 1000) * 0.1, 4);
+      const falUnit = normalizedFalUnit(input.falUnit);
+      const unitPrice =
+        typeof input.falUnitPriceUsd === "number" && isFalUnit(falUnit, "1000 characters")
+          ? input.falUnitPriceUsd
+          : 0.1;
+      return creditsFromFalUsd((characters / 1000) * unitPrice, 4);
     }
     return 8;
   }
 
   const seconds = secondsFromDuration(input.duration);
-  const dynamicSecondPrice = typeof input.falUnitPriceUsd === "number" ? input.falUnitPriceUsd : null;
 
   if (input.provider === "seedance-video") {
-    const secondPrice = input.resolution === "1080p" ? 0.682 : 0.3034;
+    const secondPrice = input.resolution === "1080p" ? 0.682 : input.resolution === "480p" ? 0.1407 : 0.3034;
     return creditsFromFalUsd(secondPrice * seconds, seconds * 35);
   }
 
@@ -255,9 +294,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "image",
     workflow: "Text / Image edit",
     endpointId: "fal-ai/nano-banana-2",
-    falBasis: "fal lists Nano Banana 2 around $0.08 per image.",
+    falBasis: "fal lists Nano Banana 2 at $0.08 per image; 0.5K is 0.75x, 2K is 1.5x, and 4K is 2x.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "nano-banana-image", resolution: "1K" }),
-    unitNote: "14 credits"
+    unitNote: "15-40 credits / image"
   },
   {
     provider: "nano-banana-pro",
@@ -267,7 +306,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "fal-ai/nano-banana-pro",
     falBasis: "fal lists Nano Banana Pro around $0.15 per image; 4K is double.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "nano-banana-pro", resolution: "1K" }),
-    unitNote: "24 credits"
+    unitNote: "38-75 credits / image"
   },
   {
     provider: "flux-image",
@@ -277,7 +316,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "fal-ai/flux/schnell",
     falBasis: "fal lists FLUX Schnell around $0.003 per megapixel.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "flux-image", imageSize: "landscape_16_9" }),
-    unitNote: "4-6 credits"
+    unitNote: "4+ credits / image"
   },
   {
     provider: "flux-dev",
@@ -287,7 +326,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "fal-ai/flux/dev",
     falBasis: "fal lists FLUX Dev around $0.025 per megapixel.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "flux-dev", imageSize: "landscape_16_9" }),
-    unitNote: "12 credits"
+    unitNote: "8+ credits / image"
   },
   {
     provider: "topaz-image",
@@ -297,7 +336,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "fal-ai/topaz/upscale/image",
     falBasis: "fal lists Topaz upscale at $0.08 for a single image up to 24MP output.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "topaz-image", hasReferences: true }),
-    unitNote: "14 credits"
+    unitNote: "20 credits typical"
   },
   {
     provider: "bria-background-remove",
@@ -305,9 +344,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "image",
     workflow: "Background Remove",
     endpointId: "fal-ai/bria/background/remove",
-    falBasis: "fal Bria RMBG 2.0 removes backgrounds from a single input image and returns a transparent PNG.",
+    falBasis: "fal lists Bria RMBG 2.0 at $0.018 per generation.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "bria-background-remove", hasReferences: true }),
-    unitNote: "4 credits"
+    unitNote: "5 credits"
   },
   {
     provider: "seedance-video",
@@ -315,9 +354,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Text to Video",
     endpointId: "bytedance/seedance-2.0/text-to-video",
-    falBasis: "fal lists Seedance 2.0 text-to-video at $0.3034/s for 720p and $0.682/s for 1080p.",
-    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-video", duration: "6s" }),
-    unitNote: "51 credits/sec at 720p"
+    falBasis: "fal token billing is about $0.1407/s at 480p, $0.3034/s at 720p, and $0.682/s at 1080p.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-video", duration: "6s", resolution: "720p" }),
+    unitNote: "35-169 credits / sec"
   },
   {
     provider: "seedance-video",
@@ -325,9 +364,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Image to Video",
     endpointId: "bytedance/seedance-2.0/image-to-video",
-    falBasis: "fal lists Seedance 2.0 image-to-video at $0.3034/s for 720p and $0.682/s for 1080p.",
-    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-video", duration: "6s" }),
-    unitNote: "51 credits/sec at 720p"
+    falBasis: "fal token billing is about $0.1407/s at 480p, $0.3034/s at 720p, and $0.682/s at 1080p.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-video", duration: "6s", resolution: "720p" }),
+    unitNote: "35-169 credits / sec"
   },
   {
     provider: "kling-video",
@@ -337,7 +376,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "fal-ai/kling-video/v3/pro/text-to-video",
     falBasis: "fal lists Kling v3 Pro text-to-video at $0.112/s without audio and $0.168/s with native audio.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "kling-video", duration: "6s" }),
-    unitNote: "19 credits/sec without audio"
+    unitNote: "28-42 credits / sec"
   },
   {
     provider: "kling-video",
@@ -347,7 +386,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "fal-ai/kling-video/v3/pro/image-to-video",
     falBasis: "fal lists Kling v3 Pro image-to-video at $0.112/s without audio and $0.168/s with native audio.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "kling-video", duration: "6s" }),
-    unitNote: "19 credits/sec without audio"
+    unitNote: "28-42 credits / sec"
   },
   {
     provider: "kling-avatar-standard",
@@ -357,7 +396,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "fal-ai/kling-video/ai-avatar/v2/standard",
     falBasis: "fal lists Kling AI Avatar v2 Standard at $0.0562/s.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "kling-avatar-standard", duration: "6s", hasReferences: true }),
-    unitNote: "10 credits/sec"
+    unitNote: "14 credits / sec"
   },
   {
     provider: "kling-avatar-pro",
@@ -367,7 +406,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "fal-ai/kling-video/ai-avatar/v2/pro",
     falBasis: "fal lists Kling AI Avatar v2 Pro at $0.115/s.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "kling-avatar-pro", duration: "6s", hasReferences: true }),
-    unitNote: "19 credits/sec"
+    unitNote: "29 credits / sec"
   },
   {
     provider: "grok-video",
@@ -377,7 +416,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "xai/grok-imagine-video/text-to-video",
     falBasis: "fal lists Grok Imagine Video at $0.05/s for 480p and $0.07/s for 720p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "grok-video", duration: "6s" }),
-    unitNote: "9-12 credits/sec"
+    unitNote: "13-18 credits / sec"
   },
   {
     provider: "grok-video",
@@ -387,7 +426,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "xai/grok-imagine-video/image-to-video",
     falBasis: "fal lists Grok Imagine image-to-video at $0.05/s for 480p, $0.07/s for 720p, plus $0.002 for image input.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "grok-video", duration: "6s", hasReferences: true }),
-    unitNote: "9-12 credits/sec + image input"
+    unitNote: "13-18 credits / sec"
   },
   {
     provider: "elevenlabs-tts",
@@ -397,7 +436,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "fal-ai/elevenlabs/tts/eleven-v3",
     falBasis: "fal lists ElevenLabs Eleven v3 text-to-speech at $0.10 per 1000 characters.",
     typicalCredits: estimateGenerationCredits({ mode: "audio", provider: "elevenlabs-tts", promptText: "A 1000 character voiceover script." }),
-    unitNote: "17 credits / 1000 chars"
+    unitNote: "25 credits / 1000 chars"
   },
   {
     provider: "veo-video",
@@ -407,6 +446,6 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "fal-ai/veo3.1",
     falBasis: "fal lists Veo 3.1 at $0.20/s without audio or $0.40/s with audio for 720p/1080p; 4k costs more.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "veo-video", duration: "8s" }),
-    unitNote: "34-68 credits/sec at 720p"
+    unitNote: "50-149 credits / sec"
   }
 ];

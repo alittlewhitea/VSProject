@@ -437,14 +437,14 @@
             "monthlyCredits": {
               "label": "每月积分",
               "value1": "不包含",
-              "value2": "2,000 积分",
-              "value3": "4,500 积分"
+              "value2": "2,400 积分",
+              "value3": "4,600 积分"
             },
             "yearlyCredits": {
               "label": "每年积分",
               "value1": "不包含",
-              "value2": "26,000 积分",
-              "value3": "68,000 积分"
+              "value2": "18,000 积分",
+              "value3": "38,000 积分"
             },
             "extraCreditPacks": {
               "label": "额外积分包",
@@ -597,6 +597,15 @@
     "creditsPerInterval": "{credits} 积分 / {interval}",
     "creditCount": "{credits} 积分",
     "renewsEvery": "每 {interval} 续发",
+    "includedCredits": "包含积分",
+    "usage": {
+      "title": "这些积分最高可用于生成",
+      "images": "张 FLUX Schnell 图片",
+      "videos": "个 5 秒 Grok 480p 视频",
+      "voiceovers": "段 1,000 字符配音",
+      "avatars": "个 5 秒标准 Avatar 视频",
+      "note": "以上为分别使用全部积分时的理论上限，并非可以同时获得。实际消耗取决于模型、时长、分辨率和生成选项。"
+    },
     "message": {
       "trialUnavailable": "此账户暂时无法领取试用积分，已购买积分仍可正常使用。",
       "balanceUnavailable": "积分余额暂时无法获取。",

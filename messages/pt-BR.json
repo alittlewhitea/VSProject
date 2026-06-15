@@ -438,14 +438,14 @@
             "monthlyCredits": {
               "label": "Créditos mensais",
               "value1": "Não",
-              "value2": "2.000 cr?ditos",
-              "value3": "4.500 cr?ditos"
+              "value2": "2.400 cr?ditos",
+              "value3": "4.600 cr?ditos"
             },
             "yearlyCredits": {
               "label": "Créditos anuais",
               "value1": "Não",
-              "value2": "26.000 cr?ditos",
-              "value3": "68.000 cr?ditos"
+              "value2": "18.000 cr?ditos",
+              "value3": "38.000 cr?ditos"
             },
             "extraCreditPacks": {
               "label": "Pacotes extras de créditos",
@@ -598,6 +598,15 @@
     "creditsPerInterval": "{credits} créditos / {interval}",
     "creditCount": "{credits} créditos",
     "renewsEvery": "renova a cada {interval}",
+    "includedCredits": "Créditos incluídos",
+    "usage": {
+      "title": "Use seus créditos para gerar até",
+      "images": "imagens FLUX Schnell",
+      "videos": "vídeos Grok 480p de 5 s",
+      "voiceovers": "narrações de 1.000 caracteres",
+      "avatars": "vídeos Avatar Standard de 5 s",
+      "note": "Os exemplos são limites separados, não uma franquia combinada. O uso real varia conforme modelo, duração, resolução e opções."
+    },
     "message": {
       "trialUnavailable": "Créditos de teste não estão disponíveis para esta conta. Créditos comprados continuam funcionando normalmente.",
       "balanceUnavailable": "O saldo de créditos está temporariamente indisponível.",

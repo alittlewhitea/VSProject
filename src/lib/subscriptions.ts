@@ -31,14 +31,13 @@ export function subscriptionMetadata(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.userId || "";
   const planId = subscription.metadata?.planId || "";
   const cycle = subscription.metadata?.cycle || "";
-  const credits = Number(subscription.metadata?.credits || 0);
   const plan = getSubscriptionPlanPrice(planId, cycle);
 
-  if (!userId || !plan || !Number.isInteger(credits) || credits <= 0 || credits !== plan.price.credits) {
+  if (!userId || !plan) {
     return null;
   }
 
-  return { userId, planId, cycle, credits, plan };
+  return { userId, planId, cycle, credits: plan.price.credits, plan };
 }
 
 export async function upsertUserSubscription(admin: SupabaseClient, subscription: Stripe.Subscription) {

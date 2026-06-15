@@ -3,7 +3,13 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { CREDIT_PACKS, SUBSCRIPTION_PLANS, formatUsd, type BillingCycle } from "../../lib/billing";
+import {
+  CREDIT_PACKS,
+  SUBSCRIPTION_PLANS,
+  creditUsageCapacity,
+  formatUsd,
+  type BillingCycle
+} from "../../lib/billing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, MODEL_PRICING_ROWS } from "../../lib/model-pricing";
 import { TopNav } from "../../components/top-nav";
 import { trackEvent, trackPurchaseEvent } from "../../lib/analytics";
@@ -81,6 +87,36 @@ function subscriptionFromPackId(packId: string) {
   const price = plan?.prices[cycle];
   if (!plan || !price) return null;
   return { plan, cycle, price };
+}
+
+function CreditUsageExamples({ credits, compact = false }: { credits: number; compact?: boolean }) {
+  const t = useTranslations();
+  const capacity = creditUsageCapacity(credits);
+  const examples = [
+    { key: "images", value: capacity.images, label: t("billing.usage.images") },
+    { key: "videos", value: capacity.videos, label: t("billing.usage.videos") },
+    { key: "voiceovers", value: capacity.voiceovers, label: t("billing.usage.voiceovers") },
+    { key: "avatars", value: capacity.avatars, label: t("billing.usage.avatars") }
+  ];
+
+  return (
+    <div className={compact ? "mt-4" : "mt-5"}>
+      <p className="text-xs font-black uppercase tracking-[0.12em] text-[#687386]">
+        {t("billing.usage.title")}
+      </p>
+      <div className={`mt-3 grid grid-cols-2 ${compact ? "gap-2" : "gap-3"}`}>
+        {examples.map((example) => (
+          <div key={example.key} className="rounded-xl border border-black/[0.07] bg-white/80 px-3 py-3">
+            <p className={`${compact ? "text-xl" : "text-2xl"} font-black tracking-tight text-[#17191f]`}>
+              {example.value.toLocaleString()}
+            </p>
+            <p className="mt-1 text-[11px] font-semibold leading-4 text-[#606b7c]">{example.label}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-[11px] font-medium leading-5 text-[#737d8d]">{t("billing.usage.note")}</p>
+    </div>
+  );
 }
 
 const testimonialMeta = [
@@ -253,9 +289,14 @@ function SubscriptionPlanCard({
         )}
       </div>
 
-      <div className="mt-5 rounded-2xl border border-black/10 bg-white/75 px-4 py-3">
-        <p className="text-xl font-black">{t("billing.creditCount", { credits: price.credits.toLocaleString() })}</p>
+      <div className="mt-5 rounded-2xl border border-[#08bff1]/25 bg-[linear-gradient(135deg,#f0fbff_0%,#ffffff_55%,#f4f1ff_100%)] px-5 py-4 shadow-[0_12px_30px_rgba(8,191,241,0.08)]">
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#487080]">{t("billing.includedCredits")}</p>
+        <p className="mt-1 text-4xl font-black tracking-tight text-[#101318]">
+          {price.credits.toLocaleString()}
+          <span className="ml-2 text-base font-black uppercase tracking-[0.08em] text-[#536170]">{t("pricing.credits")}</span>
+        </p>
         <p className="mt-1 text-sm font-semibold text-[#5d6675]">{t("billing.renewsEvery", { interval: price.interval })}</p>
+        <CreditUsageExamples credits={price.credits} />
       </div>
 
       <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">{t(`pricing.plan.${planKey}.bestFor`)}</p>
@@ -787,6 +828,7 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
                 <div className="mt-5 rounded-2xl border border-black/10 bg-[#fbfbfd] px-4 py-3">
                   <p className="text-xl font-black">{t("pricing.free.credits")}</p>
                   <p className="mt-1 text-sm font-semibold text-[#5d6675]">{t("pricing.free.eligible")}</p>
+                  <CreditUsageExamples credits={100} />
                 </div>
                 <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">
                   {t("pricing.free.description")}
@@ -842,11 +884,15 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <h3 className="text-2xl font-black tracking-normal">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.name`)}</h3>
-                      <p className="mt-2 text-sm font-semibold text-[#667084]">{pack.credits.toLocaleString()} credits</p>
+                      <p className="mt-2 text-3xl font-black tracking-tight text-[#17191f]">
+                        {pack.credits.toLocaleString()}
+                        <span className="ml-1.5 text-xs uppercase tracking-[0.1em] text-[#667084]">{t("pricing.credits")}</span>
+                      </p>
                     </div>
                     <p className="text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
                   </div>
                   <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.idealFor`)}</p>
+                  <CreditUsageExamples credits={pack.credits} compact />
                   <button
                     type="button"
                     onClick={() => startCheckout(pack.id)}
@@ -968,6 +1014,7 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
             <div className="mt-5 rounded-2xl border border-black/10 bg-[#fbfbfd] px-4 py-3">
               <p className="text-xl font-black">{t("pricing.free.credits")}</p>
               <p className="mt-1 text-sm font-semibold text-[#5d6675]">{t("pricing.free.eligible")}</p>
+              <CreditUsageExamples credits={100} />
             </div>
             <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">
               {t("pricing.free.description")}
@@ -1065,11 +1112,15 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="text-2xl font-black tracking-normal">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.name`)}</h3>
-                  <p className="mt-2 text-sm font-semibold text-[#667084]">{pack.credits.toLocaleString()} {t("pricing.credits")}</p>
+                  <p className="mt-2 text-3xl font-black tracking-tight text-[#17191f]">
+                    {pack.credits.toLocaleString()}
+                    <span className="ml-1.5 text-xs uppercase tracking-[0.1em] text-[#667084]">{t("pricing.credits")}</span>
+                  </p>
                 </div>
                 <p className="text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
               </div>
               <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.idealFor`)}</p>
+              <CreditUsageExamples credits={pack.credits} compact />
               <button
                 type="button"
                 onClick={() => startCheckout(pack.id)}

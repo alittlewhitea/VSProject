@@ -437,14 +437,14 @@
             "monthlyCredits": {
               "label": "Monthly credits",
               "value1": "Not included",
-              "value2": "2,000 credits",
-              "value3": "4,500 credits"
+              "value2": "2,400 credits",
+              "value3": "4,600 credits"
             },
             "yearlyCredits": {
               "label": "Yearly credits",
               "value1": "Not included",
-              "value2": "26,000 credits",
-              "value3": "68,000 credits"
+              "value2": "18,000 credits",
+              "value3": "38,000 credits"
             },
             "extraCreditPacks": {
               "label": "Extra credit packs",
@@ -597,6 +597,15 @@
     "creditsPerInterval": "{credits} credits / {interval}",
     "creditCount": "{credits} credits",
     "renewsEvery": "renews every {interval}",
+    "includedCredits": "Included credits",
+    "usage": {
+      "title": "Use your credits for up to",
+      "images": "FLUX Schnell images",
+      "videos": "5-sec Grok 480p videos",
+      "voiceovers": "1,000-character voiceovers",
+      "avatars": "5-sec Standard Avatar videos",
+      "note": "Examples are separate maximums, not a combined allowance. Actual usage varies by model, duration, resolution, and options."
+    },
     "message": {
       "trialUnavailable": "Trial credits are not available for this account. Purchased credits can still be used normally.",
       "balanceUnavailable": "Credit balance is temporarily unavailable.",
