@@ -4066,7 +4066,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       {provider === "dreamface-io-video"
                         ? usesDreamfaceIoFreeAllowance
                           ? st("studio.generate.dailyFree", { remaining: dreamfaceIoRemainingUnits })
-                          : st("studio.generate.dailyPaid", { credits: estCredits })
+                          : dreamfaceIoEligible
+                            ? st("studio.generate.dailyPaid", { credits: estCredits })
+                            : st("studio.generate.estimate", { credits: estCredits })
                         : st("studio.generate.estimate", { credits: estCredits })}
                     </span>
                     <button
