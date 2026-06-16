@@ -1196,6 +1196,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const st = studioI18n.t;
   const localizeStudioError = (message: string, status?: number) => {
     const normalized = message.toLowerCase();
+    if (normalized.includes("no recognizable elements") || normalized.includes("clearly visible subject") || normalized.includes("clearly visible subject in the reference image")) {
+      return st("studio.error.referenceSubjectNotVisible");
+    }
     if (status === 401 || normalized.includes("unauthorized") || normalized.includes("access token")) {
       return st("studio.error.sessionExpired");
     }

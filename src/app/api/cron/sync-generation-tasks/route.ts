@@ -5,7 +5,9 @@ import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { resolveFalCostUsd } from "../../../../lib/fal-billing";
 import {
   falApiErrorFromResponse,
+  falNoMediaFailurePayload,
   falRefundCreditsFromCost,
+  falResultLooksFailed,
   formatFalFailureReason,
   parseFalFailure
 } from "../../../../lib/fal-errors";
@@ -206,12 +208,27 @@ async function syncTask(task: PendingTaskRow, falKey: string) {
     }
   }
 
-  const failureInfo = normalized === "failed" ? responseFailureInfo || parseFalFailure(result || statusPayload) : null;
+  const mediaUrl = extractMediaUrl(result);
+  const completedFailurePayload =
+    normalized === "completed"
+      ? falResultLooksFailed(result)
+        ? result
+        : mediaUrl
+          ? null
+          : falNoMediaFailurePayload(result || statusPayload)
+      : null;
+  const finalStatus = completedFailurePayload ? "failed" : normalized;
+  const failureInfo =
+    finalStatus === "failed"
+      ? completedFailurePayload
+        ? parseFalFailure(completedFailurePayload)
+        : responseFailureInfo || parseFalFailure(result || statusPayload)
+      : null;
   if (failureInfo) {
     failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
   }
   const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits) : 0;
-  if (normalized === "failed") {
+  if (finalStatus === "failed") {
     await refundTaskCredits({ ...task, estimated_credits: refundCreditsAmount });
   }
   const failureReason = failureInfo
@@ -221,11 +238,11 @@ async function syncTask(task: PendingTaskRow, falKey: string) {
   await admin
     .from("generation_tasks")
     .update({
-      status: normalized,
+      status: finalStatus,
       response_url: effectiveResponseUrl,
-      output_url: normalized === "completed" ? extractMediaUrl(result) : null,
+      output_url: finalStatus === "completed" ? mediaUrl : null,
       raw_result: result,
-      failure_code: failureInfo?.code || (normalized === "failed" ? "provider_failed" : null),
+      failure_code: failureInfo?.code || (finalStatus === "failed" ? "provider_failed" : null),
       failure_reason: failureReason,
       last_checked_at: now,
       updated_at: now
@@ -233,7 +250,7 @@ async function syncTask(task: PendingTaskRow, falKey: string) {
     .eq("id", task.id)
     .eq("user_id", task.user_id);
 
-  return { taskId: task.id, action: "synced", status: normalized, providerStatus: upperStatus };
+  return { taskId: task.id, action: "synced", status: finalStatus, providerStatus: upperStatus };
 }
 
 export async function GET(request: Request) {

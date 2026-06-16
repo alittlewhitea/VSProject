@@ -54,8 +54,38 @@ function requestErrorType(payload: unknown) {
 
 function requestErrorDetail(payload: unknown) {
   if (!payload || typeof payload !== "object") return null;
-  const value = (payload as Record<string, unknown>).detail;
-  return typeof value === "string" && value.trim() ? value.trim() : null;
+  const data = payload as Record<string, unknown>;
+  const direct = data.detail;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  const error = data.error;
+  if (typeof error === "string" && error.trim()) return error.trim();
+  if (error && typeof error === "object") {
+    const nested = error as Record<string, unknown>;
+    for (const key of ["detail", "message", "error"]) {
+      const value = nested[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+  }
+  return null;
+}
+
+export function falResultLooksFailed(payload: unknown) {
+  if (!payload || typeof payload !== "object") return false;
+  const data = payload as Record<string, unknown>;
+  if (firstModelError(payload)) return true;
+  if (requestErrorType(payload)) return true;
+  if (typeof data.error === "string" && data.error.trim()) return true;
+  if (data.error && typeof data.error === "object") return true;
+  const status = typeof data.status === "string" ? data.status.toLowerCase() : "";
+  return status === "failed" || status === "error";
+}
+
+export function falNoMediaFailurePayload(result: unknown) {
+  return {
+    detail: "The provider completed without returning a usable media URL.",
+    error_type: "no_media_generated",
+    result
+  };
 }
 
 function formatBytes(value: unknown) {
@@ -66,8 +96,12 @@ function formatBytes(value: unknown) {
   return `${bytes} bytes`;
 }
 
-function userMessageForError(code: string, modelError: FalModelError | null) {
+function userMessageForError(code: string, modelError: FalModelError | null, rawMessage = "") {
   const ctx = modelError?.ctx || {};
+  const normalizedMessage = `${modelError?.msg || ""} ${rawMessage}`.toLowerCase();
+  if (normalizedMessage.includes("no recognizable elements") || normalizedMessage.includes("clearly visible subject")) {
+    return "We could not find a clearly visible subject in the reference image. Please use a clearer image with the face or subject visible and try again.";
+  }
   if (code === "content_policy_violation") {
     return "We could not process this request because the prompt or reference media appears to include adult, sensitive, or otherwise restricted content. Please soften the prompt or use a different reference and try again.";
   }
@@ -161,7 +195,7 @@ export function parseFalFailure(payload: unknown, headers?: Headers | null, stat
   return {
     code,
     message,
-    userMessage: userMessageForError(code, modelError),
+    userMessage: userMessageForError(code, modelError, message),
     retryable: retryableFromHeader(headers?.get("x-fal-retryable") || null),
     costUsd: extractFalCostUsd(payload),
     details: payload

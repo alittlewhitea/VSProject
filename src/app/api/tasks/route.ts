@@ -7,7 +7,9 @@ import { refundCredits } from "../../../lib/credits";
 import { resolveFalCostUsd } from "../../../lib/fal-billing";
 import {
   falApiErrorFromResponse,
+  falNoMediaFailurePayload,
   falRefundCreditsFromCost,
+  falResultLooksFailed,
   formatFalFailureReason,
   parseFalFailure
 } from "../../../lib/fal-errors";
@@ -306,12 +308,27 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
           }
         }
 
-        const failureInfo = normalized === "failed" ? responseFailureInfo || parseFalFailure(result || statusPayload) : null;
+        const mediaUrl = extractMediaUrl(result);
+        const completedFailurePayload =
+          normalized === "completed"
+            ? falResultLooksFailed(result)
+              ? result
+              : mediaUrl
+                ? null
+                : falNoMediaFailurePayload(result || statusPayload)
+            : null;
+        const finalStatus = completedFailurePayload ? "failed" : normalized;
+        const failureInfo =
+          finalStatus === "failed"
+            ? completedFailurePayload
+              ? parseFalFailure(completedFailurePayload)
+              : responseFailureInfo || parseFalFailure(result || statusPayload)
+            : null;
         if (failureInfo) {
           failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
         }
         const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits) : 0;
-        if (normalized === "failed" && refundCreditsAmount > 0) {
+        if (finalStatus === "failed" && refundCreditsAmount > 0) {
           await refundCredits(admin, userId, refundCreditsAmount, "generation_refund", task.id);
         }
         const failureReason = failureInfo
@@ -321,11 +338,11 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
         await admin
           .from("generation_tasks")
           .update({
-            status: normalized,
+            status: finalStatus,
             response_url: effectiveResponseUrl,
-            output_url: extractMediaUrl(result),
+            output_url: finalStatus === "completed" ? mediaUrl : null,
             raw_result: result,
-            failure_code: failureInfo?.code || (normalized === "failed" ? "provider_failed" : null),
+            failure_code: failureInfo?.code || (finalStatus === "failed" ? "provider_failed" : null),
             failure_reason: failureReason,
             last_checked_at: new Date().toISOString(),
             updated_at: new Date().toISOString()

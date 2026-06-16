@@ -6,7 +6,9 @@ import { refundCredits } from "../../../../lib/credits";
 import { resolveFalCostUsd } from "../../../../lib/fal-billing";
 import {
   falApiErrorFromResponse,
+  falNoMediaFailurePayload,
   falRefundCreditsFromCost,
+  falResultLooksFailed,
   formatFalFailureReason,
   parseFalFailure
 } from "../../../../lib/fal-errors";
@@ -330,12 +332,13 @@ export async function GET(request: Request) {
       }
     }
     let statusMeta: Record<string, unknown> = {};
+    let responseStatus = upperStatus;
 
     if (taskId) {
       const admin = createSupabaseAdminClient();
       if (admin) {
         const mediaUrl = extractMediaUrl(result);
-        const normalized =
+        const providerNormalized =
           upperStatus === "IN_QUEUE"
             ? "queued"
             : upperStatus === "IN_PROGRESS"
@@ -343,6 +346,16 @@ export async function GET(request: Request) {
               : upperStatus === "COMPLETED"
                 ? "completed"
                 : "failed";
+        const completedFailurePayload =
+          providerNormalized === "completed"
+            ? falResultLooksFailed(result)
+              ? result
+              : mediaUrl
+                ? null
+                : falNoMediaFailurePayload(result || statusPayload)
+            : null;
+        const normalized = completedFailurePayload ? "failed" : providerNormalized;
+        responseStatus = normalized.toUpperCase();
 
         try {
           let taskForRefund: { estimated_credits?: number; created_at?: string; provider_request_id?: string | null } | null = null;
@@ -396,7 +409,9 @@ export async function GET(request: Request) {
               taskForRefund && typeof taskForRefund.estimated_credits === "number"
                 ? taskForRefund.estimated_credits
                 : 0;
-            const failureInfo = responseFailureInfo || parseFalFailure(result || statusPayload);
+            const failureInfo = completedFailurePayload
+              ? parseFalFailure(completedFailurePayload)
+              : responseFailureInfo || parseFalFailure(result || statusPayload);
             failureInfo.costUsd = await resolveFalCostUsd(falKey, taskForRefund?.provider_request_id, failureInfo.costUsd);
             const refundCredits = falRefundCreditsFromCost(failureInfo.costUsd, estimatedCredits);
             refund = await refundAndReadLedger(admin, user.id, taskId, refundCredits);
@@ -415,7 +430,7 @@ export async function GET(request: Request) {
             .update({
               status: normalized,
               response_url: effectiveResponseUrl,
-              output_url: mediaUrl,
+              output_url: normalized === "completed" ? mediaUrl : null,
               raw_result: result,
               failure_code: failureCode,
               failure_reason: failureReason,
@@ -432,7 +447,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      status: upperStatus,
+      status: responseStatus,
       result,
       ...statusMeta
     });

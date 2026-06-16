@@ -6,7 +6,9 @@ import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { resolveFalCostUsd } from "../../../../lib/fal-billing";
 import {
   falApiErrorFromResponse,
+  falNoMediaFailurePayload,
   falRefundCreditsFromCost,
+  falResultLooksFailed,
   formatFalFailureReason,
   parseFalFailure
 } from "../../../../lib/fal-errors";
@@ -237,6 +239,15 @@ async function syncProviderTask(
 
   const now = new Date().toISOString();
   const timedOut = (normalized === "queued" || normalized === "running") && isTaskTimedOut(task.created_at);
+  const mediaUrl = extractMediaUrl(result);
+  const completedFailurePayload =
+    normalized === "completed"
+      ? falResultLooksFailed(result)
+        ? result
+        : mediaUrl
+          ? null
+          : falNoMediaFailurePayload(result || statusPayload)
+      : null;
   let finalStatus = normalized;
   let failureCode: string | null = null;
   let failureReason: string | null = null;
@@ -245,8 +256,11 @@ async function syncProviderTask(
     finalStatus = "failed";
     failureCode = "task_timeout";
     failureReason = `Admin sync: provider task exceeded ${taskTimeoutMinutes()} minutes. Credits were refunded.`;
-  } else if (normalized === "failed") {
-    const failureInfo = responseFailureInfo || parseFalFailure(result || statusPayload);
+  } else if (normalized === "failed" || completedFailurePayload) {
+    finalStatus = "failed";
+    const failureInfo = completedFailurePayload
+      ? parseFalFailure(completedFailurePayload)
+      : responseFailureInfo || parseFalFailure(result || statusPayload);
     failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
     const refundCreditsAmount = falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits);
     failureCode = failureInfo.code || "provider_failed";
@@ -254,7 +268,12 @@ async function syncProviderTask(
   }
 
   if (finalStatus === "failed" && task.estimated_credits > 0) {
-    const failureInfo = normalized === "failed" && !timedOut ? responseFailureInfo || parseFalFailure(result || statusPayload) : null;
+    const failureInfo =
+      (normalized === "failed" || completedFailurePayload) && !timedOut
+        ? completedFailurePayload
+          ? parseFalFailure(completedFailurePayload)
+          : responseFailureInfo || parseFalFailure(result || statusPayload)
+        : null;
     if (failureInfo) {
       failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
     }
@@ -271,7 +290,7 @@ async function syncProviderTask(
     .update({
       status: finalStatus,
       response_url: responseUrl,
-      output_url: finalStatus === "completed" ? extractMediaUrl(result) : task.output_url,
+      output_url: finalStatus === "completed" ? mediaUrl : task.output_url,
       raw_result: result,
       failure_code: failureCode,
       failure_reason: failureReason,
