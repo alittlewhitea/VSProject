@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { loadMessages } from "../i18n/messages";
-import { defaultLocale, isLocale } from "../i18n/routing";
+import { defaultLocale, isLocale, isRtlLocale } from "../i18n/routing";
 
 export const metadata: Metadata = {
   title: {
@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const messages = await loadMessages(locale);
 
   return (
-    <html lang={locale}>
+    <html lang={locale} dir={isRtlLocale(locale) ? "rtl" : "ltr"}>
       <head>
         <script
           dangerouslySetInnerHTML={{

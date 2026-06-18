@@ -152,7 +152,7 @@ export const studioHomeMessages: Partial<Record<Locale, Messages>> = {
     "studio.projects.done": "已完成",
     "studio.projects.failed": "失败",
     "studio.projects.list": "项目列表",
-    "studio.projects.savedTasks": "已保存 {count} 个任务",
+    "studio.projects.savedTasks": "已保存 {count} 个{label}",
     "studio.projects.task": "任务",
     "studio.projects.tasks": "任务",
     "studio.projects.new": "新建",

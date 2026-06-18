@@ -337,5 +337,20 @@ export const studioGermanMessages: Record<string, string> = {
   "studio.summary.savedAutomatically": "Ergebnisse werden automatisch in Projekte gespeichert",
   "studio.gallery.eyebrow": "Prompt-Galerie",
   "studio.gallery.title": "Beginne mit einer bewährten visuellen Richtung",
-  "studio.gallery.browse": "Galerie öffnen"
+  "studio.gallery.browse": "Galerie öffnen",
+  "studio.reference.count": "{count} Referenz-{label}",
+  "studio.reference.image": "Bild",
+  "studio.reference.images": "Bilder",
+  "studio.reference.backgroundHint": "Lade ein Bild hoch oder füge eine Bild-URL ein. Bria entfernt den Hintergrund und gibt eine transparente PNG-Datei zurück.",
+  "studio.reference.avatarHint": "Füge eine Bild-URL ein oder wähle eine Bilddatei aus. Unterstützt werden jpg, jpeg, png, webp, gif und avif.",
+  "studio.avatar.example": "Beispielausgabe",
+  "studio.avatar.exampleDescription": "Diese Vorschau verwendet das Standard-Avatarbild und ein Beispielskript. Ersetze das Bild oder lade einen eigenen Avatar hoch, um ein individuelles Ergebnis zu erhalten.",
+  "studio.avatar.voice": "ElevenLabs-Stimme",
+  "studio.avatar.scriptTooLong": "Dieses Skript überschreitet voraussichtlich das Avatar-Limit von 15 Sekunden. Kürze es vor der Generierung.",
+  "studio.avatar.billingHint": "DreamFace erzeugt zuerst die Stimme und sendet sie anschließend an Kling Avatar. Die Abrechnung basiert auf der geschätzten finalen Videolänge: etwa {duration}.",
+  "studio.avatar.sampleMeta": "Beispielskript / 15-Sekunden-Video",
+  "studio.avatar.scriptMeta": "{characters} Zeichen / Stimme {voiceSeconds} s / Video {videoSeconds} s",
+  "studio.avatar.emptyMeta": "0 Zeichen / Video bis 15 s",
+  "studio.audio.wordTimestampsDescription": "Fügt dem erzeugten Audio Zeitinformationen auf Wortebene hinzu.",
+  "studio.audio.creditEstimate": "{characters} Zeichen / derzeit etwa {credits} Credits"
 };

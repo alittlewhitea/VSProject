@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   defaultLocale,
   isLocale,
+  isRtlLocale,
   localeCookieKey,
   localeLabels,
   locales,
@@ -20,6 +21,7 @@ import { studioAdditionalMessages } from "./studio-i18n-additions";
 import { studioDreamfaceIoMessages } from "./studio-i18n-dreamface-io";
 import { studioFalErrorMessages } from "./studio-i18n-fal-errors";
 import { studioWorkspaceHomeMessages } from "./studio-i18n-workspace-home";
+import { studioNewLocaleMessages } from "./studio-i18n-new-locales";
 
 type StudioMessages = Record<string, string>;
 
@@ -522,7 +524,7 @@ const workflowMessages: Partial<Record<Locale, StudioMessages>> = {
     "studio.placeholder.avatar": "输入 Avatar 要说的完整台词，保持简短清晰，建议控制在 15 秒内...", "studio.placeholder.imageVideo": "描述图片如何运动、镜头感觉和最终氛围...",
     "studio.placeholder.video": "输入提示词生成 AI 视频...", "studio.validation.promptLength": "提示词至少需要 8 个字符。", "studio.validation.avatarLength": "请缩短 Avatar 台词，保持在 15 秒以内。",
     "studio.validation.referenceRequired": "此工作流至少需要一张参考图。", "studio.validation.backgroundReady": "图片已就绪，移除背景后将返回透明 PNG。", "studio.validation.ready": "提示词有效，可以开始生成。",
-    "studio.reference.count": "{count} 张参考图", "studio.reference.image": "张图片", "studio.reference.images": "张图片",
+    "studio.reference.count": "参考{label}：{count}", "studio.reference.image": "图片", "studio.reference.images": "图片",
     "studio.reference.backgroundHint": "上传或粘贴一张图片，Bria 会移除背景并返回透明 PNG。", "studio.reference.avatarHint": "粘贴图片地址或选择图片文件。支持 jpg、jpeg、png、webp、gif、avif。",
     "studio.avatar.example": "示例输出", "studio.avatar.exampleDescription": "此预览使用默认 Avatar 图片和示例台词。替换图片或上传自己的 Avatar 即可生成定制结果。",
     "studio.avatar.voice": "ElevenLabs 声音", "studio.avatar.scriptTooLong": "这段台词可能超过 Avatar 的 15 秒限制，请缩短后再生成。",
@@ -646,6 +648,12 @@ function detectBrowserLocale(): Locale {
     if (normalized.startsWith("vi")) return "vi";
     if (normalized.startsWith("de")) return "de";
     if (normalized.startsWith("fr")) return "fr";
+    if (normalized.startsWith("ja")) return "ja";
+    if (normalized.startsWith("th")) return "th";
+    if (normalized.startsWith("nl")) return "nl";
+    if (normalized.startsWith("he") || normalized.startsWith("iw")) return "he";
+    if (normalized.startsWith("ko")) return "ko";
+    if (normalized.startsWith("es")) return "es";
   }
   return defaultLocale;
 }
@@ -659,6 +667,11 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
     persistLocalePreference(detectedLocale);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.documentElement.dir = isRtlLocale(locale) ? "rtl" : "ltr";
+  }, [locale]);
+
   function setLocale(localeValue: Locale) {
     persistLocalePreference(localeValue);
     setLocaleState(localeValue);
@@ -666,6 +679,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
 
   function t(key: string, values?: Record<string, string | number | null | undefined>) {
     let template =
+      studioNewLocaleMessages[locale]?.[key] ||
       studioDreamfaceIoMessages[locale]?.[key] ||
       studioWorkspaceHomeMessages[locale]?.[key] ||
       studioFalErrorMessages[locale]?.[key] ||

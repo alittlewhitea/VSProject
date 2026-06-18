@@ -2648,7 +2648,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }
 
   return (
-    <main className="relative min-h-screen w-full max-w-full overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10 text-[#1f2430]">
+    <main
+      dir={studioI18n.locale === "he" ? "rtl" : "ltr"}
+      className="relative min-h-screen w-full max-w-full overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10 text-[#1f2430]"
+    >
       <div className="pointer-events-none absolute left-[18%] top-10 h-72 w-72 rounded-full bg-[#bde0fe]/30 blur-3xl" />
       <div className="pointer-events-none absolute right-[14%] top-6 h-80 w-80 rounded-full bg-[#ffc8dd]/24 blur-3xl" />
       <div className="mx-auto w-full max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5">
@@ -2933,7 +2936,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
           <div className="grid min-h-[calc(100vh-1rem)] min-w-0 lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
             <aside className="hidden border-r border-black/[0.06] bg-white/64 px-3 py-5 lg:flex lg:flex-col lg:items-center">
-              <a href="https://dreamface.io" aria-label="DreamFace home" className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
+              <a href="https://dreamface.io" aria-label={st("studio.menu.dreamfaceHome")} className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
                 DF
               </a>
               <nav className="mt-9 flex flex-1 flex-col items-center gap-4">
@@ -3104,6 +3107,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             {item.label}
                           </Link>
                         ))}
+                        {!accessToken ? (
+                          <Link
+                            href="/auth?next=%2Fstudio%3Fview%3Dprojects"
+                            onClick={() => setMobileStudioMenuOpen(false)}
+                            className="mt-1 flex items-center justify-center rounded-[1rem] bg-[#202633] px-3 py-3 text-sm font-semibold text-white shadow-sm"
+                          >
+                            {st("studio.auth.signIn")}
+                          </Link>
+                        ) : null}
                         <div className="mt-1 border-t border-black/[0.06] px-2 pb-1 pt-3">
                           <div className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold text-[#8b95a7]">
                             <StudioIcon name="globe" className="h-4 w-4" />
@@ -3133,7 +3145,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       </>
                     ) : null}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7] sm:block">{st("studio.header.apps")}</p>
                     <h1 className="truncate text-lg font-semibold tracking-tight text-[#202633] sm:text-xl md:text-3xl">
                       {isProjectsView
@@ -3209,7 +3221,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       {st("studio.workflow.text-to-audio")}
                     </button>
                   ) : (
-                    <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="rounded-full bg-[#202633] px-3 py-2 text-xs font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] md:rounded-2xl md:px-4 md:text-sm">
+                    <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="hidden rounded-full bg-[#202633] px-3 py-2 text-xs font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] sm:inline-flex md:rounded-2xl md:px-4 md:text-sm">
                       {st("studio.auth.signIn")}
                     </Link>
                   )}
@@ -3289,7 +3301,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   </section>
 
                   <section className="mt-10">
-                    <div>
+                    <div className="min-w-0">
                       <h2 className="text-2xl font-black tracking-tight text-[#0f172a] md:text-3xl">{st("studio.workspace.intentTitle")}</h2>
                       <p className="mt-2 text-sm font-semibold text-[#8490a3]">{st("studio.workspace.intentHint")}</p>
                     </div>
@@ -3383,26 +3395,26 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               ) : null}
 
               {isProjectsView ? (
-                <div className="mx-auto mt-5 max-w-7xl md:mt-10">
+                <div className="mx-auto mt-4 w-full min-w-0 max-w-7xl overflow-hidden md:mt-10">
                   <div className="mb-4 flex flex-col gap-4 md:mb-6 md:flex-row md:items-end md:justify-between">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b95a7]">{st("studio.projects.eyebrow")}</p>
                       <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#202633] md:text-5xl">
                         {st("studio.projects.title")}
                       </h2>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#7a8496] md:mt-3">
+                      <p className="mt-2 max-w-2xl break-words text-sm leading-6 text-[#7a8496] md:mt-3">
                         {st("studio.projects.description")}
                       </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 rounded-[1.5rem] border border-black/[0.06] bg-white/72 p-2 shadow-sm md:min-w-[300px]">
+                    <div className="grid w-full min-w-0 grid-cols-3 gap-1.5 rounded-[1.25rem] border border-black/[0.06] bg-white/72 p-1.5 shadow-sm sm:gap-2 sm:rounded-[1.5rem] sm:p-2 md:w-auto md:min-w-[300px]">
                       {[
                         [st("studio.projects.active"), activeTasks.length],
                         [st("studio.projects.done"), completedTasks.length],
                         [st("studio.projects.failed"), failedTasks.length]
                       ].map(([label, value]) => (
-                          <div key={label} className="rounded-2xl bg-[#f8fbff] px-3 py-2.5 text-center md:px-4 md:py-3">
+                          <div key={label} className="min-w-0 rounded-[1rem] bg-[#f8fbff] px-1.5 py-2.5 text-center sm:rounded-2xl sm:px-3 md:px-4 md:py-3">
                           <p className="text-lg font-semibold text-[#202633]">{value}</p>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b95a7]">{label}</p>
+                          <p className="truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8b95a7] sm:text-[11px] sm:tracking-[0.14em]">{label}</p>
                         </div>
                       ))}
                     </div>
@@ -3414,8 +3426,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </p>
                   ) : null}
 
-                  <div className="grid gap-4 md:gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
-                    <aside className="order-2 rounded-[1.5rem] border border-black/[0.06] bg-white/76 p-3 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl md:rounded-[2rem] xl:order-1">
+                  <div className="grid min-w-0 gap-4 md:gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+                    <aside className="order-2 min-w-0 rounded-[1.35rem] border border-black/[0.06] bg-white/76 p-2.5 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-3 md:rounded-[2rem] xl:order-1">
                       <div className="flex items-center justify-between px-3 py-2">
                         <div>
                           <h3 className="text-sm font-semibold text-[#202633]">{st("studio.projects.list")}</h3>
@@ -3472,29 +3484,29 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       </div>
                     </aside>
 
-                    <section className="order-1 overflow-hidden rounded-[1.5rem] border border-black/[0.06] bg-[linear-gradient(135deg,#fbfdff,#f7f9fd)] p-3 shadow-[0_26px_86px_rgba(15,23,42,0.10)] md:rounded-[2rem] md:p-6 xl:order-2 xl:min-h-[680px]">
+                    <section className="order-1 min-w-0 overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-[linear-gradient(135deg,#fbfdff,#f7f9fd)] p-2 shadow-[0_18px_54px_rgba(15,23,42,0.09)] sm:p-3 md:rounded-[2rem] md:p-6 md:shadow-[0_26px_86px_rgba(15,23,42,0.10)] xl:order-2 xl:min-h-[680px]">
                       {selectedProjectTask ? (
-                        <div className="grid h-full gap-4 lg:grid-cols-[minmax(0,1.1fr)_360px] lg:gap-5">
-                          <article className="relative overflow-hidden rounded-[1.25rem] bg-[#111827] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_70px_rgba(15,23,42,0.22)] md:rounded-[1.75rem] md:p-4">
+                        <div className="grid h-full min-w-0 gap-3 md:gap-4 lg:grid-cols-[minmax(0,1.1fr)_360px] lg:gap-5">
+                          <article className="relative min-w-0 overflow-hidden rounded-[1.15rem] bg-[#111827] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_48px_rgba(15,23,42,0.2)] sm:p-3 md:rounded-[1.75rem] md:p-4 md:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_70px_rgba(15,23,42,0.22)]">
                             <div className="pointer-events-none absolute -left-20 top-10 h-60 w-60 rounded-full bg-[#60a5fa]/20 blur-3xl" />
                             <div className="pointer-events-none absolute -right-16 bottom-10 h-64 w-64 rounded-full bg-[#c084fc]/18 blur-3xl" />
-                            <div className="relative mb-4 flex items-center justify-between gap-3">
-                              <div>
+                            <div className="relative mb-3 flex min-w-0 items-start justify-between gap-2 px-1 pt-1 sm:mb-4 sm:gap-3 sm:px-0 sm:pt-0">
+                              <div className="min-w-0">
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">{st("studio.projects.preview")}</p>
-                                <h3 className="mt-1 max-w-xl truncate text-base font-semibold text-white md:text-lg">{taskTitle(selectedProjectTask)}</h3>
+                                <h3 className="mt-1 line-clamp-2 max-w-xl break-words text-sm font-semibold leading-5 text-white sm:text-base md:text-lg">{taskTitle(selectedProjectTask)}</h3>
                               </div>
-                              <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${statusPillClass(selectedProjectTask.status)}`}>
+                              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 sm:px-3 sm:py-1.5 sm:text-xs ${statusPillClass(selectedProjectTask.status)}`}>
                                 {taskStatusLabel(selectedProjectTask.status)}
                               </span>
                             </div>
-                            <div className="relative grid min-h-[300px] place-items-center overflow-hidden rounded-[1.1rem] border border-white/10 bg-[radial-gradient(circle_at_50%_35%,rgba(96,165,250,0.16),transparent_35%),linear-gradient(180deg,#182131,#0d121d)] sm:min-h-[380px] md:min-h-[520px] md:rounded-[1.35rem]">
+                            <div className="relative grid min-h-[220px] w-full min-w-0 place-items-center overflow-hidden rounded-[0.95rem] border border-white/10 bg-[radial-gradient(circle_at_50%_35%,rgba(96,165,250,0.16),transparent_35%),linear-gradient(180deg,#182131,#0d121d)] sm:min-h-[380px] sm:rounded-[1.1rem] md:min-h-[520px] md:rounded-[1.35rem]">
                               {selectedProjectTask.mediaUrl ? (
                                 selectedProjectTask.type === "Video" ? (
-                                  <video src={selectedProjectTask.mediaUrl} controls className="max-h-[420px] w-full rounded-[1.2rem] object-contain md:max-h-[620px]" />
+                                  <video src={selectedProjectTask.mediaUrl} controls playsInline preload="metadata" className="block max-h-[68dvh] w-full min-w-0 max-w-full bg-black object-contain sm:max-h-[520px] md:max-h-[620px]" />
                                 ) : selectedProjectTask.type === "Audio" ? (
-                                  <div className="w-full max-w-xl rounded-[1.4rem] border border-white/10 bg-white/[0.08] p-6 text-white shadow-[0_30px_90px_rgba(0,0,0,0.25)]">
+                                  <div className="m-2 w-[calc(100%-1rem)] min-w-0 max-w-xl rounded-[1.2rem] border border-white/10 bg-white/[0.08] p-4 text-white shadow-[0_30px_90px_rgba(0,0,0,0.25)] sm:m-0 sm:w-full sm:rounded-[1.4rem] sm:p-6">
                                     <p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-white/45">{st("studio.projects.voiceover")}</p>
-                                    <audio src={selectedProjectTask.mediaUrl} controls className="w-full" />
+                                    <audio src={selectedProjectTask.mediaUrl} controls className="w-full min-w-0 max-w-full" />
                                   </div>
                                 ) : (
                                   <button
@@ -3531,13 +3543,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             </div>
                           </article>
 
-                          <aside className="space-y-3 md:space-y-4">
-                            <div className="rounded-[1.75rem] border border-black/[0.06] bg-white p-5 shadow-sm">
-                              <div className="flex flex-wrap gap-2">
+                          <aside className="min-w-0 space-y-2.5 md:space-y-4">
+                            <div className="min-w-0 rounded-[1.25rem] border border-black/[0.06] bg-white p-3 shadow-sm sm:p-4 md:rounded-[1.75rem] md:p-5">
+                              <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                                 {selectedProjectTask.mediaUrl ? (
                                   <a
                                     href={`/api/generate/download?url=${encodeURIComponent(selectedProjectTask.mediaUrl)}&name=${encodeURIComponent(selectedProjectTask.id)}`}
-                                    className="rounded-full bg-[#202633] px-4 py-2 text-sm font-semibold text-white"
+                                    className="flex min-w-0 items-center justify-center rounded-xl bg-[#202633] px-3 py-2.5 text-center text-xs font-semibold text-white sm:rounded-full sm:px-4 sm:py-2 sm:text-sm"
                                   >
                                     {st("studio.projects.download")}
                                   </a>
@@ -3547,29 +3559,29 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                   onClick={() => {
                                     if (selectedProjectTask.prompt) navigator.clipboard.writeText(selectedProjectTask.prompt).catch(() => null);
                                   }}
-                                  className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]"
+                                  className="min-w-0 rounded-xl border border-black/[0.08] bg-white px-3 py-2.5 text-xs font-semibold text-[#202633] sm:rounded-full sm:px-4 sm:py-2 sm:text-sm"
                                 >
                                   {st("studio.projects.copyPrompt")}
                                 </button>
-                                <Link href={regenerateHref(selectedProjectTask)} className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]">
+                                <Link href={regenerateHref(selectedProjectTask)} className="flex min-w-0 items-center justify-center rounded-xl border border-black/[0.08] bg-white px-3 py-2.5 text-center text-xs font-semibold text-[#202633] sm:rounded-full sm:px-4 sm:py-2 sm:text-sm">
                                   {selectedProjectTask.status === "Failed" ? st("studio.projects.retry") : st("studio.projects.regenerate")}
                                 </Link>
                                 {selectedProjectTask.mediaUrl && selectedProjectTask.type !== "Audio" ? (
-                                  <Link href={useAsReferenceHref(selectedProjectTask)} className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-sm font-semibold text-[#202633]">
+                                  <Link href={useAsReferenceHref(selectedProjectTask)} className="flex min-w-0 items-center justify-center rounded-xl border border-black/[0.08] bg-white px-3 py-2.5 text-center text-xs font-semibold text-[#202633] sm:rounded-full sm:px-4 sm:py-2 sm:text-sm">
                                     {st("studio.projects.useReference")}
                                   </Link>
                                 ) : null}
                               </div>
                             </div>
 
-                            <div className="rounded-[1.75rem] border border-black/[0.06] bg-white p-5 shadow-sm">
+                            <div className="min-w-0 rounded-[1.25rem] border border-black/[0.06] bg-white p-4 shadow-sm md:rounded-[1.75rem] md:p-5">
                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">{st("studio.projects.prompt")}</p>
-                              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#354052]">
+                              <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-[#354052]">
                                 {selectedProjectTask.prompt || st("studio.projects.noPrompt")}
                               </p>
                             </div>
 
-                            <div className="rounded-[1.75rem] border border-black/[0.06] bg-white p-5 shadow-sm">
+                            <div className="min-w-0 rounded-[1.25rem] border border-black/[0.06] bg-white p-4 shadow-sm md:rounded-[1.75rem] md:p-5">
                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7]">{st("studio.projects.details")}</p>
                               <dl className="mt-4 space-y-3 text-sm">
                                 {[
@@ -3580,9 +3592,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                   [st("studio.projects.refund"), selectedProjectTask.refundedCredits ? `${selectedProjectTask.refundedCredits} ${st("studio.common.credits")}` : selectedProjectTask.refundStatus || "not_applicable"],
                                   [st("studio.projects.transport"), selectedProjectTask.transport || "real"]
                                 ].map(([label, value]) => (
-                                  <div key={label} className="flex items-center justify-between gap-4 border-b border-black/[0.05] pb-3 last:border-0 last:pb-0">
-                                    <dt className="font-medium text-[#8b95a7]">{label}</dt>
-                                    <dd className="text-right font-semibold text-[#202633]">{value}</dd>
+                                  <div key={label} className="grid min-w-0 grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] items-start gap-3 border-b border-black/[0.05] pb-3 last:border-0 last:pb-0">
+                                    <dt className="min-w-0 break-words font-medium text-[#8b95a7]">{label}</dt>
+                                    <dd className="min-w-0 break-words text-right font-semibold text-[#202633]">{value}</dd>
                                   </div>
                                 ))}
                               </dl>
@@ -3590,7 +3602,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           </aside>
                         </div>
                       ) : (
-                        <div className="grid min-h-[620px] place-items-center rounded-[1.75rem] border border-dashed border-black/[0.08] bg-white/70 text-center">
+                        <div className="grid min-h-[430px] place-items-center rounded-[1.25rem] border border-dashed border-black/[0.08] bg-white/70 px-5 text-center sm:min-h-[520px] md:min-h-[620px] md:rounded-[1.75rem]">
                           <div>
                             <p className="text-lg font-semibold text-[#202633]">{st("studio.projects.start")}</p>
                             <p className="mt-2 text-sm text-[#8b95a7]">{st("studio.projects.startDescription")}</p>
@@ -3700,6 +3712,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       </div>
                     ) : (
                       <textarea
+                        dir="auto"
                         rows={5}
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
@@ -4347,6 +4360,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           <div className="lg:col-span-2 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                             <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.systemPrompt")}</p>
                             <textarea
+                              dir="auto"
                               rows={2}
                               value={systemPrompt}
                               onChange={(e) => setSystemPrompt(e.target.value)}
@@ -4892,6 +4906,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </label>
                   ) : null}
                   <textarea
+                    dir="auto"
                     rows={mode === "image" ? 7 : 8}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
@@ -5207,6 +5222,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </label>
                   ) : null}
                   <textarea
+                    dir="auto"
                     rows={mode === "image" ? 5 : 7}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}

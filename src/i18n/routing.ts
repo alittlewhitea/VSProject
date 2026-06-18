@@ -1,4 +1,18 @@
-export const locales = ["en", "zh-CN", "pt-BR", "ru", "vi", "de", "fr"] as const;
+export const locales = [
+  "en",
+  "zh-CN",
+  "pt-BR",
+  "ru",
+  "vi",
+  "de",
+  "fr",
+  "ja",
+  "th",
+  "nl",
+  "he",
+  "ko",
+  "es"
+] as const;
 
 export type Locale = (typeof locales)[number];
 
@@ -23,8 +37,18 @@ export const localeLabels: Record<Locale, string> = {
   ru: "Русский",
   vi: "Tiếng Việt",
   de: "Deutsch",
-  fr: "Français"
+  fr: "Français",
+  ja: "日本語",
+  th: "ไทย",
+  nl: "Nederlands",
+  he: "עברית",
+  ko: "한국어",
+  es: "Español"
 };
+
+export function isRtlLocale(locale: Locale) {
+  return locale === "he";
+}
 
 export const localizedMarketingPaths = ["/", "/price", "/auth", "/billing"] as const;
 

@@ -1,0 +1,656 @@
+{
+  "nav": {
+    "logo": "dreamface",
+    "platform": "Plataforma",
+    "providers": "Proveedores",
+    "gallery": "Galería",
+    "pricing": "Precios",
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "projects": "Proyectos",
+    "studio": "Estudio",
+    "openStudio": "Abrir Estudio",
+    "products": "Productos",
+    "create": "Crear",
+    "featured": "Destacado",
+    "creativeToolkit": "Kit de Herramientas de IA Creativa",
+    "creativeToolkitDescription": "Abre cada espacio de trabajo DreamFace desde un único hub",
+    "imageStudio": "Estudio de Imagen con IA",
+    "imageStudioDescription": "Crea imágenes a partir de indicaciones o recursos de referencia",
+    "videoStudio": "Estudio de Video con IA",
+    "videoStudioDescription": "Convierte texto o imágenes en video pulido",
+    "audioGenerator": "Generador de Audio con IA",
+    "audioGeneratorDescription": "Generar locuciones ElevenLabs a partir de guiones",
+    "projectsDescription": "Administrar creaciones, indicaciones, reembolsos e historial",
+    "textToImage": "Texto a Imagen",
+    "textToImageDescription": "Generar anuncios, carteles, miniaturas y conceptos pulidos",
+    "imageToImage": "Imagen a Imagen",
+    "imageToImageDescription": "Editar, cambiar el estilo o ampliar imágenes de referencia",
+    "imageEnhance": "Mejora de Imagen",
+    "imageEnhanceDescription": "Ampliar y limpiar imágenes propias",
+    "backgroundRemove": "Eliminar Fondo",
+    "backgroundRemoveDescription": "Eliminar fondos y exportar activos PNG transparentes",
+    "textToVideo": "Texto a Video",
+    "textToVideoDescription": "Convertir escenas escritas en clips de movimiento cortos",
+    "imageToVideo": "Imagen a Video",
+    "imageToVideoDescription": "Animar un producto, retrato o fotograma de referencia",
+    "textToAudio": "Texto a Audio",
+    "textToAudioDescription": "Crear locuciones naturales a partir de guiones",
+    "payAsYouGo": "Paga según uses",
+    "creditPacksForIndividuals": "Paquetes de créditos para individuos"
+  },
+  "hero": {
+    "titleLine1": "Convierte tus ideas en",
+    "titleLine2": "videos en minutos",
+    "title": "Convierte tus ideas en videos en minutos",
+    "subtitle": "Pasa de guion, imagen, presentación o indicación a una creación terminada. No se necesitan cámaras, equipo ni habilidades de edición.",
+    "ctaGoogle": "Continuar con Google",
+    "ctaPrimary": "Comenzar gratis"
+  },
+  "home": {
+    "gallery": {
+      "eyebrow": "Galería de prompts",
+      "title": "Explorar visuales de IA listos para creadores",
+      "description": "Explora indicaciones reutilizables, ejemplos de modelos y referencias seleccionadas antes de abrir el estudio.",
+      "cta": "Ver más"
+    },
+    "platform": {
+      "titleLine1": "Herramientas de la plataforma para cada",
+      "titleLine2": "flujo de trabajo creativo",
+      "description": "Abre el espacio de trabajo adecuado para generación de imágenes, creación de videos, anuncios de productos, conceptos UGC y producción potenciada por modelos desde un único centro de la plataforma.",
+      "card": {
+        "textToVideo": "Texto a Video",
+        "photoToVideo": "Foto a Video",
+        "productAds": "Anuncios de Productos",
+        "ugcAds": "UGC anuncios",
+        "aiModels": "Modelos de IA"
+      }
+    },
+    "textToVideo": {
+      "eyebrow": "Texto a Video",
+      "title": "Convierte texto en video con IA",
+      "description": "Crea videos completos de IA a partir de un guion usando IA de texto a video. Describe la escena, el ritmo, la voz, el movimiento de cámara y el estilo de salida, luego genera clips de video pulidos para explicativos, anuncios, ventas, incorporación o contenido social.",
+      "cta": "Comienza Gratis"
+    },
+    "photoToVideo": {
+      "eyebrow": "Foto a Video",
+      "title": "Transforma Fotos en Videos",
+      "description": "Convierte cualquier imagen en un video en segundos. Sube una imagen, añade un guion o indicación de movimiento, y transfórmala en un video dinámico generado por IA con movimiento natural, ritmo fluido y encuadre listo para exportar.",
+      "cta": "Comienza Gratis"
+    },
+    "pricing": {
+      "title": "Créditos que nunca se sienten como una suscripción",
+      "cta": "Ver precio",
+      "getCredits": "Obtener créditos",
+      "trial": {
+        "name": "Créditos de prueba",
+        "price": "Gratis",
+        "note": "Para cuentas nuevas",
+        "credits": "Incluye 100 créditos de registro"
+      },
+      "bestValue": "Mejor valor",
+      "topUpWhenNeeded": "Recarga cuando sea necesario"
+    },
+    "faq": {
+      "eyebrow": "DreamFace Preguntas frecuentes",
+      "title": "Preguntas frecuentes",
+      "description": "Aprende cómo el generador de imágenes AI de DreamFace, generador de videos AI, de texto a imagen, de imagen a imagen y de texto a video se integran en un estudio creativo con enrutamiento de modelos, referencias de prompts, créditos e historial de creación.",
+      "whatIsDreamFace": {
+        "question": "¿Qué es DreamFace?",
+        "answer": "DreamFace es un estudio creativo de IA para generar imágenes y videos en un solo espacio de trabajo. Los creadores pueden pasar de ideas de prompts a generación de imágenes con IA, edición de imágenes con IA y tareas de videos con IA mientras mantienen organizados los modelos, créditos, historial y resultados."
+      },
+      "videoGenerators": {
+        "question": "¿Qué son los generadores de videos con IA?",
+        "answer": "Los generadores de videos con IA son herramientas que convierten indicaciones, imágenes, guiones o recursos de referencia en clips de video con IA. Pueden ayudar a los creadores a producir videos para redes sociales, demostraciones de productos, B-roll y visuales de marketing sin necesidad de filmación tradicional ni habilidades avanzadas de edición."
+      },
+      "bestVideoGenerator": {
+        "question": "¿Cuál es el mejor generador de videos con IA para mercadólogos y creadores?",
+        "answer": "El mejor generador de videos con IA depende de tu flujo de trabajo, preferencias de modelo, presupuesto y estilo de salida. DreamFace está diseñado para creadores y mercadólogos que desean generación de imágenes, edición de imágenes, de texto a video, de imagen a video, estimaciones de créditos e historial de proyectos en un solo espacio de trabajo."
+      },
+      "availableTools": {
+        "question": "¿Qué herramientas de generación de IA están disponibles en DreamFace?",
+        "answer": "DreamFace incluye herramientas para texto a imagen, imagen a imagen, texto a video, imagen a video, flujos de trabajo de mejora fotográfica e historial de proyectos reutilizable. El estudio está diseñado alrededor de elegir primero lo que deseas crear, y luego dirigirlo a un modelo de IA adecuado."
+      },
+      "textImageSupport": {
+        "question": "¿DreamFace admite texto a imagen e imagen a imagen?",
+        "answer": "Sí. Puedes crear una imagen a partir de un mensaje de texto o agregar imágenes de referencia para la edición de imagen a imagen. El estudio mantiene los controles del mensaje y la selección del modelo en el mismo compositor para que puedas elegir el flujo de trabajo de imagen correcto sin cambiar de herramientas."
+      },
+      "videoSupport": {
+        "question": "¿DreamFace admite texto a video e imagen a video?",
+        "answer": "Sí. DreamFace separa los flujos de trabajo de texto a video y de imagen a video, de modo que puedes describir una escena desde cero o animar una imagen de referencia. La configuración disponible y la calidad dependen del modelo de video seleccionado."
+      },
+      "videoInputs": {
+        "question": "¿Qué tipos de entrada puedo usar para crear videos con IA en DreamFace?",
+        "answer": "Puedes comenzar desde un texto indicativo, una imagen de referencia o un breve resumen creativo. Para imagen a video, sube o pega una imagen de referencia y describe el movimiento, el estilo de cámara, el comportamiento del sujeto y el estado de ánimo final."
+      },
+      "referenceImage": {
+        "question": "¿Puedo crear videos con IA usando una imagen de referencia?",
+        "answer": "Sí. Los flujos de trabajo de imagen a video te permiten usar una foto de producto, retrato, imagen de personaje o concepto visual como el cuadro inicial. DreamFace luego envía la referencia y el texto indicativo al modelo seleccionado para generar movimiento."
+      },
+      "videoOfMyself": {
+        "question": "¿Cómo puedo crear un video con IA de mí mismo?",
+        "answer": "Utiliza una imagen de referencia clara o un clip fuente que tengas derecho a usar, luego describe el movimiento, la escena y el estilo que deseas. DreamFace puede ayudar a gestionar trabajos de imagen a video, pero solo debes subir imágenes de personas que poseas o para las que tengas permiso de uso."
+      },
+      "socialMedia": {
+        "question": "¿Puedo crear videos de IA para TikTok, anuncios o redes sociales?",
+        "answer": "Sí. DreamFace está diseñado para trabajos creativos de formato corto como clips sociales, avances de productos, conceptos de anuncios, miniaturas y materiales de campaña. Puedes generar visuales, guardar resultados en Proyectos y reutilizar indicaciones o referencias para nuevas variaciones."
+      },
+      "models": {
+        "question": "¿Qué modelos de IA puedo usar?",
+        "answer": "Las opciones de modelo dependen del flujo de trabajo. La creación de imágenes incluye proveedores como GPT Image 2, Nano Banana 2 y FLUX Schnell, y la creación de videos incluye proveedores enrutados como Seedance, Kling, Veo y Grok Imagine Video."
+      },
+      "videoTiming": {
+        "question": "¿Cuánto tiempo se tarda en generar un video con IA?",
+        "answer": "El tiempo de generación depende de la cola del proveedor, la duración, la resolución y el modelo. Los clips cortos a menudo se completan en unos pocos minutos, mientras que los trabajos de video más pesados pueden tardar más. DreamFace mantiene la tarea visible en Proyectos mientras se ejecuta."
+      },
+      "noEditing": {
+        "question": "¿Puedo crear videos con IA sin experiencia en edición?",
+        "answer": "Sí. DreamFace se construye alrededor de entradas creativas simples: elige un flujo de trabajo, escribe un prompt, agrega una referencia si es necesario, selecciona opciones de modelo y genera. No necesitas experiencia en edición de línea de tiempo para comenzar a producir clips de video con IA."
+      },
+      "costBeforeCreate": {
+        "question": "¿Puedo ver el costo de generación antes de crear?",
+        "answer": "Sí. DreamFace usa créditos y muestra el costo estimado en créditos en la acción de generación antes de enviar una tarea. La facturación y el historial de creación mantienen las compras, los saldos y las tareas de generación más fáciles de rastrear."
+      },
+      "freeTrial": {
+        "question": "¿DreamFace es gratuito para probar?",
+        "answer": "Las cuentas nuevas reciben créditos de registro para que puedan probar los flujos de trabajo de generación compatibles. Paquetes de créditos pagados están disponibles cuando necesitas más generaciones de imágenes o videos."
+      },
+      "failedTask": {
+        "question": "¿Qué sucede si falla una tarea de generación de IA?",
+        "answer": "Las tareas de generación mantienen un rastro de estado visible. Los trabajos fallidos pueden mostrar información de cargo y reembolso en los detalles de la tarea para que la generación de imágenes y videos pagados siga siendo comprensible en lugar de desaparecer detrás de un indicador de carga."
+      },
+      "promptGallery": {
+        "question": "¿Puedo explorar los prompts antes de abrir el estudio?",
+        "answer": "Sí. La galería de prompts DreamFace es un punto de partida para ideas visuales, ejemplos de modelos y prompts reutilizables antes de abrir el espacio de trabajo de imágenes o videos con IA."
+      },
+      "audioSupport": {
+        "question": "¿Incluye DreamFace generación de música o voz con IA?",
+        "answer": "DreamFace se centra primero en la generación visual, con flujos de trabajo de imágenes y videos disponibles en el estudio. Las herramientas relacionadas con audio y voz pueden aparecer a medida que se amplía la cobertura del producto, pero la disponibilidad actual depende del espacio de trabajo activo."
+      },
+      "replaceProduction": {
+        "question": "¿Pueden los videos con IA reemplazar la producción de video tradicional?",
+        "answer": "Los videos de IA pueden reemplazar la producción tradicional para muchos flujos de trabajo creativos tempranos, de marketing, pruebas, capacitación y sociales. Para grabaciones de alto riesgo, uso de talentos, aprobaciones de marca e industrias reguladas, los equipos aún deben revisar los resultados cuidadosamente antes de publicarlos."
+      },
+      "securityEthics": {
+        "question": "¿Es DreamFace seguro y ético para la generación de videos de IA?",
+        "answer": "DreamFace está diseñado para mantener proyectos, indicaciones, créditos y resultados organizados en tu cuenta. Eres responsable de usar las entradas legalmente, respetando los derechos de imagen, evitando suplantaciones engañosas y siguiendo los términos del proveedor del modelo seleccionado."
+      },
+      "commercialUse": {
+        "question": "¿Puedo usar contenido generado en proyectos de clientes o comerciales?",
+        "answer": "El uso depende de los términos aplicables de DreamFace, del proveedor o modelo seleccionado, de tus entradas y de los derechos de terceros, como marcas registradas, material con derechos de autor y la imagen personal. Revisa la licencia y los términos del proyecto antes de publicar o monetizar la salida."
+      }
+    },
+    "finalCta": {
+      "title": "Diseña menos alrededor de los API. Construye más alrededor de los resultados.",
+      "description": "Lanza más rápido con un estudio único para la generación de imágenes y videos.",
+      "primary": "Comenzar en el Estudio",
+      "secondary": "Contactar ventas"
+    }
+  },
+  "footer": {
+    "brand": "dreamface",
+    "description": "Infraestructura unificada de generación de imágenes + videos.",
+    "platform": "Plataforma",
+    "imageStudio": "Estudio de Imágenes",
+    "videoStudio": "Estudio de Video",
+    "providerRouting": "Enrutamiento del proveedor",
+    "creditsBilling": "Facturación de créditos",
+    "company": "Compañía",
+    "about": "Acerca de Nosotros",
+    "documentation": "Documentación",
+    "contact": "Contacto",
+    "licenseTerms": "Licencia y Términos",
+    "copyright": "(c) 2026 DreamFace. Todos los derechos reservados.",
+    "legal": {
+      "license": "Licencia de DreamFace",
+      "terms": "Términos de Uso",
+      "business-terms": "Términos Comerciales de Uso",
+      "copyright-policy": "Política de Derechos de Autor",
+      "privacy-policy": "Política de Privacidad"
+    }
+  },
+  "auth": {
+    "brand": "dreamface",
+    "backHome": "Volver al inicio",
+    "eyebrow": "DreamFace Studio",
+    "signup": {
+      "title": "Comienza a crear videos en minutos.",
+      "description": "Inicia sesión una vez para desbloquear tus créditos gratis, guardar cada solicitud y mantener organizadas las imágenes y videos generados en Proyectos."
+    },
+    "benefit": {
+      "freeCredits": "100 créditos gratis",
+      "projectHistory": "Historial de proyectos",
+      "google": "Google con un solo clic"
+    },
+    "login": {
+      "eyebrow": "Autenticación",
+      "title": "Crea tu cuenta gratuita",
+      "description": "Continúa con Google para un inicio más rápido, o recibe un enlace mágico seguro por correo electrónico."
+    },
+    "google": "Continúa con Google",
+    "googleOpening": "Abriendo Google...",
+    "emailDivider": "Correo electrónico",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "tu@empresa.com",
+    "sendMagicLink": "Enviar enlace mágico",
+    "pleaseWait": "Por favor espera...",
+    "successMagicLink": "Enlace de verificación enviado. Por favor revisa tu correo electrónico.",
+    "emailFailed": "Inicio de sesión por correo electrónico fallido.",
+    "googleFailed": "Inicio de sesión en Google fallido.",
+    "footerNote": "Al continuar, puedes acceder a Studio, créditos, facturación y Proyectos guardados."
+  },
+  "pricing": {
+    "title": "Premium planes de creación de IA",
+    "subtitle": "Elige una membresía Premium para creación sin marca de agua, colas más rápidas, uso comercial y créditos que se renuevan con tu ciclo de facturación. Créditos adicionales están disponibles cuando necesites recargar.",
+    "eyebrow": "Precio",
+    "forIndividuals": "Para individuos",
+    "currentBalance": "Saldo actual",
+    "credits": "créditos",
+    "refresh": "Actualizar",
+    "refreshing": "Actualizando",
+    "free": {
+      "name": "Gratis",
+      "badge": "Gratis",
+      "priceInterval": "mes",
+      "credits": "100 créditos de prueba",
+      "eligible": "para cuentas nuevas elegibles",
+      "description": "Comienza con lo básico: generación de imágenes, edición, voz limitada, video limitado, marca de agua y cola estándar.",
+      "cta": "Comenzar Gratis"
+    },
+    "freeFeatures": {
+      "image": "Probar generación de imágenes",
+      "editing": "Probar edición de imágenes",
+      "voice": "Generación de voz limitada",
+      "video": "Generación de video limitada",
+      "watermark": "Marca de agua incluida",
+      "queue": "Cola estándar"
+    },
+    "plan": {
+      "premiumLite": {
+        "name": "Premium Lite",
+        "badge": "Más popular",
+        "cta": "Comenzar Premium Lite",
+        "bestFor": "Creadores casuales, generación de imágenes, edición de imágenes y pruebas cortas de IA.",
+        "feature": {
+          "fullImage": "Generación completa de imágenes",
+          "fullEditing": "Edición completa de imágenes",
+          "voice": "Generación de voz",
+          "basicVideo": "Generación básica de video",
+          "commercial": "Uso comercial",
+          "noWatermark": "Sin marca de agua",
+          "refund": "Protección de reembolso de crédito",
+          "queue": "Cola más rápida",
+          "history": "Historial de prompts"
+        }
+      },
+      "premium": {
+        "name": "Premium",
+        "badge": "Mejor valor",
+        "cta": "Actualizar a Premium",
+        "bestFor": "Generación de videos, creadores intensivos, mercadólogos, agencias y equipos de contenido.",
+        "feature": {
+          "everything": "Todo en Premium Lite",
+          "video": "Mayor capacidad de video",
+          "queue": "Cola de generación con prioridad",
+          "models": "Modelos avanzados de IA",
+          "tests": "Más pruebas de Kling, Seedance y Veo",
+          "processing": "Procesamiento más rápido",
+          "early": "Funciones de acceso anticipado"
+        }
+      }
+    },
+    "creditPack": {
+      "starter": {
+        "name": "Paquete de inicio",
+        "idealFor": "Ideal para explorar el estudio en flujos de trabajo de imágenes, audio y video ligero."
+      },
+      "creator": {
+        "name": "Paquete de creador",
+        "idealFor": "Mejor para creadores que hacen varias direcciones visuales antes de elegir el resultado final."
+      },
+      "studio": {
+        "name": "Paquete de Estudio",
+        "idealFor": "Mejor valor cuando deseas espacio para imágenes, audio y múltiples borradores de videos cortos."
+      },
+      "proTopup": {
+        "name": "Recarga Pro",
+        "idealFor": "Para uso ocasional de gran volumen cuando una suscripción Premium necesita capacidad extra temporal."
+      }
+    },
+    "extraCredits": {
+      "eyebrow": "Créditos extra",
+      "title": "¿Necesitas créditos extra?",
+      "description": "Para uso ocasional. La mayoría de los creadores obtienen mejor valor con una suscripción Premium.",
+      "buy": "Comprar créditos extra",
+      "opening": "Abriendo..."
+    },
+    "faq": {
+      "title": "Preguntas frecuentes sobre precios",
+      "items": {
+        "test": {
+          "q": "¿Cómo puedo probar DreamFace?",
+          "a": "Crea una cuenta gratuita y usa créditos de prueba para probar la generación de imágenes, edición de imágenes, voz y flujos de trabajo de videos cortos antes de actualizar."
+        },
+        "cost": {
+          "q": "¿Cuánto cuesta DreamFace?",
+          "a": "DreamFace ofrece suscripciones Premium Lite y Premium, además de paquetes de créditos adicionales opcionales para recargas ocasionales."
+        },
+        "credits": {
+          "q": "¿Qué son los créditos?",
+          "a": "Los créditos son el saldo único de DreamFace para trabajos creativos. Diferentes proveedores y modelos usan diferentes cantidades, por lo que el estudio muestra un costo estimado antes de que envíes una generación."
+        },
+        "rollover": {
+          "q": "¿Los créditos se acumulan?",
+          "a": "Los créditos de suscripción se renuevan en cada ciclo de facturación según las reglas actuales del producto. Los paquetes de créditos adicionales comprados permanecen en tu billetera mientras tu cuenta esté activa."
+        },
+        "cancel": {
+          "q": "¿Puedo cancelar en cualquier momento?",
+          "a": "Sí. Puedes cancelar tu suscripción en cualquier momento."
+        },
+        "extra": {
+          "q": "¿Puedo comprar créditos adicionales?",
+          "a": "Sí. Los créditos adicionales están disponibles debajo de los planes de suscripción para uso ocasional."
+        },
+        "upgrade": {
+          "q": "¿Puedo actualizar de Premium Lite a Premium?",
+          "a": "Sí. Los usuarios pueden actualizar en cualquier momento una vez que la gestión de suscripciones esté habilitada para la cuenta."
+        },
+        "video": {
+          "q": "¿Puedo usar créditos para video?",
+          "a": "Sí. Los modelos de video generalmente cuestan más que los modelos de imagen porque el precio varía según la duración, resolución y reglas del proveedor. La estimación aparece antes de la generación."
+        },
+        "failure": {
+          "q": "¿Qué pasa si falla una generación?",
+          "a": "Cuando se confirma una falla del proveedor, DreamFace registra un asiento de reembolso en su libro de cuentas y devuelve los créditos relacionados a su saldo."
+        }
+      }
+    },
+    "features": {
+      "eyebrow": "Características del plan",
+      "title": "Comparar paquetes de créditos y capacidad de creación",
+      "description": "Cada paquete utiliza el mismo estudio DreamFace. La principal diferencia es cuántos activos puede generar antes de recargar nuevamente."
+    },
+    "testimonials": {
+      "eyebrow": "Testimonios",
+      "title": "Lo que los clientes dicen sobre nosotros",
+      "description": "Spoiler, tienen cosas bastante buenas que decir.",
+      "rating": "5 de 5 estrellas",
+      "items": {
+        "campaigns": {
+          "title": "Las campañas se sienten más rápidas",
+          "body": "Podemos probar direcciones visuales, opciones de voz e ideas de movimiento cortas en un solo lugar sin reconstruir el brief cada vez.",
+          "role": "Líder de Crecimiento"
+        },
+        "simple": {
+          "title": "Suficientemente simple para no diseñadores",
+          "body": "El equipo dejó de preguntar por dónde empezar. Abren el estudio, eligen un flujo de trabajo y saben el costo en créditos antes de ejecutarlo.",
+          "role": "Operaciones Creativas"
+        },
+        "iteration": {
+          "title": "Genial para iterar",
+          "body": "Lo usamos para rondas de miniaturas, moodboards de producto, pases de mejora y conceptos de video iniciales antes de que comience la producción.",
+          "role": "Productor de Marca"
+        },
+        "billing": {
+          "title": "Facturación sin misterio",
+          "body": "El libro de créditos facilita las aprobaciones internas. Podemos ver qué se compró, qué se gastó y qué se reembolsó.",
+          "role": "Gerente de Estudio"
+        },
+        "polish": {
+          "title": "De la sugerencia al pulido",
+          "body": "La variedad es la victoria: borradores rápidos, modelos de imágenes premium, voz, mejoras y pruebas de video comparten la misma billetera.",
+          "role": "Director de Contenido"
+        },
+        "repeat": {
+          "title": "Diseñado para trabajo repetido",
+          "body": "Los proyectos guardados y las estimaciones de crédito predecibles lo hacen práctico para ciclos de contenido semanales, no solo para experimentos únicos.",
+          "role": "Líder de Marketing"
+        }
+      }
+    },
+    "modelGuide": {
+      "eyebrow": "Guía de modelos",
+      "title": "Costos típicos de créditos",
+      "description": "El precio exacto aparece junto al botón Generar. Se utiliza la tarifa en vivo cuando está disponible, con estimaciones de respaldo para continuidad."
+    },
+    "comparison": {
+      "getStarted": "Comenzar",
+      "value": {
+        "included": "Incluido",
+        "notIncluded": "No incluido"
+      },
+      "plan": {
+        "free": "Gratis",
+        "premiumLite": "Premium Lite",
+        "premium": "Premium"
+      },
+      "section": {
+        "credits": {
+          "title": "Créditos de membresía",
+          "row": {
+            "trialCredits": {
+              "label": "Créditos de prueba",
+              "value1": "100 créditos",
+              "value2": "Incluido por elegibilidad",
+              "value3": "Incluido por elegibilidad"
+            },
+            "monthlyCredits": {
+              "label": "Créditos mensuales",
+              "value1": "No incluido",
+              "value2": "2,400 créditos",
+              "value3": "4,600 créditos"
+            },
+            "yearlyCredits": {
+              "label": "Créditos anuales",
+              "value1": "No incluido",
+              "value2": "18,000 créditos",
+              "value3": "38,000 créditos"
+            },
+            "extraCreditPacks": {
+              "label": "Paquetes de créditos adicionales",
+              "value1": "Disponible",
+              "value2": "Disponible",
+              "value3": "Disponible"
+            }
+          }
+        },
+        "access": {
+          "title": "Acceso al estudio",
+          "row": {
+            "textToImage": {
+              "label": "Texto a imagen",
+              "value1": "Acceso de prueba",
+              "value2": "Acceso completo",
+              "value3": "Acceso completo"
+            },
+            "imageEditing": {
+              "label": "Edición de imágenes",
+              "value1": "Acceso de prueba",
+              "value2": "Acceso completo",
+              "value3": "Acceso completo"
+            },
+            "voiceGeneration": {
+              "label": "Generación de voz",
+              "value1": "Limitado",
+              "value2": "Incluido",
+              "value3": "Incluido"
+            },
+            "videoGeneration": {
+              "label": "Generación de video",
+              "value1": "Limitado",
+              "value2": "Video básico",
+              "value3": "Mayor capacidad de video"
+            },
+            "premiumModelAccess": {
+              "label": "Acceso al modelo Premium",
+              "value1": "Limitado",
+              "value2": "Incluido",
+              "value3": "Acceso avanzado"
+            },
+            "promptHistory": {
+              "label": "Historial de mensajes",
+              "value1": "Incluido",
+              "value2": "Incluido",
+              "value3": "Incluido"
+            }
+          }
+        },
+        "benefits": {
+          "title": "Beneficios de membresía",
+          "row": {
+            "commercialUse": {
+              "label": "Uso comercial",
+              "value1": "No incluido",
+              "value2": "Incluido",
+              "value3": "Incluido"
+            },
+            "watermark": {
+              "label": "Marca de agua",
+              "value1": "Incluido",
+              "value2": "Sin marca de agua",
+              "value3": "Sin marca de agua"
+            },
+            "queue": {
+              "label": "Cola",
+              "value1": "Estándar",
+              "value2": "Cola más rápida",
+              "value3": "Cola prioritaria"
+            },
+            "refunds": {
+              "label": "Reembolsos de trabajos fallidos del proveedor",
+              "value1": "Incluido",
+              "value2": "Incluido",
+              "value3": "Incluido"
+            },
+            "bestFor": {
+              "label": "Mejor para",
+              "value1": "Herramientas de prueba",
+              "value2": "Creadores ocasionales",
+              "value3": "Creadores intensivos y equipos"
+            }
+          }
+        }
+      }
+    }
+  },
+  "billing": {
+    "title": "Gestionar créditos y recargas",
+    "subtitle": "Elige un paquete de créditos de pago por uso, actualiza tu saldo y revisa la actividad de créditos o compras en Stripe desde una página de billetera.",
+    "eyebrow": "Facturación",
+    "currentBalance": "Saldo actual",
+    "creditsAvailable": "créditos disponibles",
+    "refreshBalance": "Actualizar saldo",
+    "signInToView": "Inicia sesión para ver",
+    "subscription": {
+      "eyebrow": "Suscripción",
+      "noActive": "No hay membresía activa",
+      "choosePlan": "Elige Premium Lite o Premium para desbloquear los beneficios de membresía y créditos renovables.",
+      "manage": "Gestionar facturación",
+      "currentDescription": "{credits} créditos por {cycle}. {status}",
+      "cancellationScheduled": "La cancelación está programada al final del período.",
+      "manageThroughStripe": "Gestiona la facturación a través de Stripe.",
+      "accessUntil": "Acceso hasta",
+      "renews": "Se renueva"
+    },
+    "success": {
+      "title": "Compra completada con éxito",
+      "paymentReceived": "Pago recibido",
+      "description": "La confirmación de Stripe aún se está sincronizando. Tu saldo se actualiza automáticamente en esta página.",
+      "creditsAdded": "{credits} créditos agregados",
+      "purchaseSummary": "Paquete {packId} - {amount} - {status}"
+    },
+    "subscriptionSuccess": {
+      "eyebrow": "Compra de suscripción",
+      "title": "Compra de membresía completada",
+      "description": "Stripe está confirmando tu suscripción. Los créditos y beneficios de la membresía aparecerán después de que la confirmación esté completamente habilitada."
+    },
+    "cancel": {
+      "title": "La compra fue cancelada",
+      "description": "No se realizó ningún cargo. Puedes elegir un plan o paquete de créditos cuando estés listo."
+    },
+    "lowBalance": "Tu saldo está por debajo de {threshold} créditos. Recarga antes de renderizaciones de video grandes o lotes de imágenes de alta calidad.",
+    "membership": {
+      "eyebrow": "Membresía",
+      "title": "Elige un plan Premium",
+      "description": "Las membresías Premium renuevan créditos de manera semanal, mensual o anual y desbloquean creación sin marca de agua, colas más rápidas y uso comercial."
+    },
+    "extraCredits": {
+      "eyebrow": "Créditos extra",
+      "title": "¿Necesitas créditos extra?",
+      "description": "Para uso ocasional. La mayoría de los creadores obtienen mejor valor con una suscripción Premium."
+    },
+    "creditActivity": "Actividad de créditos",
+    "noCreditActivity": "Aún no hay actividad de créditos.",
+    "signInCreditActivity": "Inicia sesión para ver la actividad de tus créditos.",
+    "stripePurchases": "Compras de Stripe",
+    "stripeCheckoutId": "ID de pago de Stripe",
+    "noStripePurchases": "Aún no hay compras en Stripe.",
+    "signInStripePurchases": "Inicia sesión para ver las compras de Stripe.",
+    "openingCheckout": "Abriendo el pago...",
+    "recharge": "Recargar",
+    "cycle": {
+      "weekly": "Semanal",
+      "monthly": "Mensual",
+      "yearly": "Anual"
+    },
+    "onlyMonthly": "¿Solo {price}/mes? {savings}",
+    "creditsPerInterval": "{credits} créditos / {interval}",
+    "creditCount": "{credits} créditos",
+    "renewsEvery": "se renueva cada {interval}",
+    "includedCredits": "Créditos incluidos",
+    "usage": {
+      "title": "Usa tus créditos hasta",
+      "images": "FLUX imágenes Schnell",
+      "videos": "videos de DreamFace IO de 5 segundos",
+      "voiceovers": "locuciones de 1,000 caracteres",
+      "avatars": "videos de Avatar Estándar de 5 segundos",
+      "note": "Los ejemplos son máximos separados, no un permiso combinado. El uso gratuito diario de DreamFace IO elegible es adicional."
+    },
+    "message": {
+      "trialUnavailable": "Los créditos de prueba no están disponibles para esta cuenta. Los créditos comprados todavía pueden usarse normalmente.",
+      "balanceUnavailable": "El saldo de créditos no está disponible temporalmente.",
+      "subscriptionChecking": "Compra de suscripción completada. Confirmando tu membresía con Stripe...",
+      "subscriptionConfirmed": "Suscripción confirmada. Los créditos de membresía se han agregado a tu saldo.",
+      "subscriptionProcessing": "Suscripción completada. La confirmación de Stripe puede estar todavía procesándose; actualice de nuevo en un momento.",
+      "paymentChecking": "Pago completado. Actualizando su saldo desde la confirmación de Stripe...",
+      "paymentConfirmed": "Pago confirmado. Los créditos han sido agregados a su saldo.",
+      "paymentProcessing": "Pago completado. La confirmación de Stripe puede estar todavía procesándose; actualice de nuevo en un momento.",
+      "checkoutCancelled": "La compra fue cancelada. No se agregaron créditos.",
+      "unableCheckout": "No se puede iniciar la compra.",
+      "unableSubscriptionCheckout": "No se puede iniciar la compra de suscripción.",
+      "unablePortal": "No se puede abrir el portal de facturación."
+    },
+    "status": {
+      "pending": "Pendiente",
+      "completed": "Completado",
+      "cancelled": "Cancelado",
+      "failed": "Fallido"
+    },
+    "reason": {
+      "signup_bonus": "Bono de registro",
+      "stripe_checkout": "Compra de créditos",
+      "stripe_subscription": "Créditos de suscripción",
+      "generation_task": "Generación",
+      "generation_refund": "Reembolso por generación fallida",
+      "manual_top_up_dev": "Recarga de desarrollo"
+    }
+  },
+  "metadata": {
+    "home": {
+      "title": "DreamFace Generador de Imágenes y Videos con IA",
+      "description": "Crea imágenes y videos con IA a partir de indicaciones, fotos y guiones con DreamFace. Abre herramientas de imagen, video, avatar, audio, créditos y proyectos desde un solo estudio creativo."
+    },
+    "price": {
+      "title": "Precios y Paquetes de Créditos de DreamFace",
+      "description": "Compara planes Premium de DreamFace, paquetes de créditos, acceso a modelos, colas más rápidas, exportaciones sin marca de agua y créditos de pago por uso para la creación de imágenes y videos con IA."
+    },
+    "auth": {
+      "title": "Iniciar sesión en DreamFace",
+      "description": "Inicia sesión o crea una cuenta gratuita de DreamFace para reclamar créditos, guardar indicaciones, gestionar proyectos y empezar a crear imágenes y videos con IA."
+    },
+    "billing": {
+      "title": "Facturación y Créditos de DreamFace",
+      "description": "Gestiona DreamFace créditos, Premium suscripciones, el estado de pago de Stripe, recargas, compras e historial de facturación desde una página segura."
+    }
+  }
+}

@@ -1,0 +1,656 @@
+{
+  "nav": {
+    "logo": "dreamface",
+    "platform": "Platform",
+    "providers": "Aanbieders",
+    "gallery": "Galerij",
+    "pricing": "Prijzen",
+    "login": "Log in",
+    "logout": "Meld u af",
+    "projects": "Projecten",
+    "studio": "Studio",
+    "openStudio": "Studio openen",
+    "products": "Producten",
+    "create": "Creëer",
+    "featured": "Uitgelicht",
+    "creativeToolkit": "Creatieve AI-toolkit",
+    "creativeToolkitDescription": "Open elke DreamFace-werkruimte vanuit één hub",
+    "imageStudio": "AI-beeldstudio",
+    "imageStudioDescription": "Maak afbeeldingen op basis van aanwijzingen of referentiemiddelen",
+    "videoStudio": "AI-videostudio",
+    "videoStudioDescription": "Zet tekst of afbeeldingen om in gepolijste video",
+    "audioGenerator": "AI-audiogenerator",
+    "audioGeneratorDescription": "Genereer ElevenLabs voice-overs van scripts",
+    "projectsDescription": "Beheer creaties, prompts, terugbetalingen en geschiedenis",
+    "textToImage": "Tekst naar afbeelding",
+    "textToImageDescription": "Genereer verzorgde advertenties, posters, thumbnails en concepten",
+    "imageToImage": "Afbeelding naar afbeelding",
+    "imageToImageDescription": "Bewerk, herstyle of breid referentieafbeeldingen uit",
+    "imageEnhance": "Beeldverbetering",
+    "imageEnhanceDescription": "Eigen afbeeldingen opschalen en opruimen",
+    "backgroundRemove": "Achtergrond verwijderen",
+    "backgroundRemoveDescription": "Verwijder achtergronden en exporteer transparante PNG assets",
+    "textToVideo": "Tekst naar video",
+    "textToVideoDescription": "Verander geschreven scènes in korte bewegende clips",
+    "imageToVideo": "Afbeelding naar video",
+    "imageToVideoDescription": "Animeer een product, portret of referentiekader",
+    "textToAudio": "Tekst naar audio",
+    "textToAudioDescription": "Creëer natuurlijke voice-overs op basis van scripts",
+    "payAsYouGo": "Betaal naar gebruik",
+    "creditPacksForIndividuals": "Kredietpakketten voor particulieren"
+  },
+  "hero": {
+    "titleLine1": "Zet uw ideeën om in",
+    "titleLine2": "video's in minuten",
+    "title": "Zet uw ideeën binnen enkele minuten om in video's",
+    "subtitle": "Ga van script, afbeelding, presentatie of prompt naar voltooid advertentiemateriaal. Geen camera's, geen bemanning, geen montagevaardigheden vereist.",
+    "ctaGoogle": "Ga verder met Google",
+    "ctaPrimary": "Ga gratis aan de slag"
+  },
+  "home": {
+    "gallery": {
+      "eyebrow": "Snelle galerij",
+      "title": "Ontdek AI-beelden die geschikt zijn voor makers",
+      "description": "Blader door herbruikbare aanwijzingen, modelvoorbeelden en samengestelde referenties voordat u de studio opent.",
+      "cta": "Bekijk meer"
+    },
+    "platform": {
+      "titleLine1": "Platformtools voor iedereen",
+      "titleLine2": "creatieve werkstroom",
+      "description": "Open de juiste werkruimte voor het genereren van afbeeldingen, het maken van video's, productadvertenties, UGC concepten en modelgestuurde productie vanuit één platformhub.",
+      "card": {
+        "textToVideo": "Tekst naar video",
+        "photoToVideo": "Foto naar video",
+        "productAds": "Productadvertenties",
+        "ugcAds": "UGC advertenties",
+        "aiModels": "AI-modellen"
+      }
+    },
+    "textToVideo": {
+      "eyebrow": "Tekst naar video",
+      "title": "Zet tekst om in video met AI",
+      "description": "Maak complete AI-video's vanuit een script met behulp van tekst-naar-video-AI. Beschrijf de scène, het tempo, de stem, de camerabeweging en de uitvoerstijl en genereer vervolgens verzorgde videoclips voor uitleg, advertenties, verkoop, introductie of sociale inhoud.",
+      "cta": "Ga gratis aan de slag"
+    },
+    "photoToVideo": {
+      "eyebrow": "Foto naar video",
+      "title": "Transformeer foto's in video's",
+      "description": "Verander elke afbeelding binnen enkele seconden in een video. Upload een afbeelding, voeg een script of bewegingsprompt toe en transformeer deze in een dynamische, door AI gegenereerde video met natuurlijke bewegingen, vloeiend tempo en exportklare kadrering.",
+      "cta": "Ga gratis aan de slag"
+    },
+    "pricing": {
+      "title": "Credits die nooit aanvoelen als een abonnement",
+      "cta": "Bekijk prijs",
+      "getCredits": "Krediet krijgen",
+      "trial": {
+        "name": "Proefkredieten",
+        "price": "Gratis",
+        "note": "Voor nieuwe rekeningen",
+        "credits": "100 aanmeldingscredits inbegrepen"
+      },
+      "bestValue": "Beste waarde",
+      "topUpWhenNeeded": "Vul bij wanneer dat nodig is"
+    },
+    "faq": {
+      "eyebrow": "DreamFace Veelgestelde vragen",
+      "title": "Veelgestelde vragen",
+      "description": "Ontdek hoe de DreamFace AI-beeldgenerator, AI-videogenerator, tekst-naar-afbeelding, afbeelding-naar-afbeelding en tekst-naar-video-workflows passen in één creatieve studio met modelrouting, promptreferenties, credits en creatiegeschiedenis.",
+      "whatIsDreamFace": {
+        "question": "Wat is DreamFace?",
+        "answer": "DreamFace is een AI-creatieve studio voor het genereren van afbeeldingen en video's in één werkruimte. Makers kunnen overstappen van snelle ideeën naar het genereren van AI-afbeeldingen, AI-beeldbewerking en AI-videotaken, terwijl ze modellen, credits, geschiedenis en output georganiseerd houden."
+      },
+      "videoGenerators": {
+        "question": "Wat zijn AI-videogeneratoren?",
+        "answer": "AI-videogeneratoren zijn tools die aanwijzingen, afbeeldingen, scripts of referentiemiddelen met AI omzetten in videoclips. Ze kunnen makers helpen bij het produceren van sociale video's, productdemo's, B-roll en marketingbeelden zonder traditioneel filmen of geavanceerde bewerkingsvaardigheden."
+      },
+      "bestVideoGenerator": {
+        "question": "Wat is de beste AI-videogenerator voor marketeers en makers?",
+        "answer": "De beste AI-videogenerator hangt af van uw workflow, modelvoorkeuren, budget en uitvoerstijl. DreamFace is gebouwd voor makers en marketeers die het genereren van afbeeldingen, het bewerken van afbeeldingen, tekst-naar-video, afbeelding-naar-video, kredietschattingen en projectgeschiedenis in één werkruimte willen."
+      },
+      "availableTools": {
+        "question": "Welke tools voor het genereren van AI zijn beschikbaar in DreamFace?",
+        "answer": "DreamFace bevat tools voor tekst-naar-afbeelding, afbeelding-naar-afbeelding, tekst-naar-video, afbeelding-naar-video, workflows voor fotoverbetering en herbruikbare projectgeschiedenis. De studio is ontworpen rond het kiezen van wat je eerst wilt maken en vervolgens doorsturen naar een geschikt AI-model."
+      },
+      "textImageSupport": {
+        "question": "Ondersteunt DreamFace tekst-naar-afbeelding en afbeelding-naar-afbeelding?",
+        "answer": "Ja. U kunt een afbeelding maken op basis van een tekstprompt of referentieafbeeldingen toevoegen voor bewerking van afbeelding naar afbeelding. De studio bewaart snelle bedieningselementen en modelselectie in dezelfde componist, zodat u de juiste beeldworkflow kunt kiezen zonder van gereedschap te hoeven wisselen."
+      },
+      "videoSupport": {
+        "question": "Ondersteunt DreamFace tekst-naar-video en afbeelding-naar-video?",
+        "answer": "Ja. DreamFace scheidt tekst-naar-video- en afbeelding-naar-video-workflows, zodat u een scène helemaal opnieuw kunt beschrijven of een referentieafbeelding kunt animeren. Beschikbare instellingen en kwaliteit zijn afhankelijk van het geselecteerde videomodel."
+      },
+      "videoInputs": {
+        "question": "Welke soorten invoer kan ik gebruiken om AI-video's te maken in DreamFace?",
+        "answer": "U kunt beginnen met een tekstprompt, een referentieafbeelding of een korte creatieve opdracht. Voor beeld-naar-video kunt u een afbeeldingsreferentie uploaden of plakken en de beweging, camerastijl, het gedrag van het onderwerp en de uiteindelijke stemming beschrijven."
+      },
+      "referenceImage": {
+        "question": "Kan ik AI-video's maken met behulp van een referentieafbeelding?",
+        "answer": "Ja. Met beeld-naar-video-workflows kunt u een productfoto, portret, karakterafbeelding of visueel concept als startframe gebruiken. DreamFace stuurt vervolgens de referentie en prompt naar het geselecteerde model om beweging te genereren."
+      },
+      "videoOfMyself": {
+        "question": "Hoe maak ik een AI-video van mezelf?",
+        "answer": "Gebruik een duidelijke referentieafbeelding of bronclip waarvoor u gebruiksrechten heeft en beschrijf vervolgens de gewenste beweging, scène en stijl. DreamFace kan helpen bij het routeren van afbeelding-naar-video-taken, maar u mag alleen gelijkenissen uploaden waarvan u de eigenaar bent of waarvoor u toestemming heeft om deze te gebruiken."
+      },
+      "socialMedia": {
+        "question": "Kan ik AI-video's maken voor TikTok, advertenties of sociale media?",
+        "answer": "Ja. DreamFace is ontworpen voor creatief werk in korte vorm, zoals sociale clips, productteasers, advertentieconcepten, thumbnails en campagne-items. U kunt visuals genereren, uitvoer opslaan in projecten en aanwijzingen of verwijzingen hergebruiken voor nieuwe variaties."
+      },
+      "models": {
+        "question": "Welke AI-modellen kan ik gebruiken?",
+        "answer": "Modelopties zijn afhankelijk van de workflow. Het maken van afbeeldingen omvat providers zoals GPT Image 2, Nano Banana 2 en FLUX Schnell, en het maken van video's omvat gerouteerde providers zoals Seedance, Kling, Veo en Grok Imagine Video."
+      },
+      "videoTiming": {
+        "question": "Hoe lang duurt het om een AI-video te genereren?",
+        "answer": "De generatietijd is afhankelijk van de wachtrij, de duur, de resolutie en het model van de provider. Korte clips kunnen vaak binnen een paar minuten worden voltooid, terwijl zwaardere videotaken langer kunnen duren. DreamFace houdt de taak zichtbaar in Projecten terwijl deze wordt uitgevoerd."
+      },
+      "noEditing": {
+        "question": "Kan ik AI-video's maken zonder ervaring met bewerken?",
+        "answer": "Ja. DreamFace is opgebouwd rond eenvoudige creatieve input: kies een workflow, schrijf een prompt, voeg indien nodig een referentie toe, selecteer modelopties en genereer. U hebt geen ervaring met het bewerken van tijdlijnen nodig om AI-videoclips te gaan produceren."
+      },
+      "costBeforeCreate": {
+        "question": "Kan ik de aanmaakkosten zien voordat ik iets maak?",
+        "answer": "Ja. DreamFace gebruikt credits en toont de geschatte creditkosten voor de generatieactie voordat een taak wordt ingediend. Dankzij de facturerings- en aanmaakgeschiedenis zijn aankopen, saldi en generatietaken gemakkelijker te traceren."
+      },
+      "freeTrial": {
+        "question": "Is DreamFace gratis te proberen?",
+        "answer": "Nieuwe accounts ontvangen aanmeldingscredits zodat ze ondersteunde generatieworkflows kunnen testen. Er zijn betaalde creditpakketten beschikbaar als u meer beeld- of videogeneraties nodig heeft."
+      },
+      "failedTask": {
+        "question": "Wat gebeurt er als een taak voor het genereren van AI mislukt?",
+        "answer": "Generatietaken houden een zichtbaar statusspoor bij. Bij mislukte opdrachten kan informatie over kosten en terugbetalingen in de taakdetails worden weergegeven, zodat het genereren van betaalde afbeeldingen en video's begrijpelijk blijft in plaats van achter een spinner te verdwijnen."
+      },
+      "promptGallery": {
+        "question": "Kan ik door aanwijzingen bladeren voordat ik de studio open?",
+        "answer": "Ja. De DreamFace promptgalerij is een startpunt voor visuele ideeën, modelvoorbeelden en herbruikbare prompts voordat u de AI-afbeelding of videowerkruimte opent."
+      },
+      "audioSupport": {
+        "question": "Bevat DreamFace AI-muziek of AI-stemgeneratie?",
+        "answer": "DreamFace richt zich eerst op het genereren van beelden, waarbij beeld- en videoworkflows beschikbaar zijn in de studio. Audio- en spraakgerelateerde tools kunnen verschijnen naarmate de productdekking groter wordt, maar de huidige beschikbaarheid is afhankelijk van de live werkruimte."
+      },
+      "replaceProduction": {
+        "question": "Kunnen AI-video’s de traditionele videoproductie vervangen?",
+        "answer": "AI-video's kunnen de traditionele productie vervangen voor veel vroege creatieve, marketing-, test-, training- en sociale workflows. Bij shoots waarbij veel op het spel staat, het gebruik van talent, merkgoedkeuringen en gereguleerde sectoren moeten teams de resultaten nog steeds zorgvuldig beoordelen voordat ze worden gepubliceerd."
+      },
+      "securityEthics": {
+        "question": "Is DreamFace veilig en ethisch voor het genereren van AI-video's?",
+        "answer": "DreamFace is ontworpen om projecten, prompts, credits en resultaten georganiseerd te houden in uw account. U bent verantwoordelijk voor het wettig gebruik van de invoer, het respecteren van de gelijkenisrechten, het vermijden van misleidende nabootsing van identiteit en het naleven van de voorwaarden van de geselecteerde modelaanbieder."
+      },
+      "commercialUse": {
+        "question": "Kan ik gegenereerde inhoud gebruiken in klant- of commerciële projecten?",
+        "answer": "Het gebruik is afhankelijk van de toepasselijke DreamFace-voorwaarden, de geselecteerde provider of het geselecteerde model, uw invoer en rechten van derden, zoals handelsmerken, auteursrechtelijk beschermd materiaal en persoonlijke gelijkenis. Controleer de licentie en voorwaarden voor het project voordat u de uitvoer publiceert of er inkomsten mee genereert."
+      }
+    },
+    "finalCta": {
+      "title": "Ontwerp minder rond APIs. Bouw meer rond resultaten.",
+      "description": "Start sneller met één schone studio voor het genereren van afbeeldingen en video's.",
+      "primary": "Begin in Studio",
+      "secondary": "Neem contact op met de verkoop"
+    }
+  },
+  "footer": {
+    "brand": "dreamface",
+    "description": "Uniforme infrastructuur voor het genereren van afbeeldingen en video's.",
+    "platform": "Platform",
+    "imageStudio": "Beeldstudio",
+    "videoStudio": "Videostudio",
+    "providerRouting": "Providerroutering",
+    "creditsBilling": "Facturering van credits",
+    "company": "Bedrijf",
+    "about": "Over ons",
+    "documentation": "Documentatie",
+    "contact": "Contacteer",
+    "licenseTerms": "Licentie en voorwaarden",
+    "copyright": "(c) 2026 DreamFace. Alle rechten voorbehouden.",
+    "legal": {
+      "license": "DreamFace Licentie",
+      "terms": "Gebruiksvoorwaarden",
+      "business-terms": "Zakelijke gebruiksvoorwaarden",
+      "copyright-policy": "Auteursrechtbeleid",
+      "privacy-policy": "Privacybeleid"
+    }
+  },
+  "auth": {
+    "brand": "dreamface",
+    "backHome": "Terug naar huis",
+    "eyebrow": "DreamFace Studio",
+    "signup": {
+      "title": "Begin binnen enkele minuten met het maken van video's.",
+      "description": "Meld u één keer aan om uw gratis credits te ontgrendelen, elke prompt op te slaan en de gegenereerde afbeeldingen en video's geordend te houden in Projecten."
+    },
+    "benefit": {
+      "freeCredits": "100 gratis tegoeden",
+      "projectHistory": "Projectgeschiedenis",
+      "google": "Google met één klik"
+    },
+    "login": {
+      "eyebrow": "Authenticatie",
+      "title": "Maak uw gratis account aan",
+      "description": "Ga verder met Google voor de snelste start, of ontvang een veilige magische e-maillink."
+    },
+    "google": "Ga verder met Google",
+    "googleOpening": "Google openen...",
+    "emailDivider": "E-mail",
+    "emailLabel": "E-mail",
+    "emailPlaceholder": "jij@bedrijf.com",
+    "sendMagicLink": "Stuur een magische link",
+    "pleaseWait": "Even geduld a.u.b....",
+    "successMagicLink": "Verificatielink verzonden. Controleer uw e-mail.",
+    "emailFailed": "Inloggen via e-mail is mislukt.",
+    "googleFailed": "Inloggen bij Google is mislukt.",
+    "footerNote": "Als u doorgaat, krijgt u toegang tot Studio, tegoeden, facturering en opgeslagen projecten."
+  },
+  "pricing": {
+    "title": "Premium Plannen voor het maken van AI",
+    "subtitle": "Kies een Premium-lidmaatschap voor creatie zonder watermerk, snellere wachtrijen, commercieel gebruik en tegoeden die worden verlengd met uw factureringscyclus. Er zijn extra credits beschikbaar als je opwaardeert.",
+    "eyebrow": "Prijs",
+    "forIndividuals": "Voor individuen",
+    "currentBalance": "Huidig saldo",
+    "credits": "tegoeden",
+    "refresh": "Vernieuwen",
+    "refreshing": "Verfrissend",
+    "free": {
+      "name": "Gratis",
+      "badge": "Gratis",
+      "priceInterval": "ma",
+      "credits": "100 proefcredits",
+      "eligible": "voor in aanmerking komende nieuwe accounts",
+      "description": "Begin met de basis: het genereren van afbeeldingen, bewerken, beperkte stem, beperkte video, watermerk en standaardwachtrij.",
+      "cta": "Begin gratis"
+    },
+    "freeFeatures": {
+      "image": "Probeer het genereren van afbeeldingen",
+      "editing": "Probeer beeldbewerking",
+      "voice": "Beperkte stemgeneratie",
+      "video": "Beperkte videogeneratie",
+      "watermark": "Watermerk inbegrepen",
+      "queue": "Standaard wachtrij"
+    },
+    "plan": {
+      "premiumLite": {
+        "name": "Premium Lite",
+        "badge": "Meest populair",
+        "cta": "Premium Lite starten",
+        "bestFor": "Casual makers, het genereren van afbeeldingen, het bewerken van afbeeldingen en korte AI-tests.",
+        "feature": {
+          "fullImage": "Volledige beeldgeneratie",
+          "fullEditing": "Volledige beeldbewerking",
+          "voice": "Stem generatie",
+          "basicVideo": "Basis videogeneratie",
+          "commercial": "Commercieel gebruik",
+          "noWatermark": "Geen watermerk",
+          "refund": "Bescherming van kredietterugbetaling",
+          "queue": "Snellere wachtrij",
+          "history": "Snelle geschiedenis"
+        }
+      },
+      "premium": {
+        "name": "Premium",
+        "badge": "Beste waarde",
+        "cta": "Upgrade naar Premium",
+        "bestFor": "Videogeneratie, zware makers, marketeers, bureaus en contentteams.",
+        "feature": {
+          "everything": "Alles in Premium Lite",
+          "video": "Hogere videocapaciteit",
+          "queue": "Wachtrij voor het genereren van prioriteit",
+          "models": "Geavanceerde AI-modellen",
+          "tests": "Meer Kling-, Seedance- en Veo-tests",
+          "processing": "Snellere verwerking",
+          "early": "Functies voor vroege toegang"
+        }
+      }
+    },
+    "creditPack": {
+      "starter": {
+        "name": "Startpakket",
+        "idealFor": "Ideaal voor het verkennen van de studio via beeld-, audio- en lichte videoworkflows."
+      },
+      "creator": {
+        "name": "Creator-pakket",
+        "idealFor": "Het beste voor makers die verschillende visuele aanwijzingen geven voordat ze de uiteindelijke uitvoer kiezen."
+      },
+      "studio": {
+        "name": "Studiopakket",
+        "idealFor": "Beste waarde als u ruimte wilt voor afbeeldingen, audio en meerdere korte videoconcepten."
+      },
+      "proTopup": {
+        "name": "Pro-opwaardering",
+        "idealFor": "Voor incidenteel hoog volumegebruik wanneer een Premium abonnement tijdelijk extra capaciteit nodig heeft."
+      }
+    },
+    "extraCredits": {
+      "eyebrow": "Extra kredieten",
+      "title": "Extra kredieten nodig?",
+      "description": "Voor incidenteel gebruik. De meeste videomakers krijgen meer waar voor hun geld met een Premium abonnement.",
+      "buy": "Koop extra credits",
+      "opening": "Openen..."
+    },
+    "faq": {
+      "title": "Veelgestelde vragen over prijzen",
+      "items": {
+        "test": {
+          "q": "Hoe kan ik DreamFace testen?",
+          "a": "Maak een gratis account aan en gebruik proefcredits om het genereren van afbeeldingen, het bewerken van afbeeldingen, spraak en korte videoworkflows uit te proberen voordat u de upgrade uitvoert."
+        },
+        "cost": {
+          "q": "Hoeveel kost DreamFace?",
+          "a": "DreamFace biedt Premium Lite- en Premium-abonnementen, plus optionele extra tegoedpakketten voor incidentele opwaarderingen."
+        },
+        "credits": {
+          "q": "Wat zijn kredieten?",
+          "a": "Credits vormen het enige saldo van DreamFace voor creatief werk. Verschillende aanbieders en modellen hanteren verschillende bedragen, dus de studio toont een geschatte kostprijs voordat je een generatie indient."
+        },
+        "rollover": {
+          "q": "Rollen credits door?",
+          "a": "Abonnementskredieten worden elke factureringscyclus vernieuwd volgens de huidige productregels. Gekochte extra creditpakketten blijven in uw portemonnee zolang uw account actief is."
+        },
+        "cancel": {
+          "q": "Kan ik op elk moment annuleren?",
+          "a": "Ja. U kunt uw abonnement op elk gewenst moment opzeggen."
+        },
+        "extra": {
+          "q": "Kan ik extra credits kopen?",
+          "a": "Ja. Extra credits zijn beschikbaar onder de abonnementen voor incidenteel gebruik."
+        },
+        "upgrade": {
+          "q": "Kan ik upgraden van Premium Lite naar Premium?",
+          "a": "Ja. Gebruikers kunnen op elk gewenst moment upgraden zodra abonnementsbeheer voor het account is ingeschakeld."
+        },
+        "video": {
+          "q": "Kan ik credits gebruiken voor video?",
+          "a": "Ja. Videomodellen kosten doorgaans meer dan afbeeldingsmodellen, omdat de prijzen variëren afhankelijk van de duur, resolutie en providerregels. De schatting verschijnt vóór de generatie."
+        },
+        "failure": {
+          "q": "Wat gebeurt er als een generatie faalt?",
+          "a": "Wanneer een storing van een provider wordt bevestigd, registreert DreamFace een terugbetalingspost in uw grootboek en worden de bijbehorende tegoeden teruggeboekt naar uw saldo."
+        }
+      }
+    },
+    "features": {
+      "eyebrow": "Planfuncties",
+      "title": "Vergelijk creditpakketten en creatiecapaciteit",
+      "description": "Elk pakket gebruikt dezelfde DreamFace studio. Het belangrijkste verschil is hoeveel activa u kunt genereren voordat u opnieuw opwaardeert."
+    },
+    "testimonials": {
+      "eyebrow": "Getuigenissen",
+      "title": "Wat klanten over ons zeggen",
+      "description": "Spoiler, ze hebben een aantal aardige dingen te zeggen.",
+      "rating": "5 van de 5 sterren",
+      "items": {
+        "campaigns": {
+          "title": "Campagnes voelen sneller aan",
+          "body": "We kunnen visuele aanwijzingen, stemopties en korte bewegingsideeën op één plek testen zonder de opdracht elke keer opnieuw te hoeven doen.",
+          "role": "Groeileider"
+        },
+        "simple": {
+          "title": "Eenvoudig genoeg voor niet-ontwerpers",
+          "body": "Het team vroeg niet meer waar te beginnen. Ze openen de studio, kiezen een workflow en kennen de kredietkosten voordat ze deze uitvoeren.",
+          "role": "Creatieve operaties"
+        },
+        "iteration": {
+          "title": "Ideaal voor iteratie",
+          "body": "We gebruiken het voor thumbnailrondes, productmoodboards, luxepassen en vroege videoconcepten voordat de productie begint.",
+          "role": "Merk Producent"
+        },
+        "billing": {
+          "title": "Geen mysterieuze facturering",
+          "body": "Het kredietboek maakt interne goedkeuringen eenvoudiger. We kunnen zien wat er is gekocht, wat er is uitgegeven en wat er is terugbetaald.",
+          "role": "Studiomanager"
+        },
+        "polish": {
+          "title": "Van snel tot polijsten",
+          "body": "Het bereik is de overwinning: snelle concepten, premium afbeeldingsmodellen, spraak-, verbeterings- en videotests delen allemaal dezelfde portemonnee.",
+          "role": "Inhoud directeur"
+        },
+        "repeat": {
+          "title": "Gebouwd voor herhaald werk",
+          "body": "Opgeslagen projecten en voorspelbare kredietschattingen maken het praktisch voor wekelijkse inhoudscycli, niet alleen voor eenmalige experimenten.",
+          "role": "Marketingleider"
+        }
+      }
+    },
+    "modelGuide": {
+      "eyebrow": "Modelgids",
+      "title": "Typische kredietkosten",
+      "description": "Exacte prijzen verschijnen naast de knop Genereren. Indien beschikbaar wordt gebruik gemaakt van live fal-prijzen, met terugvalschattingen voor de continuïteit."
+    },
+    "comparison": {
+      "getStarted": "Ga aan de slag",
+      "value": {
+        "included": "Inbegrepen",
+        "notIncluded": "Niet inbegrepen"
+      },
+      "plan": {
+        "free": "Gratis",
+        "premiumLite": "Premium Lite",
+        "premium": "Premium"
+      },
+      "section": {
+        "credits": {
+          "title": "Lidmaatschapskredieten",
+          "row": {
+            "trialCredits": {
+              "label": "Proefkredieten",
+              "value1": "100 studiepunten",
+              "value2": "Inbegrepen door geschiktheid",
+              "value3": "Inbegrepen door geschiktheid"
+            },
+            "monthlyCredits": {
+              "label": "Maandelijkse tegoeden",
+              "value1": "Niet inbegrepen",
+              "value2": "2.400 studiepunten",
+              "value3": "4.600 studiepunten"
+            },
+            "yearlyCredits": {
+              "label": "Jaarlijkse kredieten",
+              "value1": "Niet inbegrepen",
+              "value2": "18.000 studiepunten",
+              "value3": "38.000 studiepunten"
+            },
+            "extraCreditPacks": {
+              "label": "Extra creditpakketten",
+              "value1": "Beschikbaar",
+              "value2": "Beschikbaar",
+              "value3": "Beschikbaar"
+            }
+          }
+        },
+        "access": {
+          "title": "Toegang tot studio",
+          "row": {
+            "textToImage": {
+              "label": "Tekst naar afbeelding",
+              "value1": "Proeftoegang",
+              "value2": "Volledige toegang",
+              "value3": "Volledige toegang"
+            },
+            "imageEditing": {
+              "label": "Beeldbewerking",
+              "value1": "Proeftoegang",
+              "value2": "Volledige toegang",
+              "value3": "Volledige toegang"
+            },
+            "voiceGeneration": {
+              "label": "Stem generatie",
+              "value1": "Beperkt",
+              "value2": "Inbegrepen",
+              "value3": "Inbegrepen"
+            },
+            "videoGeneration": {
+              "label": "Video generatie",
+              "value1": "Beperkt",
+              "value2": "Basisvideo",
+              "value3": "Hogere videocapaciteit"
+            },
+            "premiumModelAccess": {
+              "label": "Premium modeltoegang",
+              "value1": "Beperkt",
+              "value2": "Inbegrepen",
+              "value3": "Geavanceerde toegang"
+            },
+            "promptHistory": {
+              "label": "Snelle geschiedenis",
+              "value1": "Inbegrepen",
+              "value2": "Inbegrepen",
+              "value3": "Inbegrepen"
+            }
+          }
+        },
+        "benefits": {
+          "title": "Lidmaatschapsvoordelen",
+          "row": {
+            "commercialUse": {
+              "label": "Commercieel gebruik",
+              "value1": "Niet inbegrepen",
+              "value2": "Inbegrepen",
+              "value3": "Inbegrepen"
+            },
+            "watermark": {
+              "label": "Watermerk",
+              "value1": "Inbegrepen",
+              "value2": "Geen watermerk",
+              "value3": "Geen watermerk"
+            },
+            "queue": {
+              "label": "Wachtrij",
+              "value1": "Standaard",
+              "value2": "Snellere wachtrij",
+              "value3": "Prioriteitswachtrij"
+            },
+            "refunds": {
+              "label": "Mislukte taakrestituties van de provider",
+              "value1": "Inbegrepen",
+              "value2": "Inbegrepen",
+              "value3": "Inbegrepen"
+            },
+            "bestFor": {
+              "label": "Beste voor",
+              "value1": "Hulpmiddelen testen",
+              "value2": "Casual makers",
+              "value3": "Zware makers en teams"
+            }
+          }
+        }
+      }
+    }
+  },
+  "billing": {
+    "title": "Beheer tegoeden en opwaarderingen",
+    "subtitle": "Kies een pay-as-you-go-tegoedpakket, vernieuw uw saldo en bekijk uw kredietactiviteit of Stripe-aankopen vanaf één portemonneepagina.",
+    "eyebrow": "Facturering",
+    "currentBalance": "Huidig saldo",
+    "creditsAvailable": "beschikbare kredieten",
+    "refreshBalance": "Vernieuw de balans",
+    "signInToView": "Log in om te bekijken",
+    "subscription": {
+      "eyebrow": "Abonnement",
+      "noActive": "Geen actief lidmaatschap",
+      "choosePlan": "Kies Premium Lite of Premium om lidmaatschapsvoordelen en verlengbare tegoeden te ontgrendelen.",
+      "manage": "Beheer de facturering",
+      "currentDescription": "{credits} credits per {cycle}. {status}",
+      "cancellationScheduled": "Annulering vindt plaats aan het einde van de periode.",
+      "manageThroughStripe": "Beheer de facturering via Stripe.",
+      "accessUntil": "Toegang tot",
+      "renews": "Vernieuwt"
+    },
+    "success": {
+      "title": "Succes bij het afrekenen",
+      "paymentReceived": "Betaling ontvangen",
+      "description": "Stripe-bevestiging wordt nog steeds gesynchroniseerd. Uw saldo wordt op deze pagina automatisch vernieuwd.",
+      "creditsAdded": "{credits} credits toegevoegd",
+      "purchaseSummary": "{packId} pakket - {amount} - {status}"
+    },
+    "subscriptionSuccess": {
+      "eyebrow": "Abonnement afrekenen",
+      "title": "Afrekenen lidmaatschap voltooid",
+      "description": "Stripe bevestigt je abonnement. Lidmaatschapstegoeden en voordelen verschijnen nadat de bevestiging volledig is ingeschakeld."
+    },
+    "cancel": {
+      "title": "Het afrekenen is geannuleerd",
+      "description": "Er zijn geen kosten in rekening gebracht. U kunt een plan of een creditpakket kiezen wanneer u er klaar voor bent."
+    },
+    "lowBalance": "Uw saldo is minder dan {threshold} credits. Waardeer op voordat u grotere videoweergaven of beeldbatches van hoge kwaliteit uitvoert.",
+    "membership": {
+      "eyebrow": "Lidmaatschap",
+      "title": "Kies een Premium abonnement",
+      "description": "Premium lidmaatschappen verlengen de credits wekelijks, maandelijks of jaarlijks en maken creaties zonder watermerk, snellere wachtrijen en commercieel gebruik mogelijk."
+    },
+    "extraCredits": {
+      "eyebrow": "Extra kredieten",
+      "title": "Extra kredieten nodig?",
+      "description": "Voor incidenteel gebruik. De meeste videomakers krijgen meer waar voor hun geld met een Premium abonnement."
+    },
+    "creditActivity": "Kredietactiviteit",
+    "noCreditActivity": "Nog geen kredietactiviteit.",
+    "signInCreditActivity": "Meld u aan om uw kredietactiviteit te bekijken.",
+    "stripePurchases": "Gestreepte aankopen",
+    "stripeCheckoutId": "Gestreepte kassa-ID",
+    "noStripePurchases": "Nog geen Stripe-aankopen.",
+    "signInStripePurchases": "Log in om Stripe-aankopen te bekijken.",
+    "openingCheckout": "Kassa openen...",
+    "recharge": "Opladen",
+    "cycle": {
+      "weekly": "Wekelijks",
+      "monthly": "Maandelijks",
+      "yearly": "Jaarlijks"
+    },
+    "onlyMonthly": "Alleen {price}/maand? {savings}",
+    "creditsPerInterval": "{credits} tegoeden / {interval}",
+    "creditCount": "{credits} credits",
+    "renewsEvery": "verlengt elke {interval}",
+    "includedCredits": "Inclusief kredieten",
+    "usage": {
+      "title": "Gebruik uw tegoeden voor maximaal",
+      "images": "FLUX Schnell-afbeeldingen",
+      "videos": "DreamFace IO video's van 5 seconden",
+      "voiceovers": "Voice-overs van 1000 tekens",
+      "avatars": "Standaard avatar-video's van 5 seconden",
+      "note": "Denk hierbij aan losse maxima, niet aan een gecombineerde toeslag. In aanmerking komend dagelijks gratis gebruik van DreamFace IO is extra."
+    },
+    "message": {
+      "trialUnavailable": "Er zijn geen proeftegoeden beschikbaar voor dit account. Gekochte credits kunnen nog steeds normaal worden gebruikt.",
+      "balanceUnavailable": "Het tegoed is tijdelijk niet beschikbaar.",
+      "subscriptionChecking": "Afrekenen van abonnement voltooid. Je lidmaatschap bij Stripe bevestigen...",
+      "subscriptionConfirmed": "Abonnement bevestigd. Lidmaatschapskredieten zijn toegevoegd aan uw saldo.",
+      "subscriptionProcessing": "Abonnement voltooid. De streepbevestiging wordt mogelijk nog verwerkt; even opnieuw verversen.",
+      "paymentChecking": "Betaling voltooid. Je saldo vernieuwen via Stripe-bevestiging...",
+      "paymentConfirmed": "Betaling bevestigd. Er zijn credits toegevoegd aan uw saldo.",
+      "paymentProcessing": "Betaling voltooid. De streepbevestiging wordt mogelijk nog verwerkt; even opnieuw verversen.",
+      "checkoutCancelled": "Het afrekenen is geannuleerd. Er zijn geen credits toegevoegd.",
+      "unableCheckout": "Kan het afrekenen niet starten.",
+      "unableSubscriptionCheckout": "Kan het afrekenen van het abonnement niet starten.",
+      "unablePortal": "Kan factureringsportaal niet openen."
+    },
+    "status": {
+      "pending": "In behandeling",
+      "completed": "Voltooid",
+      "cancelled": "Geannuleerd",
+      "failed": "Mislukt"
+    },
+    "reason": {
+      "signup_bonus": "Aanmeldingsbonus",
+      "stripe_checkout": "Kredietaankoop",
+      "stripe_subscription": "Abonnementskredieten",
+      "generation_task": "Generatie",
+      "generation_refund": "Terugbetaling van mislukte generatie",
+      "manual_top_up_dev": "Ontwikkeling top-up"
+    }
+  },
+  "metadata": {
+    "home": {
+      "title": "DreamFace AI-beeld- en videogenerator",
+      "description": "Maak AI-afbeeldingen en -video's op basis van aanwijzingen, foto's en scripts met DreamFace. Open afbeeldingen, video, avatar, audio, credits en projecttools vanuit één creatieve studio."
+    },
+    "price": {
+      "title": "DreamFace Prijzen en tegoedpakketten",
+      "description": "Vergelijk DreamFace Premium abonnementen, creditpakketten, modeltoegang, snellere wachtrijen, watermerkvrije export en pay-as-you-go-credits voor het maken van AI-afbeeldingen en -video's."
+    },
+    "auth": {
+      "title": "Meld u aan bij DreamFace",
+      "description": "Meld u aan of maak een gratis DreamFace-account om credits te claimen, aanwijzingen op te slaan, projecten te beheren en te beginnen met het maken van AI-afbeeldingen en -video's."
+    },
+    "billing": {
+      "title": "DreamFace Facturering en tegoeden",
+      "description": "Beheer DreamFace tegoeden, Premium abonnementen, Stripe-afrekenstatus, opwaarderingen, aankopen en factuurgeschiedenis vanaf één beveiligde pagina."
+    }
+  }
+}

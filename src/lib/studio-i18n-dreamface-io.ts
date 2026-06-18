@@ -2,7 +2,7 @@ import type { Locale } from "../i18n/routing";
 
 type Messages = Record<string, string>;
 
-export const studioDreamfaceIoMessages: Record<Locale, Messages> = {
+export const studioDreamfaceIoMessages: Partial<Record<Locale, Messages>> = {
   en: {
     "studio.generate.dailyFree": "Free today · {remaining}/6 units left",
     "studio.generate.dailyPaid": "{credits} credits · daily free allowance used",

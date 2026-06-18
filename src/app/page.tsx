@@ -95,19 +95,19 @@ export default async function HomePage() {
             <section className="section-shell mt-14 border-t border-black/10 pt-14 md:mt-24 md:pt-24">
               <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between md:mb-10">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#637084]">Prompt Gallery</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#637084]">{t("home.gallery.eyebrow")}</p>
                   <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#171719] sm:text-4xl md:text-5xl">
-                    Explore creator-ready AI visuals
+                    {t("home.gallery.title")}
                   </h2>
                   <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5c6374] sm:text-base">
-                    Browse reusable prompts, model examples, and curated references before opening the studio.
+                    {t("home.gallery.description")}
                   </p>
                 </div>
                 <Link
                   href="/gallery"
                   className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#1d1d1f] px-5 py-3 text-sm font-black tracking-[-0.02em] text-white shadow-[0_14px_30px_rgba(13,18,35,0.16)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#343438]"
                 >
-                  View More <span className="ml-2">-&gt;</span>
+                  {t("home.gallery.cta")} <span className="ml-2">-&gt;</span>
                 </Link>
               </div>
 
