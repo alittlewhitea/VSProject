@@ -2648,10 +2648,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10 text-[#1f2430]">
+    <main className="relative min-h-screen w-full max-w-full overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10 text-[#1f2430]">
       <div className="pointer-events-none absolute left-[18%] top-10 h-72 w-72 rounded-full bg-[#bde0fe]/30 blur-3xl" />
       <div className="pointer-events-none absolute right-[14%] top-6 h-80 w-80 rounded-full bg-[#ffc8dd]/24 blur-3xl" />
-      <div className="mx-auto max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5">
+      <div className="mx-auto w-full max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5">
         <header className="hidden">
           <div className="flex items-center gap-6">
             <Link href="/" className="text-3xl font-semibold tracking-tight text-white">
@@ -2929,9 +2929,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           </div>
         ) : null}
 
-        <section className="relative min-h-[calc(100vh-1rem)] overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-white/72 shadow-[0_20px_60px_rgba(71,85,105,0.10)] backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-[0_32px_120px_rgba(71,85,105,0.14)]">
+        <section className="relative min-h-[calc(100vh-1rem)] w-full max-w-full overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-white/72 shadow-[0_20px_60px_rgba(71,85,105,0.10)] backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-[0_32px_120px_rgba(71,85,105,0.14)]">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
-          <div className="grid min-h-[calc(100vh-1rem)] lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
+          <div className="grid min-h-[calc(100vh-1rem)] min-w-0 lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
             <aside className="hidden border-r border-black/[0.06] bg-white/64 px-3 py-5 lg:flex lg:flex-col lg:items-center">
               <a href="https://dreamface.io" aria-label="DreamFace home" className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
                 DF
@@ -3032,7 +3032,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               </Link>
             </aside>
 
-            <nav className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 gap-1 rounded-[1.4rem] border border-black/[0.08] bg-white/90 p-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl lg:hidden">
+            <nav className="fixed inset-x-2 bottom-2 z-50 grid grid-cols-6 gap-0.5 rounded-[1.25rem] border border-black/[0.08] bg-white/94 p-1 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:inset-x-3 sm:bottom-3 sm:gap-1 sm:rounded-[1.4rem] sm:p-1.5 lg:hidden">
               {[
                 { label: st("studio.nav.home"), href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
                 { label: st("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
@@ -3044,17 +3044,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`flex flex-col items-center justify-center gap-1 rounded-[1rem] px-2 py-2 text-[11px] font-semibold transition ${
+                  className={`min-w-0 flex flex-col items-center justify-center gap-1 rounded-[0.9rem] px-0.5 py-2 text-[9px] font-semibold transition sm:rounded-[1rem] sm:px-2 sm:text-[11px] ${
                     item.active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#667085]"
                   }`}
                 >
                   <StudioIcon name={item.icon} className="h-4 w-4" />
-                  {item.label}
+                  <span className="max-w-full truncate">{item.label}</span>
                 </Link>
               ))}
             </nav>
 
-            <div className="relative px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12">
+            <div className="relative min-w-0 max-w-full px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12">
               <div className="flex items-start justify-between gap-3 md:items-center md:gap-4">
                 <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
                   <div className="relative shrink-0">
@@ -3161,11 +3161,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </p>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                <div className="flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
                   <button
                     type="button"
                     onClick={() => openBillingModal("balance")}
-                    className="rounded-full border border-black/[0.06] bg-white px-3 py-2 text-xs font-semibold text-[#485164] shadow-[0_10px_28px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-[#08bff1]/45 hover:text-[#0f172a] hover:shadow-[0_16px_36px_rgba(8,191,241,0.14)] md:rounded-2xl md:px-4 md:text-sm"
+                    className="rounded-full border border-black/[0.06] bg-white px-2.5 py-2 text-[11px] font-semibold text-[#485164] shadow-[0_10px_28px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-[#08bff1]/45 hover:text-[#0f172a] hover:shadow-[0_16px_36px_rgba(8,191,241,0.14)] sm:px-3 sm:text-xs md:rounded-2xl md:px-4 md:text-sm"
                   >
                     {st("studio.billing.creditCount", { credits: creditBalance === null ? "--" : creditBalance.toLocaleString() })}
                   </button>
@@ -3188,9 +3188,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     aria-label={st("studio.billing.title")}
                     title={st("studio.billing.title")}
                     onClick={() => openBillingModal("vip_badge")}
-                    className="inline-flex h-10 items-center gap-2 rounded-full bg-[linear-gradient(135deg,#4f46e5,#06b6d4)] px-3.5 text-xs font-black text-white shadow-[0_12px_28px_rgba(79,70,229,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(79,70,229,0.3)] md:px-4 md:text-sm"
+                    className="inline-flex h-10 items-center rounded-full bg-[linear-gradient(135deg,#4f46e5,#06b6d4)] px-3 text-xs font-black text-white shadow-[0_12px_28px_rgba(79,70,229,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(79,70,229,0.3)] sm:gap-2 sm:px-3.5 md:px-4 md:text-sm"
                   >
-                    <span className="relative block h-4 w-5 shrink-0">
+                    <span className="relative hidden h-4 w-5 shrink-0 sm:block">
                       <span className="absolute left-1/2 top-0 h-2.5 w-3.5 -translate-x-1/2 rounded-t-sm bg-[#fde68a]" />
                       <span className="absolute left-1/2 top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 bg-[#fbbf24]" />
                     </span>
@@ -3222,7 +3222,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               ) : null}
 
               {isAppsHome ? (
-                <div className="mx-auto mt-5 max-w-7xl pb-8 md:mt-8">
+                <div className="mx-auto mt-5 w-full min-w-0 max-w-7xl pb-8 md:mt-8">
                   <section className="grid gap-5 lg:grid-cols-[1.06fr_0.94fr]">
                     <div className="relative flex min-h-[430px] flex-col justify-between overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(242,244,255,0.94)_48%,rgba(232,252,255,0.92))] p-7 shadow-[0_24px_70px_rgba(15,23,42,0.09)] md:p-11">
                       <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.2),transparent_66%)]" />
@@ -3341,40 +3341,40 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </div>
                   </section>
 
-                  <div className="mt-12 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-                    <section className="flex flex-col justify-between gap-7 rounded-[1.8rem] bg-[linear-gradient(135deg,#0f172a,#1e1b4b)] p-7 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] md:flex-row md:items-center md:p-9">
-                      <div>
-                        <h2 className="text-2xl font-black tracking-tight md:text-3xl">{st("studio.workspace.premiumTitle")}</h2>
+                  <div className="mt-12 grid gap-5">
+                    <section className="flex min-w-0 flex-col justify-between gap-6 overflow-hidden rounded-[1.5rem] bg-[linear-gradient(135deg,#0f172a,#1e1b4b)] p-5 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] sm:p-7 md:flex-row md:items-center md:rounded-[1.8rem] md:p-9">
+                      <div className="min-w-0">
+                        <h2 className="text-2xl font-black leading-tight tracking-tight md:text-3xl">{st("studio.workspace.premiumTitle")}</h2>
                         <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-[#cbd5e1]">{st("studio.workspace.premiumBody")}</p>
-                        <div className="mt-5 flex flex-wrap gap-2">
+                        <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                           {["studio.workspace.premiumCredits", "studio.workspace.premiumQueue", "studio.workspace.premiumModels", "studio.workspace.premiumWatermark"].map((key) => (
-                            <span key={key} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs font-black text-[#e0f2fe]">{st(key)}</span>
+                            <span key={key} className="min-w-0 truncate rounded-full border border-white/10 bg-white/10 px-3 py-2 text-center text-[11px] font-black text-[#e0f2fe] sm:text-xs">{st(key)}</span>
                           ))}
                         </div>
                       </div>
-                      <button type="button" onClick={() => setBillingModalOpen(true)} className="shrink-0 rounded-2xl bg-white px-5 py-4 text-sm font-black text-[#0f172a] shadow-lg transition hover:-translate-y-0.5">
+                      <button type="button" onClick={() => setBillingModalOpen(true)} className="w-full shrink-0 rounded-2xl bg-white px-5 py-4 text-sm font-black text-[#0f172a] shadow-lg transition hover:-translate-y-0.5 md:w-auto">
                         {st("studio.workspace.premiumCta")}
                       </button>
                     </section>
 
-                    <section className="rounded-[1.8rem] border border-black/[0.06] bg-white/80 p-6 shadow-[0_14px_38px_rgba(15,23,42,0.06)]">
-                      <div className="flex items-center justify-between gap-4">
-                        <h2 className="text-xl font-black tracking-tight text-[#0f172a]">{st("studio.workspace.recentTitle")}</h2>
-                        <Link href="/studio?view=projects" className="text-xs font-black text-[#4f46e5]">{st("studio.workspace.viewProjects")}</Link>
+                    <section className="min-w-0 overflow-hidden rounded-[1.5rem] border border-black/[0.06] bg-white/80 p-5 shadow-[0_14px_38px_rgba(15,23,42,0.06)] sm:p-6 md:rounded-[1.8rem]">
+                      <div className="flex min-w-0 items-center justify-between gap-3">
+                        <h2 className="min-w-0 truncate text-xl font-black tracking-tight text-[#0f172a]">{st("studio.workspace.recentTitle")}</h2>
+                        <Link href="/studio?view=projects" className="shrink-0 text-[11px] font-black text-[#4f46e5] sm:text-xs">{st("studio.workspace.viewProjects")}</Link>
                       </div>
                       <div className="mt-4">
                         {tasks.length ? tasks.slice(0, 3).map((task) => (
-                          <Link key={`recent-${task.id}`} href={`/studio?view=projects&taskId=${encodeURIComponent(task.id)}`} className="flex items-center gap-3 border-t border-black/[0.05] py-3 first:border-t-0">
+                          <Link key={`recent-${task.id}`} href={`/studio?view=projects&taskId=${encodeURIComponent(task.id)}`} className="flex min-w-0 items-center gap-3 border-t border-black/[0.05] py-3 first:border-t-0">
                             <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-[linear-gradient(135deg,#c7d2fe,#67e8f9)] text-[#334155]">
                               {task.mediaUrl && task.type === "Image" ? <img src={task.mediaUrl} alt="" className="h-full w-full object-cover" /> : <StudioIcon name={task.type === "Audio" ? "audio" : task.type === "Video" ? "video" : "image"} className="h-5 w-5" />}
                             </span>
-                            <span className="min-w-0">
+                            <span className="min-w-0 flex-1">
                               <strong className="block truncate text-sm font-black text-[#253044]">{task.title || task.prompt || taskTypeLabel(task.type)}</strong>
                               <span className="mt-1 block text-xs font-semibold text-[#94a3b8]">{taskStatusLabel(task.status)}</span>
                             </span>
                           </Link>
                         )) : (
-                          <p className="rounded-2xl bg-[#f8fafc] px-4 py-6 text-sm font-semibold leading-6 text-[#8490a3]">{st("studio.workspace.recentEmpty")}</p>
+                          <p className="break-words rounded-2xl bg-[#f8fafc] px-4 py-6 text-sm font-semibold leading-6 text-[#8490a3]">{st("studio.workspace.recentEmpty")}</p>
                         )}
                       </div>
                     </section>
