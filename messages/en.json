@@ -601,10 +601,10 @@
     "usage": {
       "title": "Use your credits for up to",
       "images": "FLUX Schnell images",
-      "videos": "5-sec Grok 480p videos",
+      "videos": "5-sec DreamFace IO videos",
       "voiceovers": "1,000-character voiceovers",
       "avatars": "5-sec Standard Avatar videos",
-      "note": "Examples are separate maximums, not a combined allowance. Actual usage varies by model, duration, resolution, and options."
+      "note": "Examples are separate maximums, not a combined allowance. Eligible daily DreamFace IO free usage is additional."
     },
     "message": {
       "trialUnavailable": "Trial credits are not available for this account. Purchased credits can still be used normally.",

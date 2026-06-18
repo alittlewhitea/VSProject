@@ -601,10 +601,10 @@
     "usage": {
       "title": "Use seus créditos para gerar até",
       "images": "imagens FLUX Schnell",
-      "videos": "vídeos Grok 480p de 5 s",
+      "videos": "vídeos DreamFace IO de 5 s",
       "voiceovers": "narrações de 1.000 caracteres",
       "avatars": "vídeos Avatar Standard de 5 s",
-      "note": "Os exemplos são limites separados, não uma franquia combinada. O uso real varia conforme modelo, duração, resolução e opções."
+      "note": "Os exemplos são limites separados e não cumulativos. O uso diário grátis elegível do DreamFace IO é adicional."
     },
     "message": {
       "trialUnavailable": "Créditos de teste não estão disponíveis para esta conta. Créditos comprados continuam funcionando normalmente.",

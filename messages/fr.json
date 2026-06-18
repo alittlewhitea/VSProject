@@ -601,10 +601,10 @@
     "usage": {
       "title": "Utilisez vos crédits jusqu'à",
       "images": "images FLUX Schnell",
-      "videos": "Vidéos 5-sec Grok 480p",
+      "videos": "Vidéos DreamFace IO de 5 secondes",
       "voiceovers": "Voix off de 1 000 caractères",
       "avatars": "Vidéos Avatar standard de 5 secondes",
-      "note": "Il s'agit par exemple de montants maximaux distincts, et non d'une allocation combinée. L'utilisation réelle varie selon le modèle, la durée, la résolution et les options."
+      "note": "Ces exemples sont des maximums distincts et non cumulables. Le quota quotidien gratuit DreamFace IO, si éligible, s'ajoute à ces valeurs."
     },
     "message": {
       "trialUnavailable": "Les crédits d'essai ne sont pas disponibles pour ce compte. Les crédits achetés peuvent encore être utilisés normalement.",

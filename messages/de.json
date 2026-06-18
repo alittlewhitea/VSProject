@@ -601,10 +601,10 @@
     "usage": {
       "title": "Deine Credits reichen für bis zu",
       "images": "FLUX-Schnell-Bilder",
-      "videos": "5-Sekunden-Grok-Videos in 480p",
+      "videos": "5-Sekunden-Videos mit DreamFace IO",
       "voiceovers": "Voiceovers mit 1.000 Zeichen",
       "avatars": "5-Sekunden-Standard-Avatar-Videos",
-      "note": "Die Beispiele sind separate Höchstwerte und nicht kombinierbar. Der tatsächliche Verbrauch hängt von Modell, Dauer, Auflösung und Optionen ab."
+      "note": "Die Beispiele sind separate Höchstwerte und nicht kombinierbar. Ein berechtigtes tägliches DreamFace-IO-Freikontingent kommt zusätzlich hinzu."
     },
     "message": {
       "trialUnavailable": "Für dieses Konto sind keine Test-Credits verfügbar. Gekaufte Credits können weiterhin normal verwendet werden.",

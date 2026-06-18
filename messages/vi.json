@@ -601,10 +601,10 @@
     "usage": {
       "title": "Dùng credit để tạo tối đa",
       "images": "ảnh FLUX Schnell",
-      "videos": "video Grok 480p dài 5 giây",
+      "videos": "video DreamFace IO dài 5 giây",
       "voiceovers": "bản lồng tiếng 1.000 ký tự",
       "avatars": "video Standard Avatar dài 5 giây",
-      "note": "Các ví dụ là giới hạn riêng khi dùng toàn bộ credit, không phải tổng quyền lợi cộng dồn. Mức dùng thực tế phụ thuộc model, thời lượng, độ phân giải và tùy chọn."
+      "note": "Các ví dụ là giới hạn riêng, không cộng dồn. Lượt DreamFace IO miễn phí hằng ngày đủ điều kiện được tính thêm."
     },
     "message": {
       "trialUnavailable": "Tài khoản này hiện không có credit dùng thử. Credit đã mua vẫn sử dụng bình thường.",

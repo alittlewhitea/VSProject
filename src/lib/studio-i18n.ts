@@ -19,6 +19,7 @@ import { studioFrenchMessages } from "./studio-i18n-fr";
 import { studioAdditionalMessages } from "./studio-i18n-additions";
 import { studioDreamfaceIoMessages } from "./studio-i18n-dreamface-io";
 import { studioFalErrorMessages } from "./studio-i18n-fal-errors";
+import { studioWorkspaceHomeMessages } from "./studio-i18n-workspace-home";
 
 type StudioMessages = Record<string, string>;
 
@@ -55,10 +56,10 @@ const messages: Partial<Record<Locale, StudioMessages>> = {
     "studio.billing.includedCredits": "Included credits",
     "studio.billing.usage.title": "Use your credits for up to",
     "studio.billing.usage.images": "FLUX Schnell images",
-    "studio.billing.usage.videos": "5-sec Grok 480p videos",
+    "studio.billing.usage.videos": "5-sec DreamFace IO videos",
     "studio.billing.usage.voiceovers": "1,000-character voiceovers",
     "studio.billing.usage.avatars": "5-sec Standard Avatar videos",
-    "studio.billing.usage.note": "Separate maximums, not a combined allowance. Actual usage varies by model and settings.",
+    "studio.billing.usage.note": "Separate maximums, not a combined allowance. Eligible daily DreamFace IO free usage is additional.",
     "studio.billing.checkoutFailed": "Unable to start checkout.",
     "studio.billing.subscriptionCheckoutFailed": "Unable to start subscription checkout.",
     "studio.generate.button": "Generate",
@@ -151,10 +152,10 @@ const messages: Partial<Record<Locale, StudioMessages>> = {
     "studio.billing.includedCredits": "包含积分",
     "studio.billing.usage.title": "这些积分最高可用于生成",
     "studio.billing.usage.images": "张 FLUX Schnell 图片",
-    "studio.billing.usage.videos": "个 5 秒 Grok 480p 视频",
+    "studio.billing.usage.videos": "个 5 秒 DreamFace IO 视频",
     "studio.billing.usage.voiceovers": "段 1,000 字符配音",
     "studio.billing.usage.avatars": "个 5 秒标准 Avatar 视频",
-    "studio.billing.usage.note": "以上为分别使用全部积分时的上限，并非可以同时获得。实际消耗取决于模型和设置。",
+    "studio.billing.usage.note": "以上为分别使用全部积分时的上限，并非可以同时获得；符合条件的 DreamFace IO 每日免费次数另计。",
     "studio.billing.checkoutFailed": "暂时无法打开支付页面。",
     "studio.billing.subscriptionCheckoutFailed": "暂时无法打开会员支付页面。",
     "studio.generate.button": "生成",
@@ -226,10 +227,10 @@ const messages: Partial<Record<Locale, StudioMessages>> = {
     "studio.billing.includedCredits": "Créditos incluídos",
     "studio.billing.usage.title": "Use seus créditos para gerar até",
     "studio.billing.usage.images": "imagens FLUX Schnell",
-    "studio.billing.usage.videos": "vídeos Grok 480p de 5 s",
+    "studio.billing.usage.videos": "vídeos DreamFace IO de 5 s",
     "studio.billing.usage.voiceovers": "narrações de 1.000 caracteres",
     "studio.billing.usage.avatars": "vídeos Avatar Standard de 5 s",
-    "studio.billing.usage.note": "Limites separados, não cumulativos. O uso real varia conforme o modelo e as opções.",
+    "studio.billing.usage.note": "Limites separados e não cumulativos. O uso diário grátis elegível do DreamFace IO é adicional.",
     "studio.billing.checkoutFailed": "Não foi possível iniciar o checkout.",
     "studio.billing.subscriptionCheckoutFailed": "Não foi possível iniciar o checkout da assinatura.",
     "studio.generate.button": "Gerar",
@@ -301,10 +302,10 @@ const messages: Partial<Record<Locale, StudioMessages>> = {
     "studio.billing.includedCredits": "Включенные кредиты",
     "studio.billing.usage.title": "Кредитов хватит максимум на",
     "studio.billing.usage.images": "изображений FLUX Schnell",
-    "studio.billing.usage.videos": "5-сек. видео Grok 480p",
+    "studio.billing.usage.videos": "5-сек. видео DreamFace IO",
     "studio.billing.usage.voiceovers": "озвучек по 1 000 символов",
     "studio.billing.usage.avatars": "5-сек. видео Standard Avatar",
-    "studio.billing.usage.note": "Это отдельные максимумы, а не суммарный пакет. Расход зависит от модели и настроек.",
+    "studio.billing.usage.note": "Это отдельные максимумы, а не суммарный пакет. Доступный дневной бесплатный лимит DreamFace IO учитывается отдельно.",
     "studio.billing.checkoutFailed": "Не удалось открыть оплату.",
     "studio.billing.subscriptionCheckoutFailed": "Не удалось открыть оплату подписки.",
     "studio.generate.button": "Создать",
@@ -376,10 +377,10 @@ const messages: Partial<Record<Locale, StudioMessages>> = {
     "studio.billing.includedCredits": "Credit được bao gồm",
     "studio.billing.usage.title": "Dùng credit để tạo tối đa",
     "studio.billing.usage.images": "ảnh FLUX Schnell",
-    "studio.billing.usage.videos": "video Grok 480p dài 5 giây",
+    "studio.billing.usage.videos": "video DreamFace IO dài 5 giây",
     "studio.billing.usage.voiceovers": "bản lồng tiếng 1.000 ký tự",
     "studio.billing.usage.avatars": "video Standard Avatar dài 5 giây",
-    "studio.billing.usage.note": "Đây là các giới hạn riêng, không cộng dồn. Mức dùng thực tế phụ thuộc model và tùy chọn.",
+    "studio.billing.usage.note": "Đây là các giới hạn riêng, không cộng dồn. Lượt DreamFace IO miễn phí hằng ngày đủ điều kiện được tính thêm.",
     "studio.billing.checkoutFailed": "Không thể mở checkout.",
     "studio.billing.subscriptionCheckoutFailed": "Không thể mở checkout gói thành viên.",
     "studio.generate.button": "Tạo",
@@ -666,6 +667,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
   function t(key: string, values?: Record<string, string | number | null | undefined>) {
     let template =
       studioDreamfaceIoMessages[locale]?.[key] ||
+      studioWorkspaceHomeMessages[locale]?.[key] ||
       studioFalErrorMessages[locale]?.[key] ||
       (locale === "de" ? studioGermanMessages[key] : undefined) ||
       (locale === "fr" ? studioFrenchMessages[key] : undefined) ||
@@ -679,6 +681,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
       workflowMessages[defaultLocale]?.[key] ||
       studioHomeMessages[defaultLocale]?.[key] ||
       studioFeedbackMessages[defaultLocale]?.[key] ||
+      studioWorkspaceHomeMessages[defaultLocale]?.[key] ||
       studioFalErrorMessages[defaultLocale]?.[key] ||
       studioModelMessages[defaultLocale]?.[key] ||
       key;

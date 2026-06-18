@@ -117,121 +117,72 @@ const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
 const GENERATION_IDEMPOTENCY_KEY_PREFIX = "nova_generation_idempotency";
 const STUDIO_LOGIN_DRAFT_KEY = "nova_studio_login_draft";
 
-const HOME_SLIDES: Array<{
-  eyebrow: string;
-  title: string;
-  accent: string;
-  body: string;
-  cta: string;
-  href: string;
-  gradient: string;
-  stats: string[];
+const WORKSPACE_VIDEO_BASE_URL = "https://media.dreamface.io/ai_video";
+
+const WORKSPACE_SHOWCASES: Array<{
+  key: "baseball" | "cgi" | "tokyo" | "spectator";
+  file: string;
+  prompt: string;
+  labelKey: string;
+  titleKey: string;
+  metaKey: string;
+  desktopRatio?: "16x9" | "1x1";
 }> = [
   {
-    eyebrow: "Image studio",
-    title: "Make scroll-stopping visuals with",
-    accent: "GPT Image 2",
-    body: "Readable text, product shots, posters, and campaign concepts.",
-    cta: "Start with image",
-    href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image",
-    gradient: "from-[#bde0fe] via-[#e8f4ff] to-[#d8f7df]",
-    stats: ["Ads", "Posters", "Products"]
+    key: "baseball",
+    file: "baseball-game-broadcast-shot",
+    prompt: "A baseball game broadcast shot — person sits in stadium stands in a team jersey, watching the field and posing softly like a viral stargirl moment caught on live TV.",
+    labelKey: "studio.workspace.showcase.baseball.label",
+    titleKey: "studio.workspace.showcase.baseball.title",
+    metaKey: "studio.workspace.showcase.baseball.meta"
   },
   {
-    eyebrow: "Video studio",
-    title: "Turn ideas into short clips with",
-    accent: "Kling and Seedance",
-    body: "Create motion from text or animate a product, portrait, or scene.",
-    cta: "Create a video",
-    href: "/studio?mode=video&workflow=image-to-video&duration=5s",
-    gradient: "from-[#cfe8ff] via-[#e8e7ff] to-[#f4dcff]",
-    stats: ["Text to video", "Image to video", "Social clips"]
+    key: "cgi",
+    file: "cgi-breakdown-reveal",
+    prompt: "CGI breakdown reveal — mesh to beauty pass, each render layer cuts in sequence, turntable camera, ending on the final polished visual.",
+    labelKey: "studio.workspace.showcase.cgi.label",
+    titleKey: "studio.workspace.showcase.cgi.title",
+    metaKey: "studio.workspace.showcase.cgi.meta"
   },
   {
-    eyebrow: "AI Avatar",
-    title: "Create talking presenter videos from",
-    accent: "one image",
-    body: "Use a face image and a short script to make an avatar video.",
-    cta: "Try Avatar",
-    href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard",
-    gradient: "from-[#ffe1d5] via-[#f5d8e9] to-[#ecc7ff]",
-    stats: ["Talking avatar", "Voiceover", "Presenter clips"]
+    key: "tokyo",
+    file: "tokyo-night-street-racing",
+    prompt: "Tokyo night street racing — cars drift and donut around the character, low angles and 35mm film grain, blockbuster reveal.",
+    labelKey: "studio.workspace.showcase.tokyo.label",
+    titleKey: "studio.workspace.showcase.tokyo.title",
+    metaKey: "studio.workspace.showcase.tokyo.meta"
+  },
+  {
+    key: "spectator",
+    file: "spectator-sprints-from-the-stands",
+    prompt: "Spectator sprints from the stands, jumps fences, evades security, charges onto the pitch and strikes — all in one continuous telephoto take.",
+    labelKey: "studio.workspace.showcase.spectator.label",
+    titleKey: "studio.workspace.showcase.spectator.title",
+    metaKey: "studio.workspace.showcase.spectator.meta",
+    desktopRatio: "1x1"
   }
 ];
 
-const TOOLKIT_APPS: Array<{
-  title: string;
-  body: string;
-  icon: StudioIconName;
-  href: string;
-  accent: string;
-  iconClass: string;
-}> = [
-  {
-    title: "AI Avatar",
-    body: "Talking presenter from one image.",
-    icon: "video",
-    href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard",
-    accent: "from-[#dff7ff] via-[#eef2ff] to-[#f7e8ff]",
-    iconClass: "text-[#2563eb]"
-  },
-  {
-    title: "Text to Image",
-    body: "Ads, posters, products, concepts.",
-    icon: "sparkles",
-    href: "/studio?mode=image&workflow=text-to-image",
-    accent: "from-[#dbeafe] to-[#ecfeff]",
-    iconClass: "text-[#0ea5e9]"
-  },
-  {
-    title: "Image to Image",
-    body: "Restyle or edit a reference.",
-    icon: "wand",
-    href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image",
-    accent: "from-[#fce7f3] to-[#eff6ff]",
-    iconClass: "text-[#06b6d4]"
-  },
-  {
-    title: "Text to Video",
-    body: "Scene ideas into short clips.",
-    icon: "film",
-    href: "/studio?mode=video&workflow=text-to-video&duration=5s",
-    accent: "from-[#ede9fe] to-[#e0f2fe]",
-    iconClass: "text-[#8b5cf6]"
-  },
-  {
-    title: "Image to Video",
-    body: "Animate products or portraits.",
-    icon: "motion",
-    href: "/studio?mode=video&workflow=image-to-video&duration=5s",
-    accent: "from-[#dcfce7] to-[#dbeafe]",
-    iconClass: "text-[#22c55e]"
-  },
-  {
-    title: "Enhance & Cleanup",
-    body: "Upscale and clean images.",
-    icon: "cleanup",
-    href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image",
-    accent: "from-[#fff7ed] to-[#fce7f3]",
-    iconClass: "text-[#f97316]"
-  },
-  {
-    title: "Background Remove",
-    body: "Transparent PNG cutouts.",
-    icon: "cleanup",
-    href: "/studio?mode=image&workflow=background-remove&provider=bria-background-remove",
-    accent: "from-[#ecfeff] to-[#eef2ff]",
-    iconClass: "text-[#0891b2]"
-  },
-  {
-    title: "Text to Audio",
-    body: "Natural voiceovers from scripts.",
-    icon: "audio",
-    href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts",
-    accent: "from-[#fef9c3] to-[#dcfce7]",
-    iconClass: "text-[#10b981]"
-  }
-];
+function workspaceShowcaseHref(prompt: string) {
+  return `/studio?mode=video&workflow=text-to-video&duration=5s&prompt=${encodeURIComponent(prompt)}`;
+}
+
+function WorkspaceShowcaseVideo({
+  file,
+  desktopRatio = "16x9",
+  className = ""
+}: {
+  file: string;
+  desktopRatio?: "16x9" | "1x1";
+  className?: string;
+}) {
+  return (
+    <video autoPlay muted loop playsInline preload="metadata" className={className}>
+      <source media="(max-width: 639px)" src={`${WORKSPACE_VIDEO_BASE_URL}/1x1/${file}-1x1.mp4`} type="video/mp4" />
+      <source src={`${WORKSPACE_VIDEO_BASE_URL}/${desktopRatio}/${file}-${desktopRatio}.mp4`} type="video/mp4" />
+    </video>
+  );
+}
 
 const STUDIO_BILLING_CYCLES: BillingCycle[] = ["weekly", "monthly", "yearly"];
 
@@ -259,11 +210,11 @@ function StudioCreditUsageExamples({
       </p>
       <div className={`mt-2 grid grid-cols-2 ${compact ? "gap-1.5" : "gap-2"}`}>
         {examples.map((example) => (
-          <div key={example.key} className="rounded-xl border border-black/[0.07] bg-white/85 px-2.5 py-2.5">
-            <p className={`${compact ? "text-lg" : "text-xl"} font-black tracking-tight text-[#151922]`}>
+          <div key={example.key} className={`border border-black/[0.07] bg-white ${compact ? "rounded-xl px-2.5 py-2" : "rounded-2xl px-3 py-2.5"}`}>
+            <p className={`${compact ? "text-lg" : "text-xl"} font-black leading-none tracking-tight text-[#151922]`}>
               {example.value.toLocaleString()}
             </p>
-            <p className="mt-0.5 text-[10px] font-semibold leading-4 text-[#667085]">{example.label}</p>
+            <p className="mt-1 text-[10px] font-semibold leading-[1.35] text-[#667085]">{example.label}</p>
           </div>
         ))}
       </div>
@@ -1304,7 +1255,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [galleryTemplates, setGalleryTemplates] = useState<GalleryTemplate[]>([]);
   const [galleryTemplateNote, setGalleryTemplateNote] = useState("");
-  const [homeSlideIndex, setHomeSlideIndex] = useState(0);
   const [mobileStudioMenuOpen, setMobileStudioMenuOpen] = useState(false);
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [billingMessage, setBillingMessage] = useState("");
@@ -1329,14 +1279,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   useEffect(() => {
     setMobileStudioMenuOpen(false);
   }, [isAppsHome, isProjectsView, mode]);
-
-  useEffect(() => {
-    if (!isAppsHome) return;
-    const timer = window.setInterval(() => {
-      setHomeSlideIndex((index) => (index + 1) % HOME_SLIDES.length);
-    }, 5200);
-    return () => window.clearInterval(timer);
-  }, [isAppsHome]);
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -1753,43 +1695,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const selectedProjectTask = selectedProjectId
     ? tasks.find((task) => task.id === selectedProjectId) || tasks[0] || null
     : tasks[0] || null;
-  const localizedHomeSlides = HOME_SLIDES.map((slide, index) => {
-    const key = index === 0 ? "image" : index === 1 ? "video" : "avatar";
-    return {
-      ...slide,
-      eyebrow: st(`studio.home.slide.${key}.eyebrow`),
-      title: st(`studio.home.slide.${key}.title`),
-      body: st(`studio.home.slide.${key}.body`),
-      cta: st(`studio.home.slide.${key}.cta`),
-      stats: st(`studio.home.slide.${key}.stats`).split("|")
-    };
-  });
-  const activeHomeSlide = localizedHomeSlides[homeSlideIndex % localizedHomeSlides.length];
-  const toolkitTitleKeys = [
-    "studio.nav.avatar",
-    "studio.workflow.text-to-image",
-    "studio.workflow.image-to-image",
-    "studio.workflow.text-to-video",
-    "studio.workflow.image-to-video",
-    "studio.workflow.enhance-cleanup",
-    "studio.workflow.background-remove",
-    "studio.workflow.text-to-audio"
-  ];
-  const toolkitBodyKeys = [
-    "studio.home.quick.avatar",
-    "studio.home.quick.textImage",
-    "studio.home.quick.imageImage",
-    "studio.home.quick.textVideo",
-    "studio.home.quick.imageVideo",
-    "studio.home.quick.enhance",
-    "studio.home.quick.remove",
-    "studio.home.quick.audio"
-  ];
-  const localizedToolkitApps = TOOLKIT_APPS.map((app, index) => ({
-    ...app,
-    title: st(toolkitTitleKeys[index]),
-    body: st(toolkitBodyKeys[index])
-  }));
   const taskStatusLabel = (status: TaskStatus) => st(`studio.task.${status.toLowerCase()}`);
   const taskTypeLabel = (type: TaskItem["type"]) => st(`studio.task.${type.toLowerCase()}`);
   const latestActiveTask = activeTasks[0] || null;
@@ -2798,16 +2703,20 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
         {billingModalOpen ? (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/58 p-3 backdrop-blur-sm md:p-6"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#0b1220]/70 p-3 backdrop-blur-[6px] md:p-6"
             onClick={() => {
               if (!loadingBillingItem) setBillingModalOpen(false);
             }}
           >
             <section
-              className="relative max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-[1.5rem] border border-white/75 bg-white shadow-[0_34px_110px_rgba(15,23,42,0.28)] md:rounded-[2rem]"
+              className="relative max-h-[92vh] w-full max-w-[1180px] overflow-hidden rounded-[1.65rem] border border-white bg-[#f8fafc] shadow-[0_36px_120px_rgba(2,6,23,0.42)] md:rounded-[2.15rem]"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#08bff1,#8b5cf6,#f6b431)]" />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-[5px] bg-[linear-gradient(90deg,#4f46e5,#06b6d4)]" />
+              <div className="pointer-events-none absolute left-0 right-0 top-[5px] h-80 overflow-hidden bg-white">
+                <span className="absolute -left-20 -top-36 h-96 w-96 rounded-full bg-[#eef2ff] blur-3xl" />
+                <span className="absolute -right-16 -top-32 h-96 w-96 rounded-full bg-[#ecfeff] blur-3xl" />
+              </div>
               <button
                 type="button"
                 aria-label={st("studio.billing.close")}
@@ -2815,25 +2724,25 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   if (!loadingBillingItem) setBillingModalOpen(false);
                 }}
                 disabled={Boolean(loadingBillingItem)}
-                className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full border border-black/10 bg-white text-2xl leading-none text-[#667085] shadow-sm transition hover:bg-[#f8fafc] hover:text-[#111827] disabled:opacity-50"
+                className="absolute right-5 top-5 z-10 grid h-11 w-11 place-items-center rounded-full border border-black/10 bg-white/85 text-xl leading-none text-[#64748b] shadow-[0_8px_20px_rgba(15,23,42,0.06)] backdrop-blur transition hover:bg-white hover:text-[#111827] disabled:opacity-50"
               >
                 x
               </button>
 
-              <div className="max-h-[92vh] overflow-y-auto px-4 py-6 sm:px-6 md:px-8 md:py-8">
+              <div className="relative max-h-[92vh] overflow-y-auto px-4 pb-7 pt-8 sm:px-6 md:px-8 md:pb-8 md:pt-9">
                 <div className="mx-auto max-w-3xl text-center">
-                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-full border-2 border-[#12bff3] bg-white shadow-[0_16px_40px_rgba(8,191,241,0.18)]">
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-[1.15rem] border border-[#dbeafe] bg-white shadow-[0_12px_28px_rgba(79,70,229,0.12)]">
                     <span className="relative block h-5 w-6">
                       <span className="absolute left-1/2 top-0 h-3 w-4 -translate-x-1/2 rounded-t-sm bg-[#ffd45d]" />
                       <span className="absolute left-1/2 top-2 h-3.5 w-3.5 -translate-x-1/2 rotate-45 bg-[#f6a91f]" />
                     </span>
                   </div>
-                  <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-[#08a8d8]">{st("studio.billing.premium")}</p>
-                  <h2 className="mt-2 text-3xl font-black tracking-tight text-[#151922] md:text-5xl">{st("studio.billing.plansTitle")}</h2>
-                  <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#667085] md:text-base">
+                  <p className="mt-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#06a8c7]">{st("studio.billing.premium")}</p>
+                  <h2 className="mt-2 text-3xl font-black leading-[1.04] tracking-[-0.045em] text-[#0f172a] md:text-[2.65rem]">{st("studio.billing.plansTitle")}</h2>
+                  <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-[#667085]">
                     {st("studio.billing.description")}
                   </p>
-                  <div className="mt-5 inline-flex rounded-full border border-black/10 bg-[#f3f6fb] p-1">
+                  <div className="mt-5 inline-flex rounded-full border border-[#dbe1ea] bg-[#eef2f7] p-1">
                     {STUDIO_BILLING_CYCLES.map((cycle) => (
                       <button
                         key={cycle}
@@ -2843,9 +2752,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, cycle]))
                           )
                         }
-                        className={`rounded-full px-4 py-2 text-xs font-black transition ${
+                        className={`rounded-full px-5 py-2 text-xs font-black transition ${
                           SUBSCRIPTION_PLANS.every((plan) => selectedBillingCycles[plan.id] === cycle)
-                            ? "bg-white text-[#111827] shadow-sm"
+                            ? "bg-white text-[#0f172a] shadow-[0_6px_16px_rgba(15,23,42,0.08)]"
                             : "text-[#6b7280] hover:text-[#111827]"
                         }`}
                       >
@@ -2861,12 +2770,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   </p>
                 ) : null}
 
-                <div className="mt-7 grid gap-4 lg:grid-cols-3">
-                  <article className="flex min-h-[460px] flex-col rounded-[1.35rem] border border-black/10 bg-[#f8fafc] p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
+                <div className="mt-6 grid gap-4 md:grid-cols-[0.9fr_1.08fr_1.08fr]">
+                  <article className="flex min-h-[430px] flex-col rounded-[1.6rem] border border-[#e2e8f0] bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.07)]">
                     <h3 className="text-2xl font-black text-[#151922]">{st("studio.billing.free")}</h3>
-                    <p className="mt-5 text-5xl font-black">$0</p>
+                    <p className="mt-4 text-5xl font-black">$0</p>
                     <p className="mt-2 text-sm font-semibold text-[#667085]">{st("studio.billing.trialCredits")}</p>
-                    <div className="mt-4 rounded-2xl border border-black/10 bg-white px-4 py-3">
+                    <div className="mt-4 rounded-[1.25rem] border border-[#dbeafe] bg-[#f8fdff] px-4 py-3.5">
                       <p className="text-3xl font-black tracking-tight text-[#151922]">
                         100
                         <span className="ml-2 text-xs font-black uppercase tracking-[0.1em] text-[#667085]">
@@ -2878,11 +2787,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     <button
                       type="button"
                       disabled
-                      className="mt-7 rounded-xl bg-[#e9edf3] px-5 py-3 text-sm font-black text-[#a1a8b3]"
+                      className="mt-5 rounded-xl bg-[#e9edf3] px-5 py-3 text-sm font-black text-[#a1a8b3]"
                     >
                       {st("studio.billing.currentPlan")}
                     </button>
-                    <div className="mt-8 space-y-3 text-sm font-semibold leading-6 text-[#394150]">
+                    <div className="mt-5 space-y-2.5 text-sm font-semibold leading-5 text-[#394150]">
                       {[st("studio.billing.freeFeature.imageAudio"), st("studio.billing.freeFeature.history"), st("studio.billing.freeFeature.refund")].map((feature) => (
                         <p key={feature} className="flex gap-3">
                           <span className="text-[#08bff1]">+</span>
@@ -2899,15 +2808,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     return (
                       <article
                         key={plan.id}
-                        className={`relative flex min-h-[460px] flex-col rounded-[1.35rem] border p-5 shadow-[0_18px_52px_rgba(15,23,42,0.08)] ${
+                        className={`relative flex min-h-[430px] flex-col rounded-[1.6rem] border p-5 shadow-[0_18px_52px_rgba(15,23,42,0.08)] ${
                           plan.highlight
-                            ? "border-[#08bff1] bg-white ring-4 ring-[#08bff1]/12"
-                            : "border-[#d6c7ff] bg-[linear-gradient(135deg,#ffffff_0%,#f6f1ff_55%,#eafaff_100%)]"
+                            ? "border-2 border-[#06b6d4]/60 bg-white shadow-[0_20px_50px_rgba(6,182,212,0.12)]"
+                            : "border-[#ddd6fe] bg-[radial-gradient(circle_at_95%_0%,rgba(99,102,241,0.12),transparent_40%),#fff]"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${plan.highlight ? "bg-[#08bff1] text-[#061215]" : "bg-white text-[#6d55c7]"}`}>
+                            <p className={`inline-flex rounded-full px-3 py-2 text-xs font-black ${plan.highlight ? "bg-[#ecfeff] text-[#0891b2]" : "bg-[#f5f3ff] text-[#7c3aed]"}`}>
                               {st(`studio.billing.plan.${plan.id}.badge`)}
                             </p>
                             <h3 className="mt-4 text-2xl font-black text-[#151922]">{st(`studio.billing.plan.${plan.id}.name`)}</h3>
@@ -2930,8 +2839,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           </select>
                         </div>
 
-                        <div className="mt-6">
-                          <p className="text-5xl font-black tracking-tight">
+                        <div className="mt-5">
+                          <p className="text-[2.65rem] font-black tracking-tight">
                             {formatUsd(price.amountCents).replace(".00", "")}
                             <span className="text-lg font-bold text-[#5d6675]"> / {st(`studio.billing.interval.${price.interval}`)}</span>
                           </p>
@@ -2943,7 +2852,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           </p>
                         </div>
 
-                        <div className="mt-4 rounded-2xl border border-[#08bff1]/25 bg-[linear-gradient(135deg,#f0fbff_0%,#ffffff_55%,#f4f1ff_100%)] px-4 py-3 shadow-[0_10px_28px_rgba(8,191,241,0.08)]">
+                        <div className="mt-4 rounded-[1.25rem] border border-[#dbeafe] bg-[#f8fdff] px-4 py-3.5">
                           <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#487080]">
                             {st("studio.billing.includedCredits")}
                           </p>
@@ -2960,14 +2869,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           type="button"
                           onClick={() => startStudioSubscriptionCheckout(plan.id, cycle)}
                           disabled={Boolean(loadingBillingItem)}
-                          className={`mt-6 rounded-xl px-5 py-3 text-sm font-black transition active:scale-[0.98] disabled:opacity-60 ${
-                            plan.highlight ? "bg-[#08bff1] text-[#061215]" : "bg-[#151922] text-white"
+                          className={`mt-5 rounded-xl px-5 py-3 text-sm font-black transition active:scale-[0.98] disabled:opacity-60 ${
+                            plan.highlight ? "bg-[linear-gradient(135deg,#4f46e5,#06b6d4)] text-white shadow-[0_12px_24px_rgba(79,70,229,0.2)]" : "bg-[#0f172a] text-white shadow-[0_12px_24px_rgba(15,23,42,0.16)]"
                           }`}
                         >
                           {loading ? st("studio.billing.openingCheckout") : st(`studio.billing.plan.${plan.id}.cta`)}
                         </button>
 
-                        <div className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#394150]">
+                        <div className="mt-5 space-y-2.5 text-sm font-semibold leading-5 text-[#394150]">
                           {plan.features.slice(0, 6).map((feature, index) => (
                             <p key={feature} className="flex gap-3">
                               <span className="text-[#08bff1]">+</span>
@@ -2980,7 +2889,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   })}
                 </div>
 
-                <section className="mt-6 rounded-[1.35rem] border border-black/10 bg-[#fbfcff] p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+                <section className="mt-6 rounded-[1.75rem] border border-[#e5e7eb] bg-[#f8fafc]/80 p-6 shadow-[0_12px_28px_rgba(15,23,42,0.05)]">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">{st("studio.billing.extraCredits")}</p>
@@ -2994,7 +2903,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     {CREDIT_PACKS.map((pack) => {
                       const loading = loadingBillingItem === `credits:${pack.id}`;
                       return (
-                        <article key={pack.id} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
+                        <article key={pack.id} className="rounded-[1.35rem] border border-[#e5e7eb] bg-white p-4 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
                           <h4 className="text-base font-black text-[#151922]">{st(`studio.billing.pack.${pack.id}`)}</h4>
                           <p className="mt-2 text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
                           <p className="mt-2 text-2xl font-black tracking-tight text-[#151922]">
@@ -3279,12 +3188,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     aria-label={st("studio.billing.title")}
                     title={st("studio.billing.title")}
                     onClick={() => openBillingModal("vip_badge")}
-                    className="grid h-10 w-10 place-items-center rounded-full border-2 border-[#12bff3] bg-white text-[#f6b431] shadow-[0_12px_30px_rgba(8,191,241,0.18)] transition hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-[0_18px_42px_rgba(8,191,241,0.26)]"
+                    className="inline-flex h-10 items-center gap-2 rounded-full bg-[linear-gradient(135deg,#4f46e5,#06b6d4)] px-3.5 text-xs font-black text-white shadow-[0_12px_28px_rgba(79,70,229,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(79,70,229,0.3)] md:px-4 md:text-sm"
                   >
-                    <span className="relative block h-4 w-5">
-                      <span className="absolute left-1/2 top-0 h-2.5 w-3.5 -translate-x-1/2 rounded-t-sm bg-[#ffd45d]" />
-                      <span className="absolute left-1/2 top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 bg-[#f6a91f]" />
+                    <span className="relative block h-4 w-5 shrink-0">
+                      <span className="absolute left-1/2 top-0 h-2.5 w-3.5 -translate-x-1/2 rounded-t-sm bg-[#fde68a]" />
+                      <span className="absolute left-1/2 top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 bg-[#fbbf24]" />
                     </span>
+                    <span>{st("studio.workspace.upgrade")}</span>
                   </button>
                   {accessToken ? (
                     <Link href="/studio?view=projects" className="hidden rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] sm:inline-flex">
@@ -3312,121 +3222,162 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               ) : null}
 
               {isAppsHome ? (
-                <div className="mx-auto mt-5 max-w-7xl md:mt-8">
-                  <div className={`relative overflow-hidden rounded-[1.5rem] border border-white/70 bg-gradient-to-br ${activeHomeSlide.gradient} p-4 shadow-[0_24px_70px_rgba(56,189,248,0.14)] md:rounded-[2.2rem] md:p-7`}>
-                    <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
-                      <div className="relative flex min-h-[360px] flex-col justify-between rounded-[1.2rem] bg-white/62 p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] backdrop-blur md:rounded-[1.8rem] md:p-8">
-                        <div>
-                          <div className="mb-5 flex items-center justify-between gap-3">
-                            <span className="rounded-full bg-[#111827] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-white">
-                              {activeHomeSlide.eyebrow}
-                            </span>
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                aria-label={st("studio.home.previous")}
-                                onClick={() => setHomeSlideIndex((index) => (index + localizedHomeSlides.length - 1) % localizedHomeSlides.length)}
-                                className="grid h-9 w-9 place-items-center rounded-full border border-black/[0.06] bg-white/80 text-[#667085] shadow-sm transition hover:bg-white hover:text-[#202633]"
-                              >
-                                <StudioIcon name="chevron-left" className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                aria-label={st("studio.home.next")}
-                                onClick={() => setHomeSlideIndex((index) => (index + 1) % localizedHomeSlides.length)}
-                                className="grid h-9 w-9 place-items-center rounded-full border border-black/[0.06] bg-white/80 text-[#667085] shadow-sm transition hover:bg-white hover:text-[#202633]"
-                              >
-                                <StudioIcon name="chevron-right" className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                          <h2 className="max-w-2xl text-4xl font-black leading-[1.02] tracking-tight text-[#202633] md:text-6xl">
-                            {activeHomeSlide.title}{" "}
-                            <span className="bg-[linear-gradient(90deg,#0ea5e9,#8b5cf6,#14b8a6)] bg-clip-text text-transparent">
-                              {activeHomeSlide.accent}
-                            </span>
-                          </h2>
-                          <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-[#536071] md:text-lg">{activeHomeSlide.body}</p>
-                        </div>
-                        <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="mx-auto mt-5 max-w-7xl pb-8 md:mt-8">
+                  <section className="grid gap-5 lg:grid-cols-[1.06fr_0.94fr]">
+                    <div className="relative flex min-h-[430px] flex-col justify-between overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(242,244,255,0.94)_48%,rgba(232,252,255,0.92))] p-7 shadow-[0_24px_70px_rgba(15,23,42,0.09)] md:p-11">
+                      <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.2),transparent_66%)]" />
+                      <div className="relative">
+                        <span className="inline-flex rounded-full border border-[#dbeafe] bg-[#eff6ff] px-3 py-2 text-[11px] font-black uppercase tracking-[0.13em] text-[#2563eb]">
+                          {st("studio.workspace.badge")}
+                        </span>
+                        <p className="mt-8 text-xs font-black uppercase tracking-[0.18em] text-[#94a3b8]">{st("studio.workspace.eyebrow")}</p>
+                        <h2 className="mt-3 max-w-3xl text-4xl font-black leading-[1.02] tracking-[-0.055em] text-[#0f172a] md:text-6xl">
+                          {st("studio.workspace.heroTitle")}{" "}
+                          <span className="bg-[linear-gradient(100deg,#4f46e5,#06b6d4)] bg-clip-text text-transparent">
+                            {st("studio.workspace.heroAccent")}
+                          </span>
+                        </h2>
+                        <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-[#526174] md:text-lg">
+                          {st("studio.workspace.heroBody")}
+                        </p>
+                      </div>
+                      <div className="relative mt-9">
+                        <div className="flex flex-col gap-3 sm:flex-row">
                           <Link
-                            href={activeHomeSlide.href}
-                            className="inline-flex items-center justify-center gap-3 rounded-2xl bg-[#111827] px-6 py-4 text-sm font-black text-white shadow-[0_18px_40px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5"
+                            href="/studio?mode=video&workflow=text-to-video&duration=5s"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-6 py-4 text-sm font-black text-white shadow-[0_18px_40px_rgba(15,23,42,0.2)] transition hover:-translate-y-0.5"
                           >
-                            {activeHomeSlide.cta}
+                            {st("studio.workspace.start")}
                             <StudioIcon name="chevron-right" className="h-4 w-4" />
                           </Link>
-                          <div className="flex flex-wrap gap-2">
-                            {activeHomeSlide.stats.map((item) => (
-                              <span key={item} className="rounded-full border border-white/80 bg-white/62 px-3 py-1.5 text-xs font-black text-[#475569] shadow-sm backdrop-blur">
-                                {item}
-                              </span>
-                            ))}
-                          </div>
+                          <a
+                            href="#workspace-examples"
+                            className="inline-flex items-center justify-center rounded-2xl border border-black/[0.08] bg-white/80 px-6 py-4 text-sm font-black text-[#334155] transition hover:bg-white"
+                          >
+                            {st("studio.workspace.examples")}
+                          </a>
+                        </div>
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          {["studio.workflow.image-to-video", "studio.workspace.productAds", "studio.nav.avatar", "studio.workflow.enhance-cleanup"].map((key) => (
+                            <span key={key} className="rounded-full border border-black/[0.06] bg-white/74 px-3 py-2 text-xs font-black text-[#526174] shadow-sm">
+                              {st(key)}
+                            </span>
+                          ))}
                         </div>
                       </div>
-
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {[
-                          { label: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, accent: "bg-[#eff6ff] text-[#2563eb]", note: st("studio.home.quick.avatar") },
-                          { label: st("studio.workflow.text-to-image"), href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image", icon: "sparkles" as StudioIconName, accent: "bg-[#ecfeff] text-[#0891b2]", note: st("studio.home.quick.textImage") },
-                          { label: st("studio.workflow.image-to-video"), href: "/studio?mode=video&workflow=image-to-video&duration=5s", icon: "motion" as StudioIconName, accent: "bg-[#f0fdf4] text-[#16a34a]", note: st("studio.home.quick.imageVideo") },
-                          { label: st("studio.workflow.enhance-cleanup"), href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image", icon: "cleanup" as StudioIconName, accent: "bg-[#fff7ed] text-[#f97316]", note: st("studio.home.quick.enhance") }
-                        ].map((item) => (
-                          <Link
-                            key={item.label}
-                            href={item.href}
-                            className="group min-h-[174px] rounded-[1.35rem] border border-white/72 bg-white/70 p-5 text-left shadow-[0_16px_42px_rgba(15,23,42,0.08)] backdrop-blur transition hover:-translate-y-1 hover:bg-white md:min-h-[190px]"
-                          >
-                            <span className={`grid h-12 w-12 place-items-center rounded-2xl ${item.accent}`}>
-                              <StudioIcon name={item.icon} className="h-6 w-6" />
-                            </span>
-                            <span className="mt-5 block text-xl font-black tracking-tight text-[#202633]">{item.label}</span>
-                            <span className="mt-1 block text-sm font-semibold text-[#667085]">{item.note}</span>
-                            <span className="mt-5 inline-flex items-center gap-1 text-sm font-black text-[#0ea5e9]">
-                              {st("studio.home.open")} <StudioIcon name="chevron-right" className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
                     </div>
-                    <div className="mt-4 flex justify-center gap-2">
-                      {localizedHomeSlides.map((slide, index) => (
-                        <button
-                          key={slide.eyebrow}
-                          type="button"
-                          aria-label={`Show ${slide.eyebrow}`}
-                          onClick={() => setHomeSlideIndex(index)}
-                          className={`h-2 rounded-full transition-all ${
-                            index === homeSlideIndex ? "w-9 bg-[#202633]" : "w-2.5 bg-white/70 hover:bg-white"
-                          }`}
-                        />
+
+                    <div className="grid grid-cols-2 gap-3 md:gap-4">
+                      {WORKSPACE_SHOWCASES.map((item) => (
+                        <Link
+                          key={item.key}
+                          href={workspaceShowcaseHref(item.prompt)}
+                          className="group relative min-h-[205px] overflow-hidden rounded-[1.5rem] bg-[#0f172a] shadow-[0_16px_42px_rgba(15,23,42,0.12)] transition hover:-translate-y-1 hover:shadow-[0_24px_52px_rgba(15,23,42,0.18)] md:min-h-[240px]"
+                        >
+                          <WorkspaceShowcaseVideo file={item.file} desktopRatio={item.desktopRatio} className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+                          <span className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(15,23,42,0.04),rgba(15,23,42,0.86))]" />
+                          <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-white/16 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-white backdrop-blur-md">
+                            {st(item.labelKey)}
+                          </span>
+                          <span className="absolute inset-x-4 bottom-4 text-white">
+                            <strong className="block text-base font-black leading-tight md:text-lg">{st(item.titleKey)}</strong>
+                            <span className="mt-1 block text-xs font-semibold text-white/72">{st(item.metaKey)}</span>
+                          </span>
+                        </Link>
                       ))}
                     </div>
-                  </div>
+                  </section>
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-4">
-                    {localizedToolkitApps.map((app) => (
-                      <Link
-                        key={app.title}
-                        href={app.href}
-                        className="group relative min-h-[138px] overflow-hidden rounded-[1.35rem] border border-black/[0.05] bg-white/72 p-5 text-left shadow-[0_12px_34px_rgba(15,23,42,0.055)] backdrop-blur transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_22px_52px_rgba(15,23,42,0.09)]"
-                      >
-                        <div className={`absolute inset-0 bg-gradient-to-br ${app.accent} opacity-55 transition group-hover:opacity-80`} />
-                        <div className="relative flex items-start gap-4">
-                          <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white shadow-sm ${app.iconClass}`}>
-                            <StudioIcon name={app.icon} className="h-5 w-5" />
+                  <section className="mt-10">
+                    <div>
+                      <h2 className="text-2xl font-black tracking-tight text-[#0f172a] md:text-3xl">{st("studio.workspace.intentTitle")}</h2>
+                      <p className="mt-2 text-sm font-semibold text-[#8490a3]">{st("studio.workspace.intentHint")}</p>
+                    </div>
+                    <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                      {[
+                        { title: "studio.workspace.intent.video", body: "studio.workspace.intent.videoBody", href: "/studio?mode=video&workflow=text-to-video&duration=5s", icon: "film" as StudioIconName, color: "bg-[#eef2ff] text-[#4f46e5]", tools: ["studio.workflow.text-to-video", "studio.workflow.image-to-video"] },
+                        { title: "studio.workspace.intent.image", body: "studio.workspace.intent.imageBody", href: "/studio?mode=image&workflow=text-to-image", icon: "sparkles" as StudioIconName, color: "bg-[#ecfeff] text-[#0891b2]", tools: ["studio.workflow.text-to-image", "studio.workflow.image-to-image"] },
+                        { title: "studio.workspace.intent.avatar", body: "studio.workspace.intent.avatarBody", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, color: "bg-[#fdf2f8] text-[#db2777]", tools: ["studio.nav.avatar", "studio.workflow.text-to-audio"] },
+                        { title: "studio.workspace.intent.enhance", body: "studio.workspace.intent.enhanceBody", href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image", icon: "cleanup" as StudioIconName, color: "bg-[#f0fdf4] text-[#16a34a]", tools: ["studio.workflow.enhance-cleanup", "studio.workflow.background-remove"] }
+                      ].map((item) => (
+                        <Link key={item.title} href={item.href} className="group rounded-[1.5rem] border border-black/[0.06] bg-white/76 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition hover:-translate-y-1 hover:border-[#c7d2fe] hover:bg-white hover:shadow-[0_22px_52px_rgba(15,23,42,0.09)]">
+                          <span className={`grid h-12 w-12 place-items-center rounded-2xl ${item.color}`}>
+                            <StudioIcon name={item.icon} className="h-6 w-6" />
+                          </span>
+                          <h3 className="mt-5 text-xl font-black tracking-tight text-[#0f172a]">{st(item.title)}</h3>
+                          <p className="mt-2 min-h-12 text-sm font-semibold leading-6 text-[#667085]">{st(item.body)}</p>
+                          <div className="mt-5 flex flex-wrap gap-2">
+                            {item.tools.map((tool) => (
+                              <span key={tool} className="rounded-full bg-[#f1f5f9] px-2.5 py-1.5 text-[11px] font-black text-[#64748b]">{st(tool)}</span>
+                            ))}
                           </div>
-                          <div className="min-w-0">
-                            <h3 className="text-base font-black tracking-tight text-[#202633]">{app.title}</h3>
-                            <p className="mt-1 text-sm font-semibold leading-5 text-[#7a8496]">{app.body}</p>
-                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section id="workspace-examples" className="mt-12 scroll-mt-24">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                      <div>
+                        <h2 className="text-2xl font-black tracking-tight text-[#0f172a] md:text-3xl">{st("studio.workspace.featuredTitle")}</h2>
+                        <p className="mt-2 text-sm font-semibold text-[#8490a3]">{st("studio.workspace.featuredHint")}</p>
+                      </div>
+                    </div>
+                    <div className="mt-5 grid gap-4 md:grid-cols-2">
+                      {WORKSPACE_SHOWCASES.map((item) => (
+                        <Link key={`featured-${item.key}`} href={workspaceShowcaseHref(item.prompt)} className="group relative aspect-[16/10] overflow-hidden rounded-[1.65rem] bg-[#0f172a] shadow-[0_14px_38px_rgba(15,23,42,0.1)] transition hover:-translate-y-1 hover:shadow-[0_24px_54px_rgba(15,23,42,0.16)] sm:aspect-video">
+                          <WorkspaceShowcaseVideo file={item.file} desktopRatio={item.desktopRatio} className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]" />
+                          <span className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_28%,rgba(15,23,42,0.9))]" />
+                          <span className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-white/16 text-white backdrop-blur-md">
+                            <StudioIcon name="chevron-right" className="h-4 w-4" />
+                          </span>
+                          <span className="absolute inset-x-5 bottom-5 text-white">
+                            <span className="inline-flex rounded-full border border-white/20 bg-white/14 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] backdrop-blur-md">{st(item.labelKey)}</span>
+                            <strong className="mt-3 block text-xl font-black md:text-2xl">{st(item.titleKey)}</strong>
+                            <span className="mt-1 block text-sm font-semibold text-white/72">{st(item.metaKey)}</span>
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+
+                  <div className="mt-12 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+                    <section className="flex flex-col justify-between gap-7 rounded-[1.8rem] bg-[linear-gradient(135deg,#0f172a,#1e1b4b)] p-7 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] md:flex-row md:items-center md:p-9">
+                      <div>
+                        <h2 className="text-2xl font-black tracking-tight md:text-3xl">{st("studio.workspace.premiumTitle")}</h2>
+                        <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-[#cbd5e1]">{st("studio.workspace.premiumBody")}</p>
+                        <div className="mt-5 flex flex-wrap gap-2">
+                          {["studio.workspace.premiumCredits", "studio.workspace.premiumQueue", "studio.workspace.premiumModels", "studio.workspace.premiumWatermark"].map((key) => (
+                            <span key={key} className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs font-black text-[#e0f2fe]">{st(key)}</span>
+                          ))}
                         </div>
-                        <span className="relative mt-5 inline-flex items-center gap-1 text-sm font-black text-[#0ea5e9]">
-                          {st("studio.home.open")} <StudioIcon name="chevron-right" className="h-4 w-4" />
-                        </span>
-                      </Link>
-                    ))}
+                      </div>
+                      <button type="button" onClick={() => setBillingModalOpen(true)} className="shrink-0 rounded-2xl bg-white px-5 py-4 text-sm font-black text-[#0f172a] shadow-lg transition hover:-translate-y-0.5">
+                        {st("studio.workspace.premiumCta")}
+                      </button>
+                    </section>
+
+                    <section className="rounded-[1.8rem] border border-black/[0.06] bg-white/80 p-6 shadow-[0_14px_38px_rgba(15,23,42,0.06)]">
+                      <div className="flex items-center justify-between gap-4">
+                        <h2 className="text-xl font-black tracking-tight text-[#0f172a]">{st("studio.workspace.recentTitle")}</h2>
+                        <Link href="/studio?view=projects" className="text-xs font-black text-[#4f46e5]">{st("studio.workspace.viewProjects")}</Link>
+                      </div>
+                      <div className="mt-4">
+                        {tasks.length ? tasks.slice(0, 3).map((task) => (
+                          <Link key={`recent-${task.id}`} href={`/studio?view=projects&taskId=${encodeURIComponent(task.id)}`} className="flex items-center gap-3 border-t border-black/[0.05] py-3 first:border-t-0">
+                            <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-[linear-gradient(135deg,#c7d2fe,#67e8f9)] text-[#334155]">
+                              {task.mediaUrl && task.type === "Image" ? <img src={task.mediaUrl} alt="" className="h-full w-full object-cover" /> : <StudioIcon name={task.type === "Audio" ? "audio" : task.type === "Video" ? "video" : "image"} className="h-5 w-5" />}
+                            </span>
+                            <span className="min-w-0">
+                              <strong className="block truncate text-sm font-black text-[#253044]">{task.title || task.prompt || taskTypeLabel(task.type)}</strong>
+                              <span className="mt-1 block text-xs font-semibold text-[#94a3b8]">{taskStatusLabel(task.status)}</span>
+                            </span>
+                          </Link>
+                        )) : (
+                          <p className="rounded-2xl bg-[#f8fafc] px-4 py-6 text-sm font-semibold leading-6 text-[#8490a3]">{st("studio.workspace.recentEmpty")}</p>
+                        )}
+                      </div>
+                    </section>
                   </div>
                 </div>
               ) : null}

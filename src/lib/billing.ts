@@ -50,9 +50,8 @@ export const CREDIT_USAGE_REFERENCE = {
   video: {
     credits: estimateGenerationCredits({
       mode: "video",
-      provider: "grok-video",
-      duration: "5s",
-      resolution: "480p"
+      provider: "dreamface-io-video",
+      duration: "5s"
     }),
     seconds: 5
   },

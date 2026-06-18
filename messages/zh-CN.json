@@ -601,10 +601,10 @@
     "usage": {
       "title": "这些积分最高可用于生成",
       "images": "张 FLUX Schnell 图片",
-      "videos": "个 5 秒 Grok 480p 视频",
+      "videos": "个 5 秒 DreamFace IO 视频",
       "voiceovers": "段 1,000 字符配音",
       "avatars": "个 5 秒标准 Avatar 视频",
-      "note": "以上为分别使用全部积分时的理论上限，并非可以同时获得。实际消耗取决于模型、时长、分辨率和生成选项。"
+      "note": "以上为分别使用全部积分时的理论上限，并非可以同时获得；符合条件的 DreamFace IO 每日免费次数另计。"
     },
     "message": {
       "trialUnavailable": "此账户暂时无法领取试用积分，已购买积分仍可正常使用。",
