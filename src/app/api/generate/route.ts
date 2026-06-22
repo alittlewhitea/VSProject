@@ -42,6 +42,7 @@ type GenerateRequest = {
   mode: GenerateMode;
   imageWorkflow?: "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
   videoWorkflow?: "avatar-video" | "text-to-video" | "image-to-video";
+  audioWorkflow?: "text-to-audio" | "text-to-music";
   provider: string;
   ratio: string;
   duration: string;
@@ -69,6 +70,12 @@ type GenerateRequest = {
   timestamps?: boolean;
   languageCode?: string;
   textNormalization?: string;
+  lyrics?: string;
+  lyricsOptimizer?: boolean;
+  isInstrumental?: boolean;
+  musicSampleRate?: number;
+  musicBitrate?: number;
+  musicFormat?: "mp3" | "wav" | "pcm";
   idempotencyKey?: string;
 };
 
@@ -153,7 +160,8 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "grok-video": editImage
       ? process.env.FAL_MODEL_VIDEO_GROK_I2V || "xai/grok-imagine-video/image-to-video"
       : process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/text-to-video",
-    "elevenlabs-tts": process.env.FAL_MODEL_AUDIO_ELEVENLABS || "fal-ai/elevenlabs/tts/eleven-v3"
+    "elevenlabs-tts": process.env.FAL_MODEL_AUDIO_ELEVENLABS || "fal-ai/elevenlabs/tts/eleven-v3",
+    "minimax-music-2.6": process.env.FAL_MODEL_AUDIO_MINIMAX_26 || "fal-ai/minimax-music/v2.6"
   };
 
   return (
@@ -267,6 +275,22 @@ function getFalImageSize(ratio: string, imageSize?: string) {
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
+  if (body.mode === "audio" && body.provider === "minimax-music-2.6") {
+    const isInstrumental = Boolean(body.isInstrumental);
+    const lyrics = typeof body.lyrics === "string" ? body.lyrics.trim().slice(0, 3500) : "";
+    return {
+      prompt: prompt.slice(0, 2000),
+      lyrics: isInstrumental || body.lyricsOptimizer ? "" : lyrics,
+      lyrics_optimizer: !isInstrumental && Boolean(body.lyricsOptimizer),
+      is_instrumental: isInstrumental,
+      audio_setting: {
+        sample_rate: [16000, 24000, 32000, 44100].includes(Number(body.musicSampleRate)) ? Number(body.musicSampleRate) : 44100,
+        bitrate: [32000, 64000, 128000, 256000].includes(Number(body.musicBitrate)) ? Number(body.musicBitrate) : 256000,
+        format: body.musicFormat && ["mp3", "wav", "pcm"].includes(body.musicFormat) ? body.musicFormat : "mp3"
+      }
+    };
+  }
+
   if (body.mode === "audio" && body.provider === "elevenlabs-tts") {
     return {
       ...buildTtsInput(body, prompt),
@@ -492,7 +516,7 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
         : body.mode === "video" && imageUrls.length
           ? "image-to-video"
           : body.mode === "audio"
-            ? "text-to-audio"
+            ? body.audioWorkflow === "text-to-music" ? "text-to-music" : "text-to-audio"
             : body.imageWorkflow || (body.mode === "video" ? "text-to-video" : "text-to-image"),
     provider: body.provider,
     model_id: modelId,
@@ -514,6 +538,12 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     safety_tolerance: body.safetyTolerance || null,
     system_prompt: cleanSystemPrompt(body.systemPrompt) || null,
     enable_web_search: typeof body.enableWebSearch === "boolean" ? body.enableWebSearch : null,
+    lyrics: typeof body.lyrics === "string" ? body.lyrics.trim().slice(0, 3500) : null,
+    lyrics_optimizer: typeof body.lyricsOptimizer === "boolean" ? body.lyricsOptimizer : null,
+    is_instrumental: typeof body.isInstrumental === "boolean" ? body.isInstrumental : null,
+    music_sample_rate: body.musicSampleRate || null,
+    music_bitrate: body.musicBitrate || null,
+    music_format: body.musicFormat || null,
     thinking_level: body.thinkingLevel || null,
     generate_audio: typeof body.generateAudio === "boolean" ? body.generateAudio : null,
     voice: body.voice || null,
@@ -693,6 +723,18 @@ export async function POST(request: Request) {
     }
     if (isAvatarProvider && prompt.length < 2) {
       return NextResponse.json({ error: "AI Avatar needs a short script for ElevenLabs voice generation." }, { status: 400 });
+    }
+    if (body.mode === "audio" && body.provider === "minimax-music-2.6" && (prompt.length < 10 || prompt.length > 2000)) {
+      return NextResponse.json({ error: "MiniMax Music prompt must contain 10 to 2000 characters." }, { status: 400 });
+    }
+    if (
+      body.mode === "audio" &&
+      body.provider === "minimax-music-2.6" &&
+      !body.isInstrumental &&
+      !body.lyricsOptimizer &&
+      !(typeof body.lyrics === "string" && body.lyrics.trim())
+    ) {
+      return NextResponse.json({ error: "Lyrics are required unless instrumental mode or automatic lyrics is enabled." }, { status: 400 });
     }
     const avatarScriptSeconds = isAvatarProvider ? estimateAvatarScriptSeconds(prompt) : 0;
     const avatarOutputSeconds = isAvatarProvider ? avatarScriptSeconds + AVATAR_KLING_BUFFER_SECONDS : 0;

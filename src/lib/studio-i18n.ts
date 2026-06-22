@@ -22,6 +22,7 @@ import { studioDreamfaceIoMessages } from "./studio-i18n-dreamface-io";
 import { studioFalErrorMessages } from "./studio-i18n-fal-errors";
 import { studioWorkspaceHomeMessages } from "./studio-i18n-workspace-home";
 import { studioNewLocaleMessages } from "./studio-i18n-new-locales";
+import { studioMusicMessages } from "./studio-i18n-music";
 
 type StudioMessages = Record<string, string>;
 
@@ -680,6 +681,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
   function t(key: string, values?: Record<string, string | number | null | undefined>) {
     let template =
       studioNewLocaleMessages[locale]?.[key] ||
+      studioMusicMessages[locale]?.[key] ||
       studioDreamfaceIoMessages[locale]?.[key] ||
       studioWorkspaceHomeMessages[locale]?.[key] ||
       studioFalErrorMessages[locale]?.[key] ||
@@ -698,6 +700,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
       studioWorkspaceHomeMessages[defaultLocale]?.[key] ||
       studioFalErrorMessages[defaultLocale]?.[key] ||
       studioModelMessages[defaultLocale]?.[key] ||
+      studioMusicMessages[defaultLocale]?.[key] ||
       key;
     if (values) {
       for (const [name, value] of Object.entries(values)) {

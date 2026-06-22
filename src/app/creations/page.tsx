@@ -201,7 +201,8 @@ function providerLabel(provider?: string) {
     "kling-video": "Kling",
     "veo-video": "Veo",
     "grok-video": "Grok Imagine Video",
-    "elevenlabs-tts": "ElevenLabs Eleven v3"
+    "elevenlabs-tts": "ElevenLabs Eleven v3",
+    "minimax-music-2.6": "MiniMax Music 2.6"
   };
   return provider ? labels[provider] || provider : "Unknown provider";
 }
@@ -252,7 +253,9 @@ function regenerateHref(task: CreationTask) {
     mode: task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video"
   });
   if (task.type === "Image") params.set("workflow", "text-to-image");
-  if (task.type === "Audio") params.set("workflow", "text-to-audio");
+  if (task.type === "Audio") {
+    params.set("workflow", task.provider === "minimax-music-2.6" ? "text-to-music" : "text-to-audio");
+  }
   if (task.prompt) params.set("prompt", task.prompt);
   if (task.provider) params.set("provider", task.provider);
   if (task.ratio) params.set("ratio", task.ratio);

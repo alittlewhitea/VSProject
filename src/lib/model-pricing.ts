@@ -216,6 +216,14 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
   }
 
   if (input.mode === "audio") {
+    if (input.provider === "minimax-music-2.6") {
+      const falUnit = normalizedFalUnit(input.falUnit);
+      const audioPrice =
+        typeof input.falUnitPriceUsd === "number" && isFalUnit(falUnit, "audio", "audios", "generation", "generations")
+          ? input.falUnitPriceUsd
+          : 0.15;
+      return creditsFromFalUsd(audioPrice, 1);
+    }
     if (input.provider === "elevenlabs-tts") {
       const characters = Math.max(1, input.promptText?.trim().length || 1);
       const falUnit = normalizedFalUnit(input.falUnit);
@@ -441,6 +449,16 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal lists Grok Imagine image-to-video at $0.05/s for 480p, $0.07/s for 720p, plus $0.002 for image input.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "grok-video", duration: "6s", hasReferences: true }),
     unitNote: "13-18 credits / sec"
+  },
+  {
+    provider: "minimax-music-2.6",
+    label: "MiniMax Music 2.6",
+    mode: "audio",
+    workflow: "Lyrics to Music",
+    endpointId: "fal-ai/minimax-music/v2.6",
+    falBasis: "fal lists MiniMax Music 2.6 at $0.15 per generated audio.",
+    typicalCredits: estimateGenerationCredits({ mode: "audio", provider: "minimax-music-2.6" }),
+    unitNote: "38 credits / track"
   },
   {
     provider: "elevenlabs-tts",

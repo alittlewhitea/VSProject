@@ -14,6 +14,7 @@ const studioSources = [
   ["studio-i18n-home.ts", "studioHomeMessages"],
   ["studio-i18n-feedback.ts", "studioFeedbackMessages"],
   ["studio-i18n-models.ts", "studioModelMessages"]
+  ,["studio-i18n-music.ts", "studioMusicMessages"]
 ];
 
 function flatten(value, prefix = "", result = {}) {

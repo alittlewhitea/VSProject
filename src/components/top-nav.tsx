@@ -130,7 +130,7 @@ export function TopNav() {
                         {[
                           [t("nav.imageStudio"), t("nav.imageStudioDescription"), "/studio?mode=image&workflow=text-to-image"],
                           [t("nav.videoStudio"), t("nav.videoStudioDescription"), "/studio?mode=video&workflow=text-to-video"],
-                          [t("nav.audioGenerator"), t("nav.audioGeneratorDescription"), "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts"],
+                          [t("nav.audioGenerator"), t("nav.audioGeneratorDescription"), "/studio?mode=audio&workflow=text-to-music&provider=minimax-music-2.6"],
                           [t("nav.projects"), t("nav.projectsDescription"), "/studio?view=projects"]
                         ].map(([title, body, href]) => (
                           <Link key={title} href={href} className="block rounded-2xl px-4 py-2 transition hover:bg-[#f3f8ff]">

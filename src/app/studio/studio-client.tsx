@@ -51,6 +51,7 @@ type StudioLoginDraft = {
   provider: string;
   imageWorkflow: ImageWorkflow;
   videoWorkflow?: VideoWorkflow;
+  audioWorkflow?: AudioWorkflow;
   ratio: string;
   imageSize: string;
   referenceImagesText: string;
@@ -64,6 +65,13 @@ type StudioLoginDraft = {
   timestamps?: boolean;
   languageCode?: string;
   textNormalization?: string;
+  voiceGender?: "all" | "female" | "male";
+  lyrics?: string;
+  lyricsOptimizer?: boolean;
+  isInstrumental?: boolean;
+  musicSampleRate?: number;
+  musicBitrate?: number;
+  musicFormat?: "mp3" | "wav" | "pcm";
   outputFormat: string;
   duration: string;
   prompt: string;
@@ -83,7 +91,8 @@ type StudioLoginDraft = {
 
 type ImageWorkflow = "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
 type VideoWorkflow = "avatar-video" | "text-to-video" | "image-to-video";
-type StudioWorkflow = ImageWorkflow | VideoWorkflow | "text-to-audio";
+type AudioWorkflow = "text-to-audio" | "text-to-music";
+type StudioWorkflow = ImageWorkflow | VideoWorkflow | AudioWorkflow;
 type GalleryTemplate = {
   id: string;
   title: string;
@@ -556,6 +565,13 @@ const PROVIDER_META: Record<
     speed: "Fast",
     quality: "Voiceover",
     bestFor: "Text-to-speech voiceovers from scripts with ElevenLabs voices"
+  },
+  "minimax-music-2.6": {
+    label: "MiniMax Music 2.6",
+    shortLabel: "Music 2.6",
+    speed: "Medium",
+    quality: "Latest full song",
+    bestFor: "Detailed arrangements, vocals, structure tags, and automatic lyrics"
   }
 };
 
@@ -612,9 +628,15 @@ const WORKFLOW_META: Record<
   },
   "text-to-audio": {
     label: "Text to Audio",
-    description: "Turn a written script into a voiceover.",
+    description: "Turn a written script into an AI voiceover.",
     recommendedProvider: "elevenlabs-tts",
     providers: ["elevenlabs-tts"]
+  },
+  "text-to-music": {
+    label: "AI Music",
+    description: "Create instrumental music or a complete song.",
+    recommendedProvider: "minimax-music-2.6",
+    providers: ["minimax-music-2.6"]
   }
 };
 
@@ -879,7 +901,14 @@ function studioProjectHref(taskId?: string) {
 
 function regenerateHref(task: TaskItem) {
   const mode = task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video";
-  const workflow = task.type === "Image" ? "text-to-image" : task.type === "Audio" ? "text-to-audio" : "text-to-video";
+  const workflow =
+    task.type === "Image"
+      ? "text-to-image"
+      : task.type === "Audio"
+        ? task.provider === "minimax-music-2.6"
+          ? "text-to-music"
+          : "text-to-audio"
+        : "text-to-video";
   const params = new URLSearchParams({ mode, workflow });
   if (task.provider) params.set("provider", task.provider);
   if (task.prompt) params.set("prompt", task.prompt);
@@ -913,6 +942,9 @@ function ratioFromImageSize(value: string) {
 function defaultPromptForProvider(provider: string) {
   if (provider === "kling-avatar-standard" || provider === "kling-avatar-pro") {
     return KLING_AVATAR_DEFAULT_SCRIPT;
+  }
+  if (provider === "minimax-music-2.6") {
+    return "City Pop, 80s retro, groovy synth bass, warm female vocal, 104 BPM, nostalgic urban night";
   }
   return "";
 }
@@ -1105,13 +1137,13 @@ function shortInputValue(value: string) {
 function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (!provider) return false;
   if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
-  if (mode === "audio") return ["elevenlabs-tts"].includes(provider);
+  if (mode === "audio") return ["minimax-music-2.6", "elevenlabs-tts"].includes(provider);
   if (mode === "avatar") return ["kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return ["dreamface-io-video", "seedance-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
 }
 
 function workflowForMode(mode: StudioMode, workflow: string | null): StudioWorkflow {
-  if (mode === "audio") return "text-to-audio";
+  if (mode === "audio") return workflow === "text-to-music" ? "text-to-music" : "text-to-audio";
   if (mode === "avatar") return "avatar-video";
   if (mode === "image") {
     if (workflow === "image-to-image" || workflow === "enhance-cleanup" || workflow === "background-remove") return workflow;
@@ -1196,11 +1228,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     initialWorkflow === "image-to-image" || initialWorkflow === "enhance-cleanup" || initialWorkflow === "background-remove" ? initialWorkflow : "text-to-image";
   const initialVideoWorkflow: VideoWorkflow =
     initialWorkflow === "avatar-video" || initialWorkflow === "image-to-video" ? initialWorkflow : "text-to-video";
+  const initialAudioWorkflow: AudioWorkflow = initialWorkflow === "text-to-music" ? "text-to-music" : "text-to-audio";
   const initialReferenceUrl = sp.get("reference");
   const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider));
   const [provider, setProvider] = useState(initialProvider);
   const [imageWorkflow, setImageWorkflow] = useState<ImageWorkflow>(initialImageWorkflow);
   const [videoWorkflow, setVideoWorkflow] = useState<VideoWorkflow>(initialVideoWorkflow);
+  const [audioWorkflow, setAudioWorkflow] = useState<AudioWorkflow>(initialAudioWorkflow);
   const [ratio, setRatio] = useState(mode === "image" ? "1:1" : mode === "avatar" ? "source" : "16:9");
   const [imageSize, setImageSize] = useState("default_4_3");
   const [referenceImagesText, setReferenceImagesText] = useState(() =>
@@ -1219,10 +1253,18 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [generateAudio, setGenerateAudio] = useState(false);
   const [ttsVoice, setTtsVoice] = useState("Rachel");
   const [avatarVoiceGender, setAvatarVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
+  const [audioVoiceGender, setAudioVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
   const [ttsStability, setTtsStability] = useState(0.5);
   const [ttsTimestamps, setTtsTimestamps] = useState(false);
   const [ttsLanguageCode, setTtsLanguageCode] = useState("");
   const [textNormalization, setTextNormalization] = useState("auto");
+  const [musicLyrics, setMusicLyrics] = useState("[Verse]\nStreetlights flicker, the night breeze sighs\nShadows stretch as I walk alone\n\n[Chorus]\nWandering, longing, where should I go");
+  const [lyricsOptimizer, setLyricsOptimizer] = useState(false);
+  const [isInstrumental, setIsInstrumental] = useState(false);
+  const [musicSampleRate, setMusicSampleRate] = useState(44100);
+  const [musicBitrate, setMusicBitrate] = useState(256000);
+  const [musicFormat, setMusicFormat] = useState<"mp3" | "wav" | "pcm">("mp3");
+  const [musicAdvancedOpen, setMusicAdvancedOpen] = useState(false);
   const [outputFormat, setOutputFormat] = useState("png");
   const [imageQuality, setImageQuality] = useState<"auto" | "low" | "medium" | "high">("low");
   const [numImages, setNumImages] = useState(1);
@@ -1329,12 +1371,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }, []);
 
   useEffect(() => {
-    const workflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : mode === "avatar" ? "avatar-video" : videoWorkflow;
+    const workflow = mode === "image" ? imageWorkflow : mode === "audio" ? audioWorkflow : mode === "avatar" ? "avatar-video" : videoWorkflow;
     const key = `${mode}:${provider}:${workflow}`;
     if (trackedStudioViewRef.current === key) return;
     trackedStudioViewRef.current = key;
     trackEvent("studio_view", { mode, provider, workflow, signed_in: Boolean(accessToken) }, accessToken);
-  }, [accessToken, imageWorkflow, mode, provider, videoWorkflow]);
+  }, [accessToken, audioWorkflow, imageWorkflow, mode, provider, videoWorkflow]);
 
   useEffect(() => {
     const workflowParam = workflowForMode(mode, sp.get("workflow"));
@@ -1351,6 +1393,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           ? "avatar-video"
           : "text-to-video"
     );
+    setAudioWorkflow(mode === "audio" && workflowParam === "text-to-music" ? "text-to-music" : "text-to-audio");
     const nextProvider = providerForWorkflow(
       workflowParam,
       isProviderAllowedForMode(providerParam, mode) ? providerParam : null
@@ -1612,10 +1655,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }, [tasks, userId]);
 
   const options = useMemo(
-    () => WORKFLOW_META[mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : mode === "avatar" ? "avatar-video" : videoWorkflow].providers
+    () => WORKFLOW_META[mode === "image" ? imageWorkflow : mode === "audio" ? audioWorkflow : mode === "avatar" ? "avatar-video" : videoWorkflow].providers
       .filter((value) => value !== "dreamface-io-video" || dreamfaceIoEnabled !== false)
       .map((value) => ({ value, label: PROVIDER_META[value]?.label || value })),
-    [dreamfaceIoEnabled, imageWorkflow, mode, videoWorkflow]
+    [audioWorkflow, dreamfaceIoEnabled, imageWorkflow, mode, videoWorkflow]
   );
   useEffect(() => {
     if (provider !== "dreamface-io-video" || dreamfaceIoEnabled !== false) return;
@@ -1625,8 +1668,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     () => ELEVENLABS_VOICE_META.filter((voice) => avatarVoiceGender === "all" || voice.gender === avatarVoiceGender).map((voice) => voice.name) as string[],
     [avatarVoiceGender]
   );
+  const audioVoiceOptions = useMemo(
+    () => ELEVENLABS_VOICE_META.filter((voice) => audioVoiceGender === "all" || voice.gender === audioVoiceGender).map((voice) => voice.name) as string[],
+    [audioVoiceGender]
+  );
 
-  const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? "text-to-audio" : mode === "avatar" ? "avatar-video" : videoWorkflow;
+  const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? audioWorkflow : mode === "avatar" ? "avatar-video" : videoWorkflow;
   const activeWorkflowMeta = WORKFLOW_META[activeWorkflow];
   const isPromptlessImageWorkflow = mode === "image" && activeWorkflow === "background-remove";
   const allReferenceImageUrls = [
@@ -1656,6 +1703,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       : st("studio.avatar.emptyMeta")
     : "";
   const audioCharacterCount = mode === "audio" ? prompt.trim().length : 0;
+  const isMiniMaxMusic = mode === "audio" && provider === "minimax-music-2.6";
+  const isElevenLabsAudio = mode === "audio" && provider === "elevenlabs-tts";
   const avatarSelectedSeconds = Math.max(1, Number.parseInt(avatarDuration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
 
   const baseEstCredits = estimateGenerationCredits({
@@ -1683,7 +1732,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const estimatedSeconds = estimateTaskSeconds(modeForPricing(mode), provider, isAvatarWorkflow ? avatarDuration : duration);
-  const isPromptValid = isPromptlessImageWorkflow || (isAvatarWorkflow ? prompt.trim().length >= 2 && !avatarScriptTooLong : prompt.trim().length >= 8);
+  const hasMiniMaxLyrics = isInstrumental || lyricsOptimizer || musicLyrics.trim().length > 0;
+  const isPromptValid = isPromptlessImageWorkflow || (
+    isAvatarWorkflow
+      ? prompt.trim().length >= 2 && !avatarScriptTooLong
+      : isMiniMaxMusic
+        ? prompt.trim().length >= 10 && hasMiniMaxLyrics
+        : prompt.trim().length >= 8
+  );
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
   const canSubmit = isPromptValid && hasRequiredReference;
@@ -1716,7 +1772,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     "seedance-video",
     "kling-video",
     "veo-video",
-    "elevenlabs-tts"
+    "elevenlabs-tts",
+    "minimax-music-2.6"
   ].includes(provider)
     ? provider
     : "default";
@@ -1766,6 +1823,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         ? `${numInferenceSteps} / ${guidanceScale} / ${outputFormat.toUpperCase()}`
         : mode === "image"
           ? `${editResolution} / ${safetyTolerance} / ${numImages}`
+          : isMiniMaxMusic
+            ? `${isInstrumental ? "Instrumental" : lyricsOptimizer ? "Auto lyrics" : "Custom lyrics"} / ${musicSampleRate} Hz / ${musicFormat.toUpperCase()}`
           : mode === "audio"
             ? `${prompt.trim().length || 0} / ${ttsVoice} / ${ttsStability.toFixed(2)}`
           : isAvatarWorkflow
@@ -1777,6 +1836,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     if (avatarVoiceOptions.includes(ttsVoice)) return;
     setTtsVoice(avatarVoiceOptions[0] || "Rachel");
   }, [avatarVoiceOptions, mode, ttsVoice]);
+
+  useEffect(() => {
+    if (!isElevenLabsAudio || audioVoiceOptions.includes(ttsVoice)) return;
+    setTtsVoice(audioVoiceOptions[0] || "Rachel");
+  }, [audioVoiceOptions, isElevenLabsAudio, ttsVoice]);
 
   useEffect(() => {
     if (!isAvatarWorkflow || !avatarAudioUrl.startsWith("data:audio/") || avatarAudioTrimSeconds === null) return;
@@ -1832,7 +1896,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     const nextMode =
       nextWorkflow === "text-to-image" || nextWorkflow === "image-to-image" || nextWorkflow === "enhance-cleanup" || nextWorkflow === "background-remove"
         ? "image"
-        : nextWorkflow === "text-to-audio"
+        : nextWorkflow === "text-to-audio" || nextWorkflow === "text-to-music"
           ? "audio"
           : nextWorkflow === "avatar-video"
             ? "avatar"
@@ -1856,6 +1920,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         setReferenceImageFiles([]);
       }
     } else {
+      setAudioWorkflow(nextWorkflow as AudioWorkflow);
       setReferenceImagesText("");
       setReferenceImageFiles([]);
       setAvatarAudioUrl("");
@@ -1925,9 +1990,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     } else if (mode === "audio") {
       setReferenceImagesText("");
       setReferenceImageFiles([]);
+      setDuration("single");
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "audio");
-      params.set("workflow", "text-to-audio");
+      params.set("workflow", audioWorkflow);
       params.set("provider", nextProvider);
       params.delete("imageSize");
       router.replace(`/studio?${params.toString()}`, { scroll: false });
@@ -2081,6 +2147,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       provider,
       imageWorkflow,
       videoWorkflow,
+      audioWorkflow,
       ratio,
       imageSize,
       referenceImagesText,
@@ -2094,6 +2161,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       timestamps: ttsTimestamps,
       languageCode: ttsLanguageCode,
       textNormalization,
+      voiceGender: audioVoiceGender,
+      lyrics: musicLyrics,
+      lyricsOptimizer,
+      isInstrumental,
+      musicSampleRate,
+      musicBitrate,
+      musicFormat,
       outputFormat,
       duration,
       prompt,
@@ -2122,6 +2196,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setProvider(draft.provider === "nano-banana-edit" ? "nano-banana-image" : draft.provider);
     setImageWorkflow(draft.imageWorkflow);
     setVideoWorkflow(draft.videoWorkflow || "text-to-video");
+    setAudioWorkflow(draft.audioWorkflow || "text-to-audio");
     setRatio(draft.ratio);
     setImageSize(draft.imageSize);
     setReferenceImagesText(draft.referenceImagesText);
@@ -2135,6 +2210,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setTtsTimestamps(Boolean(draft.timestamps));
     setTtsLanguageCode(draft.languageCode || "");
     setTextNormalization(draft.textNormalization || "auto");
+    setAudioVoiceGender(draft.voiceGender || "all");
+    setMusicLyrics(draft.lyrics || "");
+    setLyricsOptimizer(Boolean(draft.lyricsOptimizer));
+    setIsInstrumental(Boolean(draft.isInstrumental));
+    setMusicSampleRate(draft.musicSampleRate || 44100);
+    setMusicBitrate(draft.musicBitrate || 256000);
+    setMusicFormat(draft.musicFormat || "mp3");
     setOutputFormat(draft.outputFormat);
     setImageQuality(draft.imageQuality || "high");
     setNumImages(draft.numImages || 1);
@@ -2229,6 +2311,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         mode,
         imageWorkflow,
         videoWorkflow: isAvatarWorkflow ? "avatar-video" : videoWorkflow,
+        audioWorkflow: mode === "audio" ? audioWorkflow : undefined,
         provider,
         ratio: isAvatarWorkflow ? "source" : ratio,
         duration: requestDuration,
@@ -2259,11 +2342,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         systemPrompt: mode === "image" && !isPromptlessImageWorkflow && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" && !isPromptlessImageWorkflow ? enableWebSearch : undefined,
         thinkingLevel: mode === "image" && !isPromptlessImageWorkflow && thinkingLevel ? thinkingLevel : undefined,
-        voice: mode === "audio" || isAvatarWorkflow ? ttsVoice : undefined,
-        stability: mode === "audio" || isAvatarWorkflow ? ttsStability : undefined,
-        timestamps: mode === "audio" ? ttsTimestamps : undefined,
-        languageCode: (mode === "audio" || isAvatarWorkflow) && ttsLanguageCode ? ttsLanguageCode : undefined,
-        textNormalization: mode === "audio" || isAvatarWorkflow ? textNormalization : undefined
+        voice: isElevenLabsAudio || isAvatarWorkflow ? ttsVoice : undefined,
+        stability: isElevenLabsAudio || isAvatarWorkflow ? ttsStability : undefined,
+        timestamps: isElevenLabsAudio ? ttsTimestamps : undefined,
+        languageCode: (isElevenLabsAudio || isAvatarWorkflow) && ttsLanguageCode ? ttsLanguageCode : undefined,
+        textNormalization: isElevenLabsAudio || isAvatarWorkflow ? textNormalization : undefined,
+        lyrics: isMiniMaxMusic ? musicLyrics : undefined,
+        lyricsOptimizer: isMiniMaxMusic ? lyricsOptimizer : undefined,
+        isInstrumental: isMiniMaxMusic ? isInstrumental : undefined,
+        musicSampleRate: isMiniMaxMusic ? musicSampleRate : undefined,
+        musicBitrate: isMiniMaxMusic ? musicBitrate : undefined,
+        musicFormat: isMiniMaxMusic ? musicFormat : undefined
       };
       const fingerprint = createIdempotencyFingerprint({
         ...requestPayload,
@@ -3215,10 +3304,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   ) : mode === "audio" ? (
                     <button
                       type="button"
-                      onClick={() => applyWorkflow("text-to-audio")}
+                      onClick={() => applyWorkflow(audioWorkflow)}
                       className="rounded-full border border-[#bae6fd] bg-[#e8f7ff] px-4 py-2 text-sm font-semibold text-[#0284c7] shadow-sm"
                     >
-                      {st("studio.workflow.text-to-audio")}
+                      {st(`studio.workflow.${audioWorkflow}`)}
                     </button>
                   ) : (
                     <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="hidden rounded-full bg-[#202633] px-3 py-2 text-xs font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] sm:inline-flex md:rounded-2xl md:px-4 md:text-sm">
@@ -3669,9 +3758,27 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </button>
                       );
                     })
-                  ) : (
-                    null
-                  )}
+                  ) : mode === "audio" ? (
+                    <div className="grid w-full max-w-[560px] grid-cols-2 rounded-full border border-black/[0.06] bg-white/82 p-1 shadow-sm sm:w-auto">
+                      {(["text-to-audio", "text-to-music"] as AudioWorkflow[]).map((workflow) => {
+                        const active = audioWorkflow === workflow;
+                        return (
+                          <button
+                            key={workflow}
+                            type="button"
+                            onClick={() => applyWorkflow(workflow)}
+                            className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+                              active
+                                ? "bg-[#202633] text-white shadow-[0_10px_24px_rgba(32,38,51,0.16)]"
+                                : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
+                            }`}
+                          >
+                            {st(`studio.workflow.${workflow}`)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="mt-4 overflow-hidden rounded-[1.7rem] border border-black/[0.06] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.09)] sm:mt-5 md:mt-7 md:rounded-[2rem] md:shadow-[0_28px_80px_rgba(15,23,42,0.12)]">
@@ -3979,28 +4086,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </select>
                       )
                     ) : mode === "audio" ? (
-                      <>
+                      isElevenLabsAudio ? (
                         <select
                           value={ttsVoice}
                           onChange={(e) => setTtsVoice(e.target.value)}
                           className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
                         >
-                          {ELEVENLABS_VOICES.map((voice) => (
+                          {audioVoiceOptions.map((voice) => (
                             <option key={voice} value={voice}>{voice}</option>
                           ))}
                         </select>
-                        <select
-                          value={ttsLanguageCode}
-                          onChange={(e) => setTtsLanguageCode(e.target.value)}
-                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
-                        >
-                          {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
-                            <option key={item.value || "auto"} value={item.value}>
-                              {st(`studio.languageOption.${item.value || "auto"}`)}
-                            </option>
-                          ))}
-                        </select>
-                      </>
+                      ) : null
                     ) : mode === "avatar" ? (
                       <span className={`rounded-full border px-4 py-2.5 text-center text-sm font-semibold sm:py-2 ${avatarScriptTooLong ? "border-[#fecdd3] bg-[#fff1f2] text-[#e11d48]" : "border-black/[0.06] bg-white text-[#667085]"}`}>
                         {avatarDuration} {st("studio.option.automatic")}
@@ -4055,7 +4151,24 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">{st("studio.field.modelSettings")}</p>
                         <p className="text-xs font-medium text-[#8b95a7]">{providerSettingsLabel}</p>
                       </div>
-                      <div className="grid gap-3 lg:grid-cols-4">
+                      {isElevenLabsAudio ? (
+                      <>
+                      <div className="grid gap-3 lg:grid-cols-5">
+                        <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                          <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.music.voiceGender")}</span>
+                          <div className="grid grid-cols-3 gap-1">
+                            {ELEVENLABS_VOICE_GENDER_OPTIONS.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => setAudioVoiceGender(option.value)}
+                                className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${audioVoiceGender === option.value ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"}`}
+                              >
+                                {st(`studio.music.${option.value}`)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                         <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                           <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.field.voice")}</span>
                           <select
@@ -4063,7 +4176,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             onChange={(e) => setTtsVoice(e.target.value)}
                             className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none"
                           >
-                            {ELEVENLABS_VOICES.map((voice) => (
+                            {audioVoiceOptions.map((voice) => (
                               <option key={voice} value={voice}>{voice}</option>
                             ))}
                           </select>
@@ -4129,6 +4242,81 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           })}
                         </p>
                       </div>
+                      </>
+                      ) : (
+                        <div className="grid gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setMusicAdvancedOpen((value) => !value)}
+                            className="flex w-full items-center justify-between rounded-2xl border border-black/[0.06] bg-[#fbfdff] px-4 py-3 text-left"
+                          >
+                            <span>
+                              <span className="block text-sm font-semibold text-[#485164]">{st("studio.music.additionalSettings")}</span>
+                              <span className="mt-1 block text-xs text-[#8b95a7]">{st("studio.music.additionalSettingsDescription")}</span>
+                            </span>
+                            <span className="text-sm font-semibold text-[#667085]">{musicAdvancedOpen ? st("studio.music.less") : st("studio.music.more")}</span>
+                          </button>
+                          {musicAdvancedOpen ? (
+                          <>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="flex items-center justify-between gap-4 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-4">
+                              <span>
+                                <span className="block text-sm font-semibold text-[#485164]">{st("studio.music.instrumental")}</span>
+                                <span className="mt-1 block text-xs text-[#8b95a7]">{st("studio.music.instrumentalDescription")}</span>
+                              </span>
+                              <input type="checkbox" checked={isInstrumental} onChange={(e) => setIsInstrumental(e.target.checked)} className="h-5 w-5" />
+                            </label>
+                            <label className={`flex items-center justify-between gap-4 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-4 ${isInstrumental ? "opacity-50" : ""}`}>
+                              <span>
+                                <span className="block text-sm font-semibold text-[#485164]">{st("studio.music.autoLyrics")}</span>
+                                <span className="mt-1 block text-xs text-[#8b95a7]">{st("studio.music.autoLyricsDescription")}</span>
+                              </span>
+                              <input type="checkbox" checked={lyricsOptimizer} disabled={isInstrumental} onChange={(e) => setLyricsOptimizer(e.target.checked)} className="h-5 w-5" />
+                            </label>
+                          </div>
+                          {!isInstrumental ? (
+                            <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                              <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.music.lyrics")}</span>
+                              <textarea
+                                rows={8}
+                                maxLength={3500}
+                                value={musicLyrics}
+                                onChange={(e) => setMusicLyrics(e.target.value)}
+                                disabled={lyricsOptimizer}
+                                placeholder={st("studio.music.lyricsPlaceholder")}
+                                className="w-full resize-y rounded-xl border border-black/[0.06] bg-white px-3 py-3 text-sm leading-6 text-[#485164] outline-none disabled:opacity-50"
+                              />
+                              <span className="mt-2 block text-xs leading-5 text-[#8b95a7]">{st("studio.music.lyricsDescription")}</span>
+                              <span className="mt-2 block text-right text-xs text-[#98a2b3]">{musicLyrics.length.toLocaleString()} / 3,500</span>
+                            </label>
+                          ) : null}
+                          <div className="grid gap-3 md:grid-cols-3">
+                            <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                              <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.music.sampleRate")}</span>
+                              <select value={musicSampleRate} onChange={(e) => setMusicSampleRate(Number(e.target.value))} className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none">
+                                {[16000, 24000, 32000, 44100].map((value) => <option key={value} value={value}>{value} Hz</option>)}
+                              </select>
+                              <span className="mt-2 block text-xs text-[#8b95a7]">{st("studio.music.sampleRateDescription")}</span>
+                            </label>
+                            <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                              <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.music.bitrate")}</span>
+                              <select value={musicBitrate} onChange={(e) => setMusicBitrate(Number(e.target.value))} className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none">
+                                {[32000, 64000, 128000, 256000].map((value) => <option key={value} value={value}>{value / 1000} kbps</option>)}
+                              </select>
+                              <span className="mt-2 block text-xs text-[#8b95a7]">{st("studio.music.bitrateDescription")}</span>
+                            </label>
+                            <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                              <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.music.format")}</span>
+                              <select value={musicFormat} onChange={(e) => setMusicFormat(e.target.value as "mp3" | "wav" | "pcm")} className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold uppercase text-[#485164] outline-none">
+                                {(["mp3", "wav", "pcm"] as const).map((value) => <option key={value} value={value}>{value}</option>)}
+                              </select>
+                              <span className="mt-2 block text-xs text-[#8b95a7]">{st("studio.music.formatDescription")}</span>
+                            </label>
+                          </div>
+                          </>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   ) : mode === "image" && !isPromptlessImageWorkflow ? (
                     <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
@@ -4570,7 +4758,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
             <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.045] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className={`grid gap-1 ${mode === "image" ? "grid-cols-3" : "grid-cols-2"}`}>
-                {(mode === "image" ? ["text-to-image", "image-to-image", "enhance-cleanup", "background-remove"] : mode === "avatar" ? ["avatar-video"] : ["text-to-video", "image-to-video"]).map((workflow) => {
+                {(mode === "image"
+                  ? ["text-to-image", "image-to-image", "enhance-cleanup", "background-remove"]
+                  : mode === "audio"
+                    ? ["text-to-audio", "text-to-music"]
+                    : mode === "avatar"
+                      ? ["avatar-video"]
+                      : ["text-to-video", "image-to-video"]).map((workflow) => {
                   const meta = WORKFLOW_META[workflow as StudioWorkflow];
                   const active = activeWorkflow === workflow;
                   return (
@@ -4905,10 +5099,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       />
                     </label>
                   ) : null}
-                  <textarea
-                    dir="auto"
-                    rows={mode === "image" ? 7 : 8}
-                    value={prompt}
+                      <textarea
+                        dir="auto"
+                        rows={mode === "image" ? 7 : 8}
+                        maxLength={isMiniMaxMusic ? 2000 : undefined}
+                        value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     className="min-h-[220px] w-full resize-none bg-transparent px-1 py-2 text-base leading-7 text-white placeholder:text-white/32 outline-none"
                     placeholder="Describe the image you want to create. Add the subject, mood, lighting, camera feel, composition, materials, text details, and what to avoid..."
@@ -4985,6 +5180,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         preload="metadata"
                         className="aspect-video w-full bg-black object-cover"
                       />
+                      {isMiniMaxMusic ? (
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-black/[0.05] pt-3 text-xs text-[#8b95a7]">
+                          <span>{st("studio.music.promptDescription")}</span>
+                          <span className={prompt.trim().length < 10 ? "font-semibold text-amber-600" : ""}>{prompt.length.toLocaleString()} / 2,000</span>
+                        </div>
+                      ) : null}
                       <div className="border-t border-white/10 px-3 py-2">
                         <p className="text-xs font-semibold text-white/72">{st("studio.avatar.example")}</p>
                         <p className="mt-1 text-xs leading-5 text-white/38">Uses the default avatar image and sample script.</p>

@@ -480,6 +480,10 @@ function extractMediaUrl(result: unknown): string | null {
     const audio = payload.audio as Record<string, unknown>;
     if (typeof audio.url === "string") return audio.url;
   }
+  if (payload.audio_file && typeof payload.audio_file === "object") {
+    const audioFile = payload.audio_file as Record<string, unknown>;
+    if (typeof audioFile.url === "string") return audioFile.url;
+  }
   return null;
 }
 

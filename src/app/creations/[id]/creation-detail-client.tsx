@@ -99,7 +99,8 @@ function providerLabel(provider?: string) {
     "kling-video": "Kling",
     "veo-video": "Veo",
     "grok-video": "Grok Imagine Video",
-    "elevenlabs-tts": "ElevenLabs Eleven v3"
+    "elevenlabs-tts": "ElevenLabs Eleven v3",
+    "minimax-music-2.6": "MiniMax Music 2.6"
   };
   return provider ? labels[provider] || provider : "Unknown provider";
 }

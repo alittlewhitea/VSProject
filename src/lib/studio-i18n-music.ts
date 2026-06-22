@@ -1,0 +1,168 @@
+import type { Locale } from "../i18n/routing";
+
+type MusicMessages = Record<string, string>;
+
+export const studioMusicMessages: Record<Locale, MusicMessages> = {
+  en: {
+    "studio.workflow.text-to-music": "AI Music Generator",
+    "studio.music.promptDescription": "Describe the music style, mood, genre, and scenario. 10-2000 characters.",
+    "studio.music.additionalSettings": "Additional settings", "studio.music.additionalSettingsDescription": "Lyrics, vocal mode, and audio output controls.", "studio.music.more": "More", "studio.music.less": "Less",
+    "studio.music.sampleRate": "Sample rate", "studio.music.sampleRateDescription": "Generated audio sample rate. Default: 44100 Hz.", "studio.music.bitrate": "Bitrate", "studio.music.bitrateDescription": "Generated audio bitrate. Default: 256 kbps.", "studio.music.format": "Format", "studio.music.formatDescription": "Output audio format. Default: MP3.",
+    "studio.music.voiceGender": "Voice gender",
+    "studio.music.all": "All",
+    "studio.music.female": "Female",
+    "studio.music.male": "Male",
+    "studio.music.instrumental": "Instrumental",
+    "studio.music.instrumentalDescription": "Generate music without vocals.",
+    "studio.music.autoLyrics": "Auto-generate lyrics",
+    "studio.music.autoLyricsDescription": "Create lyrics from the style prompt when lyrics are empty.",
+    "studio.music.lyrics": "Lyrics",
+    "studio.music.lyricsPlaceholder": "[Verse]\nWrite your lyrics here...\n\n[Chorus]\nAdd the chorus here...",
+    "studio.music.lyricsDescription": "Use line breaks between lyric lines. Supported tags: [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro].",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6 adds richer arrangements, structure tags, vocals, and automatic lyrics."
+  },
+  "zh-CN": {
+    "studio.workflow.text-to-music": "AI 音乐生成",
+    "studio.music.promptDescription": "描述音乐风格、情绪、流派和场景，长度为 10–2000 个字符。",
+    "studio.music.additionalSettings": "更多设置", "studio.music.additionalSettingsDescription": "歌词、人声模式和音频输出选项。", "studio.music.more": "展开", "studio.music.less": "收起",
+    "studio.music.sampleRate": "采样率", "studio.music.sampleRateDescription": "生成音频的采样率，默认 44100 Hz。", "studio.music.bitrate": "码率", "studio.music.bitrateDescription": "生成音频的码率，默认 256 kbps。", "studio.music.format": "格式", "studio.music.formatDescription": "输出音频格式，默认 MP3。",
+    "studio.music.voiceGender": "声音性别", "studio.music.all": "全部", "studio.music.female": "女声", "studio.music.male": "男声",
+    "studio.music.instrumental": "纯音乐", "studio.music.instrumentalDescription": "生成不含人声的音乐。",
+    "studio.music.autoLyrics": "自动生成歌词", "studio.music.autoLyricsDescription": "歌词为空时，根据风格提示词自动创作歌词。",
+    "studio.music.lyrics": "歌词", "studio.music.lyricsPlaceholder": "[Verse]\n在这里填写主歌...\n\n[Chorus]\n在这里填写副歌...",
+    "studio.music.lyricsDescription": "歌词行之间请换行。支持：[Intro]、[Verse]、[Pre Chorus]、[Chorus]、[Post Chorus]、[Hook]、[Bridge]、[Interlude]、[Transition]、[Build Up]、[Break]、[Inst]、[Solo]、[Outro]。",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6 支持更丰富的编曲、结构标签、人声和自动歌词。"
+  },
+  "pt-BR": {
+    "studio.workflow.text-to-music": "Gerador de música IA",
+    "studio.music.promptDescription": "Descreva estilo, clima, gênero e cenário. Use de 10 a 2000 caracteres.",
+    "studio.music.additionalSettings": "Configurações adicionais", "studio.music.additionalSettingsDescription": "Letra, modo vocal e opções de saída.", "studio.music.more": "Mais", "studio.music.less": "Menos",
+    "studio.music.sampleRate": "Taxa de amostragem", "studio.music.sampleRateDescription": "Taxa do áudio gerado. Padrão: 44100 Hz.", "studio.music.bitrate": "Taxa de bits", "studio.music.bitrateDescription": "Bitrate do áudio gerado. Padrão: 256 kbps.", "studio.music.format": "Formato", "studio.music.formatDescription": "Formato de saída. Padrão: MP3.",
+    "studio.music.voiceGender": "Gênero da voz", "studio.music.all": "Todos", "studio.music.female": "Feminina", "studio.music.male": "Masculina",
+    "studio.music.instrumental": "Instrumental", "studio.music.instrumentalDescription": "Gere música sem vocais.",
+    "studio.music.autoLyrics": "Gerar letra automaticamente", "studio.music.autoLyricsDescription": "Crie a letra pelo estilo quando o campo estiver vazio.",
+    "studio.music.lyrics": "Letra", "studio.music.lyricsPlaceholder": "[Verse]\nEscreva a letra aqui...\n\n[Chorus]\nAdicione o refrão aqui...",
+    "studio.music.lyricsDescription": "Separe as linhas com quebras. Tags aceitas: [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro].",
+    "studio.model.minimax-music-2.6": "O MiniMax Music 2.6 oferece arranjos mais ricos, estruturas, vocais e letras automáticas."
+  },
+  ru: {
+    "studio.workflow.text-to-music": "Генератор AI-музыки",
+    "studio.music.promptDescription": "Опишите стиль, настроение, жанр и сцену. От 10 до 2000 символов.",
+    "studio.music.additionalSettings": "Дополнительные настройки", "studio.music.additionalSettingsDescription": "Текст, режим вокала и параметры аудио.", "studio.music.more": "Больше", "studio.music.less": "Меньше",
+    "studio.music.sampleRate": "Частота дискретизации", "studio.music.sampleRateDescription": "Частота аудио. По умолчанию: 44100 Гц.", "studio.music.bitrate": "Битрейт", "studio.music.bitrateDescription": "Битрейт аудио. По умолчанию: 256 кбит/с.", "studio.music.format": "Формат", "studio.music.formatDescription": "Формат результата. По умолчанию: MP3.",
+    "studio.music.voiceGender": "Пол голоса", "studio.music.all": "Все", "studio.music.female": "Женский", "studio.music.male": "Мужской",
+    "studio.music.instrumental": "Инструментал", "studio.music.instrumentalDescription": "Создать музыку без вокала.",
+    "studio.music.autoLyrics": "Создать текст автоматически", "studio.music.autoLyricsDescription": "Создать текст по описанию стиля, если поле пустое.",
+    "studio.music.lyrics": "Текст песни", "studio.music.lyricsPlaceholder": "[Verse]\nВведите текст куплета...\n\n[Chorus]\nДобавьте припев...",
+    "studio.music.lyricsDescription": "Разделяйте строки переносами. Поддерживаются теги: [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro].",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6 поддерживает более богатые аранжировки, структуру, вокал и автотексты."
+  },
+  vi: {
+    "studio.workflow.text-to-music": "Tạo nhạc AI",
+    "studio.music.promptDescription": "Mô tả phong cách, tâm trạng, thể loại và bối cảnh. 10–2000 ký tự.",
+    "studio.music.additionalSettings": "Cài đặt bổ sung", "studio.music.additionalSettingsDescription": "Lời bài hát, chế độ giọng hát và đầu ra âm thanh.", "studio.music.more": "Thêm", "studio.music.less": "Thu gọn",
+    "studio.music.sampleRate": "Tần số lấy mẫu", "studio.music.sampleRateDescription": "Tần số âm thanh. Mặc định: 44100 Hz.", "studio.music.bitrate": "Bitrate", "studio.music.bitrateDescription": "Bitrate âm thanh. Mặc định: 256 kbps.", "studio.music.format": "Định dạng", "studio.music.formatDescription": "Định dạng đầu ra. Mặc định: MP3.",
+    "studio.music.voiceGender": "Giới tính giọng", "studio.music.all": "Tất cả", "studio.music.female": "Nữ", "studio.music.male": "Nam",
+    "studio.music.instrumental": "Không lời", "studio.music.instrumentalDescription": "Tạo nhạc không có giọng hát.",
+    "studio.music.autoLyrics": "Tự động tạo lời", "studio.music.autoLyricsDescription": "Tạo lời từ mô tả phong cách khi ô lời đang trống.",
+    "studio.music.lyrics": "Lời bài hát", "studio.music.lyricsPlaceholder": "[Verse]\nViết lời tại đây...\n\n[Chorus]\nThêm điệp khúc tại đây...",
+    "studio.music.lyricsDescription": "Xuống dòng giữa các câu. Hỗ trợ: [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro].",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6 có phối khí phong phú hơn, thẻ cấu trúc, giọng hát và lời tự động."
+  },
+  de: {
+    "studio.workflow.text-to-music": "KI-Musikgenerator",
+    "studio.music.promptDescription": "Beschreibe Stil, Stimmung, Genre und Szene. 10–2000 Zeichen.",
+    "studio.music.additionalSettings": "Weitere Einstellungen", "studio.music.additionalSettingsDescription": "Songtext, Gesangsmodus und Audioausgabe.", "studio.music.more": "Mehr", "studio.music.less": "Weniger",
+    "studio.music.sampleRate": "Abtastrate", "studio.music.sampleRateDescription": "Abtastrate des Audios. Standard: 44100 Hz.", "studio.music.bitrate": "Bitrate", "studio.music.bitrateDescription": "Bitrate des Audios. Standard: 256 kbit/s.", "studio.music.format": "Format", "studio.music.formatDescription": "Ausgabeformat. Standard: MP3.",
+    "studio.music.voiceGender": "Stimmgeschlecht", "studio.music.all": "Alle", "studio.music.female": "Weiblich", "studio.music.male": "Männlich",
+    "studio.music.instrumental": "Instrumental", "studio.music.instrumentalDescription": "Musik ohne Gesang erzeugen.",
+    "studio.music.autoLyrics": "Text automatisch erzeugen", "studio.music.autoLyricsDescription": "Bei leerem Textfeld einen Songtext aus dem Stil erstellen.",
+    "studio.music.lyrics": "Songtext", "studio.music.lyricsPlaceholder": "[Verse]\nSongtext hier eingeben...\n\n[Chorus]\nRefrain hier ergänzen...",
+    "studio.music.lyricsDescription": "Trenne Zeilen mit Umbrüchen. Unterstützt: [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro].",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6 bietet reichere Arrangements, Struktur-Tags, Gesang und automatische Texte."
+  },
+  fr: {
+    "studio.workflow.text-to-music": "Générateur de musique IA",
+    "studio.music.promptDescription": "Décrivez le style, l’ambiance, le genre et la scène. 10 à 2000 caractères.",
+    "studio.music.additionalSettings": "Paramètres supplémentaires", "studio.music.additionalSettingsDescription": "Paroles, mode vocal et sortie audio.", "studio.music.more": "Plus", "studio.music.less": "Moins",
+    "studio.music.sampleRate": "Fréquence d’échantillonnage", "studio.music.sampleRateDescription": "Fréquence audio. Par défaut : 44100 Hz.", "studio.music.bitrate": "Débit", "studio.music.bitrateDescription": "Débit audio. Par défaut : 256 kbit/s.", "studio.music.format": "Format", "studio.music.formatDescription": "Format de sortie. Par défaut : MP3.",
+    "studio.music.voiceGender": "Genre de voix", "studio.music.all": "Toutes", "studio.music.female": "Féminine", "studio.music.male": "Masculine",
+    "studio.music.instrumental": "Instrumental", "studio.music.instrumentalDescription": "Générer de la musique sans voix.",
+    "studio.music.autoLyrics": "Générer les paroles", "studio.music.autoLyricsDescription": "Créer les paroles depuis le style lorsque le champ est vide.",
+    "studio.music.lyrics": "Paroles", "studio.music.lyricsPlaceholder": "[Verse]\nÉcrivez les paroles ici...\n\n[Chorus]\nAjoutez le refrain ici...",
+    "studio.music.lyricsDescription": "Séparez les lignes par des retours. Balises prises en charge : [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro].",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6 propose des arrangements enrichis, des balises de structure, des voix et des paroles automatiques."
+  },
+  ja: {
+    "studio.workflow.text-to-music": "AI音楽生成",
+    "studio.music.promptDescription": "音楽のスタイル、雰囲気、ジャンル、場面を10〜2000文字で説明してください。",
+    "studio.music.additionalSettings": "追加設定", "studio.music.additionalSettingsDescription": "歌詞、ボーカルモード、音声出力を設定します。", "studio.music.more": "表示", "studio.music.less": "非表示",
+    "studio.music.sampleRate": "サンプルレート", "studio.music.sampleRateDescription": "生成音声のサンプルレート。既定値：44100 Hz。", "studio.music.bitrate": "ビットレート", "studio.music.bitrateDescription": "生成音声のビットレート。既定値：256 kbps。", "studio.music.format": "形式", "studio.music.formatDescription": "出力形式。既定値：MP3。",
+    "studio.music.voiceGender": "声の性別", "studio.music.all": "すべて", "studio.music.female": "女性", "studio.music.male": "男性",
+    "studio.music.instrumental": "インストゥルメンタル", "studio.music.instrumentalDescription": "ボーカルなしの音楽を生成します。",
+    "studio.music.autoLyrics": "歌詞を自動生成", "studio.music.autoLyricsDescription": "歌詞が空の場合、スタイル説明から歌詞を作成します。",
+    "studio.music.lyrics": "歌詞", "studio.music.lyricsPlaceholder": "[Verse]\nここに歌詞を入力...\n\n[Chorus]\nここにサビを追加...",
+    "studio.music.lyricsDescription": "歌詞の行は改行で区切ります。対応タグ：[Intro]、[Verse]、[Pre Chorus]、[Chorus]、[Post Chorus]、[Hook]、[Bridge]、[Interlude]、[Transition]、[Build Up]、[Break]、[Inst]、[Solo]、[Outro]。",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6は、より豊かな編曲、構成タグ、ボーカル、歌詞の自動生成に対応します。"
+  },
+  th: {
+    "studio.workflow.text-to-music": "สร้างเพลง AI",
+    "studio.music.promptDescription": "อธิบายสไตล์ อารมณ์ แนวเพลง และฉาก ความยาว 10–2000 ตัวอักษร",
+    "studio.music.additionalSettings": "การตั้งค่าเพิ่มเติม", "studio.music.additionalSettingsDescription": "เนื้อเพลง โหมดเสียงร้อง และเอาต์พุตเสียง", "studio.music.more": "เพิ่มเติม", "studio.music.less": "ย่อ",
+    "studio.music.sampleRate": "อัตราสุ่มตัวอย่าง", "studio.music.sampleRateDescription": "อัตราสุ่มตัวอย่างของเสียง ค่าเริ่มต้น 44100 Hz", "studio.music.bitrate": "บิตเรต", "studio.music.bitrateDescription": "บิตเรตของเสียง ค่าเริ่มต้น 256 kbps", "studio.music.format": "รูปแบบ", "studio.music.formatDescription": "รูปแบบไฟล์เอาต์พุต ค่าเริ่มต้น MP3",
+    "studio.music.voiceGender": "เพศของเสียง", "studio.music.all": "ทั้งหมด", "studio.music.female": "หญิง", "studio.music.male": "ชาย",
+    "studio.music.instrumental": "เพลงบรรเลง", "studio.music.instrumentalDescription": "สร้างเพลงที่ไม่มีเสียงร้อง",
+    "studio.music.autoLyrics": "สร้างเนื้อเพลงอัตโนมัติ", "studio.music.autoLyricsDescription": "สร้างเนื้อเพลงจากสไตล์เมื่อช่องเนื้อเพลงว่าง",
+    "studio.music.lyrics": "เนื้อเพลง", "studio.music.lyricsPlaceholder": "[Verse]\nเขียนเนื้อเพลงที่นี่...\n\n[Chorus]\nเพิ่มท่อนฮุกที่นี่...",
+    "studio.music.lyricsDescription": "แยกแต่ละบรรทัดด้วยการขึ้นบรรทัดใหม่ รองรับ [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro]",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6 รองรับการเรียบเรียงที่ละเอียดขึ้น แท็กโครงสร้าง เสียงร้อง และเนื้อเพลงอัตโนมัติ"
+  },
+  nl: {
+    "studio.workflow.text-to-music": "AI-muziekgenerator",
+    "studio.music.promptDescription": "Beschrijf stijl, sfeer, genre en scenario in 10–2000 tekens.",
+    "studio.music.additionalSettings": "Aanvullende instellingen", "studio.music.additionalSettingsDescription": "Songtekst, zangmodus en audio-uitvoer.", "studio.music.more": "Meer", "studio.music.less": "Minder",
+    "studio.music.sampleRate": "Samplefrequentie", "studio.music.sampleRateDescription": "Samplefrequentie van audio. Standaard: 44100 Hz.", "studio.music.bitrate": "Bitrate", "studio.music.bitrateDescription": "Bitrate van audio. Standaard: 256 kbps.", "studio.music.format": "Formaat", "studio.music.formatDescription": "Uitvoerformaat. Standaard: MP3.",
+    "studio.music.voiceGender": "Stemgeslacht", "studio.music.all": "Alle", "studio.music.female": "Vrouwelijk", "studio.music.male": "Mannelijk",
+    "studio.music.instrumental": "Instrumentaal", "studio.music.instrumentalDescription": "Maak muziek zonder zang.",
+    "studio.music.autoLyrics": "Songtekst automatisch maken", "studio.music.autoLyricsDescription": "Maak tekst vanuit de stijl wanneer het tekstveld leeg is.",
+    "studio.music.lyrics": "Songtekst", "studio.music.lyricsPlaceholder": "[Verse]\nSchrijf hier de tekst...\n\n[Chorus]\nVoeg hier het refrein toe...",
+    "studio.music.lyricsDescription": "Gebruik regeleinden tussen regels. Ondersteund: [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro].",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6 biedt rijkere arrangementen, structuurtags, zang en automatische teksten."
+  },
+  he: {
+    "studio.workflow.text-to-music": "מחולל מוזיקה ב-AI",
+    "studio.music.promptDescription": "תארו סגנון, מצב רוח, ז׳אנר ותרחיש ב־10–2000 תווים.",
+    "studio.music.additionalSettings": "הגדרות נוספות", "studio.music.additionalSettingsDescription": "מילים, מצב שירה ופלט שמע.", "studio.music.more": "עוד", "studio.music.less": "פחות",
+    "studio.music.sampleRate": "קצב דגימה", "studio.music.sampleRateDescription": "קצב הדגימה של השמע. ברירת מחדל: 44100 Hz.", "studio.music.bitrate": "קצב סיביות", "studio.music.bitrateDescription": "קצב הסיביות. ברירת מחדל: 256 kbps.", "studio.music.format": "פורמט", "studio.music.formatDescription": "פורמט הפלט. ברירת מחדל: MP3.",
+    "studio.music.voiceGender": "מגדר הקול", "studio.music.all": "הכול", "studio.music.female": "נקבה", "studio.music.male": "זכר",
+    "studio.music.instrumental": "אינסטרומנטלי", "studio.music.instrumentalDescription": "יצירת מוזיקה ללא שירה.",
+    "studio.music.autoLyrics": "יצירת מילים אוטומטית", "studio.music.autoLyricsDescription": "יצירת מילים מתיאור הסגנון כאשר השדה ריק.",
+    "studio.music.lyrics": "מילות השיר", "studio.music.lyricsPlaceholder": "[Verse]\nכתבו כאן את המילים...\n\n[Chorus]\nהוסיפו כאן את הפזמון...",
+    "studio.music.lyricsDescription": "הפרידו שורות באמצעות מעבר שורה. נתמכים: [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro].",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6 מציע עיבודים עשירים יותר, תגי מבנה, שירה ומילים אוטומטיות."
+  },
+  ko: {
+    "studio.workflow.text-to-music": "AI 음악 생성",
+    "studio.music.promptDescription": "음악 스타일, 분위기, 장르와 장면을 10~2000자로 설명하세요.",
+    "studio.music.additionalSettings": "추가 설정", "studio.music.additionalSettingsDescription": "가사, 보컬 모드 및 오디오 출력을 설정합니다.", "studio.music.more": "더 보기", "studio.music.less": "접기",
+    "studio.music.sampleRate": "샘플 레이트", "studio.music.sampleRateDescription": "생성 오디오 샘플 레이트. 기본값: 44100 Hz.", "studio.music.bitrate": "비트레이트", "studio.music.bitrateDescription": "생성 오디오 비트레이트. 기본값: 256 kbps.", "studio.music.format": "형식", "studio.music.formatDescription": "출력 형식. 기본값: MP3.",
+    "studio.music.voiceGender": "음성 성별", "studio.music.all": "전체", "studio.music.female": "여성", "studio.music.male": "남성",
+    "studio.music.instrumental": "연주곡", "studio.music.instrumentalDescription": "보컬 없는 음악을 생성합니다.",
+    "studio.music.autoLyrics": "가사 자동 생성", "studio.music.autoLyricsDescription": "가사가 비어 있으면 스타일 설명에서 가사를 만듭니다.",
+    "studio.music.lyrics": "가사", "studio.music.lyricsPlaceholder": "[Verse]\n여기에 가사를 입력하세요...\n\n[Chorus]\n여기에 후렴을 추가하세요...",
+    "studio.music.lyricsDescription": "가사 줄은 줄바꿈으로 구분하세요. 지원 태그: [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro].",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6은 더 풍부한 편곡, 구조 태그, 보컬 및 자동 가사를 지원합니다."
+  },
+  es: {
+    "studio.workflow.text-to-music": "Generador de música IA",
+    "studio.music.promptDescription": "Describe el estilo, ambiente, género y escenario en 10–2000 caracteres.",
+    "studio.music.additionalSettings": "Ajustes adicionales", "studio.music.additionalSettingsDescription": "Letra, modo vocal y salida de audio.", "studio.music.more": "Más", "studio.music.less": "Menos",
+    "studio.music.sampleRate": "Frecuencia de muestreo", "studio.music.sampleRateDescription": "Frecuencia del audio. Predeterminado: 44100 Hz.", "studio.music.bitrate": "Bitrate", "studio.music.bitrateDescription": "Bitrate del audio. Predeterminado: 256 kbps.", "studio.music.format": "Formato", "studio.music.formatDescription": "Formato de salida. Predeterminado: MP3.",
+    "studio.music.voiceGender": "Género de voz", "studio.music.all": "Todas", "studio.music.female": "Femenina", "studio.music.male": "Masculina",
+    "studio.music.instrumental": "Instrumental", "studio.music.instrumentalDescription": "Genera música sin voces.",
+    "studio.music.autoLyrics": "Generar letra automáticamente", "studio.music.autoLyricsDescription": "Crea la letra desde el estilo cuando el campo esté vacío.",
+    "studio.music.lyrics": "Letra", "studio.music.lyricsPlaceholder": "[Verse]\nEscribe la letra aquí...\n\n[Chorus]\nAñade el estribillo aquí...",
+    "studio.music.lyricsDescription": "Separa las líneas con saltos. Etiquetas compatibles: [Intro], [Verse], [Pre Chorus], [Chorus], [Post Chorus], [Hook], [Bridge], [Interlude], [Transition], [Build Up], [Break], [Inst], [Solo], [Outro].",
+    "studio.model.minimax-music-2.6": "MiniMax Music 2.6 ofrece arreglos más ricos, etiquetas de estructura, voces y letras automáticas."
+  }
+};
