@@ -4,6 +4,7 @@ type MusicMessages = Record<string, string>;
 
 export const studioMusicMessages: Record<Locale, MusicMessages> = {
   en: {
+    "studio.music.defaultPrompt": "City Pop, 80s retro, groovy synth bass, warm female vocal, 104 BPM, nostalgic urban night",
     "studio.workflow.text-to-music": "AI Music Generator",
     "studio.music.promptDescription": "Describe the music style, mood, genre, and scenario. 10-2000 characters.",
     "studio.music.additionalSettings": "Additional settings", "studio.music.additionalSettingsDescription": "Lyrics, vocal mode, and audio output controls.", "studio.music.more": "More", "studio.music.less": "Less",
@@ -22,6 +23,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6 adds richer arrangements, structure tags, vocals, and automatic lyrics."
   },
   "zh-CN": {
+    "studio.music.defaultPrompt": "城市流行，80 年代复古风，律动感合成器贝斯，温暖女声，104 BPM，怀旧都市夜景",
     "studio.workflow.text-to-music": "AI 音乐生成",
     "studio.music.promptDescription": "描述音乐风格、情绪、流派和场景，长度为 10–2000 个字符。",
     "studio.music.additionalSettings": "更多设置", "studio.music.additionalSettingsDescription": "歌词、人声模式和音频输出选项。", "studio.music.more": "展开", "studio.music.less": "收起",
@@ -34,6 +36,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6 支持更丰富的编曲、结构标签、人声和自动歌词。"
   },
   "pt-BR": {
+    "studio.music.defaultPrompt": "City Pop, retrô dos anos 80, baixo de sintetizador envolvente, vocal feminino acolhedor, 104 BPM, noite urbana nostálgica",
     "studio.workflow.text-to-music": "Gerador de música IA",
     "studio.music.promptDescription": "Descreva estilo, clima, gênero e cenário. Use de 10 a 2000 caracteres.",
     "studio.music.additionalSettings": "Configurações adicionais", "studio.music.additionalSettingsDescription": "Letra, modo vocal e opções de saída.", "studio.music.more": "Mais", "studio.music.less": "Menos",
@@ -46,6 +49,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "O MiniMax Music 2.6 oferece arranjos mais ricos, estruturas, vocais e letras automáticas."
   },
   ru: {
+    "studio.music.defaultPrompt": "Сити-поп, ретро 80-х, грувовый синтезаторный бас, тёплый женский вокал, 104 BPM, ностальгическая городская ночь",
     "studio.workflow.text-to-music": "Генератор AI-музыки",
     "studio.music.promptDescription": "Опишите стиль, настроение, жанр и сцену. От 10 до 2000 символов.",
     "studio.music.additionalSettings": "Дополнительные настройки", "studio.music.additionalSettingsDescription": "Текст, режим вокала и параметры аудио.", "studio.music.more": "Больше", "studio.music.less": "Меньше",
@@ -58,6 +62,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6 поддерживает более богатые аранжировки, структуру, вокал и автотексты."
   },
   vi: {
+    "studio.music.defaultPrompt": "City Pop, phong cách retro thập niên 80, bass synth giàu nhịp điệu, giọng nữ ấm áp, 104 BPM, đêm đô thị hoài niệm",
     "studio.workflow.text-to-music": "Tạo nhạc AI",
     "studio.music.promptDescription": "Mô tả phong cách, tâm trạng, thể loại và bối cảnh. 10–2000 ký tự.",
     "studio.music.additionalSettings": "Cài đặt bổ sung", "studio.music.additionalSettingsDescription": "Lời bài hát, chế độ giọng hát và đầu ra âm thanh.", "studio.music.more": "Thêm", "studio.music.less": "Thu gọn",
@@ -70,6 +75,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6 có phối khí phong phú hơn, thẻ cấu trúc, giọng hát và lời tự động."
   },
   de: {
+    "studio.music.defaultPrompt": "City Pop, 80er-Retro, grooviger Synth-Bass, warmer weiblicher Gesang, 104 BPM, nostalgische Großstadtnacht",
     "studio.workflow.text-to-music": "KI-Musikgenerator",
     "studio.music.promptDescription": "Beschreibe Stil, Stimmung, Genre und Szene. 10–2000 Zeichen.",
     "studio.music.additionalSettings": "Weitere Einstellungen", "studio.music.additionalSettingsDescription": "Songtext, Gesangsmodus und Audioausgabe.", "studio.music.more": "Mehr", "studio.music.less": "Weniger",
@@ -82,6 +88,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6 bietet reichere Arrangements, Struktur-Tags, Gesang und automatische Texte."
   },
   fr: {
+    "studio.music.defaultPrompt": "City Pop, rétro années 80, basse synthé groovy, voix féminine chaleureuse, 104 BPM, nuit urbaine nostalgique",
     "studio.workflow.text-to-music": "Générateur de musique IA",
     "studio.music.promptDescription": "Décrivez le style, l’ambiance, le genre et la scène. 10 à 2000 caractères.",
     "studio.music.additionalSettings": "Paramètres supplémentaires", "studio.music.additionalSettingsDescription": "Paroles, mode vocal et sortie audio.", "studio.music.more": "Plus", "studio.music.less": "Moins",
@@ -94,6 +101,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6 propose des arrangements enrichis, des balises de structure, des voix et des paroles automatiques."
   },
   ja: {
+    "studio.music.defaultPrompt": "シティポップ、80年代レトロ、グルーヴィーなシンセベース、温かみのある女性ボーカル、104 BPM、ノスタルジックな都会の夜",
     "studio.workflow.text-to-music": "AI音楽生成",
     "studio.music.promptDescription": "音楽のスタイル、雰囲気、ジャンル、場面を10〜2000文字で説明してください。",
     "studio.music.additionalSettings": "追加設定", "studio.music.additionalSettingsDescription": "歌詞、ボーカルモード、音声出力を設定します。", "studio.music.more": "表示", "studio.music.less": "非表示",
@@ -106,6 +114,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6は、より豊かな編曲、構成タグ、ボーカル、歌詞の自動生成に対応します。"
   },
   th: {
+    "studio.music.defaultPrompt": "ซิตี้ป๊อป กลิ่นอายเรโทรยุค 80 เบสซินธ์กรูฟฟี่ เสียงร้องหญิงอบอุ่น 104 BPM บรรยากาศค่ำคืนในเมืองที่ชวนคิดถึง",
     "studio.workflow.text-to-music": "สร้างเพลง AI",
     "studio.music.promptDescription": "อธิบายสไตล์ อารมณ์ แนวเพลง และฉาก ความยาว 10–2000 ตัวอักษร",
     "studio.music.additionalSettings": "การตั้งค่าเพิ่มเติม", "studio.music.additionalSettingsDescription": "เนื้อเพลง โหมดเสียงร้อง และเอาต์พุตเสียง", "studio.music.more": "เพิ่มเติม", "studio.music.less": "ย่อ",
@@ -118,6 +127,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6 รองรับการเรียบเรียงที่ละเอียดขึ้น แท็กโครงสร้าง เสียงร้อง และเนื้อเพลงอัตโนมัติ"
   },
   nl: {
+    "studio.music.defaultPrompt": "Citypop, jaren 80-retro, groovende synthbas, warme vrouwelijke zang, 104 BPM, nostalgische stedelijke nacht",
     "studio.workflow.text-to-music": "AI-muziekgenerator",
     "studio.music.promptDescription": "Beschrijf stijl, sfeer, genre en scenario in 10–2000 tekens.",
     "studio.music.additionalSettings": "Aanvullende instellingen", "studio.music.additionalSettingsDescription": "Songtekst, zangmodus en audio-uitvoer.", "studio.music.more": "Meer", "studio.music.less": "Minder",
@@ -130,6 +140,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6 biedt rijkere arrangementen, structuurtags, zang en automatische teksten."
   },
   he: {
+    "studio.music.defaultPrompt": "סיטי פופ, רטרו שנות ה־80, בס סינתיסייזר גרובי, שירה נשית חמה, 104 BPM, לילה עירוני נוסטלגי",
     "studio.workflow.text-to-music": "מחולל מוזיקה ב-AI",
     "studio.music.promptDescription": "תארו סגנון, מצב רוח, ז׳אנר ותרחיש ב־10–2000 תווים.",
     "studio.music.additionalSettings": "הגדרות נוספות", "studio.music.additionalSettingsDescription": "מילים, מצב שירה ופלט שמע.", "studio.music.more": "עוד", "studio.music.less": "פחות",
@@ -142,6 +153,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6 מציע עיבודים עשירים יותר, תגי מבנה, שירה ומילים אוטומטיות."
   },
   ko: {
+    "studio.music.defaultPrompt": "시티 팝, 80년대 레트로, 그루비한 신스 베이스, 따뜻한 여성 보컬, 104 BPM, 향수를 자아내는 도시의 밤",
     "studio.workflow.text-to-music": "AI 음악 생성",
     "studio.music.promptDescription": "음악 스타일, 분위기, 장르와 장면을 10~2000자로 설명하세요.",
     "studio.music.additionalSettings": "추가 설정", "studio.music.additionalSettingsDescription": "가사, 보컬 모드 및 오디오 출력을 설정합니다.", "studio.music.more": "더 보기", "studio.music.less": "접기",
@@ -154,6 +166,7 @@ export const studioMusicMessages: Record<Locale, MusicMessages> = {
     "studio.model.minimax-music-2.6": "MiniMax Music 2.6은 더 풍부한 편곡, 구조 태그, 보컬 및 자동 가사를 지원합니다."
   },
   es: {
+    "studio.music.defaultPrompt": "City Pop, estilo retro de los 80, bajo de sintetizador con groove, voz femenina cálida, 104 BPM, noche urbana nostálgica",
     "studio.workflow.text-to-music": "Generador de música IA",
     "studio.music.promptDescription": "Describe el estilo, ambiente, género y escenario en 10–2000 caracteres.",
     "studio.music.additionalSettings": "Ajustes adicionales", "studio.music.additionalSettingsDescription": "Letra, modo vocal y salida de audio.", "studio.music.more": "Más", "studio.music.less": "Menos",

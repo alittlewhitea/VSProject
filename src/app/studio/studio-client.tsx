@@ -939,12 +939,14 @@ function ratioFromImageSize(value: string) {
   return "3:4";
 }
 
-function defaultPromptForProvider(provider: string) {
+const MINIMAX_MUSIC_DEFAULT_PROMPT = "City Pop, 80s retro, groovy synth bass, warm female vocal, 104 BPM, nostalgic urban night";
+
+function defaultPromptForProvider(provider: string, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
   if (provider === "kling-avatar-standard" || provider === "kling-avatar-pro") {
     return KLING_AVATAR_DEFAULT_SCRIPT;
   }
   if (provider === "minimax-music-2.6") {
-    return "City Pop, 80s retro, groovy synth bass, warm female vocal, 104 BPM, nostalgic urban night";
+    return localizedMusicPrompt;
   }
   return "";
 }
@@ -1230,7 +1232,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     initialWorkflow === "avatar-video" || initialWorkflow === "image-to-video" ? initialWorkflow : "text-to-video";
   const initialAudioWorkflow: AudioWorkflow = initialWorkflow === "text-to-music" ? "text-to-music" : "text-to-audio";
   const initialReferenceUrl = sp.get("reference");
-  const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider));
+  const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider, st("studio.music.defaultPrompt")));
   const [provider, setProvider] = useState(initialProvider);
   const [imageWorkflow, setImageWorkflow] = useState<ImageWorkflow>(initialImageWorkflow);
   const [videoWorkflow, setVideoWorkflow] = useState<VideoWorkflow>(initialVideoWorkflow);
@@ -1308,6 +1310,19 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
   const trackedLoginSuccessRef = useRef<string | null>(null);
+  const lastLocalizedMusicPromptRef = useRef(st("studio.music.defaultPrompt"));
+
+  useEffect(() => {
+    const localizedPrompt = st("studio.music.defaultPrompt");
+    if (provider === "minimax-music-2.6") {
+      setPrompt((current) =>
+        !current.trim() || current === MINIMAX_MUSIC_DEFAULT_PROMPT || current === lastLocalizedMusicPromptRef.current
+          ? localizedPrompt
+          : current
+      );
+    }
+    lastLocalizedMusicPromptRef.current = localizedPrompt;
+  }, [provider, studioI18n.locale]);
 
   useEffect(() => {
     fetch("/api/model-availability", { cache: "no-store" })
@@ -1929,7 +1944,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     if (nextProvider === "nano-banana-image" || nextProvider === "nano-banana-pro" || nextProvider === "topaz-image" || nextProvider === "bria-background-remove") {
       setRatio(nextProvider === "nano-banana-image" || nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : "1:1");
     }
-    const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
+    const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
     const nextImageSize = nextMode === "image" ? defaultImageSizeForProvider(nextProvider) : imageSize;
     if (nextMode === "image") {
@@ -1963,7 +1978,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   function applyProvider(nextProvider: string) {
     trackEvent("studio_model_selected", { mode, provider: nextProvider, workflow: activeWorkflow }, accessToken);
     setProvider(nextProvider);
-    const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
+    const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
     if (isAvatarProvider(nextProvider)) {
       setReferenceImagesText((current) => current || KLING_AVATAR_DEFAULT_IMAGE_URL);
@@ -4862,7 +4877,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     const nextProvider = e.target.value;
                     trackEvent("studio_model_selected", { mode, provider: nextProvider }, accessToken);
                     setProvider(nextProvider);
-                    const nextDefaultPrompt = defaultPromptForProvider(nextProvider);
+                    const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
                     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
                     if (mode === "image") {
                       setReferenceImagesText(
