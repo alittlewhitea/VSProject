@@ -25,6 +25,7 @@ import {
   DREAMFACE_IO_PROVIDER,
   dreamfaceIoCredits,
   dreamfaceIoUnits,
+  enhanceDreamfaceIoPrompt,
   ensureDreamfaceIoPublicImage,
   isDreamfaceIoConfigured,
   isDreamfaceIoDailyEligible,
@@ -794,6 +795,12 @@ export async function POST(request: Request) {
     const falKey = process.env.FAL_KEY;
     const modelId = isDreamfaceIo ? "dreamface-io" : getModelId(storageMode, body.provider, hasInputImages(body));
     const taskId = generationTaskId(body.idempotencyKey);
+    const submittedPrompt = isDreamfaceIo
+      ? enhanceDreamfaceIoPrompt(prompt, {
+          imageToVideo: body.videoWorkflow === "image-to-video",
+          duration: body.duration
+        })
+      : prompt;
 
     const admin = createSupabaseAdminClient();
     if (!admin) {
@@ -846,6 +853,7 @@ export async function POST(request: Request) {
     const transport = isDreamfaceIo ? "real" : !falKey || !modelId ? "mock" : "real";
     const requestSettings = {
       ...buildRequestSettings(body, modelId),
+      ...(isDreamfaceIo ? { submitted_prompt: submittedPrompt } : {}),
       billing_source: billingSource,
       free_units_used: freeUnitsUsed
     };
@@ -949,7 +957,7 @@ export async function POST(request: Request) {
     try {
       if (isDreamfaceIo) {
         const dreamfaceSubmit = await submitDreamfaceIoVideo({
-          prompt,
+          prompt: submittedPrompt,
           imageUrl: firstInputImage(body),
           ratio: body.ratio,
           resolution: "720p",

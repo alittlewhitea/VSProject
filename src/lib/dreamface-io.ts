@@ -71,6 +71,39 @@ export function dreamfaceIoCredits(duration: string | null | undefined) {
   return dreamfaceIoUnits(duration) * DREAMFACE_IO_CREDITS_PER_UNIT;
 }
 
+export function enhanceDreamfaceIoPrompt(
+  prompt: string,
+  options: {
+    imageToVideo?: boolean;
+    duration?: string | null;
+  } = {}
+) {
+  const original = prompt.trim().slice(0, 1400);
+  const seconds = dreamfaceIoDurationSeconds(options.duration);
+  const pacing =
+    seconds <= 5
+      ? "Keep the action simple and achievable within one continuous short shot."
+      : "Keep the action coherent and naturally paced throughout the shot.";
+
+  if (options.imageToVideo) {
+    return [
+      original,
+      "Preserve the source image's subject identity, facial features, clothing, composition, visual style, and background.",
+      "Add subtle, physically plausible subject motion and smooth natural camera movement with gentle parallax.",
+      "Maintain stable anatomy, consistent details, coherent lighting, and temporal continuity; avoid sudden scene changes or unwanted transformations.",
+      pacing
+    ].join(" ");
+  }
+
+  return [
+    original,
+    "Create one visually coherent cinematic shot with a clearly defined subject and action.",
+    "Use natural, physically plausible motion, smooth intentional camera movement, consistent lighting, stable anatomy, and strong temporal continuity.",
+    "Keep the subject and background visually consistent; avoid abrupt cuts, duplicated elements, flicker, distortion, or unwanted transformations.",
+    pacing
+  ].join(" ");
+}
+
 function frameCount(duration: string | null | undefined) {
   const seconds = dreamfaceIoDurationSeconds(duration);
   return seconds === 15 ? 361 : seconds === 10 ? 241 : 121;

@@ -6,7 +6,7 @@ export const studioNewLocaleMessages: Partial<Record<Locale, Messages>> = {
   "ja": {
     "studio.generate.dailyFree": "今日無料 · 残り {remaining}/6 ユニット",
     "studio.generate.dailyPaid": "{credits} クレジット · 日次無料枠を使用済み",
-    "studio.dreamfaceIo.qualityHint": "日常的なクリエーションに最適。premium の結果を得るには、別のビデオモデルを試してください。",
+    "studio.dreamfaceIo.qualityHint": "DreamFace IO は現在も最適化中です。より洗練された安定した結果には、より高性能な動画モデルをお試しください。",
     "studio.status.dreamfaceIoQueued": "DreamFace IO タスクがキューに追加されました。生成待機中...",
     "studio.status.dreamfaceIoQueue": "DreamFace IO があなたのビデオを準備しています...",
     "studio.status.dreamfaceIoRunning": "DreamFace IO があなたのビデオを生成中...",
@@ -416,7 +416,7 @@ export const studioNewLocaleMessages: Partial<Record<Locale, Messages>> = {
   "th": {
     "studio.generate.dailyFree": "วันนี้ฟรี · เหลือ {remaining}/6 หน่วย",
     "studio.generate.dailyPaid": "{credits} เครดิต · ใช้โควต้าฟรีรายวันแล้ว",
-    "studio.dreamfaceIo.qualityHint": "เหมาะสำหรับการสร้างสรรค์ในชีวิตประจำวัน สำหรับผลลัพธ์ premium ลองใช้โมเดลวิดีโออื่น",
+    "studio.dreamfaceIo.qualityHint": "DreamFace IO ยังอยู่ระหว่างการปรับปรุง หากต้องการผลลัพธ์ที่ละเอียดและสม่ำเสมอยิ่งขึ้น โปรดลองใช้โมเดลวิดีโอที่ทรงพลังกว่าของเรา",
     "studio.status.dreamfaceIoQueued": "งาน DreamFace IO อยู่ในคิว กำลังรอการสร้าง...",
     "studio.status.dreamfaceIoQueue": "DreamFace IO กำลังเตรียมวิดีโอของคุณ...",
     "studio.status.dreamfaceIoRunning": "DreamFace IO กำลังสร้างวิดีโอของคุณ...",
@@ -826,7 +826,7 @@ export const studioNewLocaleMessages: Partial<Record<Locale, Messages>> = {
   "nl": {
     "studio.generate.dailyFree": "Gratis vandaag · {remaining}/6 eenheden over",
     "studio.generate.dailyPaid": "{credits} credits · dagelijks gratis tegoed gebruikt",
-    "studio.dreamfaceIo.qualityHint": "Geweldig voor alledaagse creatie. Voor premium resultaten, probeer een ander videomodel.",
+    "studio.dreamfaceIo.qualityHint": "DreamFace IO wordt nog geoptimaliseerd. Probeer voor verfijndere en consistentere resultaten een van onze krachtigere videomodellen.",
     "studio.status.dreamfaceIoQueued": "DreamFace IO taak in wachtrij. Wachten op generatie...",
     "studio.status.dreamfaceIoQueue": "DreamFace IO bereidt je video voor...",
     "studio.status.dreamfaceIoRunning": "DreamFace IO genereert je video...",
@@ -1236,7 +1236,7 @@ export const studioNewLocaleMessages: Partial<Record<Locale, Messages>> = {
   "he": {
     "studio.generate.dailyFree": "חינם היום · {remaining}/6 יחידות נותרו",
     "studio.generate.dailyPaid": "{credits} קרדיטים · הקצבת החינם היומית נוצלה",
-    "studio.dreamfaceIo.qualityHint": "מעולה ליצירה יומיומית. עבור premium תוצאות, נסה דגם וידאו אחר.",
+    "studio.dreamfaceIo.qualityHint": "DreamFace IO עדיין נמצא בתהליך שיפור. לתוצאות מלוטשות ועקביות יותר, נסו אחד ממודלי הווידאו החזקים יותר שלנו.",
     "studio.status.dreamfaceIoQueued": "DreamFace IO משימה בתור. ממתין ליצירה...",
     "studio.status.dreamfaceIoQueue": "DreamFace IO מכין את הווידאו שלך...",
     "studio.status.dreamfaceIoRunning": "DreamFace IO מייצר את הווידאו שלך...",
@@ -1646,7 +1646,7 @@ export const studioNewLocaleMessages: Partial<Record<Locale, Messages>> = {
   "ko": {
     "studio.generate.dailyFree": "오늘 무료 · {remaining}/6 유닛 남음",
     "studio.generate.dailyPaid": "{credits} 크레딧 · 하루 무료 허용량 사용됨",
-    "studio.dreamfaceIo.qualityHint": "일상적인 창작에 적합합니다. premium 결과를 위해 다른 비디오 모델을 시도해 보세요.",
+    "studio.dreamfaceIo.qualityHint": "DreamFace IO는 아직 최적화 중입니다. 더 정교하고 일관된 결과가 필요하다면 더 강력한 비디오 모델을 사용해 보세요.",
     "studio.status.dreamfaceIoQueued": "DreamFace IO 작업이 대기열에 추가됨. 생성 대기 중...",
     "studio.status.dreamfaceIoQueue": "DreamFace IO가 비디오를 준비 중입니다...",
     "studio.status.dreamfaceIoRunning": "DreamFace IO가 비디오를 생성 중입니다...",
@@ -2056,7 +2056,7 @@ export const studioNewLocaleMessages: Partial<Record<Locale, Messages>> = {
   "es": {
     "studio.generate.dailyFree": "Gratis hoy · {remaining}/6 unidades restantes",
     "studio.generate.dailyPaid": "{credits} créditos · asignación diaria gratuita utilizada",
-    "studio.dreamfaceIo.qualityHint": "Ideal para la creación diaria. Para premium resultados, prueba otro modelo de video.",
+    "studio.dreamfaceIo.qualityHint": "DreamFace IO todavía está en proceso de optimización. Para obtener resultados más pulidos y consistentes, prueba uno de nuestros modelos de video más potentes.",
     "studio.status.dreamfaceIoQueued": "DreamFace IO tarea en cola. Esperando generación...",
     "studio.status.dreamfaceIoQueue": "DreamFace IO está preparando tu video...",
     "studio.status.dreamfaceIoRunning": "DreamFace IO está generando tu video...",
