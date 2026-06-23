@@ -20,6 +20,7 @@ const pagePath: Record<MarketingPage, string> = {
 const openGraphLocales: Record<Locale, string> = {
   en: "en_US",
   "zh-CN": "zh_CN",
+  "zh-TW": "zh_TW",
   "pt-BR": "pt_BR",
   ru: "ru_RU",
   vi: "vi_VN",

@@ -30,7 +30,7 @@ export const studioGermanMessages: Record<string, string> = {
   "studio.workflow.text-to-video": "Text zu Video",
   "studio.workflow.image-to-video": "Bild zu Video",
   "studio.workflow.avatar-video": "Avatar-Video",
-  "studio.workflow.text-to-audio": "Text zu Audio",
+  "studio.workflow.text-to-audio": "Text-zu-Sprache",
   "studio.field.prompt": "Prompt",
   "studio.field.modelSettings": "Modelleinstellungen",
   "studio.field.quality": "Qualität",

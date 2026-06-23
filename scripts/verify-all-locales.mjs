@@ -3,7 +3,7 @@ import path from "node:path";
 import ts from "typescript";
 
 const root = process.cwd();
-const locales = ["en", "zh-CN", "pt-BR", "ru", "vi", "de", "fr", "ja", "th", "nl", "he", "ko", "es"];
+const locales = ["en", "zh-CN", "zh-TW", "pt-BR", "ru", "vi", "de", "fr", "ja", "th", "nl", "he", "ko", "es"];
 const studioSources = [
   ["studio-i18n-dreamface-io.ts", "studioDreamfaceIoMessages"],
   ["studio-i18n-workspace-home.ts", "studioWorkspaceHomeMessages"],
@@ -105,6 +105,7 @@ const studioSets = studioSources.map(([file, variable]) => readVariable(file, va
 const newStudio = readVariable("studio-i18n-new-locales.ts", "studioNewLocaleMessages");
 const german = readVariable("studio-i18n-de.ts", "studioGermanMessages");
 const french = readVariable("studio-i18n-fr.ts", "studioFrenchMessages");
+const traditionalChinese = readVariable("studio-i18n-zh-tw.ts", "studioTraditionalChineseMessages");
 const studioEnglish = {};
 for (const set of studioSets) {
   for (const [key, value] of Object.entries(set.en || {})) {
@@ -121,7 +122,14 @@ for (const locale of locales) {
       if (!(key in effectiveStudio)) effectiveStudio[key] = value;
     }
   }
-  const standalone = locale === "de" ? german : locale === "fr" ? french : {};
+  const standalone =
+    locale === "de"
+      ? german
+      : locale === "fr"
+        ? french
+        : locale === "zh-TW"
+          ? traditionalChinese
+          : {};
   for (const [key, value] of Object.entries(standalone)) {
     if (!(key in effectiveStudio)) effectiveStudio[key] = value;
   }

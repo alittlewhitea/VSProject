@@ -1,6 +1,7 @@
 export const locales = [
   "en",
   "zh-CN",
+  "zh-TW",
   "pt-BR",
   "ru",
   "vi",
@@ -33,6 +34,7 @@ export function persistLocalePreference(locale: Locale) {
 export const localeLabels: Record<Locale, string> = {
   en: "English",
   "zh-CN": "简体中文",
+  "zh-TW": "繁體中文",
   "pt-BR": "Português",
   ru: "Русский",
   vi: "Tiếng Việt",

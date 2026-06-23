@@ -1320,6 +1320,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           ? localizedPrompt
           : current
       );
+    } else {
+      setPrompt((current) =>
+        current === MINIMAX_MUSIC_DEFAULT_PROMPT || current === lastLocalizedMusicPromptRef.current
+          ? ""
+          : current
+      );
     }
     lastLocalizedMusicPromptRef.current = localizedPrompt;
   }, [provider, studioI18n.locale]);
@@ -3413,8 +3419,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       {[
                         { title: "studio.workspace.intent.video", body: "studio.workspace.intent.videoBody", href: "/studio?mode=video&workflow=text-to-video&duration=5s", icon: "film" as StudioIconName, color: "bg-[#eef2ff] text-[#4f46e5]", tools: ["studio.workflow.text-to-video", "studio.workflow.image-to-video"] },
                         { title: "studio.workspace.intent.image", body: "studio.workspace.intent.imageBody", href: "/studio?mode=image&workflow=text-to-image", icon: "sparkles" as StudioIconName, color: "bg-[#ecfeff] text-[#0891b2]", tools: ["studio.workflow.text-to-image", "studio.workflow.image-to-image"] },
-                        { title: "studio.workspace.intent.avatar", body: "studio.workspace.intent.avatarBody", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, color: "bg-[#fdf2f8] text-[#db2777]", tools: ["studio.nav.avatar", "studio.workflow.text-to-audio"] },
-                        { title: "studio.workspace.intent.enhance", body: "studio.workspace.intent.enhanceBody", href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image", icon: "cleanup" as StudioIconName, color: "bg-[#f0fdf4] text-[#16a34a]", tools: ["studio.workflow.enhance-cleanup", "studio.workflow.background-remove"] }
+                        { title: "studio.workspace.intent.avatar", body: "studio.workspace.intent.avatarBody", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, color: "bg-[#fdf2f8] text-[#db2777]", tools: ["studio.nav.avatar"] },
+                        { title: "studio.workspace.intent.enhance", body: "studio.workspace.intent.enhanceBody", href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image", icon: "cleanup" as StudioIconName, color: "bg-[#f0fdf4] text-[#16a34a]", tools: ["studio.workflow.enhance-cleanup"] },
+                        { title: "studio.workflow.background-remove", body: "studio.home.quick.remove", href: "/studio?mode=image&workflow=background-remove&provider=bria-background-remove", icon: "cleanup" as StudioIconName, color: "bg-[#fff7ed] text-[#ea580c]", tools: ["studio.workflow.background-remove"] },
+                        { title: "studio.workflow.text-to-audio", body: "studio.home.quick.audio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, color: "bg-[#f5f3ff] text-[#7c3aed]", tools: ["studio.workflow.text-to-audio"] },
+                        { title: "studio.workflow.text-to-music", body: "studio.music.promptDescription", href: "/studio?mode=audio&workflow=text-to-music&provider=minimax-music-2.6", icon: "audio" as StudioIconName, color: "bg-[#fefce8] text-[#ca8a04]", tools: ["studio.workflow.text-to-music"] }
                       ].map((item) => (
                         <Link key={item.title} href={item.href} className="group rounded-[1.5rem] border border-black/[0.06] bg-white/76 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition hover:-translate-y-1 hover:border-[#c7d2fe] hover:bg-white hover:shadow-[0_22px_52px_rgba(15,23,42,0.09)]">
                           <span className={`grid h-12 w-12 place-items-center rounded-2xl ${item.color}`}>

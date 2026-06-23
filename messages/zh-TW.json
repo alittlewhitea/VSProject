@@ -1,0 +1,656 @@
+{
+  "nav": {
+    "logo": "dreamface",
+    "platform": "平台",
+    "providers": "模型",
+    "gallery": "作品庫",
+    "pricing": "價格",
+    "login": "登入",
+    "logout": "登出",
+    "projects": "專案",
+    "studio": "工作台",
+    "openStudio": "開啟工作台",
+    "products": "產品",
+    "create": "創作",
+    "featured": "精選",
+    "creativeToolkit": "AI 創作工具箱",
+    "creativeToolkitDescription": "在一個入口開啟 DreamFace 的全部創作工作區",
+    "imageStudio": "AI 圖片工作台",
+    "imageStudioDescription": "用提示詞或參考圖生成圖片",
+    "videoStudio": "AI 影片工作台",
+    "videoStudioDescription": "把文字或圖片變成可發布的影片",
+    "audioGenerator": "AI 語音生成器",
+    "audioGeneratorDescription": "用 ElevenLabs 從腳本生成自然旁白",
+    "projectsDescription": "管理作品、提示詞、退款和歷史紀錄",
+    "textToImage": "文生圖",
+    "textToImageDescription": "生成廣告圖、海報、縮圖和視覺概念",
+    "imageToImage": "圖生圖",
+    "imageToImageDescription": "編輯、換風格或延伸參考圖",
+    "imageEnhance": "圖片增強",
+    "imageEnhanceDescription": "放大並修復你擁有的圖片",
+    "backgroundRemove": "移除背景",
+    "backgroundRemoveDescription": "去除背景並匯出透明 PNG",
+    "textToVideo": "文生影片",
+    "textToVideoDescription": "把文字場景變成短影片片段",
+    "imageToVideo": "圖生影片",
+    "imageToVideoDescription": "讓產品圖、人像或參考畫面動起來",
+    "textToAudio": "文生語音",
+    "textToAudioDescription": "從腳本生成自然旁白",
+    "payAsYouGo": "隨用隨付",
+    "creditPacksForIndividuals": "適合個人創作者的積分包"
+  },
+  "hero": {
+    "titleLine1": "幾分鐘內把想法",
+    "titleLine2": "變成影片",
+    "title": "幾分鐘內把想法變成影片",
+    "subtitle": "從腳本、圖片、簡報或提示詞出發，快速生成可發布的創意內容。不需要相機、團隊或剪輯經驗。",
+    "ctaGoogle": "使用 Google 繼續",
+    "ctaPrimary": "免費開始創作"
+  },
+  "home": {
+    "gallery": {
+      "eyebrow": "提示詞作品庫",
+      "title": "探索可直接重複使用的 AI 視覺創意",
+      "description": "進入工作台前，先瀏覽可重複使用提示詞、模型範例和精選參考。",
+      "cta": "查看更多"
+    },
+    "platform": {
+      "titleLine1": "覆蓋每一種",
+      "titleLine2": "創作流程的平台工具",
+      "description": "從一個平台入口開啟圖片生成、影片創作、產品廣告、UGC 概念和多模型生產工作區。",
+      "card": {
+        "textToVideo": "文生影片",
+        "photoToVideo": "照片轉影片",
+        "productAds": "產品廣告",
+        "ugcAds": "UGC 廣告",
+        "aiModels": "AI 模型"
+      }
+    },
+    "textToVideo": {
+      "eyebrow": "文生影片",
+      "title": "用 AI 把文字變成影片",
+      "description": "輸入腳本並描述畫面、節奏、聲音、鏡頭運動和輸出風格，即可生成適合講解、廣告、銷售、培訓或社群媒體內容的影片片段。",
+      "cta": "免費開始"
+    },
+    "photoToVideo": {
+      "eyebrow": "照片轉影片",
+      "title": "把照片變成動態影片",
+      "description": "上傳圖片，加入腳本或運動提示詞，幾秒鐘生成擁有自然動作、順暢節奏和可發布構圖的 AI 影片。",
+      "cta": "免費開始"
+    },
+    "pricing": {
+      "title": "不被訂閱綁住的積分方案",
+      "cta": "查看價格",
+      "getCredits": "購買積分",
+      "trial": {
+        "name": "試用積分",
+        "price": "免費",
+        "note": "新帳號可用",
+        "credits": "註冊贈送 100 積分"
+      },
+      "bestValue": "最划算",
+      "topUpWhenNeeded": "需要時再儲值"
+    },
+    "faq": {
+      "eyebrow": "DreamFace 常見問題",
+      "title": "常見問題",
+      "description": "了解 DreamFace 如何把 AI 圖片生成、圖片編輯、文生圖、圖生圖、文生影片和圖生影片整合到一個創作工作台。",
+      "whatIsDreamFace": {
+        "question": "DreamFace 是什麼？",
+        "answer": "DreamFace 是一個 AI 創作工作台，可以在一個地方生成圖片、編輯圖片並建立 AI 影片，同時管理模型、積分、專案歷史和輸出結果。"
+      },
+      "videoGenerators": {
+        "question": "什麼是 AI 影片生成器？",
+        "answer": "AI 影片生成器可以把提示詞、圖片、腳本或參考素材轉換成影片片段，適合製作社群媒體內容、產品展示、廣告概念和行銷素材。"
+      },
+      "bestVideoGenerator": {
+        "question": "哪種 AI 影片生成器更適合創作者和行銷團隊？",
+        "answer": "最合適的工具取決於流程、預算、模型和輸出風格。DreamFace 更適合希望把圖片生成、圖片編輯、文生影片、圖生影片和積分管理放在一個工作台裡的使用者。"
+      },
+      "availableTools": {
+        "question": "DreamFace 提供哪些 AI 創作工具？",
+        "answer": "DreamFace 支援文生圖、圖生圖、文生影片、圖生影片、圖片增強和專案歷史。你可以先選擇創作目標，再進入合適的模型流程。"
+      },
+      "textImageSupport": {
+        "question": "支援文生圖和圖生圖嗎？",
+        "answer": "支援。你可以用提示詞生成圖片，也可以上傳參考圖進行編輯、改風格或延伸畫面。"
+      },
+      "videoSupport": {
+        "question": "支援文生影片和圖生影片嗎？",
+        "answer": "支援。文生影片適合從零描述場景，圖生影片適合讓產品圖、人像或參考畫面動起來。"
+      },
+      "videoInputs": {
+        "question": "建立 AI 影片可以使用哪些輸入？",
+        "answer": "你可以使用文字提示詞、參考圖片或簡短創意說明。圖生影片時，可以描述主體動作、鏡頭運動、節奏和最終氛圍。"
+      },
+      "referenceImage": {
+        "question": "可以用參考圖生成影片嗎？",
+        "answer": "可以。上傳產品圖、人像、角色圖或視覺概念後，DreamFace 會把參考圖和提示詞傳送給所選模型生成動態影片。"
+      },
+      "videoOfMyself": {
+        "question": "如何生成自己的 AI 影片？",
+        "answer": "請使用你擁有權利或獲得授權的清晰圖片或素材，並描述想要的動作、場景和風格。不要上傳未經授權的人像。"
+      },
+      "socialMedia": {
+        "question": "可以製作 TikTok、廣告或社群媒體影片嗎？",
+        "answer": "可以。DreamFace 適合短影片、產品預熱影片、廣告概念、縮圖和活動素材，也可以儲存專案並重複使用提示詞繼續做變體。"
+      },
+      "models": {
+        "question": "可以使用哪些 AI 模型？",
+        "answer": "可用模型取決於工作流。圖片方向包含 GPT Image 2、Nano Banana 2、FLUX Schnell 等，影片方向包含 Seedance、Kling、Veo 和 Grok Imagine Video 等。"
+      },
+      "videoTiming": {
+        "question": "生成 AI 影片需要多久？",
+        "answer": "所需時間取決於模型佇列、影片長度、解析度和服務供應商狀態。短影片通常可在幾分鐘內完成，較複雜的任務可能需要更久。"
+      },
+      "noEditing": {
+        "question": "沒有剪輯經驗也能用嗎？",
+        "answer": "可以。選擇流程、寫提示詞、新增參考圖、選擇模型並生成即可，不需要時間線剪輯經驗。"
+      },
+      "costBeforeCreate": {
+        "question": "生成前可以看到預估用量嗎？",
+        "answer": "可以。DreamFace 會在生成按鈕附近顯示預估積分用量，方便你在提交任務前評估成本。"
+      },
+      "freeTrial": {
+        "question": "DreamFace 可以免費試用嗎？",
+        "answer": "新帳號會獲得試用積分，可用於體驗支援的生成流程。需要更多生成次數時，可以購買積分包或訂閱方案。"
+      },
+      "failedTask": {
+        "question": "生成失敗會怎樣？",
+        "answer": "如果確認是服務供應商或平台處理失敗，DreamFace 會在積分明細中紀錄退款，並將相關積分退回餘額。"
+      },
+      "promptGallery": {
+        "question": "進入工作台前可以先看提示詞嗎？",
+        "answer": "可以。提示詞庫可以幫助你瀏覽視覺靈感、模型範例和可重複使用提示詞，然後再進入工作台創作。"
+      },
+      "audioSupport": {
+        "question": "DreamFace 支援 AI 音樂或語音嗎？",
+        "answer": "DreamFace 目前以視覺創作為主，同時部分流程包含語音能力。實際可用功能以線上工作台顯示為準。"
+      },
+      "replaceProduction": {
+        "question": "AI 影片可以替代傳統拍攝嗎？",
+        "answer": "在創意驗證、廣告測試、培訓和社群媒體內容等場景可以大幅減少傳統制作成本。正式發布前仍建議稽核品牌、授權和合規風險。"
+      },
+      "securityEthics": {
+        "question": "DreamFace 是否安全且合規？",
+        "answer": "DreamFace 會把專案、提示詞、積分和輸出集中在帳號中管理。你仍需要合法使用素材、尊重肖像權，並避免誤導性冒充。"
+      },
+      "commercialUse": {
+        "question": "生成內容可以商用嗎？",
+        "answer": "是否可商用取決於 DreamFace 條款、所選模型、你的輸入素材和第三方權利。發布或變現前請確認適用許可。"
+      }
+    },
+    "finalCta": {
+      "title": "少花時間折騰 API，多花時間做出結果。",
+      "description": "用一個清爽的工作台，更快完成圖片和影片生成。",
+      "primary": "進入工作台",
+      "secondary": "聯絡銷售"
+    }
+  },
+  "footer": {
+    "brand": "dreamface",
+    "description": "統一的圖片 + 影片生成基礎設施。",
+    "platform": "平台",
+    "imageStudio": "圖片工作台",
+    "videoStudio": "影片工作台",
+    "providerRouting": "模型路由",
+    "creditsBilling": "積分與帳務",
+    "company": "公司",
+    "about": "關於我們",
+    "documentation": "說明文件",
+    "contact": "聯絡",
+    "licenseTerms": "許可與條款",
+    "copyright": "(c) 2026 DreamFace. 保留所有權利。",
+    "legal": {
+      "license": "DreamFace 許可",
+      "terms": "使用條款",
+      "business-terms": "商業使用條款",
+      "copyright-policy": "版權政策",
+      "privacy-policy": "隱私政策"
+    }
+  },
+  "auth": {
+    "brand": "dreamface",
+    "backHome": "回到首頁",
+    "eyebrow": "免費創作帳號",
+    "signup": {
+      "title": "幾分鐘內開始創作影片。",
+      "description": "登入即可領取免費積分，儲存每一次提示詞，並在專案中管理生成的圖片和影片。"
+    },
+    "benefit": {
+      "freeCredits": "註冊即送免費積分",
+      "projectHistory": "自動儲存專案歷史",
+      "google": "支援 Google 快速登入"
+    },
+    "login": {
+      "eyebrow": "帳號登入",
+      "title": "建立免費帳號",
+      "description": "使用 Google 最快開始，也可以透過安全的電子郵件連結登入。"
+    },
+    "google": "使用 Google 繼續",
+    "googleOpening": "正在開啟 Google...",
+    "emailDivider": "電子郵件",
+    "emailLabel": "電子郵件",
+    "emailPlaceholder": "ni@company.com",
+    "sendMagicLink": "傳送登入連結",
+    "pleaseWait": "請稍候...",
+    "successMagicLink": "驗證連結已寄出，請查看電子郵件信箱。",
+    "emailFailed": "電子郵件登入失敗。",
+    "googleFailed": "Google 登入失敗。",
+    "footerNote": "繼續後，你可以使用工作台、查看積分與帳務，並管理已儲存的專案。"
+  },
+  "pricing": {
+    "title": "Premium AI 創作方案",
+    "subtitle": "選擇 Premium 會員，解鎖無水印創作、更快佇列、商業使用權和定期發放的積分。需要更多時也可以額外加購積分。",
+    "eyebrow": "價格",
+    "forIndividuals": "適合個人使用者",
+    "currentBalance": "目前餘額",
+    "credits": "積分",
+    "refresh": "重新整理",
+    "refreshing": "重新整理中",
+    "free": {
+      "name": "免費",
+      "badge": "免費",
+      "priceInterval": "月",
+      "credits": "100 試用積分",
+      "eligible": "適用於符合條件的新帳號",
+      "description": "從基礎功能開始：圖片生成、圖片編輯、有限語音、有限影片、帶水印和標準佇列。",
+      "cta": "免費開始"
+    },
+    "freeFeatures": {
+      "image": "已包含",
+      "editing": "已包含",
+      "voice": "已包含",
+      "video": "已包含",
+      "watermark": "已包含",
+      "queue": "已包含"
+    },
+    "plan": {
+      "premiumLite": {
+        "name": "Premium Lite",
+        "badge": "最受歡迎",
+        "cta": "開始 Premium Lite",
+        "bestFor": "適合輕量創作者、圖片生成、圖片編輯和短影片測試。",
+        "feature": {
+          "fullImage": "已包含",
+          "fullEditing": "已包含",
+          "voice": "已包含",
+          "basicVideo": "已包含",
+          "commercial": "已包含",
+          "noWatermark": "已包含",
+          "refund": "已包含",
+          "queue": "已包含",
+          "history": "已包含"
+        }
+      },
+      "premium": {
+        "name": "Premium",
+        "badge": "最划算",
+        "cta": "升級到 Premium",
+        "bestFor": "適合影片生成、高頻創作者、行銷人員、代理商和內容團隊。",
+        "feature": {
+          "everything": "已包含",
+          "video": "已包含",
+          "queue": "已包含",
+          "models": "已包含",
+          "tests": "已包含",
+          "processing": "已包含",
+          "early": "已包含"
+        }
+      }
+    },
+    "creditPack": {
+      "starter": {
+        "name": "入門包",
+        "idealFor": "適合快速試用圖片、語音和輕量影片流程。"
+      },
+      "creator": {
+        "name": "創作者包",
+        "idealFor": "適合在確定最終方案前，多做幾組視覺方向。"
+      },
+      "studio": {
+        "name": "工作室積分包",
+        "idealFor": "適合需要更多圖片、語音和短影片草稿空間的使用者。"
+      },
+      "proTopup": {
+        "name": "專業加量包",
+        "idealFor": "適合 Premium 訂閱需要臨時增加容量的高頻使用場景。"
+      }
+    },
+    "extraCredits": {
+      "eyebrow": "額外積分",
+      "title": "需要更多積分？",
+      "description": "適合偶爾加量使用。大多數創作者使用 Premium 訂閱會更划算。",
+      "buy": "購買額外積分",
+      "opening": "正在開啟..."
+    },
+    "faq": {
+      "title": "價格常見問題",
+      "items": {
+        "test": {
+          "q": "如何試用 DreamFace？",
+          "a": "建立免費帳號後，可使用試用積分體驗圖片生成、圖片編輯、語音和短影片流程，再決定是否升級。"
+        },
+        "cost": {
+          "q": "DreamFace 多少錢？",
+          "a": "DreamFace 提供 Premium Lite 和 Premium 訂閱，也支援隨用隨付購買額外積分包。"
+        },
+        "credits": {
+          "q": "積分是什麼？",
+          "a": "積分是 DreamFace 用於創作任務的統一餘額。不同模型和服務供應商的消耗不同，工作台會在提交生成前顯示預估用量。"
+        },
+        "rollover": {
+          "q": "積分會結轉嗎？",
+          "a": "訂閱積分會依目前的產品規則，在每個帳務週期重新發放。額外購買的積分包會在帳號有效期間保留在錢包中。"
+        },
+        "cancel": {
+          "q": "可以隨時取消嗎？",
+          "a": "可以，你可以隨時取消訂閱。"
+        },
+        "extra": {
+          "q": "可以額外購買積分嗎？",
+          "a": "可以。訂閱方案下方提供額外積分包，適合偶爾加量使用。"
+        },
+        "upgrade": {
+          "q": "可以從 Premium Lite 升級到 Premium 嗎？",
+          "a": "可以。帳號啟用訂閱管理後，使用者可以隨時升級。"
+        },
+        "video": {
+          "q": "積分可以用於影片嗎？",
+          "a": "可以。影片模型通常比圖片模型消耗更多，因為價格會依影片長度、解析度和服務供應商規則而變動。生成前會顯示預估用量。"
+        },
+        "failure": {
+          "q": "生成失敗會怎樣？",
+          "a": "確認是服務供應商處理失敗後，DreamFace 會在積分明細中紀錄退款，並將相關積分退回帳號餘額。"
+        }
+      }
+    },
+    "features": {
+      "eyebrow": "方案權益",
+      "title": "比較積分包和創作容量",
+      "description": "所有方案使用同一個 DreamFace 工作台，主要區別在於再次儲值前可以生成多少素材。"
+    },
+    "testimonials": {
+      "eyebrow": "使用者評價",
+      "title": "使用者如何評價我們",
+      "description": "他們已經用 DreamFace 更快完成創意驗證和內容製作。",
+      "rating": "5 星評價",
+      "items": {
+        "campaigns": {
+          "title": "活動推進更快",
+          "body": "我們可以在同一個地方測試視覺方向、聲音選項和短影片動效，不必每次重新整理創意簡報。",
+          "role": "成長負責人"
+        },
+        "simple": {
+          "title": "非設計師也能上手",
+          "body": "團隊不再糾結從哪裡開始。開啟工作台、選擇流程，並在生成前知道積分消耗。",
+          "role": "創意營運"
+        },
+        "iteration": {
+          "title": "很適合反覆迭代",
+          "body": "我們用它製作多版縮圖、產品情緒板、圖片放大修復和初期影片概念。",
+          "role": "品牌製作人"
+        },
+        "billing": {
+          "title": "帳務更加透明",
+          "body": "積分明細讓內部審核更容易，可以清楚查看購買、使用和退款紀錄。",
+          "role": "工作室經理"
+        },
+        "polish": {
+          "title": "從提示詞到成片",
+          "body": "最有價值的是範圍夠廣：快速草稿、高階圖片模型、語音、增強和影片測試共用一個錢包。",
+          "role": "內容總監"
+        },
+        "repeat": {
+          "title": "適合長期反覆使用",
+          "body": "儲存專案和可預期的積分估算，讓它適合每週內容週期，而不只是一次性實驗。",
+          "role": "行銷負責人"
+        }
+      }
+    },
+    "modelGuide": {
+      "eyebrow": "模型參考",
+      "title": "常見積分消耗",
+      "description": "準確價格會顯示在生成按鈕旁。可用時使用即時 fal 價格，並用備用估算保證連續性。"
+    },
+    "comparison": {
+      "getStarted": "開始使用",
+      "value": {
+        "included": "已包含",
+        "notIncluded": "不包含"
+      },
+      "plan": {
+        "free": "免費",
+        "premiumLite": "Premium Lite",
+        "premium": "Premium"
+      },
+      "section": {
+        "credits": {
+          "title": "會員積分",
+          "row": {
+            "trialCredits": {
+              "label": "試用積分",
+              "value1": "100 積分",
+              "value2": "符合條件即包含",
+              "value3": "符合條件即包含"
+            },
+            "monthlyCredits": {
+              "label": "每月積分",
+              "value1": "不包含",
+              "value2": "2,400 積分",
+              "value3": "4,600 積分"
+            },
+            "yearlyCredits": {
+              "label": "每年積分",
+              "value1": "不包含",
+              "value2": "18,000 積分",
+              "value3": "38,000 積分"
+            },
+            "extraCreditPacks": {
+              "label": "額外積分包",
+              "value1": "可購買",
+              "value2": "可購買",
+              "value3": "可購買"
+            }
+          }
+        },
+        "access": {
+          "title": "工作台存取權限",
+          "row": {
+            "textToImage": {
+              "label": "文生圖",
+              "value1": "試用權限",
+              "value2": "完整權限",
+              "value3": "完整權限"
+            },
+            "imageEditing": {
+              "label": "圖片編輯",
+              "value1": "試用權限",
+              "value2": "完整權限",
+              "value3": "完整權限"
+            },
+            "voiceGeneration": {
+              "label": "語音生成",
+              "value1": "有限",
+              "value2": "已包含",
+              "value3": "已包含"
+            },
+            "videoGeneration": {
+              "label": "影片生成",
+              "value1": "有限",
+              "value2": "基礎影片",
+              "value3": "更高影片容量"
+            },
+            "premiumModelAccess": {
+              "label": "高階模型存取權限",
+              "value1": "有限",
+              "value2": "已包含",
+              "value3": "高階權限"
+            },
+            "promptHistory": {
+              "label": "提示詞歷史",
+              "value1": "已包含",
+              "value2": "已包含",
+              "value3": "已包含"
+            }
+          }
+        },
+        "benefits": {
+          "title": "會員權益",
+          "row": {
+            "commercialUse": {
+              "label": "商業使用",
+              "value1": "不包含",
+              "value2": "已包含",
+              "value3": "已包含"
+            },
+            "watermark": {
+              "label": "水印",
+              "value1": "包含水印",
+              "value2": "無水印",
+              "value3": "無水印"
+            },
+            "queue": {
+              "label": "佇列",
+              "value1": "標準",
+              "value2": "更快佇列",
+              "value3": "優先佇列"
+            },
+            "refunds": {
+              "label": "服務供應商失敗退款",
+              "value1": "已包含",
+              "value2": "已包含",
+              "value3": "已包含"
+            },
+            "bestFor": {
+              "label": "適合",
+              "value1": "測試工具",
+              "value2": "輕量創作者",
+              "value3": "高頻創作者和團隊"
+            }
+          }
+        }
+      }
+    }
+  },
+  "billing": {
+    "title": "管理積分和儲值",
+    "subtitle": "在同一個錢包頁面選擇隨用隨付積分包、重新整理餘額，並查看積分與 Stripe 購買紀錄。",
+    "eyebrow": "帳務",
+    "currentBalance": "目前餘額",
+    "creditsAvailable": "可用積分",
+    "refreshBalance": "重新整理餘額",
+    "signInToView": "登入後查看",
+    "subscription": {
+      "eyebrow": "訂閱",
+      "noActive": "目前沒有有效會員",
+      "choosePlan": "選擇 Premium Lite 或 Premium，解鎖會員權益和定期發放的積分。",
+      "manage": "管理訂閱",
+      "currentDescription": "每 {cycle} {credits} 積分。{status}",
+      "cancellationScheduled": "已安排在週期結束時取消。",
+      "manageThroughStripe": "透過 Stripe 管理訂閱與帳務。",
+      "accessUntil": "可使用至",
+      "renews": "續訂於"
+    },
+    "success": {
+      "title": "付款成功",
+      "paymentReceived": "已收到付款",
+      "description": "Stripe 確認仍在同步中，本頁會自動重新整理你的餘額。",
+      "creditsAdded": "已增加 {credits} 積分",
+      "purchaseSummary": "{packId} 方案 · {amount} · {status}"
+    },
+    "subscriptionSuccess": {
+      "eyebrow": "訂閱付款",
+      "title": "會員付款已完成",
+      "description": "Stripe 正在確認訂閱。確認完成後，會員積分和權益會自動生效。"
+    },
+    "cancel": {
+      "title": "付款已取消",
+      "description": "本次沒有扣款。你可以隨時重新選擇會員或積分包。"
+    },
+    "lowBalance": "你的餘額低於 {threshold} 積分。進行較大的影片渲染或高品質圖片批次生成前，建議先儲值。",
+    "membership": {
+      "eyebrow": "會員",
+      "title": "選擇 Premium 方案",
+      "description": "Premium 會員會依週、月或年定期發放積分，並解鎖無水印創作、更快佇列和商業使用權。"
+    },
+    "extraCredits": {
+      "eyebrow": "額外積分",
+      "title": "需要更多積分？",
+      "description": "適合偶爾加量使用。大多數創作者使用 Premium 訂閱會更划算。"
+    },
+    "creditActivity": "積分紀錄",
+    "noCreditActivity": "目前沒有積分紀錄。",
+    "signInCreditActivity": "登入後查看積分紀錄。",
+    "stripePurchases": "Stripe 購買紀錄",
+    "stripeCheckoutId": "Stripe 付款 ID",
+    "noStripePurchases": "目前沒有 Stripe 購買紀錄。",
+    "signInStripePurchases": "登入後查看 Stripe 購買紀錄。",
+    "openingCheckout": "正在開啟付款頁面...",
+    "recharge": "儲值",
+    "cycle": {
+      "weekly": "每週",
+      "monthly": "每月",
+      "yearly": "每年"
+    },
+    "onlyMonthly": "僅 {price}/月 · {savings}",
+    "creditsPerInterval": "{credits} 積分 / {interval}",
+    "creditCount": "{credits} 積分",
+    "renewsEvery": "每 {interval} 續發",
+    "includedCredits": "包含積分",
+    "usage": {
+      "title": "這些積分最高可用於生成",
+      "images": "張 FLUX Schnell 圖片",
+      "videos": "個 5 秒 DreamFace IO 影片",
+      "voiceovers": "段 1,000 字元配音",
+      "avatars": "個 5 秒標準 Avatar 影片",
+      "note": "以上為分別使用全部積分時的理論上限，並非可以同時獲得；符合條件的 DreamFace IO 每日免費次數另計。"
+    },
+    "message": {
+      "trialUnavailable": "此帳號暫時無法領取試用積分，已購買積分仍可正常使用。",
+      "balanceUnavailable": "暫時無法取得積分餘額。",
+      "subscriptionChecking": "會員付款已完成，正在透過 Stripe 確認會員狀態...",
+      "subscriptionConfirmed": "會員已確認，會員積分已加入餘額。",
+      "subscriptionProcessing": "會員付款已完成，Stripe 可能仍在同步確認，請稍後重新整理。",
+      "paymentChecking": "付款已完成，正在向 Stripe 確認並重新整理餘額...",
+      "paymentConfirmed": "付款已確認，積分已加入餘額。",
+      "paymentProcessing": "付款已完成，Stripe 可能仍在同步確認，請稍後重新整理。",
+      "checkoutCancelled": "付款已取消，沒有新增積分。",
+      "unableCheckout": "暫時無法開啟付款頁面。",
+      "unableSubscriptionCheckout": "暫時無法開啟會員付款頁面。",
+      "unablePortal": "暫時無法開啟帳務管理頁面。"
+    },
+    "status": {
+      "pending": "待處理",
+      "completed": "已完成",
+      "cancelled": "已取消",
+      "failed": "失敗"
+    },
+    "reason": {
+      "signup_bonus": "註冊贈送",
+      "stripe_checkout": "積分購買",
+      "stripe_subscription": "會員積分",
+      "generation_task": "生成消耗",
+      "generation_refund": "生成失敗退款",
+      "manual_top_up_dev": "開發測試儲值"
+    }
+  },
+  "metadata": {
+    "home": {
+      "title": "DreamFace AI 圖片和影片生成器",
+      "description": "使用 DreamFace 從提示詞、圖片和腳本生成 AI 圖片與影片，在一個創作工作台裡管理圖片、影片、Avatar、音訊、積分和專案。"
+    },
+    "price": {
+      "title": "DreamFace 價格和積分方案",
+      "description": "查看 DreamFace Premium 會員、積分包、高階模型存取權限、更快佇列、無水印匯出和隨用隨付積分，適合 AI 圖片和影片創作。"
+    },
+    "auth": {
+      "title": "登入 DreamFace",
+      "description": "登入或建立免費的 DreamFace 帳號，領取積分、儲存提示詞、管理專案，並開始生成 AI 圖片和影片。"
+    },
+    "billing": {
+      "title": "DreamFace 帳務和積分",
+      "description": "在安全頁面管理 DreamFace 積分、Premium 訂閱、Stripe 付款狀態、儲值、購買紀錄和帳務紀錄。"
+    }
+  }
+}

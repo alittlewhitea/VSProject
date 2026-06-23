@@ -282,7 +282,7 @@ export const studioFrenchMessages: Record<string, string> = {
   "studio.workflow.text-to-video": "Texte vers vidéo",
   "studio.workflow.image-to-video": "Image vers vidéo",
   "studio.workflow.avatar-video": "Vidéo d'avatar",
-  "studio.workflow.text-to-audio": "Texte vers audio",
+  "studio.workflow.text-to-audio": "Synthèse vocale",
   "studio.field.prompt": "Prompt",
   "studio.field.modelSettings": "Paramètres du modèle",
   "studio.field.quality": "Qualité",

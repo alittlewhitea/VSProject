@@ -2,7 +2,7 @@ import type { Locale } from "../i18n/routing";
 
 type MusicMessages = Record<string, string>;
 
-export const studioMusicMessages: Record<Locale, MusicMessages> = {
+export const studioMusicMessages: Partial<Record<Locale, MusicMessages>> = {
   en: {
     "studio.music.defaultPrompt": "City Pop, 80s retro, groovy synth bass, warm female vocal, 104 BPM, nostalgic urban night",
     "studio.workflow.text-to-music": "AI Music Generator",
