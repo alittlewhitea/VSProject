@@ -71,6 +71,15 @@ export function dreamfaceIoCredits(duration: string | null | undefined) {
   return dreamfaceIoUnits(duration) * DREAMFACE_IO_CREDITS_PER_UNIT;
 }
 
+function dreamfaceIoSpeechInstruction() {
+  return [
+    "If the subject speaks, use the same language as the dialogue written in the user's prompt.",
+    "Deliver the dialogue exactly as written; do not translate it into English or any other language, and do not paraphrase it.",
+    "Preserve the original wording, names, pronunciation, and intended speaking style.",
+    "Keep the voice clear and the lip movement naturally synchronized with the original-language dialogue."
+  ].join(" ");
+}
+
 export function enhanceDreamfaceIoPrompt(
   prompt: string,
   options: {
@@ -84,24 +93,27 @@ export function enhanceDreamfaceIoPrompt(
     seconds <= 5
       ? "Keep the action simple and achievable within one continuous short shot."
       : "Keep the action coherent and naturally paced throughout the shot.";
+  const speechInstruction = dreamfaceIoSpeechInstruction();
 
   if (options.imageToVideo) {
     return [
       original,
+      speechInstruction,
       "Preserve the source image's subject identity, facial features, clothing, composition, visual style, and background.",
       "Add subtle, physically plausible subject motion and smooth natural camera movement with gentle parallax.",
       "Maintain stable anatomy, consistent details, coherent lighting, and temporal continuity; avoid sudden scene changes or unwanted transformations.",
       pacing
-    ].join(" ");
+    ].filter(Boolean).join(" ");
   }
 
   return [
     original,
+    speechInstruction,
     "Create one visually coherent cinematic shot with a clearly defined subject and action.",
     "Use natural, physically plausible motion, smooth intentional camera movement, consistent lighting, stable anatomy, and strong temporal continuity.",
     "Keep the subject and background visually consistent; avoid abrupt cuts, duplicated elements, flicker, distortion, or unwanted transformations.",
     pacing
-  ].join(" ");
+  ].filter(Boolean).join(" ");
 }
 
 function frameCount(duration: string | null | undefined) {
