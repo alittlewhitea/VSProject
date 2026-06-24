@@ -15,6 +15,24 @@ export async function SiteFooter() {
         <div>
           <p className="text-2xl font-semibold tracking-tight">{t("footer.brand")}</p>
           <p className="mt-2 text-sm text-[#506170]">{t("footer.description")}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a
+              href="https://www.youtube.com/@DreamfaceLTD"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full border border-black/10 bg-white/45 px-3 py-1 text-xs font-medium text-[#4f5a67] transition hover:border-black/20 hover:bg-white/70 hover:text-[#1d1d1f]"
+            >
+              YouTube
+            </a>
+            <a
+              href="https://www.linkedin.com/company/dreamface/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full border border-black/10 bg-white/45 px-3 py-1 text-xs font-medium text-[#4f5a67] transition hover:border-black/20 hover:bg-white/70 hover:text-[#1d1d1f]"
+            >
+              LinkedIn
+            </a>
+          </div>
         </div>
         <div>
           <p className="text-sm font-semibold">{t("footer.platform")}</p>
