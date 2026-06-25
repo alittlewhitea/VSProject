@@ -899,6 +899,14 @@ function studioProjectHref(taskId?: string) {
   return `/studio?view=projects${taskId ? `&taskId=${encodeURIComponent(taskId)}` : ""}`;
 }
 
+function taskEstimatedWaitRange(task: TaskItem) {
+  const rawDuration = typeof task.settings?.duration === "string" ? task.settings.duration : "";
+  const seconds = Number.parseInt(rawDuration, 10);
+  if (Number.isFinite(seconds) && seconds >= 10) return "3-4";
+  if (Number.isFinite(seconds) && seconds <= 5) return "2-3";
+  return "2-4";
+}
+
 function regenerateHref(task: TaskItem) {
   const mode = task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video";
   const workflow =
@@ -2452,7 +2460,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         failureReason: payload.failureReason || null
       };
       setTasks((prev) => [queuedTask, ...prev.filter((task) => task.id !== queuedTask.id)]);
-      router.push(`/studio?view=projects&mode=${mode}&taskId=${encodeURIComponent(payload.taskId)}`);
+      router.push(studioProjectHref(payload.taskId));
       trackEvent(
         "generation_queued",
         {
@@ -3641,7 +3649,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                   <p className="mt-2 text-sm leading-6 text-white/55">
                                     {selectedProjectTask.status === "Failed"
                                       ? selectedProjectTask.failureReason || st("studio.projects.refundDefault")
-                                      : st("studio.projects.providerCreatingDescription")}
+                                      : selectedProjectTask.type === "Video"
+                                        ? st("studio.projects.videoWaitHint", { range: taskEstimatedWaitRange(selectedProjectTask) })
+                                        : st("studio.projects.providerCreatingDescription")}
                                   </p>
                                   {selectedProjectTask.status === "Queued" || selectedProjectTask.status === "Running" ? (
                                     <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/10">

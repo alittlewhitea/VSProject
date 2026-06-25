@@ -287,6 +287,7 @@ export const studioTraditionalChineseMessages: Messages = {
   "studio.projects.generationFailed": "生成未完成",
   "studio.projects.providerCreating": "服務供應商仍在生成",
   "studio.projects.providerCreatingDescription": "你可以離開此頁面，任務會繼續執行並自動更新。",
+  "studio.projects.videoWaitHint": "影片生成通常需要約 {range} 分鐘，實際時間會依你選擇的影片長度而不同。目前任務已在佇列中，無需用同一組提示詞重複提交。請稍微耐心等待，結果會自動更新到這裡。",
   "studio.projects.download": "下載",
   "studio.projects.copyPrompt": "複製提示詞",
   "studio.projects.retry": "重試",

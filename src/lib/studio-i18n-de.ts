@@ -287,6 +287,7 @@ export const studioGermanMessages: Record<string, string> = {
   "studio.home.quick.audio": "Natürliche Voiceovers aus Skripten.",
   "studio.projects.savedTasks": "{count} gespeicherte {label}",
   "studio.projects.providerCreatingDescription": "Du kannst diese Seite verlassen. Das Projekt wird automatisch aktualisiert, während der Auftrag beim Anbieter verarbeitet wird.",
+  "studio.projects.videoWaitHint": "Die Videoerstellung dauert normalerweise etwa {range} Minuten, abhängig von der gewählten Länge. Dein Auftrag ist bereits in der Warteschlange, du musst denselben Prompt also nicht erneut senden. Bitte warte einen Moment — dieses Projekt wird automatisch aktualisiert.",
   "studio.projects.startDescription": "Deine generierten Inhalte und Details werden hier organisiert.",
   "studio.projects.browserTasks": "Es werden die in dieser Browsersitzung gespeicherten Aufträge angezeigt.",
   "studio.projects.historyBrowserFallback": "Der Auftragsverlauf ist vorübergehend nicht verfügbar. Es werden die in dieser Browsersitzung gespeicherten Aufträge angezeigt.",

@@ -152,6 +152,7 @@ export const studioFrenchMessages: Record<string, string> = {
   "studio.projects.generationFailed": "La génération n'est pas terminée",
   "studio.projects.providerCreating": "Le fournisseur continue de créer",
   "studio.projects.providerCreatingDescription": "Vous pouvez laisser cette page. Ce projet sera mis à jour automatiquement pendant la file d'attente du fournisseur.",
+  "studio.projects.videoWaitHint": "La génération vidéo prend généralement environ {range} minutes, selon la durée choisie. Votre tâche est déjà dans la file d'attente, inutile donc de renvoyer le même prompt. Merci de patienter un peu — ce projet se mettra à jour automatiquement.",
   "studio.projects.download": "Télécharger",
   "studio.projects.copyPrompt": "Copier l'invite",
   "studio.projects.retry": "Réessayer",
