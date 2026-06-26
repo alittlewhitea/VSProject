@@ -39,6 +39,7 @@
   "studio.generate.button": "Générer",
   "studio.generate.buttonWithCredits": "Générer / {credits} crédits",
   "studio.generate.creating": "Création en cours...",
+  "studio.generate.projectsHint": "Après l’envoi, vous pouvez ouvrir Projects et actualiser la page pour suivre la progression.",
   "studio.generate.estimate": "{credits} crédits",
   "studio.generate.lowBalance": "Votre solde est inférieur à cette estimation. Remontez avant de générer.",
   "studio.generate.lowBalanceWarning": "Mise en garde à faible solde : ce poste laisserait moins de crédits {threshold}.",

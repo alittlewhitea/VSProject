@@ -4244,6 +4244,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     >
                       {isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}
                     </button>
+                    {isSubmitting ? (
+                      <p className="col-span-2 -mt-1 text-center text-xs font-medium leading-5 text-[#7a8496] sm:text-right">
+                        {st("studio.generate.projectsHint")}{" "}
+                        <Link href="/studio?view=projects" className="font-semibold text-[#1c6be1] underline-offset-4 hover:underline">
+                          {st("studio.nav.projects")}
+                        </Link>
+                      </p>
+                    ) : null}
                   </div>
                   {provider === "dreamface-io-video" ? (
                     <p className="border-t border-black/[0.05] bg-amber-50/55 px-5 py-2.5 text-center text-xs font-medium text-amber-800/80 md:px-7">
@@ -5599,6 +5607,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     ? st("studio.generate.buttonWithCredits", { credits: estCredits })
                     : st("studio.auth.signInToGenerate")}
               </AppButton>
+              {isSubmitting ? (
+                <p className="mt-2 text-center text-xs font-medium leading-5 text-white/52">
+                  {st("studio.generate.projectsHint")}{" "}
+                  <Link href="/studio?view=projects" className="font-semibold text-white underline-offset-4 hover:underline">
+                    {st("studio.nav.projects")}
+                  </Link>
+                </p>
+              ) : null}
               <button
                 type="button"
                 onClick={() => {

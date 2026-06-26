@@ -91,6 +91,7 @@
   "studio.generate.button": "Erstellen",
   "studio.generate.buttonWithCredits": "Erstellen / {credits} Credits",
   "studio.generate.creating": "Wird erstellt...",
+  "studio.generate.projectsHint": "Nach dem Absenden kannst du Projects öffnen und aktualisieren, um den Fortschritt zu prüfen.",
   "studio.generate.estimate": "{credits} Credits",
   "studio.generate.lowBalance": "Dein Guthaben liegt unter dieser Schätzung. Lade vor der Erstellung Credits auf.",
   "studio.generate.lowBalanceWarning": "Niedriges Guthaben: Nach diesem Auftrag bleiben weniger als {threshold} Credits.",

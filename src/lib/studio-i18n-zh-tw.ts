@@ -116,6 +116,7 @@ export const studioTraditionalChineseMessages: Messages = {
   "studio.generate.button": "生成",
   "studio.generate.buttonWithCredits": "生成 / {credits} 積分",
   "studio.generate.creating": "生成中...",
+  "studio.generate.projectsHint": "提交後你可以前往 Projects 頁面刷新查看進度。",
   "studio.generate.estimate": "{credits} 積分",
   "studio.generate.lowBalance": "你的餘額低於本次預估消耗，請先儲值再生成。",
   "studio.generate.lowBalanceWarning": "餘額提醒：本次生成後餘額會低於 {threshold} 積分。",
