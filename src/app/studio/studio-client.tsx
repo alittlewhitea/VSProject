@@ -394,8 +394,9 @@ const KLING_TEXT_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1"];
 const VEO_VIDEO_RATIO_OPTIONS = ["16:9", "9:16"];
 const GROK_VIDEO_RATIO_OPTIONS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"];
 const GROK_IMAGE_VIDEO_RATIO_OPTIONS = ["auto", ...GROK_VIDEO_RATIO_OPTIONS];
-const GROK_VIDEO_RESOLUTION_OPTIONS = ["720p", "480p"];
-const SEEDANCE_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p", "480p"];
+const GROK_VIDEO_RESOLUTION_OPTIONS = ["480p", "720p"];
+const SEEDANCE_VIDEO_RESOLUTION_OPTIONS = ["480p", "720p", "1080p"];
+const SEEDANCE_MINI_VIDEO_RESOLUTION_OPTIONS = ["480p", "720p"];
 const VEO_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p", "4k"];
 const VIDEO_DURATION_OPTIONS = ["3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s"];
 const GROK_VIDEO_DURATION_OPTIONS = ["1s", "2s", ...VIDEO_DURATION_OPTIONS];
@@ -517,6 +518,13 @@ const PROVIDER_META: Record<
     quality: "Cinematic motion",
     bestFor: "Cinematic text-to-video and image-to-video with native audio"
   },
+  "seedance-mini-video": {
+    label: "Seedance 2.0 Mini",
+    shortLabel: "Seedance Mini",
+    speed: "Fast",
+    quality: "Lower-cost motion",
+    bestFor: "Faster, cheaper text-to-video and image-to-video at 480p or 720p"
+  },
   "kling-video": {
     label: "Kling v3 Pro",
     shortLabel: "Kling",
@@ -609,22 +617,22 @@ const WORKFLOW_META: Record<
     providers: ["bria-background-remove"]
   },
   "avatar-video": {
-    label: "AI Avatar",
-    description: "Create a talking avatar video from one image and an audio URL.",
-    recommendedProvider: "kling-avatar-standard",
-    providers: ["kling-avatar-standard", "kling-avatar-pro"]
+    label: "AI Talking",
+    description: "Upload one image, type what it should say, and create a talking video.",
+    recommendedProvider: "dreamface-io-video",
+    providers: ["dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"]
   },
   "text-to-video": {
     label: "Text to Video",
     description: "Turn a written scene into a short video.",
     recommendedProvider: "dreamface-io-video",
-    providers: ["dreamface-io-video", "grok-video", "kling-video", "seedance-video", "veo-video"]
+    providers: ["dreamface-io-video", "grok-video", "seedance-mini-video", "kling-video", "seedance-video", "veo-video"]
   },
   "image-to-video": {
     label: "Image to Video",
     description: "Animate a reference image into a short video.",
     recommendedProvider: "dreamface-io-video",
-    providers: ["dreamface-io-video", "kling-video", "seedance-video", "grok-video"]
+    providers: ["dreamface-io-video", "seedance-mini-video", "kling-video", "seedance-video", "grok-video"]
   },
   "text-to-audio": {
     label: "Text to Audio",
@@ -975,6 +983,12 @@ function defaultImageSizeForProvider(provider: string) {
   return "default_4_3";
 }
 
+function defaultVideoResolutionForProvider(provider: string) {
+  if (provider === "dreamface-io-video") return "720p";
+  if (provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video") return "480p";
+  return "720p";
+}
+
 function isAvatarProvider(provider: string) {
   return provider === "kling-avatar-standard" || provider === "kling-avatar-pro";
 }
@@ -1148,8 +1162,8 @@ function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (!provider) return false;
   if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return ["minimax-music-2.6", "elevenlabs-tts"].includes(provider);
-  if (mode === "avatar") return ["kling-avatar-standard", "kling-avatar-pro"].includes(provider);
-  return ["dreamface-io-video", "seedance-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
+  if (mode === "avatar") return ["dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
+  return ["dreamface-io-video", "seedance-video", "seedance-mini-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
 }
 
 function workflowForMode(mode: StudioMode, workflow: string | null): StudioWorkflow {
@@ -1245,7 +1259,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [imageWorkflow, setImageWorkflow] = useState<ImageWorkflow>(initialImageWorkflow);
   const [videoWorkflow, setVideoWorkflow] = useState<VideoWorkflow>(initialVideoWorkflow);
   const [audioWorkflow, setAudioWorkflow] = useState<AudioWorkflow>(initialAudioWorkflow);
-  const [ratio, setRatio] = useState(mode === "image" ? "1:1" : mode === "avatar" ? "source" : "16:9");
+  const [ratio, setRatio] = useState(mode === "image" ? "1:1" : mode === "avatar" ? initialProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
   const [imageSize, setImageSize] = useState("default_4_3");
   const [referenceImagesText, setReferenceImagesText] = useState(() =>
     (mode === "image" || mode === "video" || mode === "avatar") &&
@@ -1259,7 +1273,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [avatarAudioUrl, setAvatarAudioUrl] = useState(sp.get("audioUrl") || "");
   const [avatarAudioTrimSeconds, setAvatarAudioTrimSeconds] = useState<number | null>(null);
   const [editResolution, setEditResolution] = useState("1K");
-  const [videoResolution, setVideoResolution] = useState("720p");
+  const [videoResolution, setVideoResolution] = useState(() => defaultVideoResolutionForProvider(initialProvider));
   const [generateAudio, setGenerateAudio] = useState(false);
   const [ttsVoice, setTtsVoice] = useState("Rachel");
   const [avatarVoiceGender, setAvatarVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
@@ -1429,9 +1443,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     );
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
     const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
-    setRatio(mode === "image" ? (nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize)) : mode === "avatar" ? "source" : "16:9");
+    setRatio(mode === "image" ? (nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize)) : mode === "avatar" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
     setImageSize(nextImageSize);
     setDuration(mode === "video" || mode === "avatar" ? DEFAULT_VIDEO_DURATION : "single");
+    setVideoResolution(defaultVideoResolutionForProvider(nextProvider));
     setStatusText("");
     setStatusTone("idle");
   }, [mode, sp]);
@@ -1482,7 +1497,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     }
 
     const resolutionParam = sp.get("resolution");
-    if (resolutionParam && [...GROK_VIDEO_RESOLUTION_OPTIONS, ...SEEDANCE_VIDEO_RESOLUTION_OPTIONS, ...VEO_VIDEO_RESOLUTION_OPTIONS].includes(resolutionParam)) {
+    if (resolutionParam && [...GROK_VIDEO_RESOLUTION_OPTIONS, ...SEEDANCE_VIDEO_RESOLUTION_OPTIONS, ...SEEDANCE_MINI_VIDEO_RESOLUTION_OPTIONS, ...VEO_VIDEO_RESOLUTION_OPTIONS].includes(resolutionParam)) {
       setVideoResolution(resolutionParam);
     }
 
@@ -1496,6 +1511,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       if (isAvatarProvider(avatarProvider || "")) {
         setPrompt((current) => (current.trim() ? current : KLING_AVATAR_DEFAULT_SCRIPT));
         setReferenceImagesText((current) => (current.trim() ? current : KLING_AVATAR_DEFAULT_IMAGE_URL));
+      } else {
+        setReferenceImagesText((current) => stripKlingAvatarDefaultReference(current));
+        setPrompt((current) => (current.trim() === KLING_AVATAR_DEFAULT_SCRIPT ? "" : current));
       }
     } else {
       setReferenceImagesText((current) => stripKlingAvatarDefaultReference(current));
@@ -1691,7 +1709,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   );
   useEffect(() => {
     if (provider !== "dreamface-io-video" || dreamfaceIoEnabled !== false) return;
-    setProvider(videoWorkflow === "image-to-video" ? "kling-video" : "grok-video");
+    setProvider(mode === "avatar" ? "kling-avatar-standard" : videoWorkflow === "image-to-video" ? "kling-video" : "grok-video");
   }, [dreamfaceIoEnabled, imageWorkflow, mode, provider, videoWorkflow]);
   const avatarVoiceOptions = useMemo(
     () => ELEVENLABS_VOICE_META.filter((voice) => avatarVoiceGender === "all" || voice.gender === avatarVoiceGender).map((voice) => voice.name) as string[],
@@ -1714,12 +1732,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   ];
   const referenceImageUrls = allReferenceImageUrls.slice(0, isPromptlessImageWorkflow ? 1 : 14);
   const isAvatarWorkflow = mode === "avatar" || activeWorkflow === "avatar-video";
+  const isDreamfaceTalkingAvatar = isAvatarWorkflow && provider === "dreamface-io-video";
   const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
   const avatarScriptSeconds = isAvatarWorkflow ? estimateAvatarScriptSeconds(prompt) : 0;
-  const avatarOutputSeconds = isAvatarWorkflow ? avatarScriptSeconds + AVATAR_KLING_BUFFER_SECONDS : 0;
+  const avatarOutputSeconds = isAvatarWorkflow ? avatarScriptSeconds + (isDreamfaceTalkingAvatar ? 0 : AVATAR_KLING_BUFFER_SECONDS) : 0;
   const isDefaultAvatarScript = isAvatarWorkflow && prompt.trim() === KLING_AVATAR_DEFAULT_SCRIPT;
-  const avatarDuration = isAvatarWorkflow ? avatarDurationFromPrompt(prompt) : duration;
-  const avatarScriptTooLong = isAvatarWorkflow && !isDefaultAvatarScript && avatarOutputSeconds > AVATAR_MAX_SECONDS;
+  const avatarDuration = isAvatarWorkflow
+    ? isDreamfaceTalkingAvatar
+      ? duration
+      : avatarDurationFromPrompt(prompt)
+    : duration;
+  const avatarScriptTooLong = isAvatarWorkflow && !isDreamfaceTalkingAvatar && !isDefaultAvatarScript && avatarOutputSeconds > AVATAR_MAX_SECONDS;
   const avatarScriptMeta = isAvatarWorkflow
     ? prompt.trim()
       ? isDefaultAvatarScript
@@ -1751,7 +1774,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     promptText: prompt
   });
   const dreamfaceIoUnits = provider === "dreamface-io-video"
-    ? Math.max(1, Math.ceil((Number.parseInt(duration, 10) || 5) / 5))
+    ? Math.max(1, Math.ceil((Number.parseInt(isAvatarWorkflow ? avatarDuration : duration, 10) || 5) / 5))
     : 0;
   const usesDreamfaceIoFreeAllowance =
     provider === "dreamface-io-video" &&
@@ -1799,6 +1822,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     "grok-video",
     "dreamface-io-video",
     "seedance-video",
+    "seedance-mini-video",
     "kling-video",
     "veo-video",
     "elevenlabs-tts",
@@ -1813,7 +1837,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     ? activeWorkflow === "image-to-video"
       ? GROK_IMAGE_VIDEO_RATIO_OPTIONS
       : GROK_VIDEO_RATIO_OPTIONS
-    : provider === "seedance-video"
+    : provider === "seedance-video" || provider === "seedance-mini-video"
       ? SEEDANCE_VIDEO_RATIO_OPTIONS
         : provider === "kling-video"
         ? activeWorkflow === "image-to-video"
@@ -1827,7 +1851,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       ? DREAMFACE_IO_DURATION_OPTIONS
     : provider === "veo-video"
       ? VEO_VIDEO_DURATION_OPTIONS
-      : provider === "seedance-video"
+    : provider === "seedance-video" || provider === "seedance-mini-video"
         ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 4)
       : isAvatarProvider(provider)
         ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 3)
@@ -1837,13 +1861,16 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const videoResolutionOptions =
     provider === "dreamface-io-video"
       ? ["720p"]
+    : provider === "seedance-mini-video"
+      ? SEEDANCE_MINI_VIDEO_RESOLUTION_OPTIONS
     : provider === "seedance-video"
       ? SEEDANCE_VIDEO_RESOLUTION_OPTIONS
       : provider === "veo-video"
         ? VEO_VIDEO_RESOLUTION_OPTIONS
         : GROK_VIDEO_RESOLUTION_OPTIONS;
-  const showVideoResolutionControl = mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "veo-video");
-  const showVideoAudioControl = mode === "video" && !isAvatarProvider(provider) && (provider === "seedance-video" || provider === "kling-video" || provider === "veo-video");
+  const showDreamfaceTalkingVideoControls = mode === "avatar" && provider === "dreamface-io-video";
+  const showVideoResolutionControl = mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "veo-video");
+  const showVideoAudioControl = mode === "video" && !isAvatarProvider(provider) && (provider === "seedance-video" || provider === "seedance-mini-video" || provider === "kling-video" || provider === "veo-video");
   const showTextToImageTemplates = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "text-to-image";
   const providerSettingsLabel =
     provider === "chatgpt-image"
@@ -1857,7 +1884,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           : mode === "audio"
             ? `${prompt.trim().length || 0} / ${ttsVoice} / ${ttsStability.toFixed(2)}`
           : isAvatarWorkflow
-            ? `${avatarDuration} / ${ttsVoice}`
+            ? isDreamfaceTalkingAvatar
+              ? `${avatarDuration} / DreamFace IO`
+              : `${avatarDuration} / ${ttsVoice}`
             : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / ON" : " / OFF" : ""}`;
 
   useEffect(() => {
@@ -1881,17 +1910,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }, [avatarAudioTrimSeconds, avatarAudioUrl, avatarSelectedSeconds, isAvatarWorkflow]);
 
   useEffect(() => {
-    if (mode !== "video") return;
+    if (mode !== "video" && !showDreamfaceTalkingVideoControls) return;
     if (!videoRatioOptions.includes(ratio)) {
-      setRatio(videoRatioOptions.includes("auto") ? "auto" : videoRatioOptions[0] || "16:9");
+      setRatio(showDreamfaceTalkingVideoControls ? "16:9" : videoRatioOptions.includes("auto") ? "auto" : videoRatioOptions[0] || "16:9");
     }
     if (!videoDurationOptions.includes(duration)) {
       setDuration(provider === "veo-video" ? DEFAULT_VEO_VIDEO_DURATION : DEFAULT_VIDEO_DURATION);
     }
     if (showVideoResolutionControl && !videoResolutionOptions.includes(videoResolution)) {
-      setVideoResolution(videoResolutionOptions[0] || "720p");
+      setVideoResolution(defaultVideoResolutionForProvider(provider));
     }
-  }, [duration, mode, provider, ratio, showVideoResolutionControl, videoDurationOptions, videoRatioOptions, videoResolution, videoResolutionOptions]);
+  }, [duration, mode, provider, ratio, showDreamfaceTalkingVideoControls, showVideoResolutionControl, videoDurationOptions, videoRatioOptions, videoResolution, videoResolutionOptions]);
 
   useEffect(() => {
     if (!showTextToImageTemplates) return;
@@ -1945,7 +1974,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         setReferenceImageFiles([]);
         setAvatarAudioUrl("");
       } else if (nextWorkflow === "avatar-video") {
-        setReferenceImagesText((current) => current || KLING_AVATAR_DEFAULT_IMAGE_URL);
+        setReferenceImagesText((current) => isAvatarProvider(nextProvider) ? current || KLING_AVATAR_DEFAULT_IMAGE_URL : stripKlingAvatarDefaultReference(current));
         setReferenceImageFiles([]);
       }
     } else {
@@ -1965,8 +1994,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setImageSize(nextImageSize);
       setRatio(nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : ratioFromImageSize(nextImageSize));
     } else if (nextMode === "video" || nextMode === "avatar") {
-      setRatio(nextWorkflow === "avatar-video" ? "source" : "16:9");
+      setRatio(nextWorkflow === "avatar-video" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
       setDuration(nextProvider === "veo-video" ? DEFAULT_VEO_VIDEO_DURATION : DEFAULT_VIDEO_DURATION);
+      setVideoResolution(defaultVideoResolutionForProvider(nextProvider));
     } else {
       setRatio("16:9");
       setDuration("single");
@@ -1981,7 +2011,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       params.set("ratio", nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : ratioFromImageSize(nextImageSize));
     } else if (nextMode === "video" || nextMode === "avatar") {
       params.delete("imageSize");
-      params.set("ratio", nextWorkflow === "avatar-video" ? "source" : "16:9");
+      params.set("ratio", nextWorkflow === "avatar-video" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
+      if (nextProvider === "dreamface-io-video" || nextProvider === "grok-video" || nextProvider === "seedance-video" || nextProvider === "seedance-mini-video" || nextProvider === "veo-video") {
+        params.set("resolution", defaultVideoResolutionForProvider(nextProvider));
+      } else {
+        params.delete("resolution");
+      }
     } else {
       params.delete("imageSize");
       params.set("ratio", "16:9");
@@ -1997,6 +2032,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     if (isAvatarProvider(nextProvider)) {
       setReferenceImagesText((current) => current || KLING_AVATAR_DEFAULT_IMAGE_URL);
       setReferenceImageFiles([]);
+    } else if (mode === "avatar" && nextProvider === "dreamface-io-video") {
+      setReferenceImagesText((current) => stripKlingAvatarDefaultReference(current));
+      setAvatarAudioUrl("");
     }
     if (mode === "image") {
       if (nextProvider !== "topaz-image" && nextProvider !== "bria-background-remove") {
@@ -2028,7 +2066,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       router.replace(`/studio?${params.toString()}`, { scroll: false });
     } else {
       const nextRatio =
-        mode === "avatar" || isAvatarProvider(nextProvider)
+        mode === "avatar" && nextProvider === "dreamface-io-video"
+          ? "16:9"
+        : isAvatarProvider(nextProvider)
           ? "source"
         : nextProvider === "kling-video" && activeWorkflow === "image-to-video"
           ? "source"
@@ -2041,23 +2081,21 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               : ratio === "source"
                 ? "auto"
                 : ratio;
-      if (mode !== "avatar" && nextProvider === "seedance-video" && Number.parseInt(duration, 10) < 4) {
+      if (mode !== "avatar" && (nextProvider === "seedance-video" || nextProvider === "seedance-mini-video") && Number.parseInt(duration, 10) < 4) {
         setDuration("4s");
       }
       if (mode !== "avatar" && nextProvider === "veo-video" && !VEO_VIDEO_DURATION_OPTIONS.includes(duration)) {
         setDuration(DEFAULT_VEO_VIDEO_DURATION);
       }
-      const nextResolution = nextProvider === "veo-video" && !VEO_VIDEO_RESOLUTION_OPTIONS.includes(videoResolution) ? "720p" : videoResolution;
-      if (nextResolution !== videoResolution) {
-        setVideoResolution("720p");
-      }
+      const nextResolution = defaultVideoResolutionForProvider(nextProvider);
+      setVideoResolution(nextResolution);
       setRatio(nextRatio);
       const params = new URLSearchParams(sp.toString());
       params.set("mode", mode === "avatar" ? "avatar" : "video");
       params.set("workflow", mode === "avatar" ? "avatar-video" : activeWorkflow);
       params.set("provider", nextProvider);
       params.set("ratio", nextRatio);
-      if (nextProvider === "grok-video" || nextProvider === "seedance-video" || nextProvider === "veo-video") {
+      if (nextProvider === "grok-video" || nextProvider === "seedance-video" || nextProvider === "seedance-mini-video" || nextProvider === "veo-video") {
         params.set("resolution", nextResolution);
       } else {
         params.delete("resolution");
@@ -2291,7 +2329,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     const taskType: TaskItem["type"] = mode === "image" ? "Image" : mode === "audio" ? "Audio" : "Video";
     let idempotencyStorageKey: string | null = null;
     try {
-      if (isAvatarWorkflow && avatarAudioUrl.trim()) {
+      if (isAvatarProvider(provider) && avatarAudioUrl.trim()) {
         if (avatarAudioUrl.startsWith("data:audio/")) {
           if (avatarAudioTrimSeconds !== avatarSelectedSeconds) {
             throw new Error(st("studio.status.audioReselect", { seconds: avatarSelectedSeconds }));
@@ -2342,7 +2380,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         videoWorkflow: isAvatarWorkflow ? "avatar-video" : videoWorkflow,
         audioWorkflow: mode === "audio" ? audioWorkflow : undefined,
         provider,
-        ratio: isAvatarWorkflow ? "source" : ratio,
+        ratio: isAvatarWorkflow ? isDreamfaceTalkingAvatar ? ratio : "source" : ratio,
         duration: requestDuration,
         prompt,
         imageSize: mode === "image" ? imageSize : undefined,
@@ -2350,11 +2388,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           (mode === "image" && referenceImageUrls.length > 0) || (mode === "avatar" || (mode === "video" && videoWorkflow === "image-to-video"))
             ? referenceImageUrls
             : undefined,
-        audioUrl: isAvatarWorkflow && avatarAudioUrl.trim() ? avatarAudioUrl.trim() : undefined,
+        audioUrl: isAvatarProvider(provider) && avatarAudioUrl.trim() ? avatarAudioUrl.trim() : undefined,
         resolution:
           mode === "image"
             ? editResolution
-            : mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "veo-video")
+            : mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
         generateAudio: mode === "video" ? generateAudio : undefined,
@@ -2366,16 +2404,16 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         enableSafetyChecker: mode === "image" && !isPromptlessImageWorkflow ? enableSafetyChecker : undefined,
         acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
         limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
-        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "veo-video") ? parsedSeed : undefined,
+        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "veo-video") ? parsedSeed : undefined,
         safetyTolerance: mode === "image" && !isPromptlessImageWorkflow ? safetyTolerance : undefined,
         systemPrompt: mode === "image" && !isPromptlessImageWorkflow && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" && !isPromptlessImageWorkflow ? enableWebSearch : undefined,
         thinkingLevel: mode === "image" && !isPromptlessImageWorkflow && thinkingLevel ? thinkingLevel : undefined,
-        voice: isElevenLabsAudio || isAvatarWorkflow ? ttsVoice : undefined,
-        stability: isElevenLabsAudio || isAvatarWorkflow ? ttsStability : undefined,
+        voice: isElevenLabsAudio || isAvatarProvider(provider) ? ttsVoice : undefined,
+        stability: isElevenLabsAudio || isAvatarProvider(provider) ? ttsStability : undefined,
         timestamps: isElevenLabsAudio ? ttsTimestamps : undefined,
-        languageCode: (isElevenLabsAudio || isAvatarWorkflow) && ttsLanguageCode ? ttsLanguageCode : undefined,
-        textNormalization: isElevenLabsAudio || isAvatarWorkflow ? textNormalization : undefined,
+        languageCode: (isElevenLabsAudio || isAvatarProvider(provider)) && ttsLanguageCode ? ttsLanguageCode : undefined,
+        textNormalization: isElevenLabsAudio || isAvatarProvider(provider) ? textNormalization : undefined,
         lyrics: isMiniMaxMusic ? musicLyrics : undefined,
         lyricsOptimizer: isMiniMaxMusic ? lyricsOptimizer : undefined,
         isInstrumental: isMiniMaxMusic ? isInstrumental : undefined,
@@ -3060,7 +3098,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               <nav className="mt-9 flex flex-1 flex-col items-center gap-4">
                 {[
                   { label: "Home", display: st("studio.nav.home"), href: "/studio?view=home", icon: "home" as StudioIconName },
-                  { label: "Avatar", display: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName },
+                  { label: "Avatar", display: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "video" as StudioIconName },
                   { label: "Image", display: st("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName },
                   { label: "Video", display: st("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName },
                   { label: "Audio", display: st("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName },
@@ -3157,7 +3195,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               {[
                 { label: st("studio.nav.home"), href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
                 { label: st("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
-                { label: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
+                { label: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
                 { label: st("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
                 { label: st("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
                 { label: st("studio.nav.projects"), href: "/studio?view=projects", icon: "projects" as StudioIconName, active: isProjectsView }
@@ -3203,7 +3241,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         {[
                           { label: st("studio.menu.dreamfaceHome"), href: "https://dreamface.io/", icon: "home" as StudioIconName, active: false },
                           { label: st("studio.menu.studioHome"), href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
-                          { label: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
+                          { label: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
                           { label: st("studio.header.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
                           { label: st("studio.header.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "video" },
                           { label: st("studio.header.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "audio" },
@@ -3427,7 +3465,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       {[
                         { title: "studio.workspace.intent.video", body: "studio.workspace.intent.videoBody", href: "/studio?mode=video&workflow=text-to-video&duration=5s", icon: "film" as StudioIconName, color: "bg-[#eef2ff] text-[#4f46e5]", tools: ["studio.workflow.text-to-video", "studio.workflow.image-to-video"] },
                         { title: "studio.workspace.intent.image", body: "studio.workspace.intent.imageBody", href: "/studio?mode=image&workflow=text-to-image", icon: "sparkles" as StudioIconName, color: "bg-[#ecfeff] text-[#0891b2]", tools: ["studio.workflow.text-to-image", "studio.workflow.image-to-image"] },
-                        { title: "studio.workspace.intent.avatar", body: "studio.workspace.intent.avatarBody", href: "/studio?mode=avatar&workflow=avatar-video&provider=kling-avatar-standard", icon: "video" as StudioIconName, color: "bg-[#fdf2f8] text-[#db2777]", tools: ["studio.nav.avatar"] },
+                        { title: "studio.workspace.intent.avatar", body: "studio.workspace.intent.avatarBody", href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "video" as StudioIconName, color: "bg-[#fdf2f8] text-[#db2777]", tools: ["studio.nav.avatar"] },
                         { title: "studio.workspace.intent.enhance", body: "studio.workspace.intent.enhanceBody", href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image", icon: "cleanup" as StudioIconName, color: "bg-[#f0fdf4] text-[#16a34a]", tools: ["studio.workflow.enhance-cleanup"] },
                         { title: "studio.workflow.background-remove", body: "studio.home.quick.remove", href: "/studio?mode=image&workflow=background-remove&provider=bria-background-remove", icon: "cleanup" as StudioIconName, color: "bg-[#fff7ed] text-[#ea580c]", tools: ["studio.workflow.background-remove"] },
                         { title: "studio.workflow.text-to-audio", body: "studio.home.quick.audio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio" as StudioIconName, color: "bg-[#f5f3ff] text-[#7c3aed]", tools: ["studio.workflow.text-to-audio"] },
@@ -3948,6 +3986,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           ) : null}
                         </div>
 
+                        {!isDreamfaceTalkingAvatar ? (
                         <div className="mb-4 grid gap-4 lg:grid-cols-[0.72fr_1fr]">
                           <div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-[#0f172a] shadow-sm">
                             <video
@@ -3966,7 +4005,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             </p>
                           </div>
                         </div>
+                        ) : null}
 
+                        {!isDreamfaceTalkingAvatar ? (
                         <div className="mb-4 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
                           <div className="mb-2 flex items-center justify-between gap-3">
                             <span className="text-sm font-semibold text-[#202633]">{st("studio.avatar.voice")}</span>
@@ -4030,6 +4071,21 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                               : st("studio.avatar.billingHint", { duration: avatarDuration })}
                           </p>
                         </div>
+                        ) : (
+                          <div className="mb-4 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
+                            <div className="mb-2 flex items-center justify-between gap-3">
+                              <span className="text-sm font-semibold text-[#202633]">Talking script</span>
+                              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${avatarScriptTooLong ? "bg-[#fff1f2] text-[#e11d48]" : "bg-[#f0fdf4] text-[#16a34a]"}`}>
+                                {avatarScriptMeta}
+                              </span>
+                            </div>
+                            <p className={`text-xs leading-5 ${avatarScriptTooLong ? "text-[#e11d48]" : "text-[#667085]"}`}>
+                              {avatarScriptTooLong
+                                ? st("studio.avatar.scriptTooLong")
+                                : "DreamFace IO will animate only the uploaded image and make the visible subject say your script. No separate voice URL is needed."}
+                            </p>
+                          </div>
+                        )}
 
                         {avatarNeedsImage ? (
                           <div className="mb-4 grid gap-3 md:grid-cols-2">
@@ -4132,9 +4188,24 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </select>
                       ) : null
                     ) : mode === "avatar" ? (
-                      <span className={`rounded-full border px-4 py-2.5 text-center text-sm font-semibold sm:py-2 ${avatarScriptTooLong ? "border-[#fecdd3] bg-[#fff1f2] text-[#e11d48]" : "border-black/[0.06] bg-white text-[#667085]"}`}>
-                        {avatarDuration} {st("studio.option.automatic")}
-                      </span>
+                      isDreamfaceTalkingAvatar ? (
+                        <>
+                          <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
+                            {videoDurationOptions.map((item) => (
+                              <option key={item} value={item}>{item}</option>
+                            ))}
+                          </select>
+                          <select value={ratio} onChange={(e) => setRatio(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
+                            {videoRatioOptions.map((item) => (
+                              <option key={item} value={item}>{item === "source" ? st("studio.option.sourceImage") : item}</option>
+                            ))}
+                          </select>
+                        </>
+                      ) : (
+                        <span className={`rounded-full border px-4 py-2.5 text-center text-sm font-semibold sm:py-2 ${avatarScriptTooLong ? "border-[#fecdd3] bg-[#fff1f2] text-[#e11d48]" : "border-black/[0.06] bg-white text-[#667085]"}`}>
+                          {avatarDuration} {st("studio.option.automatic")}
+                        </span>
+                      )
                     ) : (
                       <>
                         <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
@@ -4604,7 +4675,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         { label: st("studio.suggestion.brandPoster"), prompt: "Brand poster" },
                         { label: st("studio.suggestion.referenceEdit"), prompt: "Reference edit" }
                       ]
-                    : activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video"
+                    : activeWorkflow === "avatar-video"
+                      ? [
+                          { label: "Product intro", prompt: "Hi, I’m here to introduce our new product. It is designed to help you save time, look more professional, and create better results with less effort." },
+                          { label: "Social hook", prompt: "Stop scrolling. If you want to create better AI videos from just one image, here is the easiest way to start." },
+                          { label: "Course explainer", prompt: "Welcome back. In this short lesson, I’ll explain the key idea step by step so you can understand it quickly and use it right away." },
+                          { label: "Real estate intro", prompt: "Welcome to this beautiful property. In the next few seconds, I’ll show you why this home is comfortable, modern, and worth a closer look." }
+                        ]
+                    : activeWorkflow === "image-to-video"
                       ? [
                           { label: st("studio.suggestion.cameraPushIn"), prompt: "Camera push-in" },
                           { label: st("studio.suggestion.productReveal"), prompt: "Product reveal" },
@@ -5205,6 +5283,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       </p>
                     </div>
 
+                    {!isDreamfaceTalkingAvatar ? (
                     <div className="mb-3 overflow-hidden rounded-2xl border border-white/10 bg-black/30">
                       <video
                         src={KLING_AVATAR_PREVIEW_VIDEO_URL}
@@ -5225,7 +5304,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         <p className="mt-1 text-xs leading-5 text-white/38">Uses the default avatar image and sample script.</p>
                       </div>
                     </div>
+                    ) : null}
 
+                    {!isDreamfaceTalkingAvatar ? (
                     <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
                       <div className="mb-2 flex items-center justify-between gap-3">
                         <span className="text-sm font-semibold text-white/82">{st("studio.avatar.voice")}</span>
@@ -5269,6 +5350,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         DreamFace generates the voice first, then sends it to Kling Avatar as one tracked Avatar task. Billing uses the estimated final video length.
                       </p>
                     </div>
+                    ) : (
+                      <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold text-white/82">Talking script</span>
+                          <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${avatarScriptTooLong ? "bg-[#be123c]/25 text-[#fecdd3]" : "bg-[#15803d]/25 text-[#bbf7d0]"}`}>{avatarScriptMeta}</span>
+                        </div>
+                        <p className="text-xs leading-5 text-white/38">
+                          DreamFace IO will animate only the uploaded image and make the visible subject say your script. No separate voice URL is needed.
+                        </p>
+                      </div>
+                    )}
 
                     {avatarNeedsImage ? (
                       <div className="mb-3 grid gap-2">
@@ -5375,7 +5467,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         <option value="4K">4K</option>
                       </select>
                     </label>
-                  ) : mode === "video" ? (
+                  ) : mode === "video" || showDreamfaceTalkingVideoControls ? (
                     <label className="block">
                       <span className="text-sm text-white/50">{st("studio.field.duration")}</span>
                       <select

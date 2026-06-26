@@ -3,7 +3,7 @@ import { refundCredits } from "./credits";
 
 export const DREAMFACE_IO_PROVIDER = "dreamface-io-video";
 export const DREAMFACE_IO_DAILY_UNITS = 6;
-export const DREAMFACE_IO_CREDITS_PER_UNIT = 20;
+export const DREAMFACE_IO_CREDITS_PER_UNIT = 10;
 const DREAMFACE_IO_MODEL = "agnes-video-v2.0";
 const DREAMFACE_IO_API_BASE = "https://apihub.agnes-ai.com";
 
@@ -84,6 +84,7 @@ export function enhanceDreamfaceIoPrompt(
   prompt: string,
   options: {
     imageToVideo?: boolean;
+    talkingAvatar?: boolean;
     duration?: string | null;
   } = {}
 ) {
@@ -94,6 +95,19 @@ export function enhanceDreamfaceIoPrompt(
       ? "Keep the action simple and achievable within one continuous short shot."
       : "Keep the action coherent and naturally paced throughout the shot.";
   const speechInstruction = dreamfaceIoSpeechInstruction();
+
+  if (options.talkingAvatar) {
+    return [
+      `Dialogue to speak exactly: "${original}"`,
+      speechInstruction,
+      "Use the uploaded image as the only visual source. The visible subject in the image must be the speaker.",
+      "Animate only natural speaking behavior: lip movement, subtle facial expression, blinking, light head motion, and gentle breathing.",
+      "The subject must say only the dialogue written above. Do not add extra words, narration, subtitles, captions, sound effects, scene changes, new characters, gestures unrelated to speaking, or any additional story action.",
+      "Do not translate, rewrite, summarize, or expand the dialogue. Preserve the user's language, wording, names, and speaking style exactly.",
+      "Preserve the source image's identity, face, clothing, background, framing, lighting, and visual style as much as possible.",
+      "Keep the shot stable and simple with strong lip sync, stable anatomy, consistent facial features, and no unwanted transformations."
+    ].filter(Boolean).join(" ");
+  }
 
   if (options.imageToVideo) {
     return [

@@ -152,6 +152,9 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "seedance-video": editImage
       ? process.env.FAL_MODEL_VIDEO_SEEDANCE_I2V || "bytedance/seedance-2.0/image-to-video"
       : process.env.FAL_MODEL_VIDEO_SEEDANCE || "bytedance/seedance-2.0/text-to-video",
+    "seedance-mini-video": editImage
+      ? process.env.FAL_MODEL_VIDEO_SEEDANCE_MINI_I2V || "bytedance/seedance-2.0/mini/image-to-video"
+      : process.env.FAL_MODEL_VIDEO_SEEDANCE_MINI || "bytedance/seedance-2.0/mini/text-to-video",
     "kling-video": editImage
       ? process.env.FAL_MODEL_VIDEO_KLING_I2V || "fal-ai/kling-video/v3/pro/image-to-video"
       : process.env.FAL_MODEL_VIDEO_KLING || "fal-ai/kling-video/v3/pro/text-to-video",
@@ -201,6 +204,7 @@ const KLING_TEXT_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1"]);
 const VEO_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p"]);
+const SEEDANCE_MINI_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 const VEO_VIDEO_RESOLUTIONS = new Set(["720p", "1080p", "4k"]);
 const VEO_VIDEO_DURATIONS = new Set(["4s", "6s", "8s"]);
 const AVATAR_MAX_SECONDS = 15;
@@ -325,25 +329,27 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
-  if (body.mode === "video" && body.provider === "seedance-video" && hasInputImages(body)) {
+  if (body.mode === "video" && (body.provider === "seedance-video" || body.provider === "seedance-mini-video") && hasInputImages(body)) {
     const duration = Number.parseInt(body.duration, 10);
+    const resolutionOptions = body.provider === "seedance-mini-video" ? SEEDANCE_MINI_VIDEO_RESOLUTIONS : SEEDANCE_VIDEO_RESOLUTIONS;
     return {
       prompt,
       image_url: firstInputImage(body),
       duration: String(Number.isInteger(duration) && duration >= 4 && duration <= 15 ? duration : 5),
-      resolution: body.resolution && SEEDANCE_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
+      resolution: body.resolution && resolutionOptions.has(body.resolution) ? body.resolution : "480p",
       aspect_ratio: SEEDANCE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
       generate_audio: Boolean(body.generateAudio)
     };
   }
 
-  if (body.mode === "video" && body.provider === "seedance-video") {
+  if (body.mode === "video" && (body.provider === "seedance-video" || body.provider === "seedance-mini-video")) {
     const duration = Number.parseInt(body.duration, 10);
     const seed = optionalSeed(body.seed);
+    const resolutionOptions = body.provider === "seedance-mini-video" ? SEEDANCE_MINI_VIDEO_RESOLUTIONS : SEEDANCE_VIDEO_RESOLUTIONS;
     return {
       prompt,
       duration: String(Number.isInteger(duration) && duration >= 4 && duration <= 15 ? duration : 5),
-      resolution: body.resolution && SEEDANCE_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
+      resolution: body.resolution && resolutionOptions.has(body.resolution) ? body.resolution : "480p",
       aspect_ratio: SEEDANCE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
       generate_audio: Boolean(body.generateAudio),
       ...(seed !== undefined ? { seed } : {})
@@ -395,7 +401,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       image_url: firstInputImage(body),
       duration: Number.isInteger(duration) && duration > 0 && duration <= 15 ? duration : 5,
       aspect_ratio: GROK_IMAGE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
-      resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p"
+      resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "480p"
     };
   }
 
@@ -405,7 +411,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       prompt,
       duration: Number.isInteger(duration) && duration > 0 && duration <= 15 ? duration : 5,
       aspect_ratio: VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
-      resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p"
+      resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "480p"
     };
   }
 
@@ -716,14 +722,16 @@ export async function POST(request: Request) {
     }
 
     const isAvatarProvider = isAvatarRequest(body);
+    const isDreamfaceIo = body.provider === DREAMFACE_IO_PROVIDER;
+    const isDreamfaceIoTalkingAvatar = isDreamfaceIo && body.mode === "avatar";
     const storageMode = storedModeForRequest(body);
     const isPromptlessImageTool = body.mode === "image" && body.provider === "bria-background-remove";
-    const prompt = body.prompt.trim() || (isAvatarProvider || isPromptlessImageTool ? "." : "");
-    if (!isAvatarProvider && !isPromptlessImageTool && prompt.length < 8) {
+    const prompt = body.prompt.trim() || (isAvatarProvider || isDreamfaceIoTalkingAvatar || isPromptlessImageTool ? "." : "");
+    if (!isAvatarProvider && !isDreamfaceIoTalkingAvatar && !isPromptlessImageTool && prompt.length < 8) {
       return NextResponse.json({ error: "Prompt must be at least 8 characters." }, { status: 400 });
     }
-    if (isAvatarProvider && prompt.length < 2) {
-      return NextResponse.json({ error: "AI Avatar needs a short script for ElevenLabs voice generation." }, { status: 400 });
+    if ((isAvatarProvider || isDreamfaceIoTalkingAvatar) && prompt.length < 2) {
+      return NextResponse.json({ error: "AI Talking needs a short script." }, { status: 400 });
     }
     if (body.mode === "audio" && body.provider === "minimax-music-2.6" && (prompt.length < 10 || prompt.length > 2000)) {
       return NextResponse.json({ error: "MiniMax Music prompt must contain 10 to 2000 characters." }, { status: 400 });
@@ -750,9 +758,21 @@ export async function POST(request: Request) {
     }
 
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
-    const isDreamfaceIo = body.provider === DREAMFACE_IO_PROVIDER;
-    if (isDreamfaceIo && (body.mode !== "video" || !["text-to-video", "image-to-video"].includes(body.videoWorkflow || ""))) {
-      return NextResponse.json({ error: "DreamFace IO is only available for text-to-video and image-to-video." }, { status: 400 });
+    if (isDreamfaceIoTalkingAvatar) {
+      body.videoWorkflow = "avatar-video";
+      body.ratio = body.ratio === "16:9" || body.ratio === "9:16" || body.ratio === "1:1" || body.ratio === "4:3" || body.ratio === "3:4" ? body.ratio : "16:9";
+      body.duration = body.duration === "5s" || body.duration === "10s" || body.duration === "15s"
+        ? body.duration
+        : "5s";
+    }
+    if (
+      isDreamfaceIo &&
+      !(
+        (body.mode === "video" && ["text-to-video", "image-to-video"].includes(body.videoWorkflow || "")) ||
+        isDreamfaceIoTalkingAvatar
+      )
+    ) {
+      return NextResponse.json({ error: "DreamFace IO is only available for text-to-video, image-to-video, and AI Talking." }, { status: 400 });
     }
     if (isDreamfaceIo && !["5s", "10s", "15s"].includes(body.duration)) {
       return NextResponse.json({ error: "DreamFace IO supports 5, 10, or 15 second videos." }, { status: 400 });
@@ -792,12 +812,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "AI Avatar audio input is invalid." }, { status: 400 });
       }
     }
+    if (isDreamfaceIoTalkingAvatar && !imageUrls.length) {
+      return NextResponse.json({ error: "AI Talking requires one reference image." }, { status: 400 });
+    }
     const falKey = process.env.FAL_KEY;
     const modelId = isDreamfaceIo ? "dreamface-io" : getModelId(storageMode, body.provider, hasInputImages(body));
     const taskId = generationTaskId(body.idempotencyKey);
     const submittedPrompt = isDreamfaceIo
       ? enhanceDreamfaceIoPrompt(prompt, {
           imageToVideo: body.videoWorkflow === "image-to-video",
+          talkingAvatar: isDreamfaceIoTalkingAvatar,
           duration: body.duration
         })
       : prompt;
@@ -814,11 +838,11 @@ export async function POST(request: Request) {
     if (isDreamfaceIo && (!(await isDreamfaceIoEnabled(admin)) || !isDreamfaceIoConfigured())) {
       return NextResponse.json({ error: "DreamFace IO is currently unavailable." }, { status: 404 });
     }
-    if (isDreamfaceIo && body.videoWorkflow === "image-to-video") {
+    if (isDreamfaceIo && (body.videoWorkflow === "image-to-video" || isDreamfaceIoTalkingAvatar)) {
       try {
         const publicImageUrl = await ensureDreamfaceIoPublicImage(admin, user.id, taskId, firstInputImage(body));
         if (!publicImageUrl) {
-          return NextResponse.json({ error: "DreamFace IO image-to-video requires one reference image." }, { status: 400 });
+          return NextResponse.json({ error: isDreamfaceIoTalkingAvatar ? "AI Talking requires one reference image." : "DreamFace IO image-to-video requires one reference image." }, { status: 400 });
         }
         body.imageUrls = [publicImageUrl];
       } catch {

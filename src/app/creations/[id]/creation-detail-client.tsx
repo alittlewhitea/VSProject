@@ -96,6 +96,7 @@ function providerLabel(provider?: string) {
     "topaz-image": "Topaz Upscale",
     "recraft-image": "Recraft",
     "seedance-video": "Seedance",
+    "seedance-mini-video": "Seedance Mini",
     "kling-video": "Kling",
     "veo-video": "Veo",
     "grok-video": "Grok Imagine Video",

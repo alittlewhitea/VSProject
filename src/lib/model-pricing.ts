@@ -239,12 +239,16 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
   const seconds = secondsFromDuration(input.duration);
 
   if (input.provider === "dreamface-io-video") {
-    return Math.ceil(seconds / 5) * 20;
+    return Math.ceil(seconds / 5) * 10;
   }
 
   if (input.provider === "seedance-video") {
     const secondPrice = input.resolution === "1080p" ? 0.682 : input.resolution === "480p" ? 0.1407 : 0.3034;
     return creditsFromFalUsd(secondPrice * seconds, seconds * 35);
+  }
+
+  if (input.provider === "seedance-mini-video") {
+    return seconds * (input.resolution === "480p" ? 15 : 32);
   }
 
   if (input.provider === "kling-video") {
@@ -288,7 +292,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "dreamface-io",
     falBasis: "DreamFace IO uses a private server-side video provider integration.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "dreamface-io-video", duration: "5s" }),
-    unitNote: "20 credits / 5 sec after daily free allowance"
+    unitNote: "10 credits / 5 sec after daily free allowance"
   },
   {
     provider: "chatgpt-image",
@@ -389,6 +393,26 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal token billing is about $0.1407/s at 480p, $0.3034/s at 720p, and $0.682/s at 1080p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-video", duration: "6s", resolution: "720p" }),
     unitNote: "35-169 credits / sec"
+  },
+  {
+    provider: "seedance-mini-video",
+    label: "Seedance 2.0 Mini",
+    mode: "video",
+    workflow: "Text to Video",
+    endpointId: "bytedance/seedance-2.0/mini/text-to-video",
+    falBasis: "fal token billing is about $0.0721/s at 480p and $0.1547/s at 720p.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-mini-video", duration: "5s", resolution: "720p" }),
+    unitNote: "15 credits/sec at 480p, 32 credits/sec at 720p"
+  },
+  {
+    provider: "seedance-mini-video",
+    label: "Seedance 2.0 Mini I2V",
+    mode: "video",
+    workflow: "Image to Video",
+    endpointId: "bytedance/seedance-2.0/mini/image-to-video",
+    falBasis: "fal token billing is about $0.0721/s at 480p and $0.1547/s at 720p.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-mini-video", duration: "5s", resolution: "720p", hasReferences: true }),
+    unitNote: "15 credits/sec at 480p, 32 credits/sec at 720p"
   },
   {
     provider: "kling-video",

@@ -4,7 +4,7 @@ type Messages = Record<string, string>;
 
 export const studioDreamfaceIoMessages: Partial<Record<Locale, Messages>> = {
   en: {
-    "studio.generate.dailyFree": "Free today · {remaining}/6 units left",
+    "studio.generate.dailyFree": "Free today · {remaining}/6 free 5-sec units left",
     "studio.generate.dailyPaid": "{credits} credits · daily free allowance used",
     "studio.dreamfaceIo.qualityHint": "DreamFace IO is still being optimized. For more polished, consistent results, try one of our stronger video models.",
     "studio.status.dreamfaceIoQueued": "DreamFace IO task queued. Waiting for generation...",
@@ -15,7 +15,7 @@ export const studioDreamfaceIoMessages: Partial<Record<Locale, Messages>> = {
     "studio.model.dreamface-io-video": "DreamFace IO is designed for frequent everyday video creation with a renewable daily free allowance."
   },
   "zh-CN": {
-    "studio.generate.dailyFree": "今日免费 · 剩余 {remaining}/6 份额度",
+    "studio.generate.dailyFree": "今日免费 · 剩余 {remaining}/6 个 5 秒额度",
     "studio.generate.dailyPaid": "{credits} 积分 · 今日免费额度已用完",
     "studio.dreamfaceIo.qualityHint": "DreamFace IO 仍在持续优化中；如需更精致、更稳定的效果，建议使用我们的其他更强视频模型。",
     "studio.status.dreamfaceIoQueued": "DreamFace IO 任务已提交，正在等待生成……",

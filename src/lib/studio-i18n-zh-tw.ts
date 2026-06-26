@@ -1,7 +1,7 @@
 type Messages = Record<string, string>;
 
 export const studioTraditionalChineseMessages: Messages = {
-  "studio.generate.dailyFree": "今日免費 · 剩餘 {remaining}/6 份額度",
+  "studio.generate.dailyFree": "今日免費 · 剩餘 {remaining}/6 個 5 秒額度",
   "studio.generate.dailyPaid": "{credits} 積分 · 今日免費額度已用完",
   "studio.dreamfaceIo.qualityHint": "DreamFace IO 仍在持續最佳化中；如需更精緻、更穩定的效果，建議使用我們的其他更強影片模型。",
   "studio.status.dreamfaceIoQueued": "DreamFace IO 任務已提交，正在等待生成……",
@@ -406,6 +406,7 @@ export const studioTraditionalChineseMessages: Messages = {
   "studio.model.kling-avatar-pro": "Kling Avatar Pro 是高階頭像模型，DreamFace 會先生成 ElevenLabs 配音。",
   "studio.model.grok-video": "Grok Imagine Video 支援文字和圖片輸入，可生成 1-15 秒影片，並控制畫面比例和 480p/720p 解析度。",
   "studio.model.seedance-video": "Seedance 2 支援文字和圖片輸入、480p-1080p、4-15 秒影片及可選同步音訊。",
+  "studio.model.seedance-mini-video": "Seedance 2 Mini 是更快、成本更低的 Seedance 模型，支援文字或圖片輸入、480p/720p、4-15 秒影片及可選同步音訊。",
   "studio.model.kling-video": "Kling v3 Pro 可根據文字或圖片生成 3-15 秒電影感影片，並支援可選原生音訊。",
   "studio.model.veo-video": "Veo 3.1 可生成 4、6 或 8 秒提示詞影片，最高支援 4K，並可選生成音訊。",
   "studio.model.elevenlabs-tts": "ElevenLabs Eleven v3 可將文稿轉成 MP3 配音，積分消耗隨字元數變化。",

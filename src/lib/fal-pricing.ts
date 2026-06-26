@@ -55,6 +55,7 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "topaz-image") return "fal-ai/topaz/upscale/image";
   if (provider === "bria-background-remove") return "fal-ai/bria/background/remove";
   if (provider === "seedance-video") return hasReferences ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
+  if (provider === "seedance-mini-video") return hasReferences ? "bytedance/seedance-2.0/mini/image-to-video" : "bytedance/seedance-2.0/mini/text-to-video";
   if (provider === "kling-video") return hasReferences ? "fal-ai/kling-video/v3/pro/image-to-video" : "fal-ai/kling-video/v3/pro/text-to-video";
   if (provider === "kling-avatar-standard") return "fal-ai/kling-video/ai-avatar/v2/standard";
   if (provider === "kling-avatar-pro") return "fal-ai/kling-video/ai-avatar/v2/pro";

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import {
@@ -32,7 +32,7 @@ const messages: Partial<Record<Locale, StudioMessages>> = {
     "studio.language": "Language",
     "studio.checkingSession": "Checking your session...",
     "studio.nav.home": "Home",
-    "studio.nav.avatar": "Avatar",
+    "studio.nav.avatar": "AI Talking",
     "studio.nav.image": "Image",
     "studio.nav.video": "Video",
     "studio.nav.audio": "Audio",
@@ -128,7 +128,7 @@ const messages: Partial<Record<Locale, StudioMessages>> = {
     "studio.language": "语言",
     "studio.checkingSession": "正在检查登录状态...",
     "studio.nav.home": "首页",
-    "studio.nav.avatar": "Avatar",
+    "studio.nav.avatar": "AI Talking",
     "studio.nav.image": "图片",
     "studio.nav.video": "视频",
     "studio.nav.audio": "音频",
@@ -203,7 +203,7 @@ const messages: Partial<Record<Locale, StudioMessages>> = {
     "studio.language": "Idioma",
     "studio.checkingSession": "Verificando sua sessão...",
     "studio.nav.home": "Início",
-    "studio.nav.avatar": "Avatar",
+    "studio.nav.avatar": "AI Talking",
     "studio.nav.image": "Imagem",
     "studio.nav.video": "Vídeo",
     "studio.nav.audio": "Áudio",
@@ -278,7 +278,7 @@ const messages: Partial<Record<Locale, StudioMessages>> = {
     "studio.language": "Язык",
     "studio.checkingSession": "Проверяем сессию...",
     "studio.nav.home": "Главная",
-    "studio.nav.avatar": "Аватар",
+    "studio.nav.avatar": "AI Talking",
     "studio.nav.image": "Изображения",
     "studio.nav.video": "Видео",
     "studio.nav.audio": "Аудио",
@@ -353,7 +353,7 @@ const messages: Partial<Record<Locale, StudioMessages>> = {
     "studio.language": "Ngôn ngữ",
     "studio.checkingSession": "Đang kiểm tra phiên đăng nhập...",
     "studio.nav.home": "Trang chủ",
-    "studio.nav.avatar": "Avatar",
+    "studio.nav.avatar": "AI Talking",
     "studio.nav.image": "Ảnh",
     "studio.nav.video": "Video",
     "studio.nav.audio": "Âm thanh",
@@ -435,7 +435,7 @@ const workflowMessages: Partial<Record<Locale, StudioMessages>> = {
     "studio.workflow.background-remove": "Background Remove",
     "studio.workflow.text-to-video": "Text to Video",
     "studio.workflow.image-to-video": "Image to Video",
-    "studio.workflow.avatar-video": "Avatar Video",
+    "studio.workflow.avatar-video": "AI Talking",
     "studio.workflow.text-to-audio": "Text-to-Speech",
     "studio.field.prompt": "Prompt",
     "studio.field.modelSettings": "Model settings",
@@ -511,7 +511,7 @@ const workflowMessages: Partial<Record<Locale, StudioMessages>> = {
   "zh-CN": {
     "studio.heading.createToday": "今天想创作什么？",
     "studio.workflow.text-to-image": "文生图", "studio.workflow.image-to-image": "图生图", "studio.workflow.enhance-cleanup": "增强与修复", "studio.workflow.background-remove": "移除背景",
-    "studio.workflow.text-to-video": "文生视频", "studio.workflow.image-to-video": "图生视频", "studio.workflow.avatar-video": "Avatar 视频", "studio.workflow.text-to-audio": "文字转语音",
+    "studio.workflow.text-to-video": "文生视频", "studio.workflow.image-to-video": "图生视频", "studio.workflow.avatar-video": "AI Talking", "studio.workflow.text-to-audio": "文字转语音",
     "studio.field.prompt": "提示词", "studio.field.modelSettings": "模型设置", "studio.field.quality": "质量", "studio.field.steps": "步数", "studio.field.guidance": "引导强度",
     "studio.field.resolution": "分辨率", "studio.field.output": "输出格式", "studio.field.count": "生成数量", "studio.field.safety": "安全检查", "studio.field.acceleration": "加速",
     "studio.field.safetyTolerance": "安全容忍度", "studio.field.limitGenerations": "限制生成", "studio.field.webSearch": "联网搜索", "studio.field.thinking": "思考级别",
@@ -540,7 +540,7 @@ const workflowMessages: Partial<Record<Locale, StudioMessages>> = {
   "pt-BR": {
     "studio.heading.createToday": "O que você vai criar hoje?",
     "studio.workflow.text-to-image": "Texto para imagem", "studio.workflow.image-to-image": "Imagem para imagem", "studio.workflow.enhance-cleanup": "Aprimorar e limpar", "studio.workflow.background-remove": "Remover fundo",
-    "studio.workflow.text-to-video": "Texto para vídeo", "studio.workflow.image-to-video": "Imagem para vídeo", "studio.workflow.avatar-video": "Vídeo com avatar", "studio.workflow.text-to-audio": "Texto para fala",
+    "studio.workflow.text-to-video": "Texto para vídeo", "studio.workflow.image-to-video": "Imagem para vídeo", "studio.workflow.avatar-video": "AI Talking", "studio.workflow.text-to-audio": "Texto para fala",
     "studio.field.prompt": "Prompt", "studio.field.modelSettings": "Configurações do modelo", "studio.field.quality": "Qualidade", "studio.field.steps": "Etapas", "studio.field.guidance": "Orientação",
     "studio.field.resolution": "Resolução", "studio.field.output": "Saída", "studio.field.count": "Quantidade", "studio.field.safety": "Segurança", "studio.field.acceleration": "Aceleração",
     "studio.field.safetyTolerance": "Tolerância de segurança", "studio.field.limitGenerations": "Limitar gerações", "studio.field.webSearch": "Busca na web", "studio.field.thinking": "Raciocínio",
@@ -569,7 +569,7 @@ const workflowMessages: Partial<Record<Locale, StudioMessages>> = {
   ru: {
     "studio.heading.createToday": "Что вы создадите сегодня?",
     "studio.workflow.text-to-image": "Текст в изображение", "studio.workflow.image-to-image": "Изображение в изображение", "studio.workflow.enhance-cleanup": "Улучшение и очистка", "studio.workflow.background-remove": "Удаление фона",
-    "studio.workflow.text-to-video": "Текст в видео", "studio.workflow.image-to-video": "Изображение в видео", "studio.workflow.avatar-video": "Видео с аватаром", "studio.workflow.text-to-audio": "Текст в речь",
+    "studio.workflow.text-to-video": "Текст в видео", "studio.workflow.image-to-video": "Изображение в видео", "studio.workflow.avatar-video": "AI Talking", "studio.workflow.text-to-audio": "Текст в речь",
     "studio.field.prompt": "Промпт", "studio.field.modelSettings": "Настройки модели", "studio.field.quality": "Качество", "studio.field.steps": "Шаги", "studio.field.guidance": "Guidance",
     "studio.field.resolution": "Разрешение", "studio.field.output": "Формат", "studio.field.count": "Количество", "studio.field.safety": "Безопасность", "studio.field.acceleration": "Ускорение",
     "studio.field.safetyTolerance": "Уровень безопасности", "studio.field.limitGenerations": "Ограничивать генерации", "studio.field.webSearch": "Поиск в интернете", "studio.field.thinking": "Рассуждение",
@@ -598,7 +598,7 @@ const workflowMessages: Partial<Record<Locale, StudioMessages>> = {
   vi: {
     "studio.heading.createToday": "Hôm nay bạn muốn tạo gì?",
     "studio.workflow.text-to-image": "Văn bản thành ảnh", "studio.workflow.image-to-image": "Ảnh thành ảnh", "studio.workflow.enhance-cleanup": "Nâng cấp và làm sạch", "studio.workflow.background-remove": "Xóa nền",
-    "studio.workflow.text-to-video": "Văn bản thành video", "studio.workflow.image-to-video": "Ảnh thành video", "studio.workflow.avatar-video": "Video avatar", "studio.workflow.text-to-audio": "Văn bản thành giọng nói",
+    "studio.workflow.text-to-video": "Văn bản thành video", "studio.workflow.image-to-video": "Ảnh thành video", "studio.workflow.avatar-video": "AI Talking", "studio.workflow.text-to-audio": "Văn bản thành giọng nói",
     "studio.field.prompt": "Prompt", "studio.field.modelSettings": "Cài đặt model", "studio.field.quality": "Chất lượng", "studio.field.steps": "Số bước", "studio.field.guidance": "Guidance",
     "studio.field.resolution": "Độ phân giải", "studio.field.output": "Đầu ra", "studio.field.count": "Số lượng", "studio.field.safety": "An toàn", "studio.field.acceleration": "Tăng tốc",
     "studio.field.safetyTolerance": "Mức an toàn", "studio.field.limitGenerations": "Giới hạn lượt tạo", "studio.field.webSearch": "Tìm kiếm web", "studio.field.thinking": "Suy luận",

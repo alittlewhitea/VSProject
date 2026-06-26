@@ -87,6 +87,8 @@ export async function GET() {
         process.env.FAL_MODEL_VIDEO_DEFAULT,
         process.env.FAL_MODEL_VIDEO_SEEDANCE,
         process.env.FAL_MODEL_VIDEO_SEEDANCE_I2V,
+        process.env.FAL_MODEL_VIDEO_SEEDANCE_MINI,
+        process.env.FAL_MODEL_VIDEO_SEEDANCE_MINI_I2V,
         process.env.FAL_MODEL_VIDEO_KLING,
         process.env.FAL_MODEL_VIDEO_KLING_I2V,
         process.env.FAL_MODEL_VIDEO_VEO
