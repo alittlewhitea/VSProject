@@ -1340,15 +1340,30 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [billingMessage, setBillingMessage] = useState("");
   const [loadingBillingItem, setLoadingBillingItem] = useState<string | null>(null);
   const [modelSelectOpen, setModelSelectOpen] = useState(false);
+  const [toolbarModelSelectOpen, setToolbarModelSelectOpen] = useState(false);
+  const [modelSelectPlacement, setModelSelectPlacement] = useState<"top" | "bottom" | "modal">("bottom");
+  const [toolbarModelSelectPlacement, setToolbarModelSelectPlacement] = useState<"top" | "bottom" | "modal">("bottom");
   const [selectedBillingCycles, setSelectedBillingCycles] = useState<Record<string, BillingCycle>>(() =>
     Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, plan.defaultCycle]))
   );
   const modelSelectRef = useRef<HTMLDivElement | null>(null);
+  const toolbarModelSelectRef = useRef<HTMLDivElement | null>(null);
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
   const trackedLoginSuccessRef = useRef<string | null>(null);
   const lastLocalizedMusicPromptRef = useRef(st("studio.music.defaultPrompt"));
+
+  const getModelSelectPlacement = (element: HTMLElement | null): "top" | "bottom" | "modal" => {
+    if (typeof window === "undefined") return "bottom";
+    if (window.innerWidth < 640) return "modal";
+    if (!element) return "bottom";
+    const rect = element.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const comfortablePanelHeight = 430;
+    return spaceBelow >= comfortablePanelHeight || spaceBelow >= spaceAbove ? "bottom" : "top";
+  };
 
   useEffect(() => {
     const localizedPrompt = st("studio.music.defaultPrompt");
@@ -1383,17 +1398,43 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   useEffect(() => {
     if (!modelSelectOpen) return;
+    setModelSelectPlacement(getModelSelectPlacement(modelSelectRef.current));
+    const handlePlacementUpdate = () => setModelSelectPlacement(getModelSelectPlacement(modelSelectRef.current));
     const handlePointerDown = (event: MouseEvent | TouchEvent) => {
       if (modelSelectRef.current?.contains(event.target as Node)) return;
       setModelSelectOpen(false);
     };
+    window.addEventListener("resize", handlePlacementUpdate);
+    window.addEventListener("scroll", handlePlacementUpdate, true);
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("touchstart", handlePointerDown);
     return () => {
+      window.removeEventListener("resize", handlePlacementUpdate);
+      window.removeEventListener("scroll", handlePlacementUpdate, true);
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("touchstart", handlePointerDown);
     };
   }, [modelSelectOpen]);
+
+  useEffect(() => {
+    if (!toolbarModelSelectOpen) return;
+    setToolbarModelSelectPlacement(getModelSelectPlacement(toolbarModelSelectRef.current));
+    const handlePlacementUpdate = () => setToolbarModelSelectPlacement(getModelSelectPlacement(toolbarModelSelectRef.current));
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (toolbarModelSelectRef.current?.contains(event.target as Node)) return;
+      setToolbarModelSelectOpen(false);
+    };
+    window.addEventListener("resize", handlePlacementUpdate);
+    window.addEventListener("scroll", handlePlacementUpdate, true);
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    return () => {
+      window.removeEventListener("resize", handlePlacementUpdate);
+      window.removeEventListener("scroll", handlePlacementUpdate, true);
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [toolbarModelSelectOpen]);
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -3896,7 +3937,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   ) : null}
                 </div>
 
-                <div className="mt-4 overflow-hidden rounded-[1.7rem] border border-black/[0.06] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.09)] sm:mt-5 md:mt-7 md:rounded-[2rem] md:shadow-[0_28px_80px_rgba(15,23,42,0.12)]">
+                <div className="mt-4 overflow-visible rounded-[1.7rem] border border-black/[0.06] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.09)] sm:mt-5 md:mt-7 md:rounded-[2rem] md:shadow-[0_28px_80px_rgba(15,23,42,0.12)]">
                   <div className="p-5 text-left md:p-7">
                     {isPromptlessImageWorkflow ? (
                       <div
@@ -4174,17 +4215,116 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </label>
                     ) : null}
                     <div className="hidden h-7 w-px bg-black/[0.08] sm:block" />
-                    <select
-                      value={provider}
-                      onChange={(e) => applyProvider(e.target.value)}
-                      className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#485164] outline-none transition hover:bg-[#f8fafc] sm:w-auto"
-                    >
-                      {options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {PROVIDER_META[option.value]?.label || option.label}
-                        </option>
-                      ))}
-                    </select>
+                    {showVideoModelSelect ? (
+                      <div className="relative z-[80] col-span-2 w-full sm:col-span-1 sm:w-[290px]" ref={toolbarModelSelectRef}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setToolbarModelSelectPlacement(getModelSelectPlacement(toolbarModelSelectRef.current));
+                            setToolbarModelSelectOpen((open) => !open);
+                          }}
+                          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-full border border-black/[0.06] bg-white px-4 py-2 text-left text-sm font-semibold text-[#485164] shadow-sm outline-none transition hover:bg-[#f8fafc]"
+                          aria-haspopup="listbox"
+                          aria-expanded={toolbarModelSelectOpen}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate">{selectedProviderMeta.label}</span>
+                            <span className="mt-0.5 block truncate text-[11px] font-medium text-[#8b95a7]">{st(`studio.modelSelect.desc.${provider}`)}</span>
+                          </span>
+                          <span className={`shrink-0 text-base text-[#64748b] transition ${toolbarModelSelectOpen ? "rotate-180" : ""}`}>⌄</span>
+                        </button>
+                        {toolbarModelSelectOpen ? (
+                          <div
+                            className={`z-[200] overflow-y-auto overscroll-contain rounded-[1.35rem] border border-black/[0.08] bg-white/95 text-[#263244] shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl ${
+                              toolbarModelSelectPlacement === "modal"
+                                ? "fixed left-1/2 top-20 max-h-[calc(100vh-6rem)] w-[min(calc(100vw-2rem),520px)] -translate-x-1/2"
+                                : `absolute left-0 max-h-[min(68vh,520px)] w-full sm:w-[480px] ${
+                                    toolbarModelSelectPlacement === "top" ? "bottom-[52px]" : "top-[52px]"
+                                  }`
+                            }`}
+                            role="listbox"
+                          >
+                            {videoModelGroups.map((group) => {
+                              const groupOptions = options.filter((option) => videoModelGroup(option.value) === group.key);
+                              if (!groupOptions.length) return null;
+                              return (
+                                <div key={group.key}>
+                                  <div className="bg-gradient-to-b from-[#f8fafc] to-white/0 px-4 py-3 pb-2 text-[11px] font-black uppercase tracking-[0.14em] text-[#9aa6b8]">
+                                    {group.label}
+                                  </div>
+                                  {groupOptions.map((option) => {
+                                    const meta = PROVIDER_META[option.value] || {
+                                      label: option.label,
+                                      shortLabel: option.label,
+                                      speed: "Standard",
+                                      quality: "Balanced",
+                                      bestFor: "General generation"
+                                    };
+                                    const active = provider === option.value;
+                                    const modelCredits = estimateGenerationCredits({
+                                      mode: "video",
+                                      provider: option.value,
+                                      duration,
+                                      hasReferences: activeWorkflow === "image-to-video",
+                                      resolution: defaultVideoResolutionForProvider(option.value)
+                                    });
+                                    const badge = videoModelBadge(option.value);
+                                    return (
+                                      <button
+                                        key={option.value}
+                                        type="button"
+                                        role="option"
+                                        aria-selected={active}
+                                        onClick={() => {
+                                          applyProvider(option.value);
+                                          setToolbarModelSelectOpen(false);
+                                        }}
+                                        className={`flex w-full items-center justify-between gap-4 border-t border-[#e2e8f0]/80 px-4 py-3.5 text-left transition hover:bg-[#f5f9ff] ${active ? "bg-gradient-to-r from-[#eef8ff] to-white" : "bg-transparent"}`}
+                                      >
+                                        <span className="min-w-0">
+                                          <span className="block text-[15px] font-black text-[#263244]">{meta.label}</span>
+                                          <span className="mt-1 block text-xs leading-5 text-[#7f8ca3]">{st(`studio.modelSelect.desc.${option.value}`)}</span>
+                                        </span>
+                                        <span className="flex shrink-0 items-center gap-2">
+                                          {option.value !== "dreamface-io-video" ? (
+                                            <span className="text-xs font-bold text-[#64748b]">{st("studio.modelSelect.credits", { credits: modelCredits })}</span>
+                                          ) : null}
+                                          {badge ? (
+                                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                              badge === "free"
+                                                ? "bg-[#eef2f7] text-[#536071]"
+                                                : badge === "recommended"
+                                                  ? "bg-gradient-to-br from-[#2563eb] to-[#0ea5e9] text-white"
+                                                  : badge === "pro"
+                                                    ? "bg-[#f3e8ff] text-[#7e22ce]"
+                                                    : "bg-[#fff4ce] text-[#9a6412]"
+                                            }`}>
+                                              {st(`studio.modelSelect.badge.${badge}`)}
+                                            </span>
+                                          ) : null}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <select
+                        value={provider}
+                        onChange={(e) => applyProvider(e.target.value)}
+                        className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#485164] outline-none transition hover:bg-[#f8fafc] sm:w-auto"
+                      >
+                        {options.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {PROVIDER_META[option.value]?.label || option.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     {mode === "image" ? (
                       provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
                         <select
@@ -4960,10 +5100,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 </span>
               </div>
               {showVideoModelSelect ? (
-                <div className="relative mt-3 max-w-xl" ref={modelSelectRef}>
+                <div className="relative z-[80] mt-3 max-w-xl" ref={modelSelectRef}>
                   <button
                     type="button"
-                    onClick={() => setModelSelectOpen((open) => !open)}
+                    onClick={() => {
+                      setModelSelectPlacement(getModelSelectPlacement(modelSelectRef.current));
+                      setModelSelectOpen((open) => !open);
+                    }}
                     className="flex min-h-[58px] w-full items-center justify-between gap-4 rounded-full border border-white/12 bg-white/[0.09] px-5 py-3 text-left shadow-[0_12px_30px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.12]"
                     aria-haspopup="listbox"
                     aria-expanded={modelSelectOpen}
@@ -4975,7 +5118,16 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     <span className={`shrink-0 text-lg text-white/58 transition ${modelSelectOpen ? "rotate-180" : ""}`}>⌄</span>
                   </button>
                   {modelSelectOpen ? (
-                    <div className="absolute left-0 top-[68px] z-30 w-full overflow-hidden rounded-[1.35rem] border border-white/14 bg-[#fbfdff]/95 text-[#263244] shadow-[0_24px_70px_rgba(0,0,0,0.26)] backdrop-blur-xl sm:w-[440px]" role="listbox">
+                    <div
+                      className={`z-[200] overflow-y-auto overscroll-contain rounded-[1.35rem] border border-white/14 bg-[#fbfdff]/95 text-[#263244] shadow-[0_24px_70px_rgba(0,0,0,0.26)] backdrop-blur-xl ${
+                        modelSelectPlacement === "modal"
+                          ? "fixed left-1/2 top-20 max-h-[calc(100vh-6rem)] w-[min(calc(100vw-2rem),520px)] -translate-x-1/2"
+                          : `absolute left-0 max-h-[min(68vh,520px)] w-full sm:w-[480px] ${
+                              modelSelectPlacement === "top" ? "bottom-[68px]" : "top-[68px]"
+                            }`
+                      }`}
+                      role="listbox"
+                    >
                       {videoModelGroups.map((group) => {
                         const groupOptions = options.filter((option) => videoModelGroup(option.value) === group.key);
                         if (!groupOptions.length) return null;
