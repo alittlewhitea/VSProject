@@ -989,6 +989,20 @@ function defaultVideoResolutionForProvider(provider: string) {
   return "720p";
 }
 
+function videoModelGroup(provider: string) {
+  if (provider === "dreamface-io-video") return "freeDraft";
+  if (provider === "seedance-video" || provider === "veo-video") return "premium";
+  return "betterQuality";
+}
+
+function videoModelBadge(provider: string) {
+  if (provider === "dreamface-io-video") return "free";
+  if (provider === "seedance-mini-video") return "recommended";
+  if (provider === "kling-video") return "pro";
+  if (provider === "veo-video") return "premium";
+  return "";
+}
+
 function isAvatarProvider(provider: string) {
   return provider === "kling-avatar-standard" || provider === "kling-avatar-pro";
 }
@@ -1325,9 +1339,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [billingMessage, setBillingMessage] = useState("");
   const [loadingBillingItem, setLoadingBillingItem] = useState<string | null>(null);
+  const [modelSelectOpen, setModelSelectOpen] = useState(false);
   const [selectedBillingCycles, setSelectedBillingCycles] = useState<Record<string, BillingCycle>>(() =>
     Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, plan.defaultCycle]))
   );
+  const modelSelectRef = useRef<HTMLDivElement | null>(null);
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
@@ -1364,6 +1380,20 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   useEffect(() => {
     setMobileStudioMenuOpen(false);
   }, [isAppsHome, isProjectsView, mode]);
+
+  useEffect(() => {
+    if (!modelSelectOpen) return;
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (modelSelectRef.current?.contains(event.target as Node)) return;
+      setModelSelectOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [modelSelectOpen]);
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -1831,6 +1861,19 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     ? provider
     : "default";
   const providerNote = st(`studio.model.${providerNoteKey}`);
+  const showVideoModelSelect = mode === "video" && (activeWorkflow === "text-to-video" || activeWorkflow === "image-to-video");
+  const selectedProviderMeta = PROVIDER_META[provider] || {
+    label: provider,
+    shortLabel: provider,
+    speed: "Standard",
+    quality: "Balanced",
+    bestFor: "General generation"
+  };
+  const videoModelGroups = [
+    { key: "freeDraft", label: st("studio.modelSelect.group.freeDraft") },
+    { key: "betterQuality", label: st("studio.modelSelect.group.betterQuality") },
+    { key: "premium", label: st("studio.modelSelect.group.premium") }
+  ];
   const videoRatioOptions = isAvatarProvider(provider)
     ? ["source"]
     : provider === "grok-video"
@@ -4916,61 +4959,163 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   {activeWorkflowMeta.label}
                 </span>
               </div>
-              <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
-                {options.map((option) => {
-                  const meta = PROVIDER_META[option.value] || {
-                    label: option.label,
-                    shortLabel: option.label,
-                    speed: "Standard",
-                    quality: "Balanced",
-                    bestFor: "General generation"
-                  };
-                  const active = provider === option.value;
-                  const modelCredits = estimateGenerationCredits({
-                    mode: modeForPricing(mode),
-                    provider: option.value,
-                    imageSize,
-                    duration: isAvatarWorkflow ? avatarDuration : duration,
-                    hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video",
-                    resolution: mode === "image" ? editResolution : videoResolution,
-                    promptText: mode === "audio" ? prompt : undefined
-                  });
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => applyProvider(option.value)}
-                      className={`group relative min-w-[235px] overflow-hidden rounded-[1.35rem] border p-4 text-left transition duration-300 ${
-                        active
-                          ? "border-[#7ca7ff]/35 bg-[linear-gradient(145deg,rgba(255,255,255,0.13),rgba(255,255,255,0.065))] shadow-[0_18px_48px_rgba(40,88,180,0.22),0_0_0_1px_rgba(255,255,255,0.06)_inset]"
-                          : "border-white/10 bg-white/[0.045] shadow-[0_10px_28px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:border-white/16 hover:bg-white/[0.07]"
-                      }`}
-                    >
-                      <div className={`pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent ${active ? "via-[#9bbcff]/70" : "via-white/12"} to-transparent`} />
-                      <div className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full blur-2xl transition ${active ? "bg-[#6ea8ff]/20 opacity-100" : "bg-[#6ea8ff]/0 opacity-0 group-hover:opacity-40"}`} />
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          <span className={`relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-sm font-semibold ${
-                            active ? "bg-[#1c6be1] text-white shadow-[0_12px_28px_rgba(28,107,225,0.30)]" : "bg-white/[0.06] text-white/55"
-                          }`}>
-                            {meta.shortLabel.slice(0, 2)}
-                          </span>
-                          <div>
-                          <p className="text-base font-semibold text-white">{meta.label}</p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.12em] text-white/38">
-                            {meta.speed} / {meta.quality}
-                          </p>
+              {showVideoModelSelect ? (
+                <div className="relative mt-3 max-w-xl" ref={modelSelectRef}>
+                  <button
+                    type="button"
+                    onClick={() => setModelSelectOpen((open) => !open)}
+                    className="flex min-h-[58px] w-full items-center justify-between gap-4 rounded-full border border-white/12 bg-white/[0.09] px-5 py-3 text-left shadow-[0_12px_30px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.12]"
+                    aria-haspopup="listbox"
+                    aria-expanded={modelSelectOpen}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-base font-bold text-white">{selectedProviderMeta.label}</span>
+                      <span className="mt-0.5 block truncate text-xs font-medium text-white/46">{st(`studio.modelSelect.desc.${provider}`)}</span>
+                    </span>
+                    <span className={`shrink-0 text-lg text-white/58 transition ${modelSelectOpen ? "rotate-180" : ""}`}>⌄</span>
+                  </button>
+                  {modelSelectOpen ? (
+                    <div className="absolute left-0 top-[68px] z-30 w-full overflow-hidden rounded-[1.35rem] border border-white/14 bg-[#fbfdff]/95 text-[#263244] shadow-[0_24px_70px_rgba(0,0,0,0.26)] backdrop-blur-xl sm:w-[440px]" role="listbox">
+                      {videoModelGroups.map((group) => {
+                        const groupOptions = options.filter((option) => videoModelGroup(option.value) === group.key);
+                        if (!groupOptions.length) return null;
+                        return (
+                          <div key={group.key}>
+                            <div className="bg-gradient-to-b from-[#f8fafc] to-white/0 px-4 py-3 pb-2 text-[11px] font-black uppercase tracking-[0.14em] text-[#9aa6b8]">
+                              {group.label}
+                            </div>
+                            {groupOptions.map((option) => {
+                              const meta = PROVIDER_META[option.value] || {
+                                label: option.label,
+                                shortLabel: option.label,
+                                speed: "Standard",
+                                quality: "Balanced",
+                                bestFor: "General generation"
+                              };
+                              const active = provider === option.value;
+                              const modelCredits = estimateGenerationCredits({
+                                mode: "video",
+                                provider: option.value,
+                                duration,
+                                hasReferences: activeWorkflow === "image-to-video",
+                                resolution: defaultVideoResolutionForProvider(option.value),
+                                promptText: undefined
+                              });
+                              const badge = videoModelBadge(option.value);
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={active}
+                                  onClick={() => {
+                                    applyProvider(option.value);
+                                    setModelSelectOpen(false);
+                                  }}
+                                  className={`flex w-full items-center justify-between gap-4 border-t border-[#e2e8f0]/80 px-4 py-3.5 text-left transition hover:bg-[#f5f9ff] ${active ? "bg-gradient-to-r from-[#eef8ff] to-white" : "bg-transparent"}`}
+                                >
+                                  <span className="min-w-0">
+                                    <span className="block text-[15px] font-black text-[#263244]">{meta.label}</span>
+                                    <span className="mt-1 block text-xs leading-5 text-[#7f8ca3]">{st(`studio.modelSelect.desc.${option.value}`)}</span>
+                                  </span>
+                                  <span className="flex shrink-0 items-center gap-2">
+                                    {option.value !== "dreamface-io-video" ? (
+                                      <span className="text-xs font-bold text-[#64748b]">{st("studio.modelSelect.credits", { credits: modelCredits })}</span>
+                                    ) : null}
+                                    {badge ? (
+                                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                        badge === "free"
+                                          ? "bg-[#eef2f7] text-[#536071]"
+                                          : badge === "recommended"
+                                            ? "bg-gradient-to-br from-[#2563eb] to-[#0ea5e9] text-white"
+                                            : badge === "pro"
+                                              ? "bg-[#f3e8ff] text-[#7e22ce]"
+                                              : "bg-[#fff4ce] text-[#9a6412]"
+                                      }`}>
+                                        {st(`studio.modelSelect.badge.${badge}`)}
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                </button>
+                              );
+                            })}
                           </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                  {provider === "dreamface-io-video" ? (
+                    <div className="mt-4 rounded-2xl border border-amber-400/20 bg-gradient-to-r from-amber-50/95 to-white/80 px-4 py-3 text-sm leading-6 text-amber-900 shadow-sm">
+                      {st("studio.modelSelect.upgradeHint")}{" "}
+                      {options.some((option) => option.value === "seedance-mini-video") ? (
+                        <button
+                          type="button"
+                          onClick={() => applyProvider("seedance-mini-video")}
+                          className="ml-1 rounded-full bg-[#111827] px-3 py-1.5 text-xs font-black text-white transition hover:-translate-y-0.5"
+                        >
+                          {st("studio.modelSelect.switchModel")}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+                  {options.map((option) => {
+                    const meta = PROVIDER_META[option.value] || {
+                      label: option.label,
+                      shortLabel: option.label,
+                      speed: "Standard",
+                      quality: "Balanced",
+                      bestFor: "General generation"
+                    };
+                    const active = provider === option.value;
+                    const modelCredits = estimateGenerationCredits({
+                      mode: modeForPricing(mode),
+                      provider: option.value,
+                      imageSize,
+                      duration: isAvatarWorkflow ? avatarDuration : duration,
+                      hasReferences: activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video",
+                      resolution: mode === "image" ? editResolution : videoResolution,
+                      promptText: mode === "audio" ? prompt : undefined
+                    });
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => applyProvider(option.value)}
+                        className={`group relative min-w-[235px] overflow-hidden rounded-[1.35rem] border p-4 text-left transition duration-300 ${
+                          active
+                            ? "border-[#7ca7ff]/35 bg-[linear-gradient(145deg,rgba(255,255,255,0.13),rgba(255,255,255,0.065))] shadow-[0_18px_48px_rgba(40,88,180,0.22),0_0_0_1px_rgba(255,255,255,0.06)_inset]"
+                            : "border-white/10 bg-white/[0.045] shadow-[0_10px_28px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:border-white/16 hover:bg-white/[0.07]"
+                        }`}
+                      >
+                        <div className={`pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent ${active ? "via-[#9bbcff]/70" : "via-white/12"} to-transparent`} />
+                        <div className={`pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full blur-2xl transition ${active ? "bg-[#6ea8ff]/20 opacity-100" : "bg-[#6ea8ff]/0 opacity-0 group-hover:opacity-40"}`} />
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <span className={`relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-sm font-semibold ${
+                              active ? "bg-[#1c6be1] text-white shadow-[0_12px_28px_rgba(28,107,225,0.30)]" : "bg-white/[0.06] text-white/55"
+                            }`}>
+                              {meta.shortLabel.slice(0, 2)}
+                            </span>
+                            <div>
+                            <p className="text-base font-semibold text-white">{meta.label}</p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.12em] text-white/38">
+                              {meta.speed} / {meta.quality}
+                            </p>
+                            </div>
+                          </div>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${active ? "bg-white/[0.10] text-[#bde0fe] shadow-sm" : "bg-white/[0.055] text-white/42"}`}>
+                            {modelCredits} credits
+                          </span>
                         </div>
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${active ? "bg-white/[0.10] text-[#bde0fe] shadow-sm" : "bg-white/[0.055] text-white/42"}`}>
-                          {modelCredits} credits
-                        </span>
-                      </div>
-                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-white/48">{meta.bestFor}</p>
-                    </button>
-                  );
-                })}
-              </div>
+                        <p className="mt-3 line-clamp-2 text-sm leading-6 text-white/48">{meta.bestFor}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="hidden">
