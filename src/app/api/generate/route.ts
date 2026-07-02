@@ -147,6 +147,10 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "nano-banana-pro": editImage
       ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_PRO_EDIT || "fal-ai/nano-banana-pro/edit"
       : process.env.FAL_MODEL_IMAGE_NANO_BANANA_PRO || "fal-ai/nano-banana-pro",
+    "nano-banana-lite": editImage
+      ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_LITE_EDIT || "google/nano-banana-lite/edit"
+      : process.env.FAL_MODEL_IMAGE_NANO_BANANA_LITE || "google/nano-banana-lite",
+    "nano-banana-2-lite": process.env.FAL_MODEL_IMAGE_NANO_BANANA_2_LITE || "google/nano-banana-2-lite",
     "nano-banana-edit": process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit",
     "recraft-image": process.env.FAL_MODEL_IMAGE_RECRAFT,
     "seedance-video": editImage
@@ -415,23 +419,25 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
-  if (body.provider === "nano-banana-edit" || ((body.provider === "nano-banana-image" || body.provider === "nano-banana-pro") && hasReferenceImages(body))) {
+  if (body.provider === "nano-banana-edit" || (["nano-banana-image", "nano-banana-pro", "nano-banana-lite"].includes(body.provider) && hasReferenceImages(body))) {
     const input: Record<string, unknown> = {
       prompt,
       image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 14) : [],
       aspect_ratio: EDIT_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
-      resolution: body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K",
       output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
       num_images: clampInt(body.numImages, 1, 4, 1),
       safety_tolerance: body.safetyTolerance && SAFETY_TOLERANCES.has(body.safetyTolerance) ? body.safetyTolerance : "4",
-      limit_generations: body.limitGenerations !== false,
-      enable_web_search: Boolean(body.enableWebSearch)
+      limit_generations: body.limitGenerations !== false
     };
     const seed = optionalSeed(body.seed);
     const systemPrompt = cleanSystemPrompt(body.systemPrompt);
     if (seed !== undefined) input.seed = seed;
     if (systemPrompt) input.system_prompt = systemPrompt;
-    if (body.provider === "nano-banana-image" && body.thinkingLevel && THINKING_LEVELS.has(body.thinkingLevel)) {
+    if (body.provider === "nano-banana-image" || body.provider === "nano-banana-pro") {
+      input.resolution = body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K";
+      input.enable_web_search = Boolean(body.enableWebSearch);
+    }
+    if ((body.provider === "nano-banana-image" || body.provider === "nano-banana-lite") && body.thinkingLevel && THINKING_LEVELS.has(body.thinkingLevel)) {
       input.thinking_level = body.thinkingLevel;
     }
     if (body.provider === "nano-banana-pro" && input.resolution === "0.5K") {
@@ -464,22 +470,24 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
-  if (body.provider === "nano-banana-image" || body.provider === "nano-banana-pro") {
+  if (body.provider === "nano-banana-image" || body.provider === "nano-banana-pro" || body.provider === "nano-banana-lite" || body.provider === "nano-banana-2-lite") {
     const input: Record<string, unknown> = {
       prompt,
       aspect_ratio: EDIT_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
-      resolution: body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K",
       output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
       num_images: clampInt(body.numImages, 1, 4, 1),
       safety_tolerance: body.safetyTolerance && SAFETY_TOLERANCES.has(body.safetyTolerance) ? body.safetyTolerance : "4",
-      limit_generations: body.limitGenerations !== false,
-      enable_web_search: Boolean(body.enableWebSearch)
+      limit_generations: body.limitGenerations !== false
     };
     const seed = optionalSeed(body.seed);
     const systemPrompt = cleanSystemPrompt(body.systemPrompt);
     if (seed !== undefined) input.seed = seed;
     if (systemPrompt) input.system_prompt = systemPrompt;
-    if (body.provider === "nano-banana-image" && body.thinkingLevel && THINKING_LEVELS.has(body.thinkingLevel)) {
+    if (body.provider === "nano-banana-image" || body.provider === "nano-banana-pro") {
+      input.resolution = body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K";
+      input.enable_web_search = Boolean(body.enableWebSearch);
+    }
+    if ((body.provider === "nano-banana-image" || body.provider === "nano-banana-lite" || body.provider === "nano-banana-2-lite") && body.thinkingLevel && THINKING_LEVELS.has(body.thinkingLevel)) {
       input.thinking_level = body.thinkingLevel;
     }
     if (body.provider === "nano-banana-pro" && input.resolution === "0.5K") {

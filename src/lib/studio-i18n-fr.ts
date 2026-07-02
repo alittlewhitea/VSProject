@@ -54,6 +54,8 @@
   "studio.modelSelect.desc.kling-video": "Qualité professionnelle · Mouvement plus fort",
   "studio.modelSelect.desc.seedance-video": "Vidéos cinématiques · Meilleure cohérence des scènes",
   "studio.modelSelect.desc.veo-video": "Réalisme maximal · Vidéo créative premium",
+  "studio.modelSelect.desc.nano-banana-lite": "Images 1K rapides · Retouches à faible coût",
+  "studio.modelSelect.desc.nano-banana-2-lite": "Brouillons 1K rapides · Coût réduit",
   "studio.modelSelect.upgradeHint": "Vous cherchez une meilleure qualité ? Essayez Seedance 2.0 Mini pour des mouvements plus fluides et des vidéos plus cohérentes.",
   "studio.modelSelect.switchModel": "Changer de modèle",
   "studio.generate.estimate": "{credits} crédits",

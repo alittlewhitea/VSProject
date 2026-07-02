@@ -131,6 +131,8 @@ export const studioTraditionalChineseMessages: Messages = {
   "studio.modelSelect.desc.kling-video": "專業品質 · 更強動態表現",
   "studio.modelSelect.desc.seedance-video": "電影感影片 · 場景一致性更好",
   "studio.modelSelect.desc.veo-video": "最高真實感 · 高階創意影片",
+  "studio.modelSelect.desc.nano-banana-lite": "快速 1K 出圖 · 低成本編輯",
+  "studio.modelSelect.desc.nano-banana-2-lite": "快速 1K 草稿 · 成本更低",
   "studio.modelSelect.upgradeHint": "想要更好的效果？試試 Seedance 2.0 Mini，動作更順暢，影片更穩定。",
   "studio.modelSelect.switchModel": "切換模型",
   "studio.generate.estimate": "{credits} 積分",

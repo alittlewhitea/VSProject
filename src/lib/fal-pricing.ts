@@ -41,7 +41,8 @@ let modelEndpointCache: FalModelEndpointCache | null = null;
 const EXTRA_PRICING_ENDPOINT_IDS = [
   "fal-ai/nano-banana-2/edit",
   "fal-ai/nano-banana-pro/edit",
-  "fal-ai/nano-banana/edit"
+  "fal-ai/nano-banana/edit",
+  "google/nano-banana-lite/edit"
 ];
 
 function endpointForProvider(provider: string, hasReferences = false) {
@@ -50,6 +51,8 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "nano-banana-edit") return "fal-ai/nano-banana-2/edit";
   if (provider === "nano-banana-pro") return hasReferences ? "fal-ai/nano-banana-pro/edit" : "fal-ai/nano-banana-pro";
   if (provider === "nano-banana-pro-edit") return "fal-ai/nano-banana-pro/edit";
+  if (provider === "nano-banana-lite") return hasReferences ? "google/nano-banana-lite/edit" : "google/nano-banana-lite";
+  if (provider === "nano-banana-2-lite") return "google/nano-banana-2-lite";
   if (provider === "flux-image") return "fal-ai/flux/schnell";
   if (provider === "flux-dev") return "fal-ai/flux/dev";
   if (provider === "topaz-image") return "fal-ai/topaz/upscale/image";

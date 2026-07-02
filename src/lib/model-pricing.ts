@@ -111,6 +111,10 @@ function nanoBananaCredits(resolution?: string | null, isPro = false) {
   return base;
 }
 
+function nanoBananaLiteCredits() {
+  return 10;
+}
+
 function nanoResolutionMultiplier(resolution?: string | null, isPro = false) {
   if (!isPro && resolution === "0.5K") return 0.75;
   if (resolution === "4K") return 2;
@@ -179,6 +183,13 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
         return creditsFromFalUsd(costUsd, 18 * multiplier) + nanoFeatureCredits(input) * multiplier;
       }
       return (nanoBananaCredits(input.resolution, true) + nanoFeatureCredits(input)) * multiplier;
+    }
+
+    if (input.provider === "nano-banana-lite" || input.provider === "nano-banana-2-lite") {
+      if (dynamicImagePrice && isFalUnit(falUnit, "image", "images", "generation", "generations")) {
+        return creditsFromFalUsd(dynamicImagePrice * multiplier, 5 * multiplier) + nanoFeatureCredits(input) * multiplier;
+      }
+      return (nanoBananaLiteCredits() + nanoFeatureCredits(input)) * multiplier;
     }
 
     if (input.provider === "flux-image") {
@@ -333,6 +344,36 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal lists Nano Banana Pro around $0.15 per image; 4K is double.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "nano-banana-pro", resolution: "1K" }),
     unitNote: "38-75 credits / image"
+  },
+  {
+    provider: "nano-banana-lite",
+    label: "Nano Banana Lite",
+    mode: "image",
+    workflow: "Text / Image edit",
+    endpointId: "google/nano-banana-lite",
+    falBasis: "fal lists Nano Banana Lite with token pricing and fixed 1K output; fallback uses a low-cost per-image estimate.",
+    typicalCredits: estimateGenerationCredits({ mode: "image", provider: "nano-banana-lite" }),
+    unitNote: "10+ credits / image"
+  },
+  {
+    provider: "nano-banana-lite",
+    label: "Nano Banana Lite Edit",
+    mode: "image",
+    workflow: "Image to Image",
+    endpointId: "google/nano-banana-lite/edit",
+    falBasis: "fal lists Nano Banana Lite Edit with token pricing and fixed 1K output; fallback uses a low-cost per-image estimate.",
+    typicalCredits: estimateGenerationCredits({ mode: "image", provider: "nano-banana-lite", hasReferences: true }),
+    unitNote: "10+ credits / image"
+  },
+  {
+    provider: "nano-banana-2-lite",
+    label: "Nano Banana 2 Lite",
+    mode: "image",
+    workflow: "Text to Image",
+    endpointId: "google/nano-banana-2-lite",
+    falBasis: "fal lists Nano Banana 2 Lite with token pricing and fixed 1K output; fallback uses a low-cost per-image estimate.",
+    typicalCredits: estimateGenerationCredits({ mode: "image", provider: "nano-banana-2-lite" }),
+    unitNote: "10+ credits / image"
   },
   {
     provider: "flux-image",

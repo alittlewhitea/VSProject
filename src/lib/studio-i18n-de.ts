@@ -106,6 +106,8 @@
   "studio.modelSelect.desc.kling-video": "Professionelle Qualität · Stärkere Bewegung",
   "studio.modelSelect.desc.seedance-video": "Kinematische Videos · Bessere Szenenkonsistenz",
   "studio.modelSelect.desc.veo-video": "Höchster Realismus · Premium-Kreativvideo",
+  "studio.modelSelect.desc.nano-banana-lite": "Schnelle 1K-Bilder · Günstige Bearbeitung",
+  "studio.modelSelect.desc.nano-banana-2-lite": "Schnelle 1K-Entwürfe · Geringere Kosten",
   "studio.modelSelect.upgradeHint": "Du möchtest bessere Qualität? Probiere Seedance 2.0 Mini für flüssigere Bewegungen und konsistentere Videos.",
   "studio.modelSelect.switchModel": "Modell wechseln",
   "studio.generate.estimate": "{credits} Credits",

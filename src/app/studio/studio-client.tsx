@@ -483,6 +483,20 @@ const PROVIDER_META: Record<
     quality: "Premium creative output",
     bestFor: "Higher fidelity campaigns, product visuals, and polished prompt-to-image output"
   },
+  "nano-banana-lite": {
+    label: "Nano Banana Lite",
+    shortLabel: "Banana Lite",
+    speed: "Fastest",
+    quality: "Efficient edits",
+    bestFor: "Low-cost prompt drafts, fast local edits, and 1K social visuals"
+  },
+  "nano-banana-2-lite": {
+    label: "Nano Banana 2 Lite",
+    shortLabel: "Banana 2 Lite",
+    speed: "Fastest",
+    quality: "Efficient 1K output",
+    bestFor: "Cost-effective 1K text-to-image generation and rapid ideation"
+  },
   "flux-image": {
     label: "FLUX Schnell",
     shortLabel: "Schnell",
@@ -596,13 +610,13 @@ const WORKFLOW_META: Record<
     label: "Text to Image",
     description: "Create a new image from a prompt.",
     recommendedProvider: "chatgpt-image",
-    providers: ["chatgpt-image", "nano-banana-pro", "nano-banana-image", "flux-dev", "flux-image"]
+    providers: ["chatgpt-image", "nano-banana-pro", "nano-banana-image", "nano-banana-2-lite", "nano-banana-lite", "flux-dev", "flux-image"]
   },
   "image-to-image": {
     label: "Image to Image",
     description: "Upload references and edit, restyle, or extend them.",
     recommendedProvider: "nano-banana-image",
-    providers: ["nano-banana-image", "chatgpt-image", "nano-banana-pro"]
+    providers: ["nano-banana-image", "nano-banana-lite", "chatgpt-image", "nano-banana-pro"]
   },
   "enhance-cleanup": {
     label: "Image Enhance",
@@ -979,8 +993,33 @@ function isSamplePrompt(value: string) {
 
 function defaultImageSizeForProvider(provider: string) {
   if (provider === "flux-image" || provider === "flux-dev") return "landscape_16_9";
-  if (provider === "nano-banana-image" || provider === "nano-banana-pro" || provider === "nano-banana-edit") return "default_4_3";
+  if (isNanoBananaProvider(provider)) return "default_4_3";
   return "default_4_3";
+}
+
+function isNanoBananaProvider(provider: string) {
+  return provider === "nano-banana-image" ||
+    provider === "nano-banana-pro" ||
+    provider === "nano-banana-edit" ||
+    provider === "nano-banana-lite" ||
+    provider === "nano-banana-2-lite";
+}
+
+function isNanoBananaLiteProvider(provider: string) {
+  return provider === "nano-banana-lite" || provider === "nano-banana-2-lite";
+}
+
+function isNanoBananaImageToImageProvider(provider: string) {
+  return provider === "nano-banana-image" ||
+    provider === "nano-banana-pro" ||
+    provider === "nano-banana-edit" ||
+    provider === "nano-banana-lite";
+}
+
+function defaultImageRatioForProvider(provider: string, imageSize: string) {
+  if (provider === "nano-banana-pro" || provider === "nano-banana-2-lite") return "1:1";
+  if (isNanoBananaProvider(provider) || provider === "topaz-image" || provider === "bria-background-remove") return "auto";
+  return ratioFromImageSize(imageSize);
 }
 
 function defaultVideoResolutionForProvider(provider: string) {
@@ -1174,7 +1213,7 @@ function shortInputValue(value: string) {
 
 function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (!provider) return false;
-  if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
+  if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return ["minimax-music-2.6", "elevenlabs-tts"].includes(provider);
   if (mode === "avatar") return ["dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return ["dreamface-io-video", "seedance-video", "seedance-mini-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
@@ -1514,7 +1553,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     );
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
     const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
-    setRatio(mode === "image" ? (nextProvider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize)) : mode === "avatar" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
+    setRatio(mode === "image" ? defaultImageRatioForProvider(nextProvider, nextImageSize) : mode === "avatar" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
     setImageSize(nextImageSize);
     setDuration(mode === "video" || mode === "avatar" ? DEFAULT_VIDEO_DURATION : "single");
     setVideoResolution(defaultVideoResolutionForProvider(nextProvider));
@@ -1526,7 +1565,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     if (mode !== "image") return;
     const nextImageSize = defaultImageSizeForProvider(provider);
     setImageSize(nextImageSize);
-    setRatio(provider === "topaz-image" ? "auto" : ratioFromImageSize(nextImageSize));
+    setRatio(defaultImageRatioForProvider(provider, nextImageSize));
     if (provider === "flux-image") {
       setNumInferenceSteps(4);
       setOutputFormat((current) => (current === "webp" ? "jpeg" : current));
@@ -1535,7 +1574,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setNumInferenceSteps(28);
       setOutputFormat((current) => (current === "webp" ? "jpeg" : current));
     }
-    if (provider === "nano-banana-pro") {
+    if (provider === "nano-banana-pro" || provider === "nano-banana-2-lite") {
       setEditResolution((current) => (current === "0.5K" ? "1K" : current));
     }
   }, [mode, provider]);
@@ -1961,6 +2000,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       ? `${imageQuality} / ${outputFormat.toUpperCase()} / ${numImages}`
     : provider === "flux-image" || provider === "flux-dev"
         ? `${numInferenceSteps} / ${guidanceScale} / ${outputFormat.toUpperCase()}`
+        : isNanoBananaLiteProvider(provider)
+          ? `1K / ${safetyTolerance} / ${numImages}`
         : mode === "image"
           ? `${editResolution} / ${safetyTolerance} / ${numImages}`
           : isMiniMaxMusic
@@ -2068,15 +2109,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setAvatarAudioUrl("");
     }
     setProvider(nextProvider);
-    if (nextProvider === "nano-banana-image" || nextProvider === "nano-banana-pro" || nextProvider === "topaz-image" || nextProvider === "bria-background-remove") {
-      setRatio(nextProvider === "nano-banana-image" || nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : "1:1");
+    if (isNanoBananaProvider(nextProvider) || nextProvider === "topaz-image" || nextProvider === "bria-background-remove") {
+      setRatio(defaultImageRatioForProvider(nextProvider, defaultImageSizeForProvider(nextProvider)));
     }
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
     setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
     const nextImageSize = nextMode === "image" ? defaultImageSizeForProvider(nextProvider) : imageSize;
     if (nextMode === "image") {
       setImageSize(nextImageSize);
-      setRatio(nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : ratioFromImageSize(nextImageSize));
+      setRatio(defaultImageRatioForProvider(nextProvider, nextImageSize));
     } else if (nextMode === "video" || nextMode === "avatar") {
       setRatio(nextWorkflow === "avatar-video" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
       setDuration(nextProvider === "veo-video" ? DEFAULT_VEO_VIDEO_DURATION : DEFAULT_VIDEO_DURATION);
@@ -2092,7 +2133,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     params.set("provider", nextProvider);
     if (nextMode === "image") {
       params.set("imageSize", nextImageSize);
-      params.set("ratio", nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : ratioFromImageSize(nextImageSize));
+      params.set("ratio", defaultImageRatioForProvider(nextProvider, nextImageSize));
     } else if (nextMode === "video" || nextMode === "avatar") {
       params.delete("imageSize");
       params.set("ratio", nextWorkflow === "avatar-video" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
@@ -2127,16 +2168,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       }
       if (nextProvider === "topaz-image") setImageWorkflow("enhance-cleanup");
       if (nextProvider === "bria-background-remove") setImageWorkflow("background-remove");
+      if (nextProvider === "nano-banana-2-lite" && activeWorkflow === "image-to-image") setImageWorkflow("text-to-image");
       const nextImageSize = defaultImageSizeForProvider(nextProvider);
       setImageSize(nextImageSize);
       setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
-      setRatio(nextProvider === "nano-banana-image" || nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
+      setRatio(defaultImageRatioForProvider(nextProvider, nextImageSize));
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "image");
-      params.set("workflow", nextProvider === "topaz-image" ? "enhance-cleanup" : nextProvider === "bria-background-remove" ? "background-remove" : activeWorkflow);
+      params.set("workflow", nextProvider === "topaz-image" ? "enhance-cleanup" : nextProvider === "bria-background-remove" ? "background-remove" : nextProvider === "nano-banana-2-lite" && activeWorkflow === "image-to-image" ? "text-to-image" : activeWorkflow);
       params.set("provider", nextProvider);
       params.set("imageSize", nextImageSize);
-      params.set("ratio", nextProvider === "nano-banana-image" || nextProvider === "topaz-image" || nextProvider === "bria-background-remove" ? "auto" : nextProvider === "nano-banana-pro" ? "1:1" : ratioFromImageSize(nextImageSize));
+      params.set("ratio", defaultImageRatioForProvider(nextProvider, nextImageSize));
       router.replace(`/studio?${params.toString()}`, { scroll: false });
     } else if (mode === "audio") {
       setReferenceImagesText("");
@@ -4326,7 +4368,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       </select>
                     )}
                     {mode === "image" ? (
-                      provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
+                      isNanoBananaProvider(provider) ? (
                         <select
                           value={ratio}
                           onChange={(e) => {
@@ -4335,7 +4377,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           }}
                           className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
                         >
-                          {(provider === "nano-banana-pro" ? NANO_ASPECT_RATIO_OPTIONS.filter((item) => !["4:1", "1:4", "8:1", "1:8"].includes(item)) : NANO_ASPECT_RATIO_OPTIONS).map((item) => (
+                          {(provider === "nano-banana-pro" || provider === "nano-banana-2-lite" ? NANO_ASPECT_RATIO_OPTIONS.filter((item) => !["4:1", "1:4", "8:1", "1:8"].includes(item)) : NANO_ASPECT_RATIO_OPTIONS).map((item) => (
                             <option key={item} value={item}>
                               {item === "auto" ? st("studio.option.autoRatio") : item}
                             </option>
@@ -4760,7 +4802,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             </div>
                           </div>
                         ) : null}
-                        {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
+                        {isNanoBananaProvider(provider) ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                             <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.safetyTolerance")}</p>
                             <div className="grid grid-cols-6 gap-1">
@@ -4779,7 +4821,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             </div>
                           </div>
                         ) : null}
-                        {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
+                        {isNanoBananaProvider(provider) ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                             <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.limitGenerations")}</p>
                             <button
@@ -4807,7 +4849,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             </button>
                           </div>
                         ) : null}
-                        {provider === "nano-banana-image" ? (
+                        {provider === "nano-banana-image" || isNanoBananaLiteProvider(provider) ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                             <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.thinking")}</p>
                             <div className="grid grid-cols-3 gap-1">
@@ -4840,7 +4882,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-xs font-semibold text-[#202633] outline-none placeholder:text-[#a2aabc]"
                           />
                         </div>
-                        {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
+                        {isNanoBananaProvider(provider) ? (
                           <div className="lg:col-span-2 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                             <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.systemPrompt")}</p>
                             <textarea
@@ -5292,12 +5334,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     if (mode === "image") {
                       const nextImageSize = defaultImageSizeForProvider(nextProvider);
                       setImageSize(nextImageSize);
-                      setRatio(ratioFromImageSize(nextImageSize));
+                      setRatio(defaultImageRatioForProvider(nextProvider, nextImageSize));
                       const params = new URLSearchParams(sp.toString());
                       params.set("mode", "image");
                       params.set("provider", nextProvider);
                       params.set("imageSize", nextImageSize);
-                      params.set("ratio", ratioFromImageSize(nextImageSize));
+                      params.set("ratio", defaultImageRatioForProvider(nextProvider, nextImageSize));
                       router.replace(`/studio?${params.toString()}`, { scroll: false });
                     } else {
                       const params = new URLSearchParams(sp.toString());
@@ -5366,8 +5408,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
             <div className="hidden">
               <label className="block">
-                <span className="text-sm text-[#5f6779]">{mode === "image" && provider === "nano-banana-image" ? "Resolution" : "Duration"}</span>
-                {mode === "image" && provider === "nano-banana-image" ? (
+                <span className="text-sm text-[#5f6779]">{mode === "image" && !isNanoBananaLiteProvider(provider) && isNanoBananaImageToImageProvider(provider) ? "Resolution" : "Duration"}</span>
+                {mode === "image" && !isNanoBananaLiteProvider(provider) && isNanoBananaImageToImageProvider(provider) ? (
                   <select
                     value={editResolution}
                     onChange={(e) => setEditResolution(e.target.value)}
@@ -5479,7 +5521,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               <div className="rounded-2xl bg-white/[0.045] px-3 py-2 shadow-sm">
                 <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/35">{st("studio.field.quality")}</span>
                 <p className="mt-1 text-sm font-semibold text-white">
-                  {mode === "image" && provider === "nano-banana-image" ? editResolution : mode === "video" ? videoResolution : "High"}
+                  {mode === "image" && isNanoBananaProvider(provider) ? isNanoBananaLiteProvider(provider) ? "1K" : editResolution : mode === "video" ? videoResolution : "High"}
                 </p>
               </div>
               <div className="rounded-2xl bg-white/[0.045] px-3 py-2 shadow-sm">
@@ -5758,7 +5800,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </label>
                   )}
 
-                  {mode === "image" && provider === "nano-banana-image" ? (
+                  {mode === "image" && !isNanoBananaLiteProvider(provider) && isNanoBananaImageToImageProvider(provider) ? (
                     <label className="block">
                       <span className="text-sm text-white/50">{st("studio.field.resolution")}</span>
                       <select
@@ -6020,8 +6062,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           ? "FLUX Schnell sample"
                           : provider === "flux-dev"
                             ? "FLUX Dev sample"
-                          : provider === "nano-banana-image" || provider === "nano-banana-edit"
-                            ? "Nano Banana 2 Edit sample"
+                          : isNanoBananaProvider(provider)
+                            ? `${PROVIDER_META[provider]?.shortLabel || "Nano Banana"} sample`
                             : provider === "grok-video"
                               ? "Grok Imagine Video sample"
                             : isAvatarProvider(provider)
