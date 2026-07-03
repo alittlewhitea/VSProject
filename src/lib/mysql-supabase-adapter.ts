@@ -460,9 +460,13 @@ async function refundModelDailyUnits(params: Record<string, unknown>) {
 class MysqlStorageBucket {
   constructor(private bucket: string) {}
 
+  private storageRoot() {
+    return path.join(process.cwd(), ".data", "uploads", this.bucket);
+  }
+
   async upload(objectPath: string, bytes: Buffer, _options?: { contentType?: string; upsert?: boolean }) {
     try {
-      const target = path.join(process.cwd(), "public", "uploads", this.bucket, objectPath);
+      const target = path.join(this.storageRoot(), objectPath);
       await mkdir(path.dirname(target), { recursive: true });
       await writeFile(target, bytes);
       return { data: { path: objectPath }, error: null };
@@ -472,12 +476,12 @@ class MysqlStorageBucket {
   }
 
   getPublicUrl(objectPath: string) {
-    return { data: { publicUrl: `${siteUrl()}/uploads/${this.bucket}/${objectPath.replace(/\\/g, "/")}` } };
+    return { data: { publicUrl: `${siteUrl()}/api/uploads/${this.bucket}/${objectPath.replace(/\\/g, "/")}` } };
   }
 
   async remove(paths: string[]) {
     for (const objectPath of paths) {
-      const target = path.join(process.cwd(), "public", "uploads", this.bucket, objectPath);
+      const target = path.join(this.storageRoot(), objectPath);
       await rm(target, { force: true }).catch(() => null);
     }
     return { data: paths, error: null };

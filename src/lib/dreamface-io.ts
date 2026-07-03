@@ -374,6 +374,7 @@ async function cleanupDreamfaceIoInput(admin: any, task: DreamfaceIoTask) {
   const imageUrls = task.request_settings?.image_urls;
   if (!Array.isArray(imageUrls)) return;
   const supabasePrefix = "/storage/v1/object/public/generation-inputs/";
+  const apiPrefix = "/api/uploads/generation-inputs/";
   const localPrefix = "/uploads/generation-inputs/";
   const paths = imageUrls
     .filter((value): value is string => typeof value === "string")
@@ -381,6 +382,7 @@ async function cleanupDreamfaceIoInput(admin: any, task: DreamfaceIoTask) {
       try {
         const pathname = new URL(value).pathname;
         if (pathname.includes(supabasePrefix)) return decodeURIComponent(pathname.split(supabasePrefix)[1] || "");
+        if (pathname.includes(apiPrefix)) return decodeURIComponent(pathname.split(apiPrefix)[1] || "");
         if (pathname.includes(localPrefix)) return decodeURIComponent(pathname.split(localPrefix)[1] || "");
         return "";
       } catch {
