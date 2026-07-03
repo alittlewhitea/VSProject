@@ -97,6 +97,7 @@ function providerLabel(provider?: string) {
     "recraft-image": "Recraft",
     "seedance-video": "Seedance",
     "seedance-mini-video": "Seedance Mini",
+    "happy-horse-video": "Happy Horse 1.1",
     "kling-video": "Kling",
     "veo-video": "Veo",
     "grok-video": "Grok Imagine Video",

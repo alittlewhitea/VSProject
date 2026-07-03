@@ -164,6 +164,9 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "grok-video": editImage
       ? process.env.FAL_MODEL_VIDEO_GROK_I2V || "xai/grok-imagine-video/image-to-video"
       : process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/text-to-video",
+    "happy-horse-video": editImage
+      ? process.env.FAL_MODEL_VIDEO_HAPPY_HORSE_I2V || "alibaba/happy-horse/v1.1/image-to-video"
+      : process.env.FAL_MODEL_VIDEO_HAPPY_HORSE || "alibaba/happy-horse/v1.1/text-to-video",
     "elevenlabs-tts": process.env.FAL_MODEL_AUDIO_ELEVENLABS || "fal-ai/elevenlabs/tts/eleven-v3",
     "minimax-music-2.6": process.env.FAL_MODEL_AUDIO_MINIMAX_26 || "fal-ai/minimax-music/v2.6"
   };
@@ -200,11 +203,13 @@ const TTS_TEXT_NORMALIZATION_OPTIONS = new Set(["auto", "on", "off"]);
 const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
 const GROK_IMAGE_VIDEO_ASPECT_RATIOS = new Set(["auto", "16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
 const SEEDANCE_VIDEO_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
+const HAPPY_HORSE_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21", "5:4", "4:5"]);
 const KLING_TEXT_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1"]);
 const VEO_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p"]);
 const SEEDANCE_MINI_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
+const HAPPY_HORSE_VIDEO_RESOLUTIONS = new Set(["720p", "1080p"]);
 const VEO_VIDEO_RESOLUTIONS = new Set(["720p", "1080p", "4k"]);
 const VEO_VIDEO_DURATIONS = new Set(["4s", "6s", "8s"]);
 const AVATAR_MAX_SECONDS = 15;
@@ -390,6 +395,32 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       generate_audio: Boolean(body.generateAudio),
       auto_fix: true,
       safety_tolerance: body.safetyTolerance && SAFETY_TOLERANCES.has(body.safetyTolerance) ? body.safetyTolerance : "4",
+      ...(seed !== undefined ? { seed } : {})
+    };
+  }
+
+  if (body.mode === "video" && body.provider === "happy-horse-video" && hasInputImages(body)) {
+    const duration = Number.parseInt(body.duration, 10);
+    const seed = optionalSeed(body.seed);
+    return {
+      image_url: firstInputImage(body),
+      prompt: prompt || "Bring the scene in the image to life.",
+      resolution: body.resolution && HAPPY_HORSE_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
+      duration: Number.isInteger(duration) && duration >= 3 && duration <= 15 ? duration : 5,
+      enable_safety_checker: body.enableSafetyChecker !== false,
+      ...(seed !== undefined ? { seed } : {})
+    };
+  }
+
+  if (body.mode === "video" && body.provider === "happy-horse-video") {
+    const duration = Number.parseInt(body.duration, 10);
+    const seed = optionalSeed(body.seed);
+    return {
+      prompt,
+      aspect_ratio: HAPPY_HORSE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
+      resolution: body.resolution && HAPPY_HORSE_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
+      duration: Number.isInteger(duration) && duration >= 3 && duration <= 15 ? duration : 5,
+      enable_safety_checker: body.enableSafetyChecker !== false,
       ...(seed !== undefined ? { seed } : {})
     };
   }

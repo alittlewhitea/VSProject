@@ -392,11 +392,13 @@ const SEEDANCE_VIDEO_RATIO_OPTIONS = ["auto", "21:9", "16:9", "4:3", "1:1", "3:4
 const KLING_IMAGE_VIDEO_RATIO_OPTIONS = ["source"];
 const KLING_TEXT_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1"];
 const VEO_VIDEO_RATIO_OPTIONS = ["16:9", "9:16"];
+const HAPPY_HORSE_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21", "5:4", "4:5"];
 const GROK_VIDEO_RATIO_OPTIONS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"];
 const GROK_IMAGE_VIDEO_RATIO_OPTIONS = ["auto", ...GROK_VIDEO_RATIO_OPTIONS];
 const GROK_VIDEO_RESOLUTION_OPTIONS = ["480p", "720p"];
 const SEEDANCE_VIDEO_RESOLUTION_OPTIONS = ["480p", "720p", "1080p"];
 const SEEDANCE_MINI_VIDEO_RESOLUTION_OPTIONS = ["480p", "720p"];
+const HAPPY_HORSE_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p"];
 const VEO_VIDEO_RESOLUTION_OPTIONS = ["720p", "1080p", "4k"];
 const VIDEO_DURATION_OPTIONS = ["3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s"];
 const GROK_VIDEO_DURATION_OPTIONS = ["1s", "2s", ...VIDEO_DURATION_OPTIONS];
@@ -539,6 +541,13 @@ const PROVIDER_META: Record<
     quality: "Lower-cost motion",
     bestFor: "Faster, cheaper text-to-video and image-to-video at 480p or 720p"
   },
+  "happy-horse-video": {
+    label: "Happy Horse 1.1",
+    shortLabel: "Happy Horse",
+    speed: "Medium",
+    quality: "Native audio",
+    bestFor: "Alibaba video with text-to-video, image-to-video, 720p/1080p, and native audio"
+  },
   "kling-video": {
     label: "Kling v3 Pro",
     shortLabel: "Kling",
@@ -640,13 +649,13 @@ const WORKFLOW_META: Record<
     label: "Text to Video",
     description: "Turn a written scene into a short video.",
     recommendedProvider: "dreamface-io-video",
-    providers: ["dreamface-io-video", "grok-video", "seedance-mini-video", "kling-video", "seedance-video", "veo-video"]
+    providers: ["dreamface-io-video", "grok-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"]
   },
   "image-to-video": {
     label: "Image to Video",
     description: "Animate a reference image into a short video.",
     recommendedProvider: "dreamface-io-video",
-    providers: ["dreamface-io-video", "seedance-mini-video", "kling-video", "seedance-video", "grok-video"]
+    providers: ["dreamface-io-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "grok-video"]
   },
   "text-to-audio": {
     label: "Text to Audio",
@@ -1024,6 +1033,7 @@ function defaultImageRatioForProvider(provider: string, imageSize: string) {
 
 function defaultVideoResolutionForProvider(provider: string) {
   if (provider === "dreamface-io-video") return "720p";
+  if (provider === "happy-horse-video") return "720p";
   if (provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video") return "480p";
   return "720p";
 }
@@ -1216,7 +1226,7 @@ function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return ["minimax-music-2.6", "elevenlabs-tts"].includes(provider);
   if (mode === "avatar") return ["dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
-  return ["dreamface-io-video", "seedance-video", "seedance-mini-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
+  return ["dreamface-io-video", "seedance-video", "seedance-mini-video", "happy-horse-video", "kling-video", "kling-avatar-standard", "kling-avatar-pro", "veo-video", "grok-video"].includes(provider);
 }
 
 function workflowForMode(mode: StudioMode, workflow: string | null): StudioWorkflow {
@@ -1591,7 +1601,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     }
 
     const ratioParam = sp.get("ratio");
-    if (ratioParam && [...SEEDANCE_VIDEO_RATIO_OPTIONS, ...GROK_IMAGE_VIDEO_RATIO_OPTIONS, ...KLING_TEXT_VIDEO_RATIO_OPTIONS, ...KLING_IMAGE_VIDEO_RATIO_OPTIONS, ...VEO_VIDEO_RATIO_OPTIONS].includes(ratioParam)) {
+    if (ratioParam && [...SEEDANCE_VIDEO_RATIO_OPTIONS, ...HAPPY_HORSE_VIDEO_RATIO_OPTIONS, ...GROK_IMAGE_VIDEO_RATIO_OPTIONS, ...KLING_TEXT_VIDEO_RATIO_OPTIONS, ...KLING_IMAGE_VIDEO_RATIO_OPTIONS, ...VEO_VIDEO_RATIO_OPTIONS].includes(ratioParam)) {
       setRatio(ratioParam);
     }
 
@@ -1607,7 +1617,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     }
 
     const resolutionParam = sp.get("resolution");
-    if (resolutionParam && [...GROK_VIDEO_RESOLUTION_OPTIONS, ...SEEDANCE_VIDEO_RESOLUTION_OPTIONS, ...SEEDANCE_MINI_VIDEO_RESOLUTION_OPTIONS, ...VEO_VIDEO_RESOLUTION_OPTIONS].includes(resolutionParam)) {
+    if (resolutionParam && [...GROK_VIDEO_RESOLUTION_OPTIONS, ...SEEDANCE_VIDEO_RESOLUTION_OPTIONS, ...SEEDANCE_MINI_VIDEO_RESOLUTION_OPTIONS, ...HAPPY_HORSE_VIDEO_RESOLUTION_OPTIONS, ...VEO_VIDEO_RESOLUTION_OPTIONS].includes(resolutionParam)) {
       setVideoResolution(resolutionParam);
     }
 
@@ -1933,6 +1943,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     "dreamface-io-video",
     "seedance-video",
     "seedance-mini-video",
+    "happy-horse-video",
     "kling-video",
     "veo-video",
     "elevenlabs-tts",
@@ -1960,6 +1971,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     ? activeWorkflow === "image-to-video"
       ? GROK_IMAGE_VIDEO_RATIO_OPTIONS
       : GROK_VIDEO_RATIO_OPTIONS
+    : provider === "happy-horse-video"
+      ? HAPPY_HORSE_VIDEO_RATIO_OPTIONS
     : provider === "seedance-video" || provider === "seedance-mini-video"
       ? SEEDANCE_VIDEO_RATIO_OPTIONS
         : provider === "kling-video"
@@ -1976,6 +1989,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       ? VEO_VIDEO_DURATION_OPTIONS
     : provider === "seedance-video" || provider === "seedance-mini-video"
         ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 4)
+      : provider === "happy-horse-video"
+        ? VIDEO_DURATION_OPTIONS
       : isAvatarProvider(provider)
         ? VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 3)
       : provider === "grok-video"
@@ -1988,11 +2003,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       ? SEEDANCE_MINI_VIDEO_RESOLUTION_OPTIONS
     : provider === "seedance-video"
       ? SEEDANCE_VIDEO_RESOLUTION_OPTIONS
+      : provider === "happy-horse-video"
+        ? HAPPY_HORSE_VIDEO_RESOLUTION_OPTIONS
       : provider === "veo-video"
         ? VEO_VIDEO_RESOLUTION_OPTIONS
         : GROK_VIDEO_RESOLUTION_OPTIONS;
   const showDreamfaceTalkingVideoControls = mode === "avatar" && provider === "dreamface-io-video";
-  const showVideoResolutionControl = mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "veo-video");
+  const showVideoResolutionControl = mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video");
   const showVideoAudioControl = mode === "video" && !isAvatarProvider(provider) && (provider === "seedance-video" || provider === "seedance-mini-video" || provider === "kling-video" || provider === "veo-video");
   const showTextToImageTemplates = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "text-to-image";
   const providerSettingsLabel =
@@ -2137,7 +2154,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     } else if (nextMode === "video" || nextMode === "avatar") {
       params.delete("imageSize");
       params.set("ratio", nextWorkflow === "avatar-video" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
-      if (nextProvider === "dreamface-io-video" || nextProvider === "grok-video" || nextProvider === "seedance-video" || nextProvider === "seedance-mini-video" || nextProvider === "veo-video") {
+      if (nextProvider === "dreamface-io-video" || nextProvider === "grok-video" || nextProvider === "seedance-video" || nextProvider === "seedance-mini-video" || nextProvider === "happy-horse-video" || nextProvider === "veo-video") {
         params.set("resolution", defaultVideoResolutionForProvider(nextProvider));
       } else {
         params.delete("resolution");
@@ -2200,6 +2217,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           ? "source"
           : nextProvider === "grok-video" && activeWorkflow === "image-to-video" && ratio === "source"
             ? "auto"
+          : nextProvider === "happy-horse-video" && !HAPPY_HORSE_VIDEO_RATIO_OPTIONS.includes(ratio)
+            ? "16:9"
           : nextProvider === "kling-video" && !KLING_TEXT_VIDEO_RATIO_OPTIONS.includes(ratio)
             ? "16:9"
             : nextProvider === "veo-video" && !VEO_VIDEO_RATIO_OPTIONS.includes(ratio)
@@ -2221,7 +2240,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       params.set("workflow", mode === "avatar" ? "avatar-video" : activeWorkflow);
       params.set("provider", nextProvider);
       params.set("ratio", nextRatio);
-      if (nextProvider === "grok-video" || nextProvider === "seedance-video" || nextProvider === "seedance-mini-video" || nextProvider === "veo-video") {
+      if (nextProvider === "grok-video" || nextProvider === "seedance-video" || nextProvider === "seedance-mini-video" || nextProvider === "happy-horse-video" || nextProvider === "veo-video") {
         params.set("resolution", nextResolution);
       } else {
         params.delete("resolution");
@@ -2518,7 +2537,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         resolution:
           mode === "image"
             ? editResolution
-            : mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "veo-video")
+            : mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
         generateAudio: mode === "video" ? generateAudio : undefined,
@@ -2527,10 +2546,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         numImages: mode === "image" && !isPromptlessImageWorkflow ? numImages : undefined,
         guidanceScale: mode === "image" && !isPromptlessImageWorkflow ? guidanceScale : undefined,
         numInferenceSteps: mode === "image" && !isPromptlessImageWorkflow ? numInferenceSteps : undefined,
-        enableSafetyChecker: mode === "image" && !isPromptlessImageWorkflow ? enableSafetyChecker : undefined,
+        enableSafetyChecker: (mode === "image" && !isPromptlessImageWorkflow) || (mode === "video" && provider === "happy-horse-video") ? enableSafetyChecker : undefined,
         acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
         limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
-        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "veo-video") ? parsedSeed : undefined,
+        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
         safetyTolerance: mode === "image" && !isPromptlessImageWorkflow ? safetyTolerance : undefined,
         systemPrompt: mode === "image" && !isPromptlessImageWorkflow && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" && !isPromptlessImageWorkflow ? enableWebSearch : undefined,
@@ -5533,6 +5552,26 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 <p className="mt-1 text-sm font-semibold">{estCredits} credits</p>
               </div>
             </div>
+
+            {mode === "video" && provider === "happy-horse-video" ? (
+              <div className="mb-4 rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_30px_rgba(0,0,0,0.12)]">
+                <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/[0.045] px-3 py-2 shadow-sm">
+                  <div>
+                    <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/35">{st("studio.field.safety")}</span>
+                    <p className="mt-1 text-sm font-semibold text-white">Enable Safety Checker</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEnableSafetyChecker((value) => !value)}
+                    className={`min-w-20 rounded-full px-4 py-2 text-xs font-bold transition ${
+                      enableSafetyChecker ? "bg-[#bfdbfe] text-[#12315d]" : "bg-white/[0.08] text-white/58"
+                    }`}
+                  >
+                    {enableSafetyChecker ? st("studio.state.enabled") : st("studio.state.disabled")}
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             <label className="block">
               <span className="flex items-center justify-between text-sm font-semibold text-white/78">

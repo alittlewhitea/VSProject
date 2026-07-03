@@ -262,6 +262,12 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
     return seconds * (input.resolution === "480p" ? 15 : 32);
   }
 
+  if (input.provider === "happy-horse-video") {
+    const is1080p = input.resolution === "1080p";
+    const secondPrice = is1080p ? 0.18 : 0.14;
+    return creditsFromFalUsd(secondPrice * seconds, seconds * (is1080p ? 45 : 35));
+  }
+
   if (input.provider === "kling-video") {
     return creditsFromFalUsd((input.generateAudio ? 0.168 : 0.112) * seconds, seconds * 16);
   }
@@ -454,6 +460,26 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal token billing is about $0.0721/s at 480p and $0.1547/s at 720p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-mini-video", duration: "5s", resolution: "720p", hasReferences: true }),
     unitNote: "15 credits/sec at 480p, 32 credits/sec at 720p"
+  },
+  {
+    provider: "happy-horse-video",
+    label: "Happy Horse 1.1",
+    mode: "video",
+    workflow: "Text to Video",
+    endpointId: "alibaba/happy-horse/v1.1/text-to-video",
+    falBasis: "fal lists Happy Horse 1.1 at $0.14/s for 720p and $0.18/s for 1080p.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "happy-horse-video", duration: "5s", resolution: "720p" }),
+    unitNote: "35 credits/sec at 720p, 45 credits/sec at 1080p"
+  },
+  {
+    provider: "happy-horse-video",
+    label: "Happy Horse 1.1 I2V",
+    mode: "video",
+    workflow: "Image to Video",
+    endpointId: "alibaba/happy-horse/v1.1/image-to-video",
+    falBasis: "fal lists Happy Horse 1.1 image-to-video at $0.14/s for 720p and $0.18/s for 1080p.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "happy-horse-video", duration: "5s", resolution: "720p", hasReferences: true }),
+    unitNote: "35 credits/sec at 720p, 45 credits/sec at 1080p"
   },
   {
     provider: "kling-video",
