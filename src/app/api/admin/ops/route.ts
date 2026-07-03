@@ -416,12 +416,28 @@ async function repairGenerationSafety(admin: NonNullable<ReturnType<typeof creat
   };
 }
 
-function formatAuthUser(user: { id: string; email?: string; created_at?: string; last_sign_in_at?: string }) {
+function metadataCountryCode(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const meta = value as Record<string, unknown>;
+  return normalizeCountryCode(meta.countryCode) || normalizeCountryCode(meta.country) || normalizeCountryCode(meta.country_code);
+}
+
+function formatAuthUser(user: {
+  id: string;
+  email?: string;
+  created_at?: string;
+  last_sign_in_at?: string;
+  raw_user_meta_data?: unknown;
+  user_metadata?: unknown;
+}) {
+  const countryCode = metadataCountryCode(user.raw_user_meta_data) || metadataCountryCode(user.user_metadata);
   return {
     id: user.id,
     email: user.email || null,
     createdAt: user.created_at || null,
-    lastSignInAt: user.last_sign_in_at || null
+    lastSignInAt: user.last_sign_in_at || null,
+    countryCode,
+    countryName: countryCode ? countryName(countryCode) : null
   };
 }
 
@@ -432,7 +448,14 @@ async function listAuthUsers(admin: NonNullable<ReturnType<typeof createSupabase
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: AUTH_USERS_PER_PAGE });
     if (error) throw error;
 
-    const pageUsers = (data.users || []).map((user) => formatAuthUser(user as { id: string; email?: string; created_at?: string; last_sign_in_at?: string }));
+    const pageUsers = (data.users || []).map((user) => formatAuthUser(user as {
+      id: string;
+      email?: string;
+      created_at?: string;
+      last_sign_in_at?: string;
+      raw_user_meta_data?: unknown;
+      user_metadata?: unknown;
+    }));
     users.push(...pageUsers);
 
     if (userId && pageUsers.some((user) => user.id === userId)) break;
@@ -612,8 +635,8 @@ function buildUserRows(
       balance: account?.balance ?? 0,
       freeGranted: account?.free_granted ?? false,
       creditAccountUpdatedAt: account?.updated_at ?? null,
-      countryCode: country?.countryCode ?? null,
-      countryName: country?.countryName ?? null,
+      countryCode: country?.countryCode ?? user.countryCode ?? null,
+      countryName: country?.countryName ?? user.countryName ?? null,
       countryEventCount: country?.eventCount ?? 0,
       creditsSpent,
       creditsRefunded: creditsRefundedByUser.get(user.id) || 0,

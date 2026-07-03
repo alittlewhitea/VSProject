@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { createSession, SESSION_COOKIE_NAME, upsertGoogleUser } from "../../../../../lib/server-auth";
+import { getRequestCountryCode } from "../../../../../lib/credits";
 
 const STATE_COOKIE = "dreamface_google_state";
 
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
     email: profile.email || null,
     fullName: profile.name || null,
     avatarUrl: profile.picture || null,
+    countryCode: getRequestCountryCode(request.headers),
     raw: profile
   });
   const session = await createSession(user);

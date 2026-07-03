@@ -55,16 +55,39 @@ export async function getUserIdsForAuthUser(user: AuthUser) {
   return Array.from(ids);
 }
 
-export async function upsertEmailUser(email: string) {
+export async function upsertEmailUser(email: string, options: { countryCode?: string | null } = {}) {
   const normalized = email.trim().toLowerCase();
   const existing = await getUserByEmail(normalized);
-  if (existing) return existing;
+  const countryCode = options.countryCode?.trim().toUpperCase() || null;
+  if (existing) {
+    const now = toMysqlDate(new Date());
+    if (countryCode) {
+      await mysqlExecute(
+        "update users set updated_at = ?, last_sign_in_at = ?, provider = coalesce(provider, 'email'), raw_user_meta_data = json_set(coalesce(raw_user_meta_data, json_object()), '$.countryCode', ?) where id = ?",
+        [now, now, countryCode, existing.id]
+      );
+    } else {
+      await mysqlExecute(
+        "update users set updated_at = ?, last_sign_in_at = ?, provider = coalesce(provider, 'email') where id = ?",
+        [now, now, existing.id]
+      );
+    }
+    return existing;
+  }
 
   const id = randomUUID();
   const now = toMysqlDate(new Date());
   await mysqlExecute(
     "insert into users (id, email, created_at, updated_at, last_sign_in_at, provider, raw_app_meta_data, raw_user_meta_data) values (?, ?, ?, ?, ?, 'email', ?, ?)",
-    [id, normalized, now, now, now, JSON.stringify({ provider: "email", providers: ["email"] }), JSON.stringify({})]
+    [
+      id,
+      normalized,
+      now,
+      now,
+      now,
+      JSON.stringify({ provider: "email", providers: ["email"] }),
+      JSON.stringify(countryCode ? { countryCode } : {})
+    ]
   );
   await mysqlExecute(
     "insert into user_identities (id, user_id, provider, provider_id, identity_data, created_at, updated_at, last_sign_in_at) values (?, ?, 'email', ?, ?, ?, ?, ?)",
@@ -78,6 +101,7 @@ export async function upsertGoogleUser(input: {
   email: string | null;
   fullName?: string | null;
   avatarUrl?: string | null;
+  countryCode?: string | null;
   raw?: unknown;
 }) {
   const now = toMysqlDate(new Date());
@@ -86,6 +110,7 @@ export async function upsertGoogleUser(input: {
     [input.googleSub]
   );
   const normalizedEmail = input.email?.trim().toLowerCase() || null;
+  const countryCode = input.countryCode?.trim().toUpperCase() || null;
   let userId = identityRows[0]?.user_id ? String(identityRows[0].user_id) : null;
   if (!userId && normalizedEmail) {
     const existing = await getUserByEmail(normalizedEmail);
@@ -105,14 +130,21 @@ export async function upsertGoogleUser(input: {
         input.avatarUrl || null,
         input.fullName || null,
         JSON.stringify({ provider: "google", providers: ["google"] }),
-        JSON.stringify(input.raw || {})
+        JSON.stringify({ ...(input.raw && typeof input.raw === "object" ? input.raw : {}), ...(countryCode ? { countryCode } : {}) })
       ]
     );
   } else {
-    await mysqlExecute(
-      "update users set email = coalesce(?, email), updated_at = ?, last_sign_in_at = ?, provider = 'google', google_sub = ?, avatar_url = coalesce(?, avatar_url), full_name = coalesce(?, full_name) where id = ?",
-      [normalizedEmail, now, now, input.googleSub, input.avatarUrl || null, input.fullName || null, userId]
-    );
+    if (countryCode) {
+      await mysqlExecute(
+        "update users set email = coalesce(?, email), updated_at = ?, last_sign_in_at = ?, provider = 'google', google_sub = ?, avatar_url = coalesce(?, avatar_url), full_name = coalesce(?, full_name), raw_user_meta_data = json_set(coalesce(raw_user_meta_data, json_object()), '$.countryCode', ?) where id = ?",
+        [normalizedEmail, now, now, input.googleSub, input.avatarUrl || null, input.fullName || null, countryCode, userId]
+      );
+    } else {
+      await mysqlExecute(
+        "update users set email = coalesce(?, email), updated_at = ?, last_sign_in_at = ?, provider = 'google', google_sub = ?, avatar_url = coalesce(?, avatar_url), full_name = coalesce(?, full_name) where id = ?",
+        [normalizedEmail, now, now, input.googleSub, input.avatarUrl || null, input.fullName || null, userId]
+      );
+    }
   }
   await mysqlExecute(
     "insert into user_identities (id, user_id, provider, provider_id, identity_data, created_at, updated_at, last_sign_in_at) values (?, ?, 'google', ?, ?, ?, ?, ?) on duplicate key update user_id = values(user_id), identity_data = values(identity_data), updated_at = values(updated_at), last_sign_in_at = values(last_sign_in_at)",

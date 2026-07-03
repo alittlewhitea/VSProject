@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { getMysqlPool, toMysqlDate } from "../../../../lib/mysql";
 import { createSession, hashAuthToken, SESSION_COOKIE_NAME, upsertEmailUser } from "../../../../lib/server-auth";
+import { getRequestCountryCode } from "../../../../lib/credits";
 
 function publicBaseUrl(request: NextRequest) {
   return process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || process.env.SITE_URL?.trim().replace(/\/$/, "") || request.nextUrl.origin;
@@ -10,6 +11,13 @@ function publicBaseUrl(request: NextRequest) {
 
 function redirectUrl(request: NextRequest, path: string) {
   return new URL(path, publicBaseUrl(request));
+}
+
+function mysqlDateToUtcTime(value: unknown) {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value !== "string" || !value) return 0;
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  return new Date(/(?:Z|[+-]\d\d:\d\d)$/.test(normalized) ? normalized : `${normalized}Z`).getTime();
 }
 
 export async function GET(request: NextRequest) {
@@ -21,14 +29,16 @@ export async function GET(request: NextRequest) {
 
   const hash = hashAuthToken(token);
   const [rows] = await getMysqlPool().execute<RowDataPacket[]>(
-    "select id, email from email_otp_codes where code_hash = ? and consumed_at is null and expires_at > now(6) order by created_at desc limit 1",
+    "select id, email, expires_at from email_otp_codes where code_hash = ? order by created_at desc limit 1",
     [hash]
   );
   const row = rows[0];
-  if (!row?.email) return NextResponse.redirect(redirectUrl(request, "/auth?error=expired_link"));
+  if (!row?.email || mysqlDateToUtcTime(row.expires_at) <= Date.now()) {
+    return NextResponse.redirect(redirectUrl(request, "/auth?error=expired_link"));
+  }
 
   await getMysqlPool().execute("update email_otp_codes set consumed_at = ? where id = ?", [toMysqlDate(new Date()), row.id]);
-  const user = await upsertEmailUser(String(row.email));
+  const user = await upsertEmailUser(String(row.email), { countryCode: getRequestCountryCode(request.headers) });
   const session = await createSession(user);
   cookies().set(SESSION_COOKIE_NAME, session.access_token, {
     httpOnly: true,
