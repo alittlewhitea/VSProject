@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserFromBearerToken } from "../../../lib/server-auth";
+import { getUserFromBearerToken, getUserIdsForAuthUser } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { fetchFal } from "../../../lib/fal-fetch";
 import { refundCredits } from "../../../lib/credits";
@@ -172,13 +172,13 @@ function normalizeTitle(value: unknown) {
   return title ? title.slice(0, 120) : null;
 }
 
-async function attachCreditLedger(admin: any, userId: string, tasks: TaskRow[]) {
+async function attachCreditLedger(admin: any, userIds: string[], tasks: TaskRow[]) {
   if (!tasks.length) return tasks;
   const taskIds = tasks.map((task) => task.id);
   const { data } = await admin
     .from("credit_ledger")
     .select("id, amount, reason, reference_id")
-    .eq("user_id", userId)
+    .in("user_id", userIds)
     .in("reference_id", taskIds)
     .in("reason", ["generation_task", "generation_refund"]);
 
@@ -197,14 +197,14 @@ async function attachCreditLedger(admin: any, userId: string, tasks: TaskRow[]) 
   });
 }
 
-async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminClient>, userId: string) {
+async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminClient>, userIds: string[]) {
   const falKey = process.env.FAL_KEY;
-  if (!admin || !falKey) return;
+  if (!admin || !falKey || !userIds.length) return;
 
   const { data } = await admin
     .from("generation_tasks")
     .select("id,user_id,provider,status,estimated_credits,transport,provider_request_id,status_url,response_url,request_settings,output_url,created_at,timed_out_at")
-    .eq("user_id", userId)
+    .in("user_id", userIds)
     .eq("transport", "real")
     .in("status", ["queued", "running"])
     .order("created_at", { ascending: false })
@@ -222,7 +222,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
           const now = new Date().toISOString();
           if (isOrphanTaskTimedOut(task.created_at)) {
             if (task.estimated_credits > 0) {
-              await refundCredits(admin, userId, task.estimated_credits, "generation_refund", task.id);
+              await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", task.id);
             }
             await admin
               .from("generation_tasks")
@@ -235,7 +235,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
                 updated_at: now
               })
               .eq("id", task.id)
-              .eq("user_id", userId);
+              .eq("user_id", task.user_id);
           } else {
             await admin
               .from("generation_tasks")
@@ -244,7 +244,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
                 updated_at: now
               })
               .eq("id", task.id)
-              .eq("user_id", userId);
+              .eq("user_id", task.user_id);
           }
           return;
         }
@@ -252,7 +252,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
         if (isTaskTimedOut(task.created_at)) {
           const now = new Date().toISOString();
           if (task.estimated_credits > 0) {
-            await refundCredits(admin, userId, task.estimated_credits, "generation_refund", task.id);
+            await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", task.id);
           }
           await admin
             .from("generation_tasks")
@@ -265,7 +265,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
               updated_at: now
             })
             .eq("id", task.id)
-            .eq("user_id", userId);
+            .eq("user_id", task.user_id);
           return;
         }
 
@@ -328,7 +328,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
         }
         const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits) : 0;
         if (finalStatus === "failed" && refundCreditsAmount > 0) {
-          await refundCredits(admin, userId, refundCreditsAmount, "generation_refund", task.id);
+          await refundCredits(admin, task.user_id, refundCreditsAmount, "generation_refund", task.id);
         }
         const failureReason = failureInfo
           ? formatFalFailureReason(failureInfo, task.estimated_credits, refundCreditsAmount)
@@ -347,7 +347,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
             updated_at: new Date().toISOString()
           })
           .eq("id", task.id)
-          .eq("user_id", userId);
+          .eq("user_id", task.user_id);
       } catch {
         // History should still load even if a provider status check times out.
       }
@@ -366,7 +366,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
   }
 
-  await withTimeout(syncPendingFalTasks(admin, user.id), taskSyncTimeoutMs()).catch(() => null);
+  const userIds = await getUserIdsForAuthUser(user);
+  await withTimeout(syncPendingFalTasks(admin, userIds), taskSyncTimeoutMs()).catch(() => null);
 
   const historyStartedAt = Date.now();
   const historyTimeoutMs = taskHistoryTimeoutMs();
@@ -376,7 +377,7 @@ export async function GET(request: Request) {
       let query = admin
         .from("generation_tasks")
         .select(id ? TASK_DETAIL_SELECT : TASK_LIST_SELECT)
-        .eq("user_id", user.id)
+        .in("user_id", userIds)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (id) {
@@ -408,7 +409,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const tasksWithLedger = await withTimeout(attachCreditLedger(admin, user.id, data ?? []), taskHistoryTimeoutMs()).catch(
+  const tasksWithLedger = await withTimeout(attachCreditLedger(admin, userIds, data ?? []), taskHistoryTimeoutMs()).catch(
     () => data ?? []
   );
   return NextResponse.json({ tasks: tasksWithLedger });
@@ -424,6 +425,7 @@ export async function PATCH(request: Request) {
   if (!admin) {
     return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
   }
+  const userIds = await getUserIdsForAuthUser(user);
 
   let payload: TaskUpdatePayload;
   try {
@@ -456,7 +458,7 @@ export async function PATCH(request: Request) {
     .from("generation_tasks")
     .update(update)
     .eq("id", payload.id)
-    .eq("user_id", user.id)
+    .in("user_id", userIds)
     .is("deleted_at", null)
     .select(TASK_DETAIL_SELECT)
     .maybeSingle();
@@ -482,6 +484,7 @@ export async function DELETE(request: Request) {
   if (!admin) {
     return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
   }
+  const userIds = await getUserIdsForAuthUser(user);
 
   const id = new URL(request.url).searchParams.get("id");
   if (!id) {
@@ -496,7 +499,7 @@ export async function DELETE(request: Request) {
       updated_at: now
     })
     .eq("id", id)
-    .eq("user_id", user.id)
+    .in("user_id", userIds)
     .is("deleted_at", null)
     .select("id")
     .maybeSingle();

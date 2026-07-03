@@ -40,6 +40,21 @@ export async function getUserByEmail(email: string) {
   return row ? { id: String(row.id), email: row.email ? String(row.email) : null } : null;
 }
 
+export async function getUserIdsForAuthUser(user: AuthUser) {
+  const ids = new Set<string>([user.id]);
+  const normalizedEmail = user.email?.trim().toLowerCase();
+  if (!normalizedEmail) return Array.from(ids);
+
+  const rows = await mysqlExecute<RowDataPacket[]>(
+    "select id from users where email = ? order by created_at asc",
+    [normalizedEmail]
+  );
+  for (const row of rows) {
+    if (row.id) ids.add(String(row.id));
+  }
+  return Array.from(ids);
+}
+
 export async function upsertEmailUser(email: string) {
   const normalized = email.trim().toLowerCase();
   const existing = await getUserByEmail(normalized);

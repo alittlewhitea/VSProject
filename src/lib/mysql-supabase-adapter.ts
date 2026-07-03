@@ -180,11 +180,13 @@ export class MysqlQueryBuilder {
   private singleMode: "single" | "maybe" | null = null;
   private conflictColumns: string[] | null = null;
   private ignoreDuplicates = false;
+  private hasSelect = false;
 
   constructor(private table: string) {}
 
   select(columns?: string) {
     this.operation = this.operation || "select";
+    this.hasSelect = true;
     this.selectColumns = normalizeSelectColumns(columns);
     return this;
   }
@@ -352,6 +354,9 @@ export class MysqlQueryBuilder {
     const where = buildWhere(this.filters);
     const sql = `update ${quoteIdent(this.table)} set ${columns.map((column) => `${quoteIdent(column)} = ?`).join(", ")}${where.sql}`;
     const result = await mysqlExecute<ResultSetHeader>(sql, [...columns.map((column) => row[column]), ...where.params]);
+    if (this.hasSelect || this.singleMode) {
+      return this.executeSelect();
+    }
     return { data: { affectedRows: result.affectedRows }, error: null };
   }
 

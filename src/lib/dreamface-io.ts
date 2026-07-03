@@ -177,7 +177,7 @@ export async function submitDreamfaceIoVideo(input: {
     body: JSON.stringify({
       model: DREAMFACE_IO_MODEL,
       prompt: input.prompt,
-      ...(input.imageUrl ? { image: input.imageUrl } : {}),
+      ...(input.imageUrl ? { image: input.imageUrl, image_url: input.imageUrl } : {}),
       ...size,
       num_frames: frameCount(input.duration),
       frame_rate: 24,
@@ -229,21 +229,71 @@ export async function fetchDreamfaceIoStatus(videoId: string) {
 }
 
 export function extractDreamfaceIoVideoUrl(payload: unknown) {
-  if (!payload || typeof payload !== "object") return null;
-  const row = payload as Record<string, unknown>;
-  for (const key of ["remixed_from_video_id", "video_url", "url"]) {
-    const value = row[key];
-    if (typeof value === "string" && /^https:\/\//i.test(value)) return value;
+  const seen = new Set<unknown>();
+  const directKeys = new Set([
+    "remixed_from_video_id",
+    "video_url",
+    "output_url",
+    "download_url",
+    "url"
+  ]);
+
+  function looksLikeVideoUrl(value: string) {
+    return /^https:\/\//i.test(value) && (/\.(mp4|webm|mov)(?:[?#].*)?$/i.test(value) || /\/videos?\//i.test(value));
   }
-  return null;
+
+  function visit(value: unknown): string | null {
+    if (!value || typeof value !== "object" || seen.has(value)) return null;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = visit(item);
+        if (found) return found;
+      }
+      return null;
+    }
+    const row = value as Record<string, unknown>;
+    for (const key of directKeys) {
+      const field = row[key];
+      if (typeof field === "string" && looksLikeVideoUrl(field)) return field;
+    }
+    for (const field of Object.values(row)) {
+      const found = visit(field);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  return visit(payload);
 }
 
 export function normalizeDreamfaceIoStatus(status: unknown) {
   const value = typeof status === "string" ? status.toLowerCase() : "queued";
-  if (value === "completed") return "completed" as const;
-  if (value === "failed" || value === "error") return "failed" as const;
-  if (value === "in_progress" || value === "processing" || value === "running") return "running" as const;
+  if (["completed", "complete", "succeeded", "success", "done"].includes(value)) return "completed" as const;
+  if (["failed", "failure", "fail", "error", "errored", "canceled", "cancelled"].includes(value)) return "failed" as const;
+  if (["in_progress", "processing", "running", "generating", "started"].includes(value)) return "running" as const;
   return "queued" as const;
+}
+
+function dreamfaceIoFailureReason(result: Record<string, unknown>) {
+  const candidates = [
+    result.error,
+    result.message,
+    result.detail,
+    result.reason,
+    result.failure_reason
+  ];
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim()) return value.trim().slice(0, 500);
+    if (value && typeof value === "object") {
+      const nested = value as Record<string, unknown>;
+      for (const key of ["message", "detail", "error", "reason"]) {
+        const nestedValue = nested[key];
+        if (typeof nestedValue === "string" && nestedValue.trim()) return nestedValue.trim().slice(0, 500);
+      }
+    }
+  }
+  return null;
 }
 
 export async function isDreamfaceIoDailyEligible(admin: any, userId: string) {
@@ -323,13 +373,16 @@ export async function refundDreamfaceIoBilling(admin: any, task: {
 async function cleanupDreamfaceIoInput(admin: any, task: DreamfaceIoTask) {
   const imageUrls = task.request_settings?.image_urls;
   if (!Array.isArray(imageUrls)) return;
-  const prefix = "/storage/v1/object/public/generation-inputs/";
+  const supabasePrefix = "/storage/v1/object/public/generation-inputs/";
+  const localPrefix = "/uploads/generation-inputs/";
   const paths = imageUrls
     .filter((value): value is string => typeof value === "string")
     .map((value) => {
       try {
         const pathname = new URL(value).pathname;
-        return pathname.includes(prefix) ? decodeURIComponent(pathname.split(prefix)[1] || "") : "";
+        if (pathname.includes(supabasePrefix)) return decodeURIComponent(pathname.split(supabasePrefix)[1] || "");
+        if (pathname.includes(localPrefix)) return decodeURIComponent(pathname.split(localPrefix)[1] || "");
+        return "";
       } catch {
         return "";
       }
@@ -392,6 +445,7 @@ export async function syncDreamfaceIoTask(admin: any, task: DreamfaceIoTask) {
 
   const result = await fetchDreamfaceIoStatus(task.provider_request_id);
   let normalized = normalizeDreamfaceIoStatus(result.status);
+  const completedOutputUrl = normalized === "completed" ? extractDreamfaceIoVideoUrl(result) : null;
   let failureCode: string | null = null;
   let failureReason: string | null = null;
   const timedOut =
@@ -404,7 +458,12 @@ export async function syncDreamfaceIoTask(admin: any, task: DreamfaceIoTask) {
     failureReason = "DreamFace IO took too long to finish. Your generation allowance was returned.";
   } else if (normalized === "failed") {
     failureCode = "provider_failed";
-    failureReason = "DreamFace IO could not complete this generation. Your generation allowance was returned.";
+    const providerReason = dreamfaceIoFailureReason(result);
+    failureReason = `${providerReason || "DreamFace IO could not complete this generation."} Your generation allowance was returned.`;
+  } else if (normalized === "completed" && !completedOutputUrl) {
+    normalized = "failed";
+    failureCode = "provider_no_media";
+    failureReason = "DreamFace IO finished without a downloadable video. Your generation allowance was returned.";
   }
 
   if (normalized === "failed" && task.status !== "failed") {
@@ -414,7 +473,7 @@ export async function syncDreamfaceIoTask(admin: any, task: DreamfaceIoTask) {
     await cleanupDreamfaceIoInput(admin, task).catch(() => null);
   }
 
-  const outputUrl = normalized === "completed" ? extractDreamfaceIoVideoUrl(result) : task.output_url || null;
+  const outputUrl = normalized === "completed" ? completedOutputUrl : task.output_url || null;
   const publicResult = {
     status: normalized,
     progress: typeof result.progress === "number" ? result.progress : normalized === "completed" ? 100 : null,

@@ -522,7 +522,7 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
   return {
     mode: body.mode,
     workflow:
-      isAvatarRequest(body)
+      isAvatarRequest(body) || body.mode === "avatar"
         ? "avatar-video"
         : body.mode === "image" && body.provider === "bria-background-remove"
         ? "background-remove"
