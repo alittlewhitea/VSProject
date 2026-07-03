@@ -4,12 +4,20 @@ import type { RowDataPacket } from "mysql2/promise";
 import { getMysqlPool, toMysqlDate } from "../../../../lib/mysql";
 import { createSession, hashAuthToken, SESSION_COOKIE_NAME, upsertEmailUser } from "../../../../lib/server-auth";
 
+function publicBaseUrl(request: NextRequest) {
+  return process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || process.env.SITE_URL?.trim().replace(/\/$/, "") || request.nextUrl.origin;
+}
+
+function redirectUrl(request: NextRequest, path: string) {
+  return new URL(path, publicBaseUrl(request));
+}
+
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token") || "";
   const next = request.nextUrl.searchParams.get("next") || "/studio";
   const redirectTo = next.startsWith("/") ? next : "/studio";
 
-  if (!token) return NextResponse.redirect(new URL("/auth?error=invalid_link", request.url));
+  if (!token) return NextResponse.redirect(redirectUrl(request, "/auth?error=invalid_link"));
 
   const hash = hashAuthToken(token);
   const [rows] = await getMysqlPool().execute<RowDataPacket[]>(
@@ -17,7 +25,7 @@ export async function GET(request: NextRequest) {
     [hash]
   );
   const row = rows[0];
-  if (!row?.email) return NextResponse.redirect(new URL("/auth?error=expired_link", request.url));
+  if (!row?.email) return NextResponse.redirect(redirectUrl(request, "/auth?error=expired_link"));
 
   await getMysqlPool().execute("update email_otp_codes set consumed_at = ? where id = ?", [toMysqlDate(new Date()), row.id]);
   const user = await upsertEmailUser(String(row.email));
@@ -30,5 +38,5 @@ export async function GET(request: NextRequest) {
     expires: new Date(session.expires_at)
   });
 
-  return NextResponse.redirect(new URL(redirectTo, request.url));
+  return NextResponse.redirect(redirectUrl(request, redirectTo));
 }

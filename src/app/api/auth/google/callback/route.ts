@@ -11,6 +11,14 @@ function callbackUrl(request: NextRequest) {
   return `${base}/api/auth/google/callback`;
 }
 
+function publicBaseUrl(request: NextRequest) {
+  return process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || process.env.SITE_URL?.trim().replace(/\/$/, "") || request.nextUrl.origin;
+}
+
+function redirectUrl(request: NextRequest, path: string) {
+  return new URL(path, publicBaseUrl(request));
+}
+
 function decodeState(value: string | null) {
   try {
     if (!value) return null;
@@ -27,12 +35,12 @@ export async function GET(request: NextRequest) {
   cookies().delete(STATE_COOKIE);
 
   if (!code || !state?.csrf || state.csrf !== expectedCsrf) {
-    return NextResponse.redirect(new URL("/auth?error=google_state", request.url));
+    return NextResponse.redirect(redirectUrl(request, "/auth?error=google_state"));
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-  if (!clientId || !clientSecret) return NextResponse.redirect(new URL("/auth?error=google_not_configured", request.url));
+  if (!clientId || !clientSecret) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_not_configured"));
 
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -46,22 +54,22 @@ export async function GET(request: NextRequest) {
     }),
     cache: "no-store"
   });
-  if (!tokenRes.ok) return NextResponse.redirect(new URL("/auth?error=google_token", request.url));
+  if (!tokenRes.ok) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_token"));
   const tokenPayload = (await tokenRes.json()) as { access_token?: string };
-  if (!tokenPayload.access_token) return NextResponse.redirect(new URL("/auth?error=google_token", request.url));
+  if (!tokenPayload.access_token) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_token"));
 
   const userRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
     headers: { Authorization: `Bearer ${tokenPayload.access_token}` },
     cache: "no-store"
   });
-  if (!userRes.ok) return NextResponse.redirect(new URL("/auth?error=google_user", request.url));
+  if (!userRes.ok) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_user"));
   const profile = (await userRes.json()) as {
     sub?: string;
     email?: string;
     name?: string;
     picture?: string;
   };
-  if (!profile.sub) return NextResponse.redirect(new URL("/auth?error=google_user", request.url));
+  if (!profile.sub) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_user"));
 
   const user = await upsertGoogleUser({
     googleSub: profile.sub,
@@ -80,5 +88,5 @@ export async function GET(request: NextRequest) {
   });
 
   const next = state.next && state.next.startsWith("/") ? state.next : "/studio";
-  return NextResponse.redirect(new URL(next, request.url));
+  return NextResponse.redirect(redirectUrl(request, next));
 }

@@ -26,6 +26,17 @@ function emitAuthChange() {
   window.dispatchEvent(new Event(AUTH_EVENT));
 }
 
+function pathFromRedirect(value: string | undefined, fallback = "/studio") {
+  if (!value) return fallback;
+  if (value.startsWith("/")) return value;
+  try {
+    const url = new URL(value);
+    return `${url.pathname}${url.search}${url.hash}` || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function makeClient() {
   return {
     auth: {
@@ -68,7 +79,7 @@ function makeClient() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: input.email,
-            next: input.options?.emailRedirectTo || "/studio"
+            next: pathFromRedirect(input.options?.emailRedirectTo)
           })
         });
         if (!res.ok) {
@@ -79,7 +90,7 @@ function makeClient() {
       },
       async signInWithOAuth(input: { provider: string; options?: { redirectTo?: string } }) {
         if (input.provider !== "google") return { error: new Error("Only Google sign-in is supported.") };
-        const next = encodeURIComponent(input.options?.redirectTo || "/studio");
+        const next = encodeURIComponent(pathFromRedirect(input.options?.redirectTo));
         window.location.href = authUrl(`/api/auth/google/start?next=${next}`);
         return { error: null };
       },
