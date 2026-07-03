@@ -11,13 +11,9 @@ import {
   parseFalFailure
 } from "../../../lib/fal-errors";
 import {
-  claimSignupBonusForIp,
   ensureCreditAccount,
-  getCreditAccount,
-  getRequestCountryCode,
-  getRequestIp,
+  ensureSignupCreditAccount,
   refundCredits,
-  signupBonusCreditsForCountry,
   spendCredits
 } from "../../../lib/credits";
 import { estimateGenerationCreditsWithLivePricing } from "../../../lib/fal-pricing";
@@ -705,15 +701,7 @@ async function ensureRequestCreditAccount(
   userId: string,
   request: Request
 ) {
-  const existingAccount = await getCreditAccount(admin, userId);
-  if (existingAccount) return existingAccount;
-
-  const signupClaim = await claimSignupBonusForIp(admin, userId, getRequestIp(request.headers));
-  const signupBonusCredits = signupBonusCreditsForCountry(getRequestCountryCode(request.headers));
-  return ensureCreditAccount(admin, userId, {
-    signupBonusCredits: signupClaim.allowed ? signupBonusCredits : 0,
-    signupBonusReferenceId: signupClaim.ipHash
-  });
+  return ensureSignupCreditAccount(admin, userId, request.headers);
 }
 
 export async function POST(request: Request) {

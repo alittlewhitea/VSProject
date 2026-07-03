@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { createSession, SESSION_COOKIE_NAME, upsertGoogleUser } from "../../../../../lib/server-auth";
-import { getRequestCountryCode } from "../../../../../lib/credits";
+import { ensureSignupCreditAccount, getRequestCountryCode } from "../../../../../lib/credits";
+import { createSupabaseAdminClient } from "../../../../../lib/supabase-admin";
 
 const STATE_COOKIE = "dreamface_google_state";
 
@@ -80,6 +81,10 @@ export async function GET(request: NextRequest) {
     countryCode: getRequestCountryCode(request.headers),
     raw: profile
   });
+  const admin = createSupabaseAdminClient();
+  if (admin) {
+    await ensureSignupCreditAccount(admin, user.id, request.headers);
+  }
   const session = await createSession(user);
   cookies().set(SESSION_COOKIE_NAME, session.access_token, {
     httpOnly: true,

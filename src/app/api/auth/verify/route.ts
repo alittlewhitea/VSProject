@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { getMysqlPool, toMysqlDate } from "../../../../lib/mysql";
 import { createSession, hashAuthToken, SESSION_COOKIE_NAME, upsertEmailUser } from "../../../../lib/server-auth";
-import { getRequestCountryCode } from "../../../../lib/credits";
+import { ensureSignupCreditAccount, getRequestCountryCode } from "../../../../lib/credits";
+import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 
 function publicBaseUrl(request: NextRequest) {
   return process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || process.env.SITE_URL?.trim().replace(/\/$/, "") || request.nextUrl.origin;
@@ -39,6 +40,10 @@ export async function GET(request: NextRequest) {
 
   await getMysqlPool().execute("update email_otp_codes set consumed_at = ? where id = ?", [toMysqlDate(new Date()), row.id]);
   const user = await upsertEmailUser(String(row.email), { countryCode: getRequestCountryCode(request.headers) });
+  const admin = createSupabaseAdminClient();
+  if (admin) {
+    await ensureSignupCreditAccount(admin, user.id, request.headers);
+  }
   const session = await createSession(user);
   cookies().set(SESSION_COOKIE_NAME, session.access_token, {
     httpOnly: true,

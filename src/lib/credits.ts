@@ -254,6 +254,18 @@ export async function ensureCreditAccount(admin: any, userId: string, options: E
   }
 }
 
+export async function ensureSignupCreditAccount(admin: any, userId: string, headers: Headers) {
+  const existingAccount = await getCreditAccount(admin, userId);
+  if (existingAccount) return existingAccount;
+
+  const signupClaim = await claimSignupBonusForIp(admin, userId, getRequestIp(headers));
+  const signupBonusCredits = signupBonusCreditsForCountry(getRequestCountryCode(headers));
+  return ensureCreditAccount(admin, userId, {
+    signupBonusCredits: signupClaim.allowed ? signupBonusCredits : 0,
+    signupBonusReferenceId: signupClaim.ipHash
+  });
+}
+
 async function applyCreditLedgerOnce(
   admin: any,
   userId: string,

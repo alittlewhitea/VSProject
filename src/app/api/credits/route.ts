@@ -4,13 +4,12 @@ import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import {
   addCredits,
   addDevCredits,
-  claimSignupBonusForIp,
   ensureCreditAccount,
+  ensureSignupCreditAccount,
   getCreditAccount,
   getDevCreditAccount,
   getDevCreditLedger,
   getRequestCountryCode,
-  getRequestIp,
   listCreditLedger,
   signupBonusCreditsForCountry
 } from "../../../lib/credits";
@@ -53,16 +52,7 @@ export async function GET(request: Request) {
 
     const signupBonusCredits = signupBonusCreditsForCountry(getRequestCountryCode(request.headers));
     const existingAccount = await withTimeout(getCreditAccount(admin, user.id), CREDIT_TIMEOUT_MS);
-    const signupClaim = existingAccount
-      ? null
-      : await withTimeout(claimSignupBonusForIp(admin, user.id, getRequestIp(request.headers)), CREDIT_TIMEOUT_MS);
-    const account = existingAccount || await withTimeout(
-      ensureCreditAccount(admin, user.id, {
-        signupBonusCredits: signupClaim?.allowed ? signupBonusCredits : 0,
-        signupBonusReferenceId: signupClaim?.ipHash
-      }),
-      CREDIT_TIMEOUT_MS
-    );
+    const account = existingAccount || await withTimeout(ensureSignupCreditAccount(admin, user.id, request.headers), CREDIT_TIMEOUT_MS);
     const ledger = await withTimeout(listCreditLedger(admin, user.id), CREDIT_TIMEOUT_MS).catch(() => []);
     const { data: purchases } = await withTimeout<CreditPurchasesResult>(
       admin
@@ -84,8 +74,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       balance: account.balance,
       freeGranted: account.free_granted,
-      signupBonusAllowed: account.free_granted || Boolean(signupClaim?.allowed),
-      signupBonusBlockedByIp: !account.free_granted && signupClaim ? !signupClaim.allowed : false,
+      signupBonusAllowed: account.free_granted,
+      signupBonusBlockedByIp: !account.free_granted && !existingAccount,
       ledger,
       purchases: purchases || [],
       subscriptions,
