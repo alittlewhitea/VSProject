@@ -1,5 +1,4 @@
 import type Stripe from "stripe";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSubscriptionPlanPrice } from "./billing";
 
 export type UserSubscriptionRow = {
@@ -40,7 +39,7 @@ export function subscriptionMetadata(subscription: Stripe.Subscription) {
   return { userId, planId, cycle, credits: plan.price.credits, plan };
 }
 
-export async function upsertUserSubscription(admin: SupabaseClient, subscription: Stripe.Subscription) {
+export async function upsertUserSubscription(admin: any, subscription: Stripe.Subscription) {
   const metadata = subscriptionMetadata(subscription);
   if (!metadata) {
     throw new Error("Stripe subscription metadata is missing credit details.");
@@ -72,7 +71,7 @@ export async function upsertUserSubscription(admin: SupabaseClient, subscription
   return row;
 }
 
-export async function listUserSubscriptions(admin: SupabaseClient, userId: string, limit = 10) {
+export async function listUserSubscriptions(admin: any, userId: string, limit = 10) {
   const { data, error } = await admin
     .from("user_subscriptions")
     .select(
@@ -86,7 +85,7 @@ export async function listUserSubscriptions(admin: SupabaseClient, userId: strin
   return (data || []) as UserSubscriptionRow[];
 }
 
-export async function getLatestUserSubscription(admin: SupabaseClient, userId: string) {
+export async function getLatestUserSubscription(admin: any, userId: string) {
   const subscriptions = await listUserSubscriptions(admin, userId, 1);
   return subscriptions[0] || null;
 }

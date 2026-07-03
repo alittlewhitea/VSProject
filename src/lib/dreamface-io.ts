@@ -1,4 +1,3 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { refundCredits } from "./credits";
 
 export const DREAMFACE_IO_PROVIDER = "dreamface-io-video";
@@ -30,7 +29,7 @@ export function isDreamfaceIoConfigured() {
 }
 
 export async function ensureDreamfaceIoPublicImage(
-  admin: SupabaseClient,
+  admin: any,
   userId: string,
   taskId: string,
   value: string | null
@@ -247,7 +246,7 @@ export function normalizeDreamfaceIoStatus(status: unknown) {
   return "queued" as const;
 }
 
-export async function isDreamfaceIoDailyEligible(admin: SupabaseClient, userId: string) {
+export async function isDreamfaceIoDailyEligible(admin: any, userId: string) {
   const { data, error } = await admin
     .from("credit_ledger")
     .select("amount")
@@ -259,7 +258,7 @@ export async function isDreamfaceIoDailyEligible(admin: SupabaseClient, userId: 
   return Boolean(data?.length);
 }
 
-export async function getDreamfaceIoDailyUsage(admin: SupabaseClient, userId: string) {
+export async function getDreamfaceIoDailyUsage(admin: any, userId: string) {
   const { data, error } = await admin.rpc("get_model_daily_usage", {
     p_user_id: userId,
     p_model_key: DREAMFACE_IO_PROVIDER
@@ -274,7 +273,7 @@ export async function getDreamfaceIoDailyUsage(admin: SupabaseClient, userId: st
 }
 
 export async function reserveDreamfaceIoDailyUnits(
-  admin: SupabaseClient,
+  admin: any,
   userId: string,
   taskId: string,
   units: number
@@ -296,7 +295,7 @@ export async function reserveDreamfaceIoDailyUnits(
   };
 }
 
-export async function refundDreamfaceIoDailyUnits(admin: SupabaseClient, userId: string, taskId: string) {
+export async function refundDreamfaceIoDailyUnits(admin: any, userId: string, taskId: string) {
   const { error } = await admin.rpc("refund_model_daily_units", {
     p_user_id: userId,
     p_model_key: DREAMFACE_IO_PROVIDER,
@@ -305,7 +304,7 @@ export async function refundDreamfaceIoDailyUnits(admin: SupabaseClient, userId:
   if (error) throw error;
 }
 
-export async function refundDreamfaceIoBilling(admin: SupabaseClient, task: {
+export async function refundDreamfaceIoBilling(admin: any, task: {
   id: string;
   user_id: string;
   estimated_credits: number;
@@ -321,7 +320,7 @@ export async function refundDreamfaceIoBilling(admin: SupabaseClient, task: {
   }
 }
 
-async function cleanupDreamfaceIoInput(admin: SupabaseClient, task: DreamfaceIoTask) {
+async function cleanupDreamfaceIoInput(admin: any, task: DreamfaceIoTask) {
   const imageUrls = task.request_settings?.image_urls;
   if (!Array.isArray(imageUrls)) return;
   const prefix = "/storage/v1/object/public/generation-inputs/";
@@ -346,7 +345,7 @@ function timeoutMinutes() {
   return Number.isFinite(value) && value > 0 ? value : 45;
 }
 
-export async function syncDreamfaceIoTask(admin: SupabaseClient, task: DreamfaceIoTask) {
+export async function syncDreamfaceIoTask(admin: any, task: DreamfaceIoTask) {
   const now = new Date().toISOString();
   if (!task.provider_request_id) {
     const orphanMinutes = Number(process.env.GENERATION_ORPHAN_TIMEOUT_MINUTES || 10);

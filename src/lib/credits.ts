@@ -1,5 +1,4 @@
 import { createHmac } from "node:crypto";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const SIGNUP_BONUS_CREDITS = 100;
 export const LIMITED_REGION_SIGNUP_BONUS_CREDITS = 10;
@@ -141,14 +140,14 @@ export function signupBonusCreditsForCountry(countryCode: string | null) {
 }
 
 function signupIpSecret() {
-  return process.env.SIGNUP_IP_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_URL || "local-signup-ip-secret";
+  return process.env.SIGNUP_IP_SECRET || process.env.AUTH_SESSION_SECRET || process.env.MYSQL_PASSWORD || "local-signup-ip-secret";
 }
 
 function hashSignupIp(ip: string) {
   return createHmac("sha256", signupIpSecret()).update(ip.trim().toLowerCase()).digest("hex");
 }
 
-export async function claimSignupBonusForIp(admin: SupabaseClient, userId: string, ip: string | null) {
+export async function claimSignupBonusForIp(admin: any, userId: string, ip: string | null) {
   if (!ip) {
     return { allowed: false, ipHash: null, duplicateUserId: null };
   }
@@ -185,7 +184,7 @@ export async function claimSignupBonusForIp(admin: SupabaseClient, userId: strin
   };
 }
 
-export async function getCreditAccount(admin: SupabaseClient, userId: string) {
+export async function getCreditAccount(admin: any, userId: string) {
   const { data, error } = await admin
     .from("user_credit_accounts")
     .select("user_id, balance, free_granted")
@@ -199,7 +198,7 @@ export async function getCreditAccount(admin: SupabaseClient, userId: string) {
   return (data as CreditAccount | null) || null;
 }
 
-export async function ensureCreditAccount(admin: SupabaseClient, userId: string, options: EnsureCreditAccountOptions = {}) {
+export async function ensureCreditAccount(admin: any, userId: string, options: EnsureCreditAccountOptions = {}) {
   const signupBonusCredits = Math.max(0, Math.trunc(options.signupBonusCredits || 0));
   try {
     const existing = await getCreditAccount(admin, userId);
@@ -256,7 +255,7 @@ export async function ensureCreditAccount(admin: SupabaseClient, userId: string,
 }
 
 async function applyCreditLedgerOnce(
-  admin: SupabaseClient,
+  admin: any,
   userId: string,
   amount: number,
   reason: string,
@@ -283,7 +282,7 @@ async function applyCreditLedgerOnce(
   return result as CreditApplyResult;
 }
 
-async function addCreditsLegacy(admin: SupabaseClient, userId: string, amount: number, reason: string, referenceId?: string) {
+async function addCreditsLegacy(admin: any, userId: string, amount: number, reason: string, referenceId?: string) {
   const account = await ensureCreditAccount(admin, userId);
   const nextBalance = account.balance + amount;
 
@@ -315,7 +314,7 @@ async function addCreditsLegacy(admin: SupabaseClient, userId: string, amount: n
   return nextBalance;
 }
 
-export async function addCredits(admin: SupabaseClient, userId: string, amount: number, reason: string, referenceId?: string) {
+export async function addCredits(admin: any, userId: string, amount: number, reason: string, referenceId?: string) {
   await ensureCreditAccount(admin, userId);
 
   if (canUseDevCreditFallback() && devCreditAccounts.has(userId)) {
@@ -326,7 +325,7 @@ export async function addCredits(admin: SupabaseClient, userId: string, amount: 
   return result.balance;
 }
 
-export async function refundCredits(admin: SupabaseClient, userId: string, amount: number, reason: string, referenceId: string) {
+export async function refundCredits(admin: any, userId: string, amount: number, reason: string, referenceId: string) {
   if (canUseDevCreditFallback() && devCreditAccounts.has(userId)) {
     const alreadyRefunded = getDevCreditLedger(userId).some(
       (entry) => entry.reason === reason && entry.reference_id === referenceId
@@ -342,7 +341,7 @@ export async function refundCredits(admin: SupabaseClient, userId: string, amoun
   return addCredits(admin, userId, amount, reason, referenceId);
 }
 
-export async function listCreditLedger(admin: SupabaseClient, userId: string) {
+export async function listCreditLedger(admin: any, userId: string) {
   if (canUseDevCreditFallback() && devCreditAccounts.has(userId)) {
     return getDevCreditLedger(userId);
   }
@@ -361,7 +360,7 @@ export async function listCreditLedger(admin: SupabaseClient, userId: string) {
   return (data || []) as CreditLedgerEntry[];
 }
 
-export async function spendCredits(admin: SupabaseClient, userId: string, amount: number, reason: string, referenceId?: string) {
+export async function spendCredits(admin: any, userId: string, amount: number, reason: string, referenceId?: string) {
   const account = await ensureCreditAccount(admin, userId);
 
   if (account.balance < amount) {

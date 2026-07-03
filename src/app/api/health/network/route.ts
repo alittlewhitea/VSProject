@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchFal } from "../../../../lib/fal-fetch";
+import { mysqlExecute } from "../../../../lib/mysql";
 
 type CheckResult = {
   target: string;
@@ -72,9 +73,28 @@ async function checkFalUrl(target: string, init?: RequestInit & { okStatuses?: n
   }
 }
 
+async function checkMysql(): Promise<CheckResult> {
+  try {
+    await mysqlExecute("select 1 as ok");
+    return {
+      target: process.env.MYSQL_HOST ? `mysql:${process.env.MYSQL_HOST}` : "mysql-env-missing",
+      ok: true,
+      reachable: true,
+      status: null,
+      error: null
+    };
+  } catch (error) {
+    return {
+      target: process.env.MYSQL_HOST ? `mysql:${process.env.MYSQL_HOST}` : "mysql-env-missing",
+      ok: false,
+      reachable: false,
+      status: null,
+      error: error instanceof Error ? error.message : "MySQL check failed"
+    };
+  }
+}
+
 export async function GET() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   const falKey = process.env.FAL_KEY?.trim();
   const falModels = Array.from(
     new Set(
@@ -99,27 +119,7 @@ export async function GET() {
   );
 
   const checks: Array<Promise<CheckResult> | CheckResult> = [];
-
-  if (supabaseUrl) {
-    checks.push(checkUrl(supabaseUrl));
-    if (supabaseAnon) {
-      checks.push(
-        checkUrl(`${supabaseUrl}/auth/v1/health`, {
-          headers: {
-            apikey: supabaseAnon
-          }
-        })
-      );
-    }
-  } else {
-    checks.push({
-      target: "supabase-url-missing",
-      ok: false,
-      reachable: false,
-      status: null,
-      error: "NEXT_PUBLIC_SUPABASE_URL is missing"
-    });
-  }
+  checks.push(checkMysql());
 
   if (falKey) {
     for (const model of falModels.length ? falModels : ["fal-ai/flux/schnell"]) {

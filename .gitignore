@@ -8,3 +8,5 @@ build/
 coverage/
 *.log
 scripts/.translation-cache/
+migration/.env.local
+migration/supabase-csv/

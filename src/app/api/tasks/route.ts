@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { getUserFromBearerToken } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { fetchFal } from "../../../lib/fal-fetch";
@@ -173,7 +172,7 @@ function normalizeTitle(value: unknown) {
   return title ? title.slice(0, 120) : null;
 }
 
-async function attachCreditLedger(admin: SupabaseClient, userId: string, tasks: TaskRow[]) {
+async function attachCreditLedger(admin: any, userId: string, tasks: TaskRow[]) {
   if (!tasks.length) return tasks;
   const taskIds = tasks.map((task) => task.id);
   const { data } = await admin

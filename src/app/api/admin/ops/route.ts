@@ -190,9 +190,13 @@ function buildSystemHealth(tasks: TaskRow[], ledger: LedgerRow[], purchases: Pur
   const pendingPurchases = purchases.filter((purchase) => purchase.status === "pending").length;
 
   const checks: SystemHealthCheck[] = [
-    requiredEnvCheck("NEXT_PUBLIC_SUPABASE_URL", "Supabase URL"),
-    requiredEnvCheck("NEXT_PUBLIC_SUPABASE_ANON_KEY", "Supabase anon key"),
-    requiredEnvCheck("SUPABASE_SERVICE_ROLE_KEY", "Supabase service role"),
+    requiredEnvCheck("MYSQL_HOST", "MySQL host"),
+    requiredEnvCheck("MYSQL_DATABASE", "MySQL database"),
+    requiredEnvCheck("MYSQL_USER", "MySQL user"),
+    requiredEnvCheck("MYSQL_PASSWORD", "MySQL password"),
+    requiredEnvCheck("RESEND_API_KEY", "Resend email key"),
+    requiredEnvCheck("GOOGLE_CLIENT_ID", "Google OAuth client"),
+    requiredEnvCheck("GOOGLE_CLIENT_SECRET", "Google OAuth secret"),
     requiredEnvCheck("ADMIN_EMAILS", "Admin allowlist"),
     requiredEnvCheck("FAL_KEY", "fal.ai API key"),
     {
@@ -428,7 +432,7 @@ async function listAuthUsers(admin: NonNullable<ReturnType<typeof createSupabase
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: AUTH_USERS_PER_PAGE });
     if (error) throw error;
 
-    const pageUsers = (data.users || []).map(formatAuthUser);
+    const pageUsers = (data.users || []).map((user) => formatAuthUser(user as { id: string; email?: string; created_at?: string; last_sign_in_at?: string }));
     users.push(...pageUsers);
 
     if (userId && pageUsers.some((user) => user.id === userId)) break;

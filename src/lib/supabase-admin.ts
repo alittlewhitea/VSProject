@@ -1,28 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_TIMEOUT_MS = Number(process.env.SUPABASE_TIMEOUT_MS || 12000);
-
-function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), SUPABASE_TIMEOUT_MS);
-
-  return fetch(input, {
-    ...init,
-    signal: init?.signal || controller.signal
-  }).finally(() => clearTimeout(timer));
-}
+import { createMysqlSupabaseAdapter } from "./mysql-supabase-adapter";
 
 export function createSupabaseAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
+  try {
+    return createMysqlSupabaseAdapter();
+  } catch {
     return null;
   }
-
-  return createClient(supabaseUrl, supabaseServiceRoleKey, {
-    global: {
-      fetch: fetchWithTimeout
-    }
-  });
 }

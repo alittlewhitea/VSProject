@@ -1,4 +1,3 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const DREAMFACE_IO_ENABLED_KEY = "dreamface_io_enabled";
 
@@ -6,7 +5,7 @@ function envDefaultEnabled() {
   return process.env.DREAMFACE_IO_ENABLED?.trim().toLowerCase() !== "false";
 }
 
-export async function isDreamfaceIoEnabled(admin: SupabaseClient | null) {
+export async function isDreamfaceIoEnabled(admin: any | null) {
   if (!admin) return false;
 
   const { data, error } = await admin
@@ -27,7 +26,7 @@ export async function isDreamfaceIoEnabled(admin: SupabaseClient | null) {
   return envDefaultEnabled();
 }
 
-export async function setDreamfaceIoEnabled(admin: SupabaseClient, enabled: boolean, updatedBy: string | null) {
+export async function setDreamfaceIoEnabled(admin: any, enabled: boolean, updatedBy: string | null) {
   const { error } = await admin.from("runtime_settings").upsert(
     {
       key: DREAMFACE_IO_ENABLED_KEY,
