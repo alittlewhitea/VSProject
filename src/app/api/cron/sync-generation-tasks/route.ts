@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { refundCredits } from "../../../../lib/credits";
 import { fetchFal } from "../../../../lib/fal-fetch";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
+import { cronAuthorized } from "../../../../lib/cron-auth";
 import { resolveFalCostUsd } from "../../../../lib/fal-billing";
 import {
   falApiErrorFromResponse,
@@ -90,17 +91,6 @@ function extractMediaUrl(result: unknown): string | null {
     if (typeof audio.url === "string") return audio.url;
   }
   return null;
-}
-
-function cronAuthorized(request: Request) {
-  const cronSecret = process.env.CRON_SECRET?.trim();
-  if (!cronSecret) {
-    return process.env.NODE_ENV !== "production";
-  }
-
-  const authorization = request.headers.get("authorization") || "";
-  const url = new URL(request.url);
-  return authorization === `Bearer ${cronSecret}` || url.searchParams.get("secret") === cronSecret;
 }
 
 async function refundTaskCredits(task: PendingTaskRow, failureReference = task.id) {
