@@ -130,9 +130,11 @@ export async function getSessionFromToken(token: string | null | undefined): Pro
   );
   const row = rows[0];
   if (!row) return null;
+  const expiresAt = String(row.expires_at || "");
+  const normalizedExpiresAt = expiresAt.includes("T") ? expiresAt : expiresAt.replace(" ", "T");
   return {
     access_token: token.trim(),
-    expires_at: new Date(String(row.expires_at).replace(" ", "T")).toISOString(),
+    expires_at: new Date(/(?:Z|[+-]\d\d:\d\d)$/.test(normalizedExpiresAt) ? normalizedExpiresAt : `${normalizedExpiresAt}Z`).toISOString(),
     user: {
       id: String(row.id),
       email: row.email ? String(row.email) : null

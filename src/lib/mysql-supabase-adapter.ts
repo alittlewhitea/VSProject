@@ -129,6 +129,13 @@ function parseRow(row: Record<string, unknown>) {
       }
     }
   }
+  for (const key of DATE_COLUMNS) {
+    const value = next[key];
+    if (typeof value === "string" && value) {
+      const normalized = value.includes("T") ? value : value.replace(" ", "T");
+      next[key] = /(?:Z|[+-]\d\d:\d\d)$/.test(normalized) ? normalized : `${normalized}Z`;
+    }
+  }
   for (const [key, value] of Object.entries(next)) {
     if (value === 0 && key.startsWith("is_")) next[key] = false;
     if (value === 1 && key.startsWith("is_")) next[key] = true;
