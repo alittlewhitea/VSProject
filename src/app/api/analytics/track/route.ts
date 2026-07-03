@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { getUserFromBearerToken } from "../../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 
@@ -24,12 +25,16 @@ const ALLOWED_EVENTS = new Set([
   "login_failed",
   "billing_view",
   "balance_refreshed",
+  "checkout_login_required",
   "checkout_started",
   "checkout_success",
   "subscription_checkout_started",
   "subscription_checkout_success",
   "purchase",
-  "checkout_cancelled"
+  "checkout_cancelled",
+  "studio_workflow_selected",
+  "studio_billing_modal_opened",
+  "gallery_template_applied"
 ]);
 
 type TrackBody = {
@@ -88,6 +93,7 @@ export async function POST(request: Request) {
   const properties = cleanProperties(body?.properties);
 
   const { error } = await admin.from("analytics_events").insert({
+    id: randomUUID(),
     user_id: user?.id || null,
     anonymous_id: cleanText(body?.anonymousId, 120),
     session_id: cleanText(body?.sessionId, 120),
