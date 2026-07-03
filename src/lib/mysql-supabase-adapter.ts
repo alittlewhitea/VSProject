@@ -49,6 +49,16 @@ const TABLE_CONFLICT_KEYS: Record<string, string[]> = {
   analytics_events: ["id"]
 };
 
+const TABLE_TIMESTAMP_DEFAULTS: Record<string, string[]> = {
+  analytics_events: ["created_at"],
+  credit_purchases: ["created_at", "updated_at"],
+  generation_tasks: ["created_at", "updated_at"],
+  public_gallery_items: ["published_at", "created_at"],
+  signup_ip_claims: ["created_at"],
+  user_credit_accounts: ["created_at", "updated_at"],
+  user_subscriptions: ["created_at", "updated_at"]
+};
+
 export class MysqlAdapterError extends Error {
   code?: string;
   details?: string;
@@ -92,6 +102,17 @@ function normalizeRow(row: Record<string, unknown>) {
   const next: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(row)) {
     next[key] = normalizeValue(key, value);
+  }
+  return next;
+}
+
+function withTableDefaults(table: string, row: Record<string, unknown>) {
+  const next = { ...row };
+  const now = new Date().toISOString();
+  for (const column of TABLE_TIMESTAMP_DEFAULTS[table] || []) {
+    if (next[column] == null || next[column] === "") {
+      next[column] = now;
+    }
   }
   return next;
 }
@@ -289,7 +310,7 @@ export class MysqlQueryBuilder {
   }
 
   private async executeInsert(upsert: boolean): Promise<QueryResult> {
-    const rows = (this.body || []).map(normalizeRow);
+    const rows = (this.body || []).map((row) => normalizeRow(withTableDefaults(this.table, row)));
     if (!rows.length) return { data: [], error: null };
     const columns = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
     const values = rows.map((row) => columns.map((column) => row[column] ?? null));
