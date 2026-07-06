@@ -228,7 +228,7 @@ export const studioTraditionalChineseMessages: Messages = {
   "studio.placeholder.avatar": "輸入 Avatar 要說的完整台詞，保持簡短清晰，建議控制在 15 秒內...",
   "studio.placeholder.imageVideo": "描述圖片如何運動、鏡頭感覺和最終氛圍...",
   "studio.placeholder.video": "輸入提示詞生成 AI 影片...",
-  "studio.validation.promptLength": "提示詞至少需要 8 個字元。",
+  "studio.validation.promptLength": "請輸入提示詞後繼續。",
   "studio.validation.avatarLength": "請縮短 Avatar 台詞，保持在 15 秒以內。",
   "studio.validation.referenceRequired": "此工作流至少需要一張參考圖。",
   "studio.validation.backgroundReady": "圖片已就緒，移除背景後將回傳透明 PNG。",

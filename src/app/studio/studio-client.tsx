@@ -1000,6 +1000,17 @@ function isSamplePrompt(value: string) {
   return false;
 }
 
+function isProviderDefaultPrompt(value: string, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
+  return value === KLING_AVATAR_DEFAULT_SCRIPT || value === MINIMAX_MUSIC_DEFAULT_PROMPT || value === localizedMusicPrompt;
+}
+
+function promptForProviderChange(current: string, nextDefaultPrompt: string, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
+  if (!current.trim() || isProviderDefaultPrompt(current, localizedMusicPrompt)) {
+    return nextDefaultPrompt;
+  }
+  return current;
+}
+
 function defaultImageSizeForProvider(provider: string) {
   if (provider === "flux-image" || provider === "flux-dev") return "landscape_16_9";
   if (isNanoBananaProvider(provider)) return "default_4_3";
@@ -1395,6 +1406,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [selectedBillingCycles, setSelectedBillingCycles] = useState<Record<string, BillingCycle>>(() =>
     Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, plan.defaultCycle]))
   );
+  const billingModalScrollRef = useRef<HTMLDivElement | null>(null);
+  const premiumLitePlanRef = useRef<HTMLElement | null>(null);
   const modelSelectRef = useRef<HTMLDivElement | null>(null);
   const toolbarModelSelectRef = useRef<HTMLDivElement | null>(null);
   const restoredLoginDraftRef = useRef(false);
@@ -1907,10 +1920,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const hasMiniMaxLyrics = isInstrumental || lyricsOptimizer || musicLyrics.trim().length > 0;
   const isPromptValid = isPromptlessImageWorkflow || (
     isAvatarWorkflow
-      ? prompt.trim().length >= 2 && !avatarScriptTooLong
+      ? prompt.trim().length > 0 && !avatarScriptTooLong
       : isMiniMaxMusic
         ? prompt.trim().length >= 10 && hasMiniMaxLyrics
-        : prompt.trim().length >= 8
+        : prompt.trim().length > 0
   );
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
@@ -2130,7 +2143,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setRatio(defaultImageRatioForProvider(nextProvider, defaultImageSizeForProvider(nextProvider)));
     }
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
-    setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
+    setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
     const nextImageSize = nextMode === "image" ? defaultImageSizeForProvider(nextProvider) : imageSize;
     if (nextMode === "image") {
       setImageSize(nextImageSize);
@@ -2170,7 +2183,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     trackEvent("studio_model_selected", { mode, provider: nextProvider, workflow: activeWorkflow }, accessToken);
     setProvider(nextProvider);
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
-    setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
+    setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
     if (isAvatarProvider(nextProvider)) {
       setReferenceImagesText((current) => current || KLING_AVATAR_DEFAULT_IMAGE_URL);
       setReferenceImageFiles([]);
@@ -2860,10 +2873,24 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }
 
   function openBillingModal(source: string) {
+    setSelectedBillingCycles(Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, "monthly" as BillingCycle])));
     setBillingModalOpen(true);
     setBillingMessage("");
     trackEvent("studio_billing_modal_opened", { source, balance: creditBalance, mode, provider }, accessToken);
   }
+
+  useEffect(() => {
+    if (!billingModalOpen || typeof window === "undefined" || window.innerWidth >= 768) return;
+    const frame = window.requestAnimationFrame(() => {
+      const scrollContainer = billingModalScrollRef.current;
+      const target = premiumLitePlanRef.current;
+      if (!scrollContainer || !target) return;
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      scrollContainer.scrollTop += targetRect.top - containerRect.top - 12;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [billingModalOpen]);
 
   async function startStudioCreditCheckout(packId: string) {
     if (!accessToken) {
@@ -3033,7 +3060,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 x
               </button>
 
-              <div className="relative max-h-[92vh] overflow-y-auto px-4 pb-7 pt-8 sm:px-6 md:px-8 md:pb-8 md:pt-9">
+              <div ref={billingModalScrollRef} className="relative max-h-[92vh] overflow-y-auto px-4 pb-7 pt-8 sm:px-6 md:px-8 md:pb-8 md:pt-9">
                 <div className="mx-auto max-w-3xl text-center">
                   <div className="mx-auto grid h-14 w-14 place-items-center rounded-[1.15rem] border border-[#dbeafe] bg-white shadow-[0_12px_28px_rgba(79,70,229,0.12)]">
                     <span className="relative block h-5 w-6">
@@ -3112,6 +3139,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     return (
                       <article
                         key={plan.id}
+                        ref={plan.id === "premium-lite" ? premiumLitePlanRef : null}
                         className={`relative flex min-h-[430px] flex-col rounded-[1.6rem] border p-5 shadow-[0_18px_52px_rgba(15,23,42,0.08)] ${
                           plan.highlight
                             ? "border-2 border-[#06b6d4]/60 bg-white shadow-[0_20px_50px_rgba(6,182,212,0.12)]"
@@ -3668,7 +3696,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           ))}
                         </div>
                       </div>
-                      <button type="button" onClick={() => setBillingModalOpen(true)} className="w-full shrink-0 rounded-2xl bg-white px-5 py-4 text-sm font-black text-[#0f172a] shadow-lg transition hover:-translate-y-0.5 md:w-auto">
+                      <button type="button" onClick={() => openBillingModal("workspace_upgrade")} className="w-full shrink-0 rounded-2xl bg-white px-5 py-4 text-sm font-black text-[#0f172a] shadow-lg transition hover:-translate-y-0.5 md:w-auto">
                         {st("studio.workspace.premiumCta")}
                       </button>
                     </section>
@@ -5341,7 +5369,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     trackEvent("studio_model_selected", { mode, provider: nextProvider }, accessToken);
                     setProvider(nextProvider);
                     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
-                    setPrompt(!hasCompletedCreation && nextDefaultPrompt ? nextDefaultPrompt : "");
+                    setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
                     if (mode === "image") {
                       setReferenceImagesText(
                         !hasCompletedCreation && nextProvider === "nano-banana-image"
@@ -6006,7 +6034,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               </button>
             </div>
             <p className="mt-3 text-sm text-white/46">
-              {!isAvatarWorkflow && !isPromptValid
+              {!isAvatarWorkflow && isMiniMaxMusic && !isPromptValid
+                ? st("studio.music.promptDescription")
+                : !isAvatarWorkflow && !isPromptValid
                 ? st("studio.validation.promptLength")
                 : isAvatarWorkflow && avatarScriptTooLong
                   ? st("studio.validation.avatarLength")

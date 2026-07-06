@@ -83,7 +83,7 @@
   "studio.placeholder.avatar": "Gib den genauen Text für den Avatar ein. Halte ihn klar und unter etwa 15 Sekunden...",
   "studio.placeholder.imageVideo": "Beschreibe Bewegung, Kamerawirkung und Stimmung des hochgeladenen Bildes...",
   "studio.placeholder.video": "Beschreibe das KI-Video, das du erstellen möchtest...",
-  "studio.validation.promptLength": "Der Prompt muss mindestens 8 Zeichen enthalten.",
+  "studio.validation.promptLength": "Gib einen Prompt ein, um fortzufahren.",
   "studio.validation.avatarLength": "Kürze den Avatartext auf höchstens 15 Sekunden.",
   "studio.validation.referenceRequired": "Füge für diesen Workflow mindestens ein Referenzbild hinzu.",
   "studio.validation.backgroundReady": "Bild bereit. Die Hintergrundentfernung liefert ein transparentes PNG.",

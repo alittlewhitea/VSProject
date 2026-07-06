@@ -754,11 +754,8 @@ export async function POST(request: Request) {
     const storageMode = storedModeForRequest(body);
     const isPromptlessImageTool = body.mode === "image" && body.provider === "bria-background-remove";
     const prompt = body.prompt.trim() || (isAvatarProvider || isDreamfaceIoTalkingAvatar || isPromptlessImageTool ? "." : "");
-    if (!isAvatarProvider && !isDreamfaceIoTalkingAvatar && !isPromptlessImageTool && prompt.length < 8) {
-      return NextResponse.json({ error: "Prompt must be at least 8 characters." }, { status: 400 });
-    }
-    if ((isAvatarProvider || isDreamfaceIoTalkingAvatar) && prompt.length < 2) {
-      return NextResponse.json({ error: "AI Talking needs a short script." }, { status: 400 });
+    if (!isPromptlessImageTool && !prompt.trim()) {
+      return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
     }
     if (body.mode === "audio" && body.provider === "minimax-music-2.6" && (prompt.length < 10 || prompt.length > 2000)) {
       return NextResponse.json({ error: "MiniMax Music prompt must contain 10 to 2000 characters." }, { status: 400 });

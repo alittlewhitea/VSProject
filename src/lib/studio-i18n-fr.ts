@@ -356,7 +356,7 @@
   "studio.placeholder.avatar": "Saisissez exactement le texte que l'avatar doit prononcer. Restez clair et concis, idéalement moins de 15 secondes...",
   "studio.placeholder.imageVideo": "Décrivez le mouvement de l'image, le comportement de la caméra et l'ambiance finale...",
   "studio.placeholder.video": "Décrivez la vidéo IA que vous souhaitez créer...",
-  "studio.validation.promptLength": "Le prompt doit contenir au moins 8 caractères.",
+  "studio.validation.promptLength": "Saisissez un prompt pour continuer.",
   "studio.validation.avatarLength": "Raccourcissez le texte de l'avatar pour rester sous 15 secondes.",
   "studio.validation.referenceRequired": "Ajoutez au moins une image de référence pour ce workflow.",
   "studio.validation.backgroundReady": "Image prête. La suppression de l'arrière-plan produira un PNG transparent.",
