@@ -1410,6 +1410,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const premiumLitePlanRef = useRef<HTMLElement | null>(null);
   const modelSelectRef = useRef<HTMLDivElement | null>(null);
   const toolbarModelSelectRef = useRef<HTMLDivElement | null>(null);
+  const lastStudioModeRef = useRef<StudioMode>(mode);
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
@@ -1557,6 +1558,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   useEffect(() => {
     const workflowParam = workflowForMode(mode, sp.get("workflow"));
     const providerParam = sp.get("provider");
+    const modeChanged = lastStudioModeRef.current !== mode;
+    lastStudioModeRef.current = mode;
     setImageWorkflow(
       mode === "image" && (workflowParam === "image-to-image" || workflowParam === "enhance-cleanup" || workflowParam === "background-remove")
         ? workflowParam
@@ -1575,6 +1578,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       isProviderAllowedForMode(providerParam, mode) ? providerParam : null
     );
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
+    if (modeChanged && !sp.get("prompt")) {
+      setPrompt(defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt")));
+    }
     const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
     setRatio(mode === "image" ? defaultImageRatioForProvider(nextProvider, nextImageSize) : mode === "avatar" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
     setImageSize(nextImageSize);
@@ -2143,7 +2149,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setRatio(defaultImageRatioForProvider(nextProvider, defaultImageSizeForProvider(nextProvider)));
     }
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
-    setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
+    setPrompt((current) =>
+      nextMode === mode
+        ? promptForProviderChange(current, !hasCompletedCreation ? nextDefaultPrompt : "", st("studio.music.defaultPrompt"))
+        : !hasCompletedCreation
+          ? nextDefaultPrompt
+          : ""
+    );
     const nextImageSize = nextMode === "image" ? defaultImageSizeForProvider(nextProvider) : imageSize;
     if (nextMode === "image") {
       setImageSize(nextImageSize);
