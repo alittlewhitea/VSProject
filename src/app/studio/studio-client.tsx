@@ -117,6 +117,7 @@ const GENERATION_IDEMPOTENCY_KEY_PREFIX = "nova_generation_idempotency";
 const STUDIO_LOGIN_DRAFT_KEY = "nova_studio_login_draft";
 const TEXT_IMAGE_PAGE_INNER_CLASS = "mx-auto w-full max-w-[1220px]";
 const TEXT_IMAGE_GALLERY_URL = "https://dreamface.io/gallery";
+const STUDIO_SIGN_IN_URL = "https://dreamface.io/en/auth?next=%2Fstudio%3Fview%3Dhome";
 
 const WORKSPACE_VIDEO_BASE_URL = "https://media.dreamface.io/ai_video";
 
@@ -1515,11 +1516,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setAccessToken(token);
       setUserId(nextUserId);
       if (typeof window !== "undefined") {
-        if (token) {
-          safeSetLocalStorage("nova_access_token", token);
-        } else {
-          safeRemoveLocalStorage("nova_access_token");
-        }
+        safeRemoveLocalStorage("nova_access_token");
       }
       if (!token) setCreditNote(st("studio.status.signInCredit"));
       if (token && nextUserId && trackedLoginSuccessRef.current !== nextUserId) {
@@ -1538,11 +1535,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         setCreditBalance(null);
       }
       if (typeof window !== "undefined") {
-        if (token) {
-          safeSetLocalStorage("nova_access_token", token);
-        } else {
-          safeRemoveLocalStorage("nova_access_token");
-        }
+        safeRemoveLocalStorage("nova_access_token");
       }
       if (token && nextUserId && trackedLoginSuccessRef.current !== nextUserId) {
         trackedLoginSuccessRef.current = nextUserId;
@@ -1942,6 +1935,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
   const canSubmit = isPromptValid && hasRequiredReference;
+  const generateDisabled = accessToken ? !canSubmit || isSubmitting || !hasEnoughCredits : false;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const hasCompletedCreation = completedTasks.length > 0;
@@ -2519,11 +2513,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       const supabase = createBrowserSupabaseClient();
       await supabase.auth.refreshSession();
       const { data } = await supabase.auth.getSession();
-      const liveToken =
-        data.session?.access_token ||
-        accessToken ||
-        (typeof window !== "undefined" ? window.localStorage.getItem("nova_access_token") : null);
+      const liveToken = data.session?.access_token || null;
       if (!liveToken) {
+        setAccessToken(null);
+        setUserId(null);
+        if (typeof window !== "undefined") {
+          safeRemoveLocalStorage("nova_access_token");
+        }
         trackEvent(
           "generate_login_required",
           { mode, provider, workflow: activeWorkflow },
@@ -2851,6 +2847,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleGenerateClick() {
+    if (!accessToken) {
+      trackEvent("generate_login_required", { mode, provider, workflow: activeWorkflow }, accessToken);
+      if (typeof window !== "undefined") {
+        window.location.href = STUDIO_SIGN_IN_URL;
+      }
+      return;
+    }
+    handleGenerate();
   }
 
   useEffect(() => {
@@ -3460,7 +3467,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         ))}
                         {!accessToken ? (
                           <Link
-                            href="/auth?next=%2Fstudio%3Fview%3Dprojects"
+                            href={STUDIO_SIGN_IN_URL}
                             onClick={() => setMobileStudioMenuOpen(false)}
                             className="mt-1 flex items-center justify-center rounded-[1rem] bg-[#202633] px-3 py-3 text-sm font-semibold text-white shadow-sm"
                           >
@@ -3574,7 +3581,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       {st(`studio.workflow.${audioWorkflow}`)}
                     </button>
                   ) : (
-                    <Link href="/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image" className="hidden rounded-full bg-[#202633] px-3 py-2 text-xs font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] sm:inline-flex md:rounded-2xl md:px-4 md:text-sm">
+                    <Link href={STUDIO_SIGN_IN_URL} className="hidden rounded-full bg-[#202633] px-3 py-2 text-xs font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] sm:inline-flex md:rounded-2xl md:px-4 md:text-sm">
                       {st("studio.auth.signIn")}
                     </Link>
                   )}
@@ -3582,7 +3589,16 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               </div>
               {creditNote ? (
                 <p className="mt-3 rounded-2xl border border-black/[0.06] bg-white/76 px-4 py-3 text-xs font-semibold text-[#667085] shadow-sm">
-                  {creditNote}
+                  {!accessToken && creditNote === st("studio.status.signInCredit") ? (
+                    <>
+                      <Link href={STUDIO_SIGN_IN_URL} className="font-black text-[#1c6be1] underline-offset-4 hover:underline">
+                        {st("studio.auth.signIn")}
+                      </Link>
+                      {creditNote.replace(st("studio.auth.signIn"), "")}
+                    </>
+                  ) : (
+                    creditNote
+                  )}
                 </p>
               ) : null}
 
@@ -5220,8 +5236,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </span>
                     <button
                       type="button"
-                      onClick={handleGenerate}
-                      disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                      onClick={handleGenerateClick}
+                      disabled={generateDisabled}
                       className="col-span-2 min-h-12 rounded-full bg-[#171a22] px-7 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(23,26,34,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(23,26,34,0.26)] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:min-h-11"
                     >
                       {isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}
@@ -5463,8 +5479,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </div>
                         <button
                           type="button"
-                          onClick={handleGenerate}
-                          disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                          onClick={handleGenerateClick}
+                          disabled={generateDisabled}
                           className="inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-[radial-gradient(circle_at_12%_12%,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,#ff8a00_0%,#ff3d81_45%,#7c3cff_100%)] px-6 text-base font-black text-white shadow-[0_22px_48px_rgba(255,61,129,0.28),0_10px_28px_rgba(124,60,255,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 lg:w-auto lg:min-w-[248px]"
                         >
                           <span>{isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}</span>
@@ -5758,8 +5774,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </div>
                         <button
                           type="button"
-                          onClick={handleGenerate}
-                          disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                          onClick={handleGenerateClick}
+                          disabled={generateDisabled}
                           className="inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-[radial-gradient(circle_at_12%_12%,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,#ff8a00_0%,#ff3d81_45%,#7c3cff_100%)] px-6 text-base font-black text-white shadow-[0_22px_48px_rgba(255,61,129,0.28),0_10px_28px_rgba(124,60,255,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 lg:w-auto lg:min-w-[248px]"
                         >
                           <span>{isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}</span>
@@ -5931,8 +5947,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </div>
                         <button
                           type="button"
-                          onClick={handleGenerate}
-                          disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                          onClick={handleGenerateClick}
+                          disabled={generateDisabled}
                           className="inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-[radial-gradient(circle_at_12%_12%,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,#ff8a00_0%,#ff3d81_45%,#7c3cff_100%)] px-6 text-base font-black text-white shadow-[0_22px_48px_rgba(255,61,129,0.28),0_10px_28px_rgba(124,60,255,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 lg:w-auto lg:min-w-[248px]"
                         >
                           <span>{isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}</span>
@@ -6012,8 +6028,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </div>
                         <button
                           type="button"
-                          onClick={handleGenerate}
-                          disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                          onClick={handleGenerateClick}
+                          disabled={generateDisabled}
                           className="inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-[radial-gradient(circle_at_12%_12%,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,#ff8a00_0%,#ff3d81_45%,#7c3cff_100%)] px-6 text-base font-black text-white shadow-[0_22px_48px_rgba(255,61,129,0.28),0_10px_28px_rgba(124,60,255,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 lg:w-auto lg:min-w-[248px]"
                         >
                           <span>{isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}</span>
@@ -7351,8 +7367,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
             <div className="sticky bottom-0 -mx-4 mt-auto border-t border-white/10 bg-[#10131a]/82 px-4 pt-4 shadow-[0_-20px_48px_rgba(0,0,0,0.24)] backdrop-blur-xl md:-mx-5 md:px-5">
               <AppButton
                 variant="primary"
-                onClick={handleGenerate}
-                disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                onClick={handleGenerateClick}
+                disabled={generateDisabled}
                 className="min-h-[64px] w-full rounded-[1.35rem] bg-gradient-to-br from-[#1c6be1] to-[#3f86ff] text-base shadow-[0_18px_42px_rgba(28,107,225,0.34),0_0_0_1px_rgba(255,255,255,0.14)_inset] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_26px_60px_rgba(28,107,225,0.42)] active:translate-y-0 active:shadow-[0_16px_34px_rgba(28,107,225,0.34)]"
               >
                 {isSubmitting
