@@ -2683,6 +2683,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       if (payload.storageWarning) {
         setTaskHistoryNote(st("studio.projects.historySavePending"));
       }
+      // The task is accepted by the backend now. Release the button so users can queue
+      // another generation while this task continues updating in the background.
+      setIsSubmitting(false);
       if (payload.status === "failed") {
         trackEvent(
           "generation_failed",
