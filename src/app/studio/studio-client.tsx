@@ -1413,7 +1413,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const billingModalScrollRef = useRef<HTMLDivElement | null>(null);
   const premiumLitePlanRef = useRef<HTMLElement | null>(null);
   const modelSelectRef = useRef<HTMLDivElement | null>(null);
+  const modelSelectPanelRef = useRef<HTMLDivElement | null>(null);
   const toolbarModelSelectRef = useRef<HTMLDivElement | null>(null);
+  const toolbarModelSelectPanelRef = useRef<HTMLDivElement | null>(null);
   const lastStudioModeRef = useRef<StudioMode>(mode);
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
@@ -1469,6 +1471,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     const handlePlacementUpdate = () => setModelSelectPlacement(getModelSelectPlacement(modelSelectRef.current));
     const handlePointerDown = (event: MouseEvent | TouchEvent) => {
       if (modelSelectRef.current?.contains(event.target as Node)) return;
+      if (modelSelectPanelRef.current?.contains(event.target as Node)) return;
       setModelSelectOpen(false);
     };
     window.addEventListener("resize", handlePlacementUpdate);
@@ -1489,6 +1492,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     const handlePlacementUpdate = () => setToolbarModelSelectPlacement(getModelSelectPlacement(toolbarModelSelectRef.current));
     const handlePointerDown = (event: MouseEvent | TouchEvent) => {
       if (toolbarModelSelectRef.current?.contains(event.target as Node)) return;
+      if (toolbarModelSelectPanelRef.current?.contains(event.target as Node)) return;
       setToolbarModelSelectOpen(false);
     };
     window.addEventListener("resize", handlePlacementUpdate);
@@ -5025,6 +5029,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </button>
                         {toolbarModelSelectOpen ? (
                           <div
+                            ref={toolbarModelSelectPanelRef}
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onTouchStart={(event) => event.stopPropagation()}
                             className={`z-[200] overflow-y-auto overscroll-contain rounded-[1.35rem] border border-black/[0.08] bg-white/95 text-[#263244] shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl ${
                               toolbarModelSelectPlacement === "modal"
                                 ? "fixed left-1/2 top-20 max-h-[calc(100vh-6rem)] w-[min(calc(100vw-2rem),520px)] -translate-x-1/2"
@@ -5065,6 +5072,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                         type="button"
                                         role="option"
                                         aria-selected={active}
+                                        onMouseDown={(event) => event.stopPropagation()}
+                                        onTouchStart={(event) => event.stopPropagation()}
                                         onClick={() => {
                                           applyProvider(option.value);
                                           setToolbarModelSelectOpen(false);
@@ -5813,6 +5822,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             </button>
                             {modelSelectOpen ? (
                               <div
+                                ref={modelSelectPanelRef}
+                                onMouseDown={(event) => event.stopPropagation()}
+                                onTouchStart={(event) => event.stopPropagation()}
                                 className="fixed left-1/2 top-1/2 z-[200] max-h-[min(76vh,620px)] w-[min(calc(100vw-2rem),640px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-[1.35rem] border border-[#758bac]/15 bg-[#fbfdff]/98 text-[#263244] shadow-[0_24px_70px_rgba(42,67,112,0.22)] backdrop-blur-xl"
                                 role="listbox"
                               >
@@ -5848,6 +5860,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                             type="button"
                                             role="option"
                                             aria-selected={active}
+                                            onMouseDown={(event) => event.stopPropagation()}
+                                            onTouchStart={(event) => event.stopPropagation()}
                                             onClick={() => {
                                               applyProvider(option.value);
                                               setModelSelectOpen(false);
@@ -6537,6 +6551,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   </button>
                   {modelSelectOpen ? (
                     <div
+                      ref={modelSelectPanelRef}
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onTouchStart={(event) => event.stopPropagation()}
                       className={`z-[200] overflow-y-auto overscroll-contain rounded-[1.35rem] border border-white/14 bg-[#fbfdff]/95 text-[#263244] shadow-[0_24px_70px_rgba(0,0,0,0.26)] backdrop-blur-xl ${
                         modelSelectPlacement === "modal"
                           ? "fixed left-1/2 top-20 max-h-[calc(100vh-6rem)] w-[min(calc(100vw-2rem),520px)] -translate-x-1/2"
@@ -6578,6 +6595,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                   type="button"
                                   role="option"
                                   aria-selected={active}
+                                  onMouseDown={(event) => event.stopPropagation()}
+                                  onTouchStart={(event) => event.stopPropagation()}
                                   onClick={() => {
                                     applyProvider(option.value);
                                     setModelSelectOpen(false);
