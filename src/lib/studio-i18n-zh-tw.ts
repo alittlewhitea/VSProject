@@ -260,6 +260,7 @@ export const studioTraditionalChineseMessages: Messages = {
   "studio.header.imageDescription": "使用文字、參考圖或兩者結合生成圖片素材。",
   "studio.header.avatarDescription": "上傳一張 Avatar 圖片並輸入台詞，生成搭配 ElevenLabs 聲音的口播影片。",
   "studio.header.videoDescription": "透過提示詞生成動態畫面，或讓參考圖動起來。",
+  "studio.header.audioDescription": "透過文字生成自然配音，或創作 AI 音樂。",
   "studio.home.previous": "上一張",
   "studio.home.next": "下一張",
   "studio.home.open": "開啟",

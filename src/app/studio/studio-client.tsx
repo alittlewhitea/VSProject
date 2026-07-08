@@ -93,16 +93,6 @@ type ImageWorkflow = "text-to-image" | "image-to-image" | "enhance-cleanup" | "b
 type VideoWorkflow = "avatar-video" | "text-to-video" | "image-to-video";
 type AudioWorkflow = "text-to-audio" | "text-to-music";
 type StudioWorkflow = ImageWorkflow | VideoWorkflow | AudioWorkflow;
-type GalleryTemplate = {
-  id: string;
-  title: string;
-  prompt: string;
-  imageUrl: string;
-  thumbnailUrl: string | null;
-  model: string;
-  category: string;
-};
-
 type StudioIconName =
   | "home"
   | "image"
@@ -125,6 +115,8 @@ const SESSION_TASKS_KEY = "nova_session_tasks";
 const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
 const GENERATION_IDEMPOTENCY_KEY_PREFIX = "nova_generation_idempotency";
 const STUDIO_LOGIN_DRAFT_KEY = "nova_studio_login_draft";
+const TEXT_IMAGE_PAGE_INNER_CLASS = "mx-auto w-full max-w-[1220px]";
+const TEXT_IMAGE_GALLERY_URL = "https://dreamface.io/gallery";
 
 const WORKSPACE_VIDEO_BASE_URL = "https://media.dreamface.io/ai_video";
 
@@ -140,7 +132,7 @@ const WORKSPACE_SHOWCASES: Array<{
   {
     key: "baseball",
     file: "baseball-game-broadcast-shot",
-    prompt: "A baseball game broadcast shot — person sits in stadium stands in a team jersey, watching the field and posing softly like a viral stargirl moment caught on live TV.",
+    prompt: "A baseball game broadcast shot - person sits in stadium stands in a team jersey, watching the field and posing softly like a viral stargirl moment caught on live TV.",
     labelKey: "studio.workspace.showcase.baseball.label",
     titleKey: "studio.workspace.showcase.baseball.title",
     metaKey: "studio.workspace.showcase.baseball.meta"
@@ -148,7 +140,7 @@ const WORKSPACE_SHOWCASES: Array<{
   {
     key: "cgi",
     file: "cgi-breakdown-reveal",
-    prompt: "CGI breakdown reveal — mesh to beauty pass, each render layer cuts in sequence, turntable camera, ending on the final polished visual.",
+    prompt: "CGI breakdown reveal - mesh to beauty pass, each render layer cuts in sequence, turntable camera, ending on the final polished visual.",
     labelKey: "studio.workspace.showcase.cgi.label",
     titleKey: "studio.workspace.showcase.cgi.title",
     metaKey: "studio.workspace.showcase.cgi.meta"
@@ -156,7 +148,7 @@ const WORKSPACE_SHOWCASES: Array<{
   {
     key: "tokyo",
     file: "tokyo-night-street-racing",
-    prompt: "Tokyo night street racing — cars drift and donut around the character, low angles and 35mm film grain, blockbuster reveal.",
+    prompt: "Tokyo night street racing - cars drift and donut around the character, low angles and 35mm film grain, blockbuster reveal.",
     labelKey: "studio.workspace.showcase.tokyo.label",
     titleKey: "studio.workspace.showcase.tokyo.title",
     metaKey: "studio.workspace.showcase.tokyo.meta"
@@ -164,7 +156,7 @@ const WORKSPACE_SHOWCASES: Array<{
   {
     key: "spectator",
     file: "spectator-sprints-from-the-stands",
-    prompt: "Spectator sprints from the stands, jumps fences, evades security, charges onto the pitch and strikes — all in one continuous telephoto take.",
+    prompt: "Spectator sprints from the stands, jumps fences, evades security, charges onto the pitch and strikes - all in one continuous telephoto take.",
     labelKey: "studio.workspace.showcase.spectator.label",
     titleKey: "studio.workspace.showcase.spectator.title",
     metaKey: "studio.workspace.showcase.spectator.meta",
@@ -683,6 +675,20 @@ const PROMPT_PRESETS = [
   "Majestic white tiger walking through a snowy pine forest, visible breath, soft falling snow, realistic fur detail, cinematic wildlife photography",
   "Small orange cat astronaut floating inside a cozy spaceship cabin, Earth visible through the window, playful but realistic lighting, charming detailed scene"
 ];
+
+const PROMPT_IMPROVE_TEXT =
+  "Optimize this prompt for a professional AI-generated image. Improve detail, lighting, composition, and overall quality while preserving intent.";
+
+const TEXT_TO_IMAGE_SCENES = [
+  { key: "paidAdCreative", icon: "rocket", glow: "radial-gradient(circle, rgba(255,138,0,.28), transparent 66%)" },
+  { key: "ecommerceScene", icon: "shopping", glow: "radial-gradient(circle, rgba(244,94,198,.26), transparent 66%)" },
+  { key: "appStoreAssets", icon: "app", glow: "radial-gradient(circle, rgba(37,99,255,.28), transparent 66%)" },
+  { key: "aiAvatarStyle", icon: "portrait", glow: "radial-gradient(circle, rgba(24,199,243,.26), transparent 66%)" },
+  { key: "videoCoverImage", icon: "video", glow: "radial-gradient(circle, rgba(112,92,255,.26), transparent 66%)" },
+  { key: "fastImageEdit", icon: "cleanup", glow: "radial-gradient(circle, rgba(32,201,151,.25), transparent 66%)" },
+  { key: "brandPoster", icon: "brand", glow: "radial-gradient(circle, rgba(255,176,46,.28), transparent 66%)" },
+  { key: "styleReference", icon: "style", glow: "radial-gradient(circle, rgba(255,107,107,.24), transparent 66%)" }
+] as const;
 
 function scopedSessionKey(key: string, userId: string | null) {
   return userId ? `${key}:${userId}` : null;
@@ -1393,8 +1399,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loginDraftNonce, setLoginDraftNonce] = useState(0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [galleryTemplates, setGalleryTemplates] = useState<GalleryTemplate[]>([]);
-  const [galleryTemplateNote, setGalleryTemplateNote] = useState("");
   const [mobileStudioMenuOpen, setMobileStudioMenuOpen] = useState(false);
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [billingMessage, setBillingMessage] = useState("");
@@ -2031,6 +2035,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const showVideoResolutionControl = mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video");
   const showVideoAudioControl = mode === "video" && !isAvatarProvider(provider) && (provider === "seedance-video" || provider === "seedance-mini-video" || provider === "kling-video" || provider === "veo-video");
   const showTextToImageTemplates = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "text-to-image";
+  const showImageToImageRedesign = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "image-to-image";
+  const showImageUtilityRedesign = !isAppsHome && !isProjectsView && mode === "image" && (imageWorkflow === "enhance-cleanup" || imageWorkflow === "background-remove");
+  const showVideoWorkbenchRedesign = !isAppsHome && !isProjectsView && mode === "video" && (videoWorkflow === "text-to-video" || videoWorkflow === "image-to-video");
+  const showAudioWorkbenchRedesign = !isAppsHome && !isProjectsView && mode === "audio" && (audioWorkflow === "text-to-audio" || audioWorkflow === "text-to-music");
+  const showAvatarWorkbenchRedesign = !isAppsHome && !isProjectsView && isAvatarWorkflow;
+  const showImageWorkbenchRedesign = showTextToImageTemplates || showImageToImageRedesign || showImageUtilityRedesign;
+  const showModernWorkbenchRedesign = showImageWorkbenchRedesign || showVideoWorkbenchRedesign || showAudioWorkbenchRedesign || showAvatarWorkbenchRedesign;
+  const useWideStudioShell = showModernWorkbenchRedesign || isAppsHome || isProjectsView;
   const providerSettingsLabel =
     provider === "chatgpt-image"
       ? `${imageQuality} / ${outputFormat.toUpperCase()} / ${numImages}`
@@ -2084,29 +2096,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }, [duration, mode, provider, ratio, showDreamfaceTalkingVideoControls, showVideoResolutionControl, videoDurationOptions, videoRatioOptions, videoResolution, videoResolutionOptions]);
 
   useEffect(() => {
-    if (!showTextToImageTemplates) return;
-    let cancelled = false;
-    setGalleryTemplateNote("");
-    fetch("/api/gallery?sort=featured&limit=18")
-      .then((response) => {
-        if (!response.ok) throw new Error(st("studio.status.galleryUnavailable"));
-        return response.json();
-      })
-      .then((payload: { items?: GalleryTemplate[] }) => {
-        if (cancelled) return;
-        setGalleryTemplates(Array.isArray(payload.items) ? payload.items : []);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setGalleryTemplates([]);
-        setGalleryTemplateNote(error instanceof Error ? error.message : st("studio.status.galleryUnavailable"));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [showTextToImageTemplates]);
-
-  useEffect(() => {
     if (!hasCompletedCreation) return;
     setPrompt((currentPrompt) => (isSamplePrompt(currentPrompt) ? "" : currentPrompt));
   }, [hasCompletedCreation]);
@@ -2121,11 +2110,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
             ? "avatar"
             : "video";
     const nextProvider = providerForWorkflow(nextWorkflow, provider);
-      if (nextMode === "image") {
-      setImageWorkflow(nextWorkflow as ImageWorkflow);
+    if (nextMode === "image") {
+      const nextImageWorkflow = nextWorkflow as ImageWorkflow;
+      if (mode === "image" && imageWorkflow !== nextImageWorkflow) {
+        setPrompt("");
+      }
+      setImageWorkflow(nextImageWorkflow);
       if (nextWorkflow === "text-to-image") {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
+      } else if (nextWorkflow === "background-remove") {
+        setReferenceImageFiles((current) => current.slice(0, 1));
       }
       setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
     } else if (nextMode === "video" || nextMode === "avatar") {
@@ -2891,6 +2886,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     trackEvent("studio_billing_modal_opened", { source, balance: creditBalance, mode, provider }, accessToken);
   }
 
+  function improveTextToImagePrompt() {
+    setPrompt((current) => {
+      const trimmed = current.trim();
+      return trimmed ? `${trimmed}\n\n${PROMPT_IMPROVE_TEXT}` : PROMPT_IMPROVE_TEXT;
+    });
+    trackEvent("studio_prompt_improved", { mode, provider, workflow: activeWorkflow }, accessToken);
+  }
+
   useEffect(() => {
     if (!billingModalOpen || typeof window === "undefined" || window.innerWidth >= 768) return;
     const frame = window.requestAnimationFrame(() => {
@@ -2994,7 +2997,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     >
       <div className="pointer-events-none absolute left-[18%] top-10 h-72 w-72 rounded-full bg-[#bde0fe]/30 blur-3xl" />
       <div className="pointer-events-none absolute right-[14%] top-6 h-80 w-80 rounded-full bg-[#ffc8dd]/24 blur-3xl" />
-      <div className="mx-auto w-full max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5">
+      <div className={useWideStudioShell ? "mx-auto my-3 w-[calc(100vw-24px)] max-w-[1760px] md:my-7 md:w-[calc(100vw-56px)]" : "mx-auto w-full max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5"}>
         <header className="hidden">
           <div className="flex items-center gap-6">
             <Link href="/" className="text-3xl font-semibold tracking-tight text-white">
@@ -3273,14 +3276,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           </div>
         ) : null}
 
-        <section className="relative min-h-[calc(100vh-1rem)] w-full max-w-full overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-white/72 shadow-[0_20px_60px_rgba(71,85,105,0.10)] backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-[0_32px_120px_rgba(71,85,105,0.14)]">
+        <section className={`relative w-full max-w-full overflow-hidden border bg-white/72 shadow-[0_20px_60px_rgba(71,85,105,0.10)] backdrop-blur-2xl md:shadow-[0_32px_120px_rgba(71,85,105,0.14)] ${showModernWorkbenchRedesign ? "min-h-[calc(100vh-24px)] rounded-[1.75rem] border-[#8092b2]/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.62),rgba(255,255,255,0.38))] md:min-h-[calc(100vh-56px)] md:rounded-[2.375rem]" : "min-h-[calc(100vh-1rem)] rounded-[1.35rem] border-black/[0.06] md:rounded-[2.25rem]"}`}>
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
           <div className="grid min-h-[calc(100vh-1rem)] min-w-0 lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
-            <aside className="hidden border-r border-black/[0.06] bg-white/64 px-3 py-5 lg:flex lg:flex-col lg:items-center">
+            <aside className={`hidden border-r lg:flex lg:flex-col lg:items-center ${showModernWorkbenchRedesign ? "border-[#758bac]/15 bg-[#f5faff]/60 px-3 py-5" : "border-black/[0.06] bg-white/64 px-3 py-5"}`}>
               <a href="https://dreamface.io" aria-label={st("studio.menu.dreamfaceHome")} className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
                 DF
               </a>
-              <nav className="mt-9 flex flex-1 flex-col items-center gap-4">
+              <nav className={showModernWorkbenchRedesign ? "mt-[26px] grid w-full gap-2.5" : "mt-9 flex flex-1 flex-col items-center gap-4"}>
                 {[
                   { label: "Home", display: st("studio.nav.home"), href: "/studio?view=home", icon: "home" as StudioIconName },
                   { label: "Avatar", display: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "video" as StudioIconName },
@@ -3398,8 +3401,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               ))}
             </nav>
 
-            <div className="relative min-w-0 max-w-full px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12">
-              <div className="flex items-start justify-between gap-3 md:items-center md:gap-4">
+            <div className={`relative min-w-0 max-w-full ${showModernWorkbenchRedesign ? "px-[18px] pb-[90px] pt-6 md:px-[clamp(22px,3vw,52px)] md:pb-[42px] md:pt-7" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
+              <div className={`gap-3 md:gap-4 ${showModernWorkbenchRedesign ? "mb-4 flex items-start justify-between md:mb-9 md:items-center" : "flex items-start justify-between md:items-center"}`}>
                 <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
                   <div className="relative shrink-0">
                     <button
@@ -3486,9 +3489,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       </>
                     ) : null}
                   </div>
-                  <div className="min-w-0">
-                    <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7] sm:block">{st("studio.header.apps")}</p>
-                    <h1 className="truncate text-lg font-semibold tracking-tight text-[#202633] sm:text-xl md:text-3xl">
+                  <div className={`min-w-0 ${showModernWorkbenchRedesign ? "hidden md:block" : ""}`}>
+                    <p className={showModernWorkbenchRedesign ? "text-xs font-black uppercase tracking-[0.22em] text-[#92a0b5]" : "hidden text-xs font-semibold uppercase tracking-[0.16em] text-[#8b95a7] sm:block"}>{st("studio.header.apps")}</p>
+                    <h1 className={showModernWorkbenchRedesign ? "mt-[7px] flex items-center gap-3 text-[clamp(26px,2.1vw,36px)] font-black leading-none tracking-[-0.045em] text-[#151827]" : "truncate text-lg font-semibold tracking-tight text-[#202633] sm:text-xl md:text-3xl"}>
                       {isProjectsView
                         ? st("studio.header.projects")
                         : isAppsHome
@@ -3501,7 +3504,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 ? st("studio.header.avatar")
                                 : st("studio.header.video")}
                     </h1>
-                    <p className="mt-1 hidden text-sm text-[#8b95a7] sm:block">
+                    <p className={showModernWorkbenchRedesign ? "mt-[9px] text-[15px] leading-[1.45] text-[#8794aa]" : "mt-1 hidden text-sm text-[#8b95a7] sm:block"}>
                       {isProjectsView
                         ? st("studio.header.projectsDescription")
                         : isAppsHome
@@ -3510,6 +3513,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           ? st("studio.header.imageDescription")
                           : mode === "avatar"
                             ? st("studio.header.avatarDescription")
+                            : mode === "audio"
+                              ? st("studio.header.audioDescription")
                             : st("studio.header.videoDescription")}
                     </p>
                   </div>
@@ -3963,14 +3968,29 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 </div>
               ) : null}
 
-              <div className={`mx-auto mt-5 max-w-5xl text-center md:mt-16 ${isAppsHome || isProjectsView ? "hidden" : ""}`}>
-                <h2 className="hidden text-3xl font-semibold tracking-tight text-[#202633] sm:block md:text-5xl">
+              <div className={`${showModernWorkbenchRedesign ? "mx-auto mb-6 w-full text-center" : "mx-auto mt-5 max-w-5xl text-center md:mt-16"} ${isAppsHome || isProjectsView ? "hidden" : ""}`}>
+                <h2 className={showModernWorkbenchRedesign ? "mx-auto max-w-[900px] text-[34px] font-black leading-[0.98] tracking-[-0.06em] text-[#151827] sm:text-[clamp(42px,4.15vw,66px)]" : "hidden text-3xl font-semibold tracking-tight text-[#202633] sm:block md:text-5xl"}>
                   {st("studio.heading.createToday")}
                 </h2>
-                <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:mt-5 md:mt-7">
+                {showModernWorkbenchRedesign ? (
+                  <p className="mx-auto mt-[15px] max-w-[690px] text-[15px] leading-[1.55] text-[#7d8aa0] sm:text-[17px]">
+                    {showImageToImageRedesign
+                      ? st("studio.imageImage.heroDescription")
+                      : showImageUtilityRedesign
+                        ? st(imageWorkflow === "background-remove" ? "studio.utilityImage.backgroundHeroDescription" : "studio.utilityImage.enhanceHeroDescription")
+                        : showVideoWorkbenchRedesign
+                          ? st(videoWorkflow === "image-to-video" ? "studio.videoWorkbench.imageHeroDescription" : "studio.videoWorkbench.textHeroDescription")
+                          : showAudioWorkbenchRedesign
+                            ? st(audioWorkflow === "text-to-music" ? "studio.audioWorkbench.musicHeroDescription" : "studio.audioWorkbench.voiceHeroDescription")
+                            : showAvatarWorkbenchRedesign
+                              ? st("studio.avatarWorkbench.heroDescription")
+                              : st("studio.textImage.heroDescription")}
+                  </p>
+                ) : null}
+                <div className={showModernWorkbenchRedesign ? "mx-auto mt-6 flex justify-center" : "mt-2 flex flex-wrap items-center justify-center gap-2 sm:mt-5 md:mt-7"}>
                   {mode === "image" ? (
                     <>
-                      <div className="grid w-full max-w-[720px] grid-cols-2 rounded-2xl border border-black/[0.06] bg-white/82 p-1 shadow-sm sm:inline-grid sm:w-auto sm:max-w-none sm:grid-cols-4 sm:rounded-full">
+                      <div className={showImageWorkbenchRedesign ? "flex w-full max-w-[900px] gap-1 overflow-x-auto rounded-[22px] border border-[#7689a8]/20 bg-[#edf3fd]/75 p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_10px_24px_rgba(52,73,112,0.08)] lg:grid lg:w-fit lg:grid-cols-4 lg:overflow-visible lg:rounded-full" : "grid w-full max-w-[720px] grid-cols-2 rounded-2xl border border-black/[0.06] bg-white/82 p-1 shadow-sm sm:inline-grid sm:w-auto sm:max-w-none sm:grid-cols-4 sm:rounded-full"}>
                         {(["text-to-image", "image-to-image", "enhance-cleanup", "background-remove"] as StudioWorkflow[]).map((workflow) => {
                           const active = imageWorkflow === workflow;
                           return (
@@ -3978,7 +3998,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                               key={workflow}
                               type="button"
                               onClick={() => applyWorkflow(workflow)}
-                              className={`rounded-full px-4 py-2.5 text-sm font-semibold transition sm:py-2 ${
+                              className={`${showImageWorkbenchRedesign ? "min-w-[132px] shrink-0 rounded-[17px] px-4 py-[13px] text-sm font-black lg:min-w-[142px] lg:rounded-full" : "rounded-full px-4 py-2.5 text-sm font-semibold sm:py-2"} transition ${
                                 active
                                   ? "bg-[#202633] text-white shadow-[0_10px_24px_rgba(32,38,51,0.16)]"
                                   : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
@@ -3998,25 +4018,31 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </button>
                     </>
                   ) : mode === "video" ? (
-                    (["text-to-video", "image-to-video"] as StudioWorkflow[]).map((workflow) => {
-                      const active = activeWorkflow === workflow;
-                      return (
-                        <button
-                          key={workflow}
-                          type="button"
-                          onClick={() => applyWorkflow(workflow)}
-                          className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                            active
-                              ? "border-[#bae6fd] bg-[#e8f7ff] text-[#0284c7] shadow-sm"
-                              : "border-black/[0.06] bg-white/78 text-[#667085] hover:bg-white hover:text-[#202633]"
-                          }`}
-                        >
-                          {st(`studio.workflow.${workflow}`)}
-                        </button>
-                      );
-                    })
+                    <div className={showVideoWorkbenchRedesign ? "grid w-full max-w-[520px] grid-cols-2 gap-1 overflow-visible rounded-[22px] border border-[#7689a8]/20 bg-[#edf3fd]/75 p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_10px_24px_rgba(52,73,112,0.08)] sm:rounded-full" : "mt-2 flex flex-wrap items-center justify-center gap-2 sm:mt-5 md:mt-7"}>
+                      {(["text-to-video", "image-to-video"] as StudioWorkflow[]).map((workflow) => {
+                        const active = activeWorkflow === workflow;
+                        return (
+                          <button
+                            key={workflow}
+                            type="button"
+                            onClick={() => applyWorkflow(workflow)}
+                            className={`${showVideoWorkbenchRedesign ? "min-w-0 rounded-[17px] px-4 py-[13px] text-sm font-black sm:rounded-full" : "rounded-full border px-4 py-2 text-sm font-semibold"} transition ${
+                              active
+                                ? showVideoWorkbenchRedesign
+                                  ? "bg-[#202633] text-white shadow-[0_10px_24px_rgba(32,38,51,0.16)]"
+                                  : "border-[#bae6fd] bg-[#e8f7ff] text-[#0284c7] shadow-sm"
+                                : showVideoWorkbenchRedesign
+                                  ? "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
+                                  : "border-black/[0.06] bg-white/78 text-[#667085] hover:bg-white hover:text-[#202633]"
+                            }`}
+                          >
+                            {st(`studio.workflow.${workflow}`)}
+                          </button>
+                        );
+                      })}
+                    </div>
                   ) : mode === "audio" ? (
-                    <div className="grid w-full max-w-[560px] grid-cols-2 rounded-full border border-black/[0.06] bg-white/82 p-1 shadow-sm sm:w-auto">
+                    <div className={showAudioWorkbenchRedesign ? "grid w-full max-w-[560px] grid-cols-2 gap-1 overflow-visible rounded-[22px] border border-[#7689a8]/20 bg-[#edf3fd]/75 p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_10px_24px_rgba(52,73,112,0.08)] sm:rounded-full" : "grid w-full max-w-[560px] grid-cols-2 rounded-full border border-black/[0.06] bg-white/82 p-1 shadow-sm sm:w-auto"}>
                       {(["text-to-audio", "text-to-music"] as AudioWorkflow[]).map((workflow) => {
                         const active = audioWorkflow === workflow;
                         return (
@@ -4024,7 +4050,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             key={workflow}
                             type="button"
                             onClick={() => applyWorkflow(workflow)}
-                            className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+                            className={`${showAudioWorkbenchRedesign ? "min-w-0 rounded-[17px] px-4 py-[13px] text-sm font-black sm:rounded-full" : "rounded-full px-5 py-2.5 text-sm font-semibold"} transition ${
                               active
                                 ? "bg-[#202633] text-white shadow-[0_10px_24px_rgba(32,38,51,0.16)]"
                                 : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
@@ -4035,12 +4061,672 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         );
                       })}
                     </div>
+                  ) : mode === "avatar" ? (
+                    <div className="inline-flex rounded-[22px] border border-[#7689a8]/20 bg-[#edf3fd]/75 p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_10px_24px_rgba(52,73,112,0.08)]">
+                      <button type="button" className="min-w-[172px] rounded-[17px] bg-[#202633] px-5 py-[13px] text-sm font-black text-white shadow-[0_10px_24px_rgba(32,38,51,0.16)]">
+                        {st("studio.avatarWorkbench.tab")}
+                      </button>
+                    </div>
                   ) : null}
                 </div>
 
-                <div className="mt-4 overflow-visible rounded-[1.7rem] border border-black/[0.06] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.09)] sm:mt-5 md:mt-7 md:rounded-[2rem] md:shadow-[0_28px_80px_rgba(15,23,42,0.12)]">
-                  <div className="p-5 text-left md:p-7">
-                    {isPromptlessImageWorkflow ? (
+                <div className={`overflow-visible border border-black/[0.06] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.09)] md:shadow-[0_28px_80px_rgba(15,23,42,0.12)] ${showModernWorkbenchRedesign ? `${TEXT_IMAGE_PAGE_INNER_CLASS} mt-7 rounded-[28px] sm:rounded-[34px]` : "mt-4 rounded-[1.7rem] sm:mt-5 md:mt-7 md:rounded-[2rem]"}`}>
+                  <div className={showModernWorkbenchRedesign ? "text-left" : "p-5 text-left md:p-7"}>
+                    {showTextToImageTemplates ? (
+                      <div>
+                        <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-4 border-b border-[#758bac]/10 bg-[linear-gradient(90deg,rgba(248,251,255,0.98),rgba(255,255,255,0.75)),radial-gradient(circle_at_12%_50%,rgba(24,199,243,0.16),transparent_34%)] px-[18px] py-[18px] md:px-7">
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-[34px] w-[34px] place-items-center rounded-[13px] bg-[linear-gradient(135deg,rgba(37,99,255,0.12),rgba(24,199,243,0.18))] text-sm font-black text-[#187be6]">
+                              {"\u2726"}
+                            </span>
+                            <div>
+                              <strong className="block text-[15px] font-black tracking-[-0.01em] text-[#283249]">{st("studio.textImage.promptStudio")}</strong>
+                              <span className="mt-0.5 block text-xs font-bold text-[#91a0b6]">{st("studio.textImage.promptStudioDescription")}</span>
+                            </div>
+                          </div>
+                          <div className="inline-flex h-[34px] items-center gap-2 rounded-full bg-[#20c997]/10 px-3 text-xs font-black text-[#17916e]">
+                            <span className="h-2 w-2 rounded-full bg-[#20c997] shadow-[0_0_0_5px_rgba(32,201,151,0.12)]" />
+                            {canSubmit ? st("studio.textImage.ready") : st("studio.textImage.waiting")}
+                          </div>
+                        </div>
+
+                        <div className="px-[18px] pb-5 pt-7 md:px-7">
+                          <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
+                            <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{st("studio.textImage.yourPrompt")}</div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={improveTextToImagePrompt}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]"
+                              >
+                                <span aria-hidden="true">{"\u2728"}</span>
+                                {st("studio.textImage.improve")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPrompt("")}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]"
+                              >
+                                <span aria-hidden="true">{"\u21ba"}</span>
+                                {st("studio.action.clear")}
+                              </button>
+                              <Link
+                                href={TEXT_IMAGE_GALLERY_URL}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]"
+                              >
+                                <span aria-hidden="true">{"\u2318"}</span>
+                                {st("studio.textImage.templates")}
+                              </Link>
+                            </div>
+                          </div>
+                          <textarea
+                            dir="auto"
+                            rows={7}
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            className="min-h-[220px] w-full resize-y bg-transparent p-0 text-[18px] leading-[1.62] tracking-[-0.02em] text-[#182033] outline-none placeholder:text-[#a6b2c7] md:min-h-[255px] md:text-[22px]"
+                            placeholder={st("studio.textImage.placeholder")}
+                          />
+                          <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
+                            <span>{st("studio.textImage.tip")}</span>
+                            <span>{prompt.length.toLocaleString()} / 2,000</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : showImageToImageRedesign ? (
+                      <div>
+                        <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-4 border-b border-[#758bac]/10 bg-[linear-gradient(90deg,rgba(248,251,255,0.98),rgba(255,255,255,0.75)),radial-gradient(circle_at_12%_50%,rgba(24,199,243,0.16),transparent_34%)] px-[18px] py-[18px] md:px-7">
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-[34px] w-[34px] place-items-center rounded-[13px] bg-[linear-gradient(135deg,rgba(37,99,255,0.12),rgba(24,199,243,0.18))] text-sm font-black text-[#187be6]">
+                              +
+                            </span>
+                            <div>
+                              <strong className="block text-[15px] font-black tracking-[-0.01em] text-[#283249]">{st("studio.imageImage.referenceStudio")}</strong>
+                              <span className="mt-0.5 block text-xs font-bold text-[#91a0b6]">{st("studio.imageImage.referenceStudioDescription")}</span>
+                            </div>
+                          </div>
+                          <div className="inline-flex h-[34px] items-center gap-2 rounded-full bg-[#20c997]/10 px-3 text-xs font-black text-[#17916e]">
+                            <span className="h-2 w-2 rounded-full bg-[#20c997] shadow-[0_0_0_5px_rgba(32,201,151,0.12)]" />
+                            {referenceImageUrls.length ? st("studio.imageImage.ready") : st("studio.imageImage.addReference")}
+                          </div>
+                        </div>
+
+                        <div className="grid gap-5 px-[18px] pb-5 pt-7 md:px-7 lg:grid-cols-[0.95fr_1.05fr]">
+                          <div
+                            className="rounded-[28px] border border-dashed border-[#8fb6e8]/45 bg-[linear-gradient(135deg,rgba(232,247,255,0.72),rgba(255,255,255,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText(st("studio.status.fileReadFailed")));
+                            }}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{st("studio.imageImage.referenceImages")}</div>
+                                <p className="mt-1 max-w-md text-xs font-bold leading-5 text-[#8290a7]">{st("studio.imageImage.referenceHint")}</p>
+                              </div>
+                              <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-full border border-[#758bac]/15 bg-white px-4 text-xs font-black text-[#187be6] shadow-[0_8px_24px_rgba(42,67,112,0.08)] transition hover:-translate-y-0.5 hover:bg-white">
+                                {st("studio.action.chooseImage")}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  className="hidden"
+                                  onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText(st("studio.status.fileReadFailed")))}
+                                />
+                              </label>
+                            </div>
+                            <input
+                              value={referenceImagesText}
+                              onChange={(event) => setReferenceImagesText(event.target.value)}
+                              placeholder="https://.../image.jpg"
+                              className="mt-4 h-11 w-full rounded-2xl border border-[#758bac]/15 bg-white/85 px-4 text-sm font-bold text-[#43516a] outline-none placeholder:text-[#9aa8bd]"
+                            />
+                            {referenceImageUrls.length ? (
+                              <div className="mt-4">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                  <span className="text-xs font-black text-[#66758b]">
+                                    {st("studio.reference.count", {
+                                      count: referenceImageUrls.length,
+                                      label: st(referenceImageUrls.length === 1 ? "studio.reference.image" : "studio.reference.images")
+                                    })}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setReferenceImagesText("");
+                                      setReferenceImageFiles([]);
+                                    }}
+                                    className="text-xs font-black text-[#ef4444] transition hover:text-[#dc2626]"
+                                  >
+                                    {st("studio.action.clear")}
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                  {referenceImageUrls.slice(0, 8).map((url, index) => (
+                                    <div key={`${url}-${index}`} className="aspect-square overflow-hidden rounded-2xl border border-white bg-white shadow-[0_8px_20px_rgba(35,58,97,0.08)]">
+                                      <img src={url} alt={st("studio.reference.image")} className="h-full w-full object-cover" />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-4 grid min-h-[132px] place-items-center rounded-[24px] border border-[#758bac]/15 bg-white/55 px-5 text-center">
+                                <p className="max-w-xs text-sm font-bold leading-6 text-[#8290a7]">{st("studio.imageImage.emptyReference")}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
+                              <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{st("studio.imageImage.editPrompt")}</div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setPrompt("")}
+                                  className="inline-flex h-8 items-center rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]"
+                                >
+                                  {st("studio.action.clear")}
+                                </button>
+                                <Link
+                                  href="/gallery"
+                                  className="inline-flex h-8 items-center rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]"
+                                >
+                                  {st("studio.textImage.templates")}
+                                </Link>
+                              </div>
+                            </div>
+                            <textarea
+                              dir="auto"
+                              rows={7}
+                              value={prompt}
+                              onChange={(e) => setPrompt(e.target.value)}
+                              className="min-h-[300px] w-full resize-y bg-transparent p-0 text-[18px] leading-[1.62] tracking-[-0.02em] text-[#182033] outline-none placeholder:text-[#a6b2c7] md:text-[22px]"
+                              placeholder={st("studio.imageImage.placeholder")}
+                            />
+                            <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
+                              <span>{st("studio.imageImage.tip")}</span>
+                              <span>{prompt.length.toLocaleString()} / 2,000</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : showImageUtilityRedesign ? (
+                      <div>
+                        <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-4 border-b border-[#758bac]/10 bg-[linear-gradient(90deg,rgba(248,251,255,0.98),rgba(255,255,255,0.75)),radial-gradient(circle_at_12%_50%,rgba(24,199,243,0.16),transparent_34%)] px-[18px] py-[18px] md:px-7">
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-[34px] w-[34px] place-items-center rounded-[13px] bg-[linear-gradient(135deg,rgba(37,99,255,0.12),rgba(24,199,243,0.18))] text-sm font-black text-[#187be6]">
+                              {"\u2726"}
+                            </span>
+                            <div>
+                              <strong className="block text-[15px] font-black tracking-[-0.01em] text-[#283249]">
+                                {st(imageWorkflow === "background-remove" ? "studio.utilityImage.backgroundStudio" : "studio.utilityImage.enhanceStudio")}
+                              </strong>
+                              <span className="mt-0.5 block text-xs font-bold text-[#91a0b6]">
+                                {st(imageWorkflow === "background-remove" ? "studio.utilityImage.backgroundStudioDescription" : "studio.utilityImage.enhanceStudioDescription")}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="inline-flex h-[34px] items-center gap-2 rounded-full bg-[#20c997]/10 px-3 text-xs font-black text-[#17916e]">
+                            <span className="h-2 w-2 rounded-full bg-[#20c997] shadow-[0_0_0_5px_rgba(32,201,151,0.12)]" />
+                            {referenceImageUrls.length ? st("studio.utilityImage.ready") : st("studio.imageImage.addReference")}
+                          </div>
+                        </div>
+
+                        <div className="grid gap-5 px-[18px] pb-5 pt-7 md:px-7 lg:grid-cols-[0.95fr_1.05fr]">
+                          <div
+                            className="rounded-[28px] border border-dashed border-[#8fb6e8]/45 bg-[linear-gradient(135deg,rgba(232,247,255,0.72),rgba(255,255,255,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText(st("studio.status.fileReadFailed")));
+                            }}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{st("studio.imageImage.referenceImages")}</div>
+                                <p className="mt-1 max-w-md text-xs font-bold leading-5 text-[#8290a7]">
+                                  {st(imageWorkflow === "background-remove" ? "studio.utilityImage.backgroundReferenceHint" : "studio.utilityImage.enhanceReferenceHint")}
+                                </p>
+                              </div>
+                              <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-full border border-[#758bac]/15 bg-white px-4 text-xs font-black text-[#187be6] shadow-[0_8px_24px_rgba(42,67,112,0.08)] transition hover:-translate-y-0.5 hover:bg-white">
+                                {st("studio.action.chooseImage")}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple={!isPromptlessImageWorkflow}
+                                  className="hidden"
+                                  onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText(st("studio.status.fileReadFailed")))}
+                                />
+                              </label>
+                            </div>
+                            <input
+                              value={referenceImagesText}
+                              onChange={(event) => setReferenceImagesText(event.target.value)}
+                              placeholder="https://.../image.jpg"
+                              className="mt-4 h-11 w-full rounded-2xl border border-[#758bac]/15 bg-white/85 px-4 text-sm font-bold text-[#43516a] outline-none placeholder:text-[#9aa8bd]"
+                            />
+                            {referenceImageUrls.length ? (
+                              <div className="mt-4">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                  <span className="text-xs font-black text-[#66758b]">
+                                    {st("studio.reference.count", {
+                                      count: referenceImageUrls.length,
+                                      label: st(referenceImageUrls.length === 1 ? "studio.reference.image" : "studio.reference.images")
+                                    })}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setReferenceImagesText("");
+                                      setReferenceImageFiles([]);
+                                    }}
+                                    className="text-xs font-black text-[#ef4444] transition hover:text-[#dc2626]"
+                                  >
+                                    {st("studio.action.clear")}
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                  {referenceImageUrls.slice(0, isPromptlessImageWorkflow ? 1 : 8).map((url, index) => (
+                                    <div key={`${url}-${index}`} className="aspect-square overflow-hidden rounded-2xl border border-white bg-white shadow-[0_8px_20px_rgba(35,58,97,0.08)]">
+                                      <img src={url} alt={st("studio.reference.image")} className="h-full w-full object-cover" />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-4 grid min-h-[132px] place-items-center rounded-[24px] border border-[#758bac]/15 bg-white/55 px-5 text-center">
+                                <p className="max-w-xs text-sm font-bold leading-6 text-[#8290a7]">{st("studio.imageImage.emptyReference")}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            {imageWorkflow === "enhance-cleanup" ? (
+                              <>
+                                <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
+                                  <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{st("studio.utilityImage.enhancePrompt")}</div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPrompt("")}
+                                    className="inline-flex h-8 items-center rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]"
+                                  >
+                                    {st("studio.action.clear")}
+                                  </button>
+                                </div>
+                                <textarea
+                                  dir="auto"
+                                  rows={7}
+                                  value={prompt}
+                                  onChange={(e) => setPrompt(e.target.value)}
+                                  className="min-h-[300px] w-full resize-y bg-transparent p-0 text-[18px] leading-[1.62] tracking-[-0.02em] text-[#182033] outline-none placeholder:text-[#a6b2c7] md:text-[22px]"
+                                  placeholder={st("studio.utilityImage.enhancePlaceholder")}
+                                />
+                                <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
+                                  <span>{st("studio.utilityImage.enhanceTip")}</span>
+                                  <span>{prompt.length.toLocaleString()} / 2,000</span>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="grid min-h-[300px] place-items-center rounded-[28px] border border-[#758bac]/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,251,255,0.86))] p-6 text-center shadow-[0_8px_18px_rgba(35,58,97,0.045)]">
+                                <div>
+                                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-[20px] bg-[linear-gradient(135deg,rgba(37,99,255,0.12),rgba(24,199,243,0.18))] text-xl font-black text-[#187be6]">
+                                    {"\u2726"}
+                                  </div>
+                                  <h3 className="mt-4 text-xl font-black tracking-[-0.03em] text-[#283249]">{st("studio.utilityImage.backgroundReadyTitle")}</h3>
+                                  <p className="mx-auto mt-2 max-w-sm text-sm font-bold leading-6 text-[#8290a7]">{st("studio.utilityImage.backgroundReadyBody")}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : showAudioWorkbenchRedesign ? (
+                      <div>
+                        <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-4 border-b border-[#758bac]/10 bg-[linear-gradient(90deg,rgba(248,251,255,0.98),rgba(255,255,255,0.75)),radial-gradient(circle_at_12%_50%,rgba(24,199,243,0.16),transparent_34%)] px-[18px] py-[18px] md:px-7">
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-[34px] w-[34px] place-items-center rounded-[13px] bg-[linear-gradient(135deg,rgba(37,99,255,0.12),rgba(24,199,243,0.18))] text-sm font-black text-[#187be6]">
+                              {"\u266b"}
+                            </span>
+                            <div>
+                              <strong className="block text-[15px] font-black tracking-[-0.01em] text-[#283249]">
+                                {st(audioWorkflow === "text-to-music" ? "studio.audioWorkbench.musicStudio" : "studio.audioWorkbench.voiceStudio")}
+                              </strong>
+                              <span className="mt-0.5 block text-xs font-bold text-[#91a0b6]">
+                                {st(audioWorkflow === "text-to-music" ? "studio.audioWorkbench.musicStudioDescription" : "studio.audioWorkbench.voiceStudioDescription")}
+                              </span>
+                            </div>
+                          </div>
+                          <div className={`inline-flex h-[34px] items-center gap-2 rounded-full px-3 text-xs font-black ${canSubmit ? "bg-[#20c997]/10 text-[#17916e]" : "bg-[#fff7ed] text-[#c2410c]"}`}>
+                            <span className={`h-2 w-2 rounded-full shadow-[0_0_0_5px_rgba(32,201,151,0.12)] ${canSubmit ? "bg-[#20c997]" : "bg-[#fb923c]"}`} />
+                            {canSubmit ? st("studio.audioWorkbench.ready") : st("studio.audioWorkbench.waiting")}
+                          </div>
+                        </div>
+
+                        <div className="px-[18px] pb-5 pt-7 md:px-7">
+                          <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
+                            <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">
+                              {st(audioWorkflow === "text-to-music" ? "studio.audioWorkbench.musicPrompt" : "studio.audioWorkbench.voiceScript")}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setPrompt("")}
+                              className="inline-flex h-8 items-center rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]"
+                            >
+                              {st("studio.action.clear")}
+                            </button>
+                          </div>
+                          <textarea
+                            dir="auto"
+                            rows={7}
+                            maxLength={isMiniMaxMusic ? 2000 : undefined}
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            className="min-h-[260px] w-full resize-y bg-transparent p-0 text-[18px] leading-[1.62] tracking-[-0.02em] text-[#182033] outline-none placeholder:text-[#a6b2c7] md:min-h-[310px] md:text-[22px]"
+                            placeholder={audioWorkflow === "text-to-music" ? st("studio.music.defaultPrompt") : st("studio.placeholder.audio")}
+                          />
+                          <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
+                            <span>{st(audioWorkflow === "text-to-music" ? "studio.music.promptDescription" : "studio.audioWorkbench.voiceTip")}</span>
+                            <span>{prompt.length.toLocaleString()} / {isMiniMaxMusic ? "2,000" : "∞"}</span>
+                          </div>
+
+                          {isMiniMaxMusic ? (
+                            <div className="mt-5 rounded-[24px] border border-[#758bac]/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,251,255,0.86))] p-4 shadow-[0_8px_18px_rgba(35,58,97,0.045)]">
+                              <button
+                                type="button"
+                                onClick={() => setMusicAdvancedOpen((value) => !value)}
+                                className="flex w-full items-center justify-between gap-3 text-left"
+                              >
+                                <span>
+                                  <span className="block text-sm font-black text-[#283249]">{st("studio.music.additionalSettings")}</span>
+                                  <span className="mt-1 block text-xs font-bold text-[#8290a7]">{st("studio.music.additionalSettingsDescription")}</span>
+                                </span>
+                                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#66758b]">{musicAdvancedOpen ? st("studio.music.less") : st("studio.music.more")}</span>
+                              </button>
+                              {musicAdvancedOpen ? (
+                                <div className="mt-4 grid gap-3">
+                                  <div className="grid gap-3 sm:grid-cols-2">
+                                    <label className="flex items-center justify-between gap-4 rounded-2xl border border-[#758bac]/15 bg-white p-4">
+                                      <span>
+                                        <span className="block text-sm font-black text-[#485164]">{st("studio.music.instrumental")}</span>
+                                        <span className="mt-1 block text-xs text-[#8b95a7]">{st("studio.music.instrumentalDescription")}</span>
+                                      </span>
+                                      <input type="checkbox" checked={isInstrumental} onChange={(e) => setIsInstrumental(e.target.checked)} className="h-5 w-5" />
+                                    </label>
+                                    <label className={`flex items-center justify-between gap-4 rounded-2xl border border-[#758bac]/15 bg-white p-4 ${isInstrumental ? "opacity-50" : ""}`}>
+                                      <span>
+                                        <span className="block text-sm font-black text-[#485164]">{st("studio.music.autoLyrics")}</span>
+                                        <span className="mt-1 block text-xs text-[#8b95a7]">{st("studio.music.autoLyricsDescription")}</span>
+                                      </span>
+                                      <input type="checkbox" checked={lyricsOptimizer} disabled={isInstrumental} onChange={(e) => setLyricsOptimizer(e.target.checked)} className="h-5 w-5" />
+                                    </label>
+                                  </div>
+                                  {!isInstrumental ? (
+                                    <label className="rounded-2xl border border-[#758bac]/15 bg-white p-3">
+                                      <span className="mb-2 block text-xs font-black text-[#667085]">{st("studio.music.lyrics")}</span>
+                                      <textarea
+                                        rows={7}
+                                        maxLength={3500}
+                                        value={musicLyrics}
+                                        onChange={(e) => setMusicLyrics(e.target.value)}
+                                        disabled={lyricsOptimizer}
+                                        placeholder={st("studio.music.lyricsPlaceholder")}
+                                        className="w-full resize-y rounded-xl border border-black/[0.06] bg-[#fbfcfe] px-3 py-3 text-sm leading-6 text-[#485164] outline-none disabled:opacity-50"
+                                      />
+                                      <span className="mt-2 block text-xs leading-5 text-[#8b95a7]">{st("studio.music.lyricsDescription")}</span>
+                                      <span className="mt-2 block text-right text-xs text-[#98a2b3]">{musicLyrics.length.toLocaleString()} / 3,500</span>
+                                    </label>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : showVideoWorkbenchRedesign ? (
+                      <div>
+                        <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-4 border-b border-[#758bac]/10 bg-[linear-gradient(90deg,rgba(248,251,255,0.98),rgba(255,255,255,0.75)),radial-gradient(circle_at_12%_50%,rgba(24,199,243,0.16),transparent_34%)] px-[18px] py-[18px] md:px-7">
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-[34px] w-[34px] place-items-center rounded-[13px] bg-[linear-gradient(135deg,rgba(37,99,255,0.12),rgba(24,199,243,0.18))] text-sm font-black text-[#187be6]">
+                              {"\u25b6"}
+                            </span>
+                            <div>
+                              <strong className="block text-[15px] font-black tracking-[-0.01em] text-[#283249]">
+                                {st(videoWorkflow === "image-to-video" ? "studio.videoWorkbench.motionStudio" : "studio.videoWorkbench.promptStudio")}
+                              </strong>
+                              <span className="mt-0.5 block text-xs font-bold text-[#91a0b6]">
+                                {st(videoWorkflow === "image-to-video" ? "studio.videoWorkbench.motionStudioDescription" : "studio.videoWorkbench.promptStudioDescription")}
+                              </span>
+                            </div>
+                          </div>
+                          <div className={`inline-flex h-[34px] items-center gap-2 rounded-full px-3 text-xs font-black ${canSubmit ? "bg-[#20c997]/10 text-[#17916e]" : "bg-[#fff7ed] text-[#c2410c]"}`}>
+                            <span className={`h-2 w-2 rounded-full shadow-[0_0_0_5px_rgba(32,201,151,0.12)] ${canSubmit ? "bg-[#20c997]" : "bg-[#fb923c]"}`} />
+                            {canSubmit ? st("studio.videoWorkbench.ready") : st(videoWorkflow === "image-to-video" ? "studio.videoWorkbench.waitingImage" : "studio.videoWorkbench.waitingPrompt")}
+                          </div>
+                        </div>
+
+                        <div className={`grid gap-5 px-[18px] pb-5 pt-7 md:px-7 ${videoWorkflow === "image-to-video" ? "lg:grid-cols-[0.95fr_1.05fr]" : ""}`}>
+                          {videoWorkflow === "image-to-video" ? (
+                            <div
+                              className="rounded-[28px] border border-dashed border-[#8fb6e8]/45 bg-[linear-gradient(135deg,rgba(232,247,255,0.72),rgba(255,255,255,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                              onDragOver={(event) => event.preventDefault()}
+                              onDrop={(event) => {
+                                event.preventDefault();
+                                handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText(st("studio.status.fileReadFailed")));
+                              }}
+                            >
+                              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{st("studio.videoWorkbench.referenceImage")}</p>
+                                  <p className="mt-1 text-xs font-bold leading-5 text-[#8290a7]">{st("studio.videoWorkbench.referenceHint")}</p>
+                                </div>
+                                <label className="inline-flex h-10 cursor-pointer items-center rounded-full bg-white px-4 text-xs font-black text-[#187be6] shadow-[0_8px_24px_rgba(42,67,112,0.08)] transition hover:-translate-y-0.5">
+                                  {st("studio.action.chooseImage")}
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText(st("studio.status.fileReadFailed")))}
+                                  />
+                                </label>
+                              </div>
+                              <input
+                                value={referenceImagesText}
+                                onChange={(event) => setReferenceImagesText(event.target.value)}
+                                placeholder="https://.../image.jpg"
+                                className="h-12 w-full rounded-2xl border border-[#758bac]/15 bg-white px-4 text-sm font-bold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                              />
+                              {referenceImageUrls.length ? (
+                                <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                  {referenceImageUrls.slice(0, 4).map((url, index) => (
+                                    <div key={`${url}-${index}`} className="aspect-square overflow-hidden rounded-2xl border border-white bg-white shadow-[0_8px_20px_rgba(35,58,97,0.08)]">
+                                      <img src={url} alt={`Video reference ${index + 1}`} className="h-full w-full object-cover" />
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="mt-4 grid min-h-[132px] place-items-center rounded-[24px] border border-[#758bac]/15 bg-white/55 px-5 text-center">
+                                  <p className="max-w-xs text-sm font-bold leading-6 text-[#8290a7]">{st("studio.videoWorkbench.emptyReference")}</p>
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
+
+                          <div className="min-w-0">
+                            <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
+                              <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">
+                                {st(videoWorkflow === "image-to-video" ? "studio.videoWorkbench.motionPrompt" : "studio.videoWorkbench.yourPrompt")}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setPrompt("")}
+                                className="inline-flex h-8 items-center rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]"
+                              >
+                                {st("studio.action.clear")}
+                              </button>
+                            </div>
+                            <textarea
+                              dir="auto"
+                              rows={7}
+                              value={prompt}
+                              onChange={(e) => setPrompt(e.target.value)}
+                              className="min-h-[260px] w-full resize-y bg-transparent p-0 text-[18px] leading-[1.62] tracking-[-0.02em] text-[#182033] outline-none placeholder:text-[#a6b2c7] md:min-h-[310px] md:text-[22px]"
+                              placeholder={st(videoWorkflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")}
+                            />
+                            <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
+                              <span>{st(videoWorkflow === "image-to-video" ? "studio.videoWorkbench.motionTip" : "studio.videoWorkbench.promptTip")}</span>
+                              <span>{prompt.length.toLocaleString()} / 2,000</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : showAvatarWorkbenchRedesign ? (
+                      <div>
+                        <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-4 border-b border-[#758bac]/10 bg-[linear-gradient(90deg,rgba(248,251,255,0.98),rgba(255,255,255,0.75)),radial-gradient(circle_at_12%_50%,rgba(24,199,243,0.16),transparent_34%)] px-[18px] py-[18px] md:px-7">
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-[34px] w-[34px] place-items-center rounded-[13px] bg-[linear-gradient(135deg,rgba(37,99,255,0.12),rgba(24,199,243,0.18))] text-sm font-black text-[#187be6]">
+                              {"\u25b6"}
+                            </span>
+                            <div>
+                              <strong className="block text-[15px] font-black tracking-[-0.01em] text-[#283249]">{st("studio.avatarWorkbench.studio")}</strong>
+                              <span className="mt-0.5 block text-xs font-bold text-[#91a0b6]">{st("studio.avatarWorkbench.studioDescription")}</span>
+                            </div>
+                          </div>
+                          <div className={`inline-flex h-[34px] items-center gap-2 rounded-full px-3 text-xs font-black ${canSubmit ? "bg-[#20c997]/10 text-[#17916e]" : "bg-[#fff7ed] text-[#c2410c]"}`}>
+                            <span className={`h-2 w-2 rounded-full shadow-[0_0_0_5px_rgba(32,201,151,0.12)] ${canSubmit ? "bg-[#20c997]" : "bg-[#fb923c]"}`} />
+                            {canSubmit ? st("studio.avatarWorkbench.ready") : st("studio.avatarWorkbench.waiting")}
+                          </div>
+                        </div>
+
+                        <div className="grid gap-5 px-[18px] pb-5 pt-7 md:px-7 lg:grid-cols-[0.95fr_1.05fr]">
+                          <div
+                            className="rounded-[28px] border border-dashed border-[#8fb6e8]/45 bg-[linear-gradient(135deg,rgba(232,247,255,0.72),rgba(255,255,255,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              handleReferenceFiles(event.dataTransfer.files).catch(() => setStatusText(st("studio.status.fileReadFailed")));
+                            }}
+                          >
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <p className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{st("studio.field.avatarImage")}</p>
+                                <p className="mt-1 text-xs font-bold leading-5 text-[#8290a7]">{st("studio.reference.avatarHint")}</p>
+                              </div>
+                              <label className="inline-flex h-10 cursor-pointer items-center rounded-full bg-white px-4 text-xs font-black text-[#187be6] shadow-[0_8px_24px_rgba(42,67,112,0.08)] transition hover:-translate-y-0.5">
+                                {st("studio.action.chooseImage")}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(event) => handleReferenceFiles(event.target.files).catch(() => setStatusText(st("studio.status.fileReadFailed")))}
+                                />
+                              </label>
+                            </div>
+                            <input
+                              value={referenceImagesText}
+                              onChange={(event) => setReferenceImagesText(event.target.value)}
+                              placeholder="https://.../avatar.jpg"
+                              className="h-12 w-full rounded-2xl border border-[#758bac]/15 bg-white px-4 text-sm font-bold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                            />
+                            {referenceImageUrls.length ? (
+                              <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                {referenceImageUrls.slice(0, 4).map((url, index) => (
+                                  <div key={`${url}-${index}`} className="aspect-square overflow-hidden rounded-2xl border border-white bg-white shadow-[0_8px_20px_rgba(35,58,97,0.08)]">
+                                    <img src={url} alt={`Avatar input ${index + 1}`} className="h-full w-full object-cover" />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={startAvatarImageGuide}
+                                className="mt-4 block w-full rounded-[24px] border border-[#758bac]/15 bg-white/55 px-5 py-5 text-left transition hover:bg-white"
+                              >
+                                <span className="text-xs font-black uppercase tracking-[0.12em] text-[#2563eb]">{st("studio.avatar.guideEyebrow")}</span>
+                                <span className="mt-2 block text-sm font-black text-[#283249]">{st("studio.avatar.guideTitle")}</span>
+                                <span className="mt-1 block text-xs font-bold leading-5 text-[#8290a7]">{st("studio.avatar.guideDescription")}</span>
+                              </button>
+                            )}
+                            {!isDreamfaceTalkingAvatar ? (
+                              <div className="mt-4 overflow-hidden rounded-[24px] border border-[#758bac]/15 bg-[#0f172a] shadow-[0_8px_20px_rgba(35,58,97,0.08)]">
+                                <video src={KLING_AVATAR_PREVIEW_VIDEO_URL} controls muted playsInline preload="metadata" className="aspect-video w-full bg-black object-cover" />
+                                <div className="border-t border-white/10 px-4 py-3">
+                                  <p className="text-xs font-black text-white/82">{st("studio.avatar.example")}</p>
+                                  <p className="mt-1 text-xs leading-5 text-white/48">{st("studio.avatar.exampleDescription")}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
+                              <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{st("studio.avatarWorkbench.script")}</div>
+                              <span className={`rounded-full px-3 py-1 text-xs font-black ${avatarScriptTooLong ? "bg-[#fff1f2] text-[#e11d48]" : "bg-[#f0fdf4] text-[#16a34a]"}`}>
+                                {avatarScriptMeta}
+                              </span>
+                            </div>
+                            <textarea
+                              dir="auto"
+                              rows={7}
+                              value={prompt}
+                              onChange={(e) => setPrompt(e.target.value)}
+                              className="min-h-[260px] w-full resize-y bg-transparent p-0 text-[18px] leading-[1.62] tracking-[-0.02em] text-[#182033] outline-none placeholder:text-[#a6b2c7] md:min-h-[310px] md:text-[22px]"
+                              placeholder={st("studio.placeholder.avatar")}
+                            />
+                            <div className={`mt-[18px] text-xs font-extrabold leading-5 ${avatarScriptTooLong ? "text-[#e11d48]" : "text-[#96a2b7]"}`}>
+                              {avatarScriptTooLong
+                                ? st("studio.avatar.scriptTooLong")
+                                : isDreamfaceTalkingAvatar
+                                  ? st("studio.avatarWorkbench.dreamfaceHint")
+                                  : st("studio.avatar.billingHint", { duration: avatarDuration })}
+                            </div>
+
+                            {!isDreamfaceTalkingAvatar ? (
+                              <div className="mt-5 rounded-[24px] border border-[#758bac]/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,251,255,0.86))] p-4 shadow-[0_8px_18px_rgba(35,58,97,0.045)]">
+                                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                                  <span className="text-sm font-black text-[#283249]">{st("studio.avatar.voice")}</span>
+                                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#66758b]">{ttsVoice}</span>
+                                </div>
+                                <div className="mb-3 inline-grid grid-cols-3 rounded-full border border-[#758bac]/15 bg-white p-1 shadow-[0_8px_24px_rgba(42,67,112,0.08)]">
+                                  {ELEVENLABS_VOICE_GENDER_OPTIONS.map((option) => (
+                                    <button
+                                      key={option.value}
+                                      type="button"
+                                      onClick={() => setAvatarVoiceGender(option.value)}
+                                      className={`rounded-full px-3 py-1.5 text-xs font-black transition ${
+                                        avatarVoiceGender === option.value
+                                          ? "bg-[#202633] text-white shadow-[0_8px_20px_rgba(32,38,51,0.14)]"
+                                          : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
+                                      }`}
+                                    >
+                                      {st(`studio.voiceGender.${option.value}`)}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="grid gap-3 md:grid-cols-3">
+                                  <select value={ttsVoice} onChange={(e) => setTtsVoice(e.target.value)} className="min-h-12 rounded-2xl border border-[#758bac]/15 bg-white px-4 text-sm font-bold text-[#485164] outline-none">
+                                    {avatarVoiceOptions.map((voice) => (
+                                      <option key={voice} value={voice}>{voice}</option>
+                                    ))}
+                                  </select>
+                                  <select value={ttsLanguageCode} onChange={(e) => setTtsLanguageCode(e.target.value)} className="min-h-12 rounded-2xl border border-[#758bac]/15 bg-white px-4 text-sm font-bold text-[#485164] outline-none">
+                                    {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
+                                      <option key={item.value || "auto"} value={item.value}>
+                                        {st(`studio.languageOption.${item.value || "auto"}`)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <label className="rounded-2xl border border-[#758bac]/15 bg-white px-4 py-2.5">
+                                    <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-[#8791a3]">{st("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
+                                    <input type="range" min="0" max="1" step="0.05" value={ttsStability} onChange={(e) => setTtsStability(Number(e.target.value))} className="mt-1 w-full accent-[#202633]" />
+                                  </label>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ) : isPromptlessImageWorkflow ? (
                       <div
                         className="rounded-2xl border border-dashed border-[#cbd5e1] bg-[#fbfdff] p-4"
                         onDragOver={(event) => event.preventDefault()}
@@ -4094,7 +4780,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         }
                       />
                     )}
-                    {referenceImageUrls.length ? (
+                    {!showModernWorkbenchRedesign && referenceImageUrls.length ? (
                       <div className="mt-4 border-t border-black/[0.06] pt-4">
                         <div className="mb-3 flex items-center justify-between">
                           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8791a3]">
@@ -4125,7 +4811,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </div>
                       </div>
                     ) : null}
-                    {isAvatarWorkflow ? (
+                    {!showModernWorkbenchRedesign && isAvatarWorkflow ? (
                       <div className="mt-4 border-t border-black/[0.06] pt-4">
                         <div
                           className="mb-4 rounded-2xl border border-dashed border-[#cbd5e1] bg-[#fbfdff] p-4"
@@ -4298,7 +4984,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     ) : null}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2.5 border-t border-black/[0.06] bg-[#fbfcff] px-5 py-4 sm:flex sm:flex-wrap sm:items-center md:px-7">
+                  <div className={showModernWorkbenchRedesign ? "hidden" : "grid grid-cols-2 gap-2.5 border-t border-black/[0.06] bg-[#fbfcff] px-5 py-4 sm:flex sm:flex-wrap sm:items-center md:px-7"}>
                     {mode !== "audio" && !isPromptlessImageWorkflow ? (
                     <label
                       title={st("studio.action.addReference")}
@@ -4332,7 +5018,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             <span className="block truncate">{selectedProviderMeta.label}</span>
                             <span className="mt-0.5 block truncate text-[11px] font-medium text-[#8b95a7]">{st(`studio.modelSelect.desc.${provider}`)}</span>
                           </span>
-                          <span className={`shrink-0 text-base text-[#64748b] transition ${toolbarModelSelectOpen ? "rotate-180" : ""}`}>⌄</span>
+                          <span className={`shrink-0 text-base text-[#64748b] transition ${toolbarModelSelectOpen ? "rotate-180" : ""}`}>v</span>
                         </button>
                         {toolbarModelSelectOpen ? (
                           <div
@@ -4542,7 +5228,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       {st("studio.dreamfaceIo.qualityHint")}
                     </p>
                   ) : null}
-                  {mode === "audio" ? (
+                  {mode === "audio" && !showAudioWorkbenchRedesign ? (
                     <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">{st("studio.field.modelSettings")}</p>
@@ -4714,6 +5400,642 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           ) : null}
                         </div>
                       )}
+                    </div>
+                  ) : showImageWorkbenchRedesign ? (
+                    <div className="border-t border-[#758bac]/10 bg-[linear-gradient(180deg,rgba(250,252,255,0.82),rgba(255,255,255,0.95))] px-[18px] py-5 text-left md:px-7 md:pb-7">
+                      <div className="mb-4 grid gap-3 lg:flex lg:items-center lg:justify-between">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <select
+                            value={provider}
+                            onChange={(e) => applyProvider(e.target.value)}
+                            className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none"
+                          >
+                            {options.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {PROVIDER_META[option.value]?.label || option.label}
+                              </option>
+                            ))}
+                          </select>
+                          {isNanoBananaProvider(provider) ? (
+                            <select
+                              value={ratio}
+                              onChange={(e) => {
+                                trackEvent("studio_size_selected", { mode, provider, ratio: e.target.value }, accessToken);
+                                setRatio(e.target.value);
+                              }}
+                              className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none"
+                            >
+                              {(provider === "nano-banana-pro" || provider === "nano-banana-2-lite" ? NANO_ASPECT_RATIO_OPTIONS.filter((item) => !["4:1", "1:4", "8:1", "1:8"].includes(item)) : NANO_ASPECT_RATIO_OPTIONS).map((item) => (
+                                <option key={item} value={item}>
+                                  {item === "auto" ? st("studio.option.autoRatio") : item}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <select
+                              value={imageSize}
+                              onChange={(e) => {
+                                trackEvent("studio_size_selected", { mode, provider, image_size: e.target.value, ratio: ratioFromImageSize(e.target.value) }, accessToken);
+                                setImageSize(e.target.value);
+                                setRatio(ratioFromImageSize(e.target.value));
+                              }}
+                              className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none"
+                            >
+                              {IMAGE_SIZE_PRESETS.map((preset) => (
+                                <option key={preset.value} value={preset.value}>
+                                  {preset.label}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleGenerate}
+                          disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                          className="inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-[radial-gradient(circle_at_12%_12%,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,#ff8a00_0%,#ff3d81_45%,#7c3cff_100%)] px-6 text-base font-black text-white shadow-[0_22px_48px_rgba(255,61,129,0.28),0_10px_28px_rgba(124,60,255,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 lg:w-auto lg:min-w-[248px]"
+                        >
+                          <span>{isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}</span>
+                          {accessToken ? (
+                            <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">
+                              {estCredits} {st("studio.common.credits")}
+                            </span>
+                          ) : null}
+                          <span className="grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
+                        </button>
+                      </div>
+
+                      <div className={showImageUtilityRedesign ? "hidden" : "grid gap-3 md:grid-cols-2 lg:grid-cols-[1.05fr_1fr_0.95fr_0.95fr]"}>
+                        {provider === "chatgpt-image" ? (
+                          <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                            <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                              <span>{st("studio.field.quality")}</span>
+                              <span>{st("studio.textImage.costOptimized")}</span>
+                            </div>
+                            <div className="grid grid-cols-4 gap-1.5">
+                              {(["auto", "low", "medium", "high"] as const).map((quality) => (
+                                <button key={quality} type="button" onClick={() => setImageQuality(quality)} className={`h-10 rounded-[0.9rem] text-xs font-black capitalize transition ${imageQuality === quality ? "bg-[#151b2a] text-white shadow-[0_10px_18px_rgba(17,24,39,0.18)]" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                  {quality}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {showImageToImageRedesign && (provider === "nano-banana-image" || provider === "nano-banana-pro") ? (
+                          <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                            <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                              <span>{st("studio.field.resolution")}</span>
+                              <span>{editResolution}</span>
+                            </div>
+                            <div className="grid grid-cols-4 gap-1.5">
+                              {(provider === "nano-banana-pro" ? ["1K", "2K", "4K"] : ["0.5K", "1K", "2K", "4K"]).map((resolution) => (
+                                <button key={resolution} type="button" onClick={() => setEditResolution(resolution)} className={`h-10 rounded-[0.9rem] text-xs font-black transition ${editResolution === resolution ? "bg-[#151b2a] text-white shadow-[0_10px_18px_rgba(17,24,39,0.18)]" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                  {resolution}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {showImageToImageRedesign && (provider === "flux-image" || provider === "flux-dev") ? (
+                          <>
+                            <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                              <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                                <span>{st("studio.field.steps")}</span>
+                                <span>{numInferenceSteps}</span>
+                              </div>
+                              <div className="grid grid-cols-5 gap-1.5">
+                                {(provider === "flux-image" ? [1, 2, 4, 8, 12] : [4, 8, 16, 28, 50]).map((steps) => (
+                                  <button key={steps} type="button" onClick={() => setNumInferenceSteps(steps)} className={`h-10 rounded-[0.9rem] text-xs font-black transition ${numInferenceSteps === steps ? "bg-[#151b2a] text-white shadow-[0_10px_18px_rgba(17,24,39,0.18)]" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                    {steps}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                              <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                                <span>{st("studio.field.guidance")}</span>
+                                <span>{guidanceScale}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="1"
+                                max="20"
+                                step="0.5"
+                                value={guidanceScale}
+                                onChange={(e) => setGuidanceScale(Number(e.target.value))}
+                                className="w-full accent-[#151b2a]"
+                              />
+                            </div>
+                          </>
+                        ) : null}
+                        <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                          <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                            <span>{st("studio.field.output")}</span>
+                            <span>{st("studio.field.outputFormat")}</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {(provider === "flux-image" || provider === "flux-dev" ? ["jpeg", "png"] : ["png", "jpeg", "webp"]).map((format) => (
+                              <button key={format} type="button" onClick={() => setOutputFormat(format)} className={`h-10 rounded-[0.9rem] text-xs font-black uppercase transition ${outputFormat === format ? "bg-[#151b2a] text-white shadow-[0_10px_18px_rgba(17,24,39,0.18)]" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                {format}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                          <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                            <span>{st("studio.field.count")}</span>
+                            <span>{st("studio.textImage.images")}</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {[1, 2, 3, 4].map((count) => (
+                              <button key={count} type="button" onClick={() => setNumImages(count)} className={`h-10 rounded-[0.9rem] text-xs font-black transition ${numImages === count ? "bg-[#151b2a] text-white shadow-[0_10px_18px_rgba(17,24,39,0.18)]" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                {count}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                          <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                            <span>{st("studio.field.seed")}</span>
+                            <span>{st("studio.textImage.optional")}</span>
+                          </div>
+                          <input
+                            value={seed}
+                            onChange={(e) => setSeed(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
+                            placeholder={st("studio.placeholder.random")}
+                            inputMode="numeric"
+                            className="h-10 w-full rounded-[0.9rem] border border-black/[0.06] bg-[#fbfcfe] px-3 text-sm font-black text-[#66758b] outline-none placeholder:text-[#8b98ad]"
+                          />
+                        </div>
+                        {showImageToImageRedesign && (provider === "flux-image" || provider === "flux-dev") ? (
+                          <>
+                            <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                              <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                                <span>{st("studio.field.safety")}</span>
+                                <span>{enableSafetyChecker ? st("studio.state.enabled") : st("studio.state.disabled")}</span>
+                              </div>
+                              <button type="button" onClick={() => setEnableSafetyChecker((value) => !value)} className={`h-10 w-full rounded-[0.9rem] text-xs font-black transition ${enableSafetyChecker ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                {enableSafetyChecker ? st("studio.state.enabled") : st("studio.state.disabled")}
+                              </button>
+                            </div>
+                            <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                              <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                                <span>{st("studio.field.acceleration")}</span>
+                                <span className="capitalize">{acceleration}</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-1.5">
+                                {["none", "regular", "high"].map((item) => (
+                                  <button key={item} type="button" onClick={() => setAcceleration(item)} className={`h-10 rounded-[0.9rem] text-xs font-black capitalize transition ${acceleration === item ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                    {item}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        ) : null}
+                        {showImageToImageRedesign && isNanoBananaProvider(provider) ? (
+                          <>
+                            <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                              <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                                <span>{st("studio.field.safetyTolerance")}</span>
+                                <span>{safetyTolerance}</span>
+                              </div>
+                              <div className="grid grid-cols-6 gap-1.5">
+                                {["1", "2", "3", "4", "5", "6"].map((item) => (
+                                  <button key={item} type="button" onClick={() => setSafetyTolerance(item)} className={`h-10 rounded-[0.9rem] text-xs font-black transition ${safetyTolerance === item ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                    {item}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                              <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                                <span>{st("studio.field.limitGenerations")}</span>
+                                <span>{limitGenerations ? st("studio.state.on") : st("studio.state.off")}</span>
+                              </div>
+                              <button type="button" onClick={() => setLimitGenerations((value) => !value)} className={`h-10 w-full rounded-[0.9rem] text-xs font-black transition ${limitGenerations ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                {limitGenerations ? st("studio.state.on") : st("studio.state.off")}
+                              </button>
+                            </div>
+                          </>
+                        ) : null}
+                        {showImageToImageRedesign && (provider === "nano-banana-image" || provider === "nano-banana-pro") ? (
+                          <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                            <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                              <span>{st("studio.field.webSearch")}</span>
+                              <span>{enableWebSearch ? st("studio.state.enabled") : st("studio.state.disabled")}</span>
+                            </div>
+                            <button type="button" onClick={() => setEnableWebSearch((value) => !value)} className={`h-10 w-full rounded-[0.9rem] text-xs font-black transition ${enableWebSearch ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                              {enableWebSearch ? st("studio.state.enabled") : st("studio.state.disabled")}
+                            </button>
+                          </div>
+                        ) : null}
+                        {showImageToImageRedesign && (provider === "nano-banana-image" || isNanoBananaLiteProvider(provider)) ? (
+                          <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                            <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                              <span>{st("studio.field.thinking")}</span>
+                              <span>{thinkingLevel || st("studio.state.off")}</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-1.5">
+                              {[
+                                { value: "", label: st("studio.state.off") },
+                                { value: "minimal", label: st("studio.state.minimal") },
+                                { value: "high", label: st("studio.state.high") }
+                              ].map((item) => (
+                                <button key={item.value || "off"} type="button" onClick={() => setThinkingLevel(item.value)} className={`h-10 rounded-[0.9rem] text-xs font-black transition ${thinkingLevel === item.value ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                  {item.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {showImageToImageRedesign && isNanoBananaProvider(provider) ? (
+                          <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)] lg:col-span-2">
+                            <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                              <span>{st("studio.field.systemPrompt")}</span>
+                              <span>{st("studio.textImage.optional")}</span>
+                            </div>
+                            <textarea
+                              dir="auto"
+                              rows={2}
+                              value={systemPrompt}
+                              onChange={(e) => setSystemPrompt(e.target.value)}
+                              placeholder={st("studio.placeholder.system")}
+                              className="w-full resize-none rounded-[0.9rem] border border-black/[0.06] bg-[#fbfcfe] px-3 py-2 text-sm font-bold leading-5 text-[#66758b] outline-none placeholder:text-[#8b98ad]"
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="mt-3.5 grid gap-3 md:grid-cols-3">
+                        {[
+                          {
+                            icon: "$",
+                            title: st("studio.textImage.hintCostTitle"),
+                            body: st(showImageUtilityRedesign ? "studio.utilityImage.hintCostBody" : "studio.textImage.hintCostBody")
+                          },
+                          {
+                            icon: "@",
+                            title: st(showImageUtilityRedesign ? "studio.utilityImage.hintReferenceTitle" : "studio.textImage.hintPromptTitle"),
+                            body: st(showImageUtilityRedesign ? "studio.utilityImage.hintReferenceBody" : "studio.textImage.hintPromptBody")
+                          },
+                          {
+                            icon: "*",
+                            title: st(showImageUtilityRedesign ? "studio.utilityImage.hintOutputTitle" : "studio.textImage.hintPaidTitle"),
+                            body: st(showImageUtilityRedesign ? "studio.utilityImage.hintOutputBody" : "studio.textImage.hintPaidBody")
+                          }
+                        ].map((card) => (
+                          <div key={card.title} className="grid min-h-[74px] grid-cols-[36px_1fr] items-start gap-3 rounded-[22px] border border-[#758bac]/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,251,255,0.86))] p-3.5 shadow-[0_8px_18px_rgba(35,58,97,0.045)]">
+                            <span className="grid h-9 w-9 place-items-center rounded-[14px] bg-[linear-gradient(135deg,rgba(255,138,0,0.13),rgba(255,61,129,0.13))]">{card.icon}</span>
+                            <span>
+                              <strong className="block text-[13px] font-black text-[#33405a]">{card.title}</strong>
+                              <span className="mt-1 block text-xs font-bold leading-[1.35] text-[#8390a6]">{card.body}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : showAudioWorkbenchRedesign ? (
+                    <div className="border-t border-[#758bac]/10 bg-[linear-gradient(180deg,rgba(250,252,255,0.82),rgba(255,255,255,0.95))] px-[18px] py-5 text-left md:px-7 md:pb-7">
+                      <div className="mb-4 grid gap-3 lg:flex lg:items-center lg:justify-between">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <select
+                            value={provider}
+                            onChange={(e) => applyProvider(e.target.value)}
+                            className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none"
+                          >
+                            {options.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {PROVIDER_META[option.value]?.label || option.label}
+                              </option>
+                            ))}
+                          </select>
+                          {isElevenLabsAudio ? (
+                            <>
+                              <select value={ttsVoice} onChange={(e) => setTtsVoice(e.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+                                {audioVoiceOptions.map((voice) => (
+                                  <option key={voice} value={voice}>{voice}</option>
+                                ))}
+                              </select>
+                              <select value={ttsLanguageCode} onChange={(e) => setTtsLanguageCode(e.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+                                {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
+                                  <option key={item.value || "auto"} value={item.value}>
+                                    {st(`studio.languageOption.${item.value || "auto"}`)}
+                                  </option>
+                                ))}
+                              </select>
+                              <button type="button" onClick={() => setTtsTimestamps((value) => !value)} className={`inline-flex min-h-[45px] items-center rounded-full border px-5 text-base font-black shadow-[0_8px_24px_rgba(42,67,112,0.08)] ${ttsTimestamps ? "border-[#20c997]/25 bg-[#20c997]/10 text-[#17916e]" : "border-[#758bac]/15 bg-white text-[#66758b]"}`}>
+                                {st("studio.field.wordTimestamps")}: {ttsTimestamps ? st("studio.state.on") : st("studio.state.off")}
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <select value={musicSampleRate} onChange={(e) => setMusicSampleRate(Number(e.target.value))} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+                                {[16000, 24000, 32000, 44100].map((value) => <option key={value} value={value}>{value} Hz</option>)}
+                              </select>
+                              <select value={musicBitrate} onChange={(e) => setMusicBitrate(Number(e.target.value))} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+                                {[32000, 64000, 128000, 256000].map((value) => <option key={value} value={value}>{value / 1000} kbps</option>)}
+                              </select>
+                              <select value={musicFormat} onChange={(e) => setMusicFormat(e.target.value as "mp3" | "wav" | "pcm")} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black uppercase text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+                                {(["mp3", "wav", "pcm"] as const).map((value) => <option key={value} value={value}>{value}</option>)}
+                              </select>
+                            </>
+                          )}
+                          <span className="inline-flex min-h-[45px] items-center rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)]">
+                            {estCredits} {st("studio.common.credits")}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleGenerate}
+                          disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                          className="inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-[radial-gradient(circle_at_12%_12%,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,#ff8a00_0%,#ff3d81_45%,#7c3cff_100%)] px-6 text-base font-black text-white shadow-[0_22px_48px_rgba(255,61,129,0.28),0_10px_28px_rgba(124,60,255,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 lg:w-auto lg:min-w-[248px]"
+                        >
+                          <span>{isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}</span>
+                          {accessToken ? (
+                            <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">
+                              {estCredits} {st("studio.common.credits")}
+                            </span>
+                          ) : null}
+                          <span className="grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
+                        </button>
+                      </div>
+
+                      {isElevenLabsAudio ? (
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                            <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+                              <span>{st("studio.music.voiceGender")}</span>
+                              <span>{st(`studio.music.${audioVoiceGender}`)}</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-1.5">
+                              {ELEVENLABS_VOICE_GENDER_OPTIONS.map((option) => (
+                                <button key={option.value} type="button" onClick={() => setAudioVoiceGender(option.value)} className={`h-10 rounded-[0.9rem] text-xs font-black transition ${audioVoiceGender === option.value ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                                  {st(`studio.music.${option.value}`)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <label className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                            <span className="mb-3 block text-xs font-black text-[#6e7d95]">{st("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
+                            <input type="range" min="0" max="1" step="0.05" value={ttsStability} onChange={(e) => setTtsStability(Number(e.target.value))} className="w-full accent-[#151b2a]" />
+                          </label>
+                          <label className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+                            <span className="mb-3 block text-xs font-black text-[#6e7d95]">{st("studio.field.textNormalization")}</span>
+                            <select value={textNormalization} onChange={(e) => setTextNormalization(e.target.value)} className="h-10 w-full rounded-[0.9rem] border border-black/[0.06] bg-[#fbfcfe] px-3 text-sm font-black text-[#66758b] outline-none">
+                              {TEXT_NORMALIZATION_OPTIONS.map((item) => (
+                                <option key={item.value} value={item.value}>{st(`studio.textNormalization.${item.value}`)}</option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : showVideoWorkbenchRedesign ? (
+                    <div className="border-t border-[#758bac]/10 bg-[linear-gradient(180deg,rgba(250,252,255,0.82),rgba(255,255,255,0.95))] px-[18px] py-5 text-left md:px-7 md:pb-7">
+                      <div className="mb-4 grid gap-3 lg:flex lg:items-center lg:justify-between">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="relative z-[70] w-full sm:w-auto" ref={modelSelectRef}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setModelSelectPlacement(getModelSelectPlacement(modelSelectRef.current));
+                                setModelSelectOpen((open) => !open);
+                              }}
+                              className="inline-flex min-h-[45px] w-full items-center justify-between gap-4 rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none transition hover:bg-[#fbfdff] sm:w-auto sm:min-w-[240px]"
+                              aria-haspopup="listbox"
+                              aria-expanded={modelSelectOpen}
+                            >
+                              <span className="truncate">{selectedProviderMeta.label}</span>
+                              <span className={`shrink-0 text-base transition ${modelSelectOpen ? "rotate-180" : ""}`}>v</span>
+                            </button>
+                            {modelSelectOpen ? (
+                              <div
+                                className="fixed left-1/2 top-1/2 z-[200] max-h-[min(76vh,620px)] w-[min(calc(100vw-2rem),640px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-[1.35rem] border border-[#758bac]/15 bg-[#fbfdff]/98 text-[#263244] shadow-[0_24px_70px_rgba(42,67,112,0.22)] backdrop-blur-xl"
+                                role="listbox"
+                              >
+                                {videoModelGroups.map((group) => {
+                                  const groupOptions = options.filter((option) => videoModelGroup(option.value) === group.key);
+                                  if (!groupOptions.length) return null;
+                                  return (
+                                    <div key={group.key}>
+                                      <div className="bg-gradient-to-b from-[#f8fafc] to-white/0 px-5 py-3 pb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#9aa6b8]">
+                                        {group.label}
+                                      </div>
+                                      {groupOptions.map((option) => {
+                                        const meta = PROVIDER_META[option.value] || {
+                                          label: option.label,
+                                          shortLabel: option.label,
+                                          speed: "Standard",
+                                          quality: "Balanced",
+                                          bestFor: "General generation"
+                                        };
+                                        const active = provider === option.value;
+                                        const modelCredits = estimateGenerationCredits({
+                                          mode: "video",
+                                          provider: option.value,
+                                          duration,
+                                          hasReferences: activeWorkflow === "image-to-video",
+                                          resolution: defaultVideoResolutionForProvider(option.value),
+                                          promptText: undefined
+                                        });
+                                        const badge = videoModelBadge(option.value);
+                                        return (
+                                          <button
+                                            key={option.value}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={active}
+                                            onClick={() => {
+                                              applyProvider(option.value);
+                                              setModelSelectOpen(false);
+                                            }}
+                                            className={`flex w-full items-center justify-between gap-4 border-t border-[#e2e8f0]/80 px-5 py-4 text-left transition hover:bg-[#f5f9ff] ${active ? "bg-gradient-to-r from-[#eef8ff] to-white" : "bg-transparent"}`}
+                                          >
+                                            <span className="min-w-0">
+                                              <span className="block text-[15px] font-black text-[#263244]">{meta.label}</span>
+                                              <span className="mt-1 block text-xs leading-5 text-[#7f8ca3]">{st(`studio.modelSelect.desc.${option.value}`)}</span>
+                                            </span>
+                                            <span className="flex shrink-0 items-center gap-2">
+                                              {option.value !== "dreamface-io-video" ? (
+                                                <span className="text-xs font-bold text-[#64748b]">{st("studio.modelSelect.credits", { credits: modelCredits })}</span>
+                                              ) : null}
+                                              {badge ? (
+                                                <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                                  badge === "free"
+                                                    ? "bg-[#eef2f7] text-[#536071]"
+                                                    : badge === "recommended"
+                                                      ? "bg-gradient-to-br from-[#2563eb] to-[#0ea5e9] text-white"
+                                                      : badge === "pro"
+                                                        ? "bg-[#f3e8ff] text-[#7e22ce]"
+                                                        : "bg-[#fff4ce] text-[#9a6412]"
+                                                }`}>
+                                                  {st(`studio.modelSelect.badge.${badge}`)}
+                                                </span>
+                                              ) : null}
+                                            </span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : null}
+                          </div>
+                          <select value={duration} onChange={(e) => setDuration(e.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+                            {videoDurationOptions.map((item) => (
+                              <option key={item} value={item}>{item}</option>
+                            ))}
+                          </select>
+                          <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={provider === "kling-video" && activeWorkflow === "image-to-video"} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none disabled:opacity-70">
+                            {videoRatioOptions.map((item) => (
+                              <option key={item} value={item}>{item === "source" ? st("studio.option.sourceImage") : item}</option>
+                            ))}
+                          </select>
+                          {showVideoResolutionControl ? (
+                            <select value={videoResolution} onChange={(e) => setVideoResolution(e.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+                              {videoResolutionOptions.map((item) => (
+                                <option key={item} value={item}>{item}</option>
+                              ))}
+                            </select>
+                          ) : null}
+                          {showVideoAudioControl ? (
+                            <button
+                              type="button"
+                              onClick={() => setGenerateAudio((value) => !value)}
+                              className={`inline-flex min-h-[45px] items-center rounded-full border px-5 text-base font-black shadow-[0_8px_24px_rgba(42,67,112,0.08)] ${generateAudio ? "border-[#20c997]/25 bg-[#20c997]/10 text-[#17916e]" : "border-[#758bac]/15 bg-white text-[#66758b]"}`}
+                            >
+                              {st("studio.field.nativeAudio")}: {generateAudio ? st("studio.state.on") : st("studio.state.off")}
+                            </button>
+                          ) : null}
+                          <span className="inline-flex min-h-[45px] items-center rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)]">
+                            {estCredits} {st("studio.common.credits")}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleGenerate}
+                          disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                          className="inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-[radial-gradient(circle_at_12%_12%,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,#ff8a00_0%,#ff3d81_45%,#7c3cff_100%)] px-6 text-base font-black text-white shadow-[0_22px_48px_rgba(255,61,129,0.28),0_10px_28px_rgba(124,60,255,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 lg:w-auto lg:min-w-[248px]"
+                        >
+                          <span>{isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}</span>
+                          {accessToken ? (
+                            <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">
+                              {estCredits} {st("studio.common.credits")}
+                            </span>
+                          ) : null}
+                          <span className="grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
+                        </button>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-3">
+                        {[
+                          {
+                            icon: "$",
+                            title: st("studio.textImage.hintCostTitle"),
+                            body: st("studio.videoWorkbench.hintCostBody")
+                          },
+                          {
+                            icon: "@",
+                            title: st(videoWorkflow === "image-to-video" ? "studio.videoWorkbench.hintReferenceTitle" : "studio.videoWorkbench.hintPromptTitle"),
+                            body: st(videoWorkflow === "image-to-video" ? "studio.videoWorkbench.hintReferenceBody" : "studio.videoWorkbench.hintPromptBody")
+                          },
+                          {
+                            icon: "*",
+                            title: st("studio.videoWorkbench.hintOutputTitle"),
+                            body: st("studio.videoWorkbench.hintOutputBody")
+                          }
+                        ].map((card) => (
+                          <div key={card.title} className="grid min-h-[74px] grid-cols-[36px_1fr] items-start gap-3 rounded-[22px] border border-[#758bac]/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,251,255,0.86))] p-3.5 shadow-[0_8px_18px_rgba(35,58,97,0.045)]">
+                            <span className="grid h-9 w-9 place-items-center rounded-[14px] bg-[linear-gradient(135deg,rgba(255,138,0,0.13),rgba(255,61,129,0.13))]">{card.icon}</span>
+                            <span>
+                              <strong className="block text-[13px] font-black text-[#33405a]">{card.title}</strong>
+                              <span className="mt-1 block text-xs font-bold leading-[1.35] text-[#8390a6]">{card.body}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : showAvatarWorkbenchRedesign ? (
+                    <div className="border-t border-[#758bac]/10 bg-[linear-gradient(180deg,rgba(250,252,255,0.82),rgba(255,255,255,0.95))] px-[18px] py-5 text-left md:px-7 md:pb-7">
+                      <div className="mb-4 grid gap-3 lg:flex lg:items-center lg:justify-between">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <select
+                            value={provider}
+                            onChange={(e) => applyProvider(e.target.value)}
+                            className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none"
+                          >
+                            {options.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {PROVIDER_META[option.value]?.label || option.label}
+                              </option>
+                            ))}
+                          </select>
+                          {isDreamfaceTalkingAvatar ? (
+                            <>
+                              <select value={duration} onChange={(e) => setDuration(e.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+                                {videoDurationOptions.map((item) => (
+                                  <option key={item} value={item}>{item}</option>
+                                ))}
+                              </select>
+                              <select value={ratio} onChange={(e) => setRatio(e.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+                                {videoRatioOptions.map((item) => (
+                                  <option key={item} value={item}>{item === "source" ? st("studio.option.sourceImage") : item}</option>
+                                ))}
+                              </select>
+                            </>
+                          ) : (
+                            <span className={`inline-flex min-h-[45px] items-center rounded-full border px-5 text-base font-black shadow-[0_8px_24px_rgba(42,67,112,0.08)] ${avatarScriptTooLong ? "border-[#fecdd3] bg-[#fff1f2] text-[#e11d48]" : "border-[#758bac]/15 bg-white text-[#43516a]"}`}>
+                              {avatarDuration} {st("studio.option.automatic")}
+                            </span>
+                          )}
+                          <span className="inline-flex min-h-[45px] items-center rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)]">
+                            {estCredits} {st("studio.common.credits")}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleGenerate}
+                          disabled={!canSubmit || isSubmitting || (Boolean(accessToken) && !hasEnoughCredits)}
+                          className="inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-[radial-gradient(circle_at_12%_12%,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,#ff8a00_0%,#ff3d81_45%,#7c3cff_100%)] px-6 text-base font-black text-white shadow-[0_22px_48px_rgba(255,61,129,0.28),0_10px_28px_rgba(124,60,255,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 lg:w-auto lg:min-w-[248px]"
+                        >
+                          <span>{isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}</span>
+                          {accessToken ? (
+                            <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">
+                              {estCredits} {st("studio.common.credits")}
+                            </span>
+                          ) : null}
+                          <span className="grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
+                        </button>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-3">
+                        {[
+                          {
+                            icon: "$",
+                            title: st("studio.textImage.hintCostTitle"),
+                            body: st("studio.avatarWorkbench.hintCostBody")
+                          },
+                          {
+                            icon: "@",
+                            title: st("studio.avatarWorkbench.hintImageTitle"),
+                            body: st("studio.avatarWorkbench.hintImageBody")
+                          },
+                          {
+                            icon: "*",
+                            title: st("studio.avatarWorkbench.hintVoiceTitle"),
+                            body: st(isDreamfaceTalkingAvatar ? "studio.avatarWorkbench.dreamfaceHint" : "studio.avatar.billingHint", { duration: avatarDuration })
+                          }
+                        ].map((card) => (
+                          <div key={card.title} className="grid min-h-[74px] grid-cols-[36px_1fr] items-start gap-3 rounded-[22px] border border-[#758bac]/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,251,255,0.86))] p-3.5 shadow-[0_8px_18px_rgba(35,58,97,0.045)]">
+                            <span className="grid h-9 w-9 place-items-center rounded-[14px] bg-[linear-gradient(135deg,rgba(255,138,0,0.13),rgba(255,61,129,0.13))]">{card.icon}</span>
+                            <span>
+                              <strong className="block text-[13px] font-black text-[#33405a]">{card.title}</strong>
+                              <span className="mt-1 block text-xs font-bold leading-[1.35] text-[#8390a6]">{card.body}</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : mode === "image" && !isPromptlessImageWorkflow ? (
                     <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
@@ -4959,6 +6281,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   ) : null}
                 </div>
 
+                {!showModernWorkbenchRedesign ? (
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
                   {(mode === "image"
                     ? [
@@ -4969,10 +6292,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       ]
                     : activeWorkflow === "avatar-video"
                       ? [
-                          { label: "Product intro", prompt: "Hi, I’m here to introduce our new product. It is designed to help you save time, look more professional, and create better results with less effort." },
+                          { label: "Product intro", prompt: "Hi, I'm here to introduce our new product. It is designed to help you save time, look more professional, and create better results with less effort." },
                           { label: "Social hook", prompt: "Stop scrolling. If you want to create better AI videos from just one image, here is the easiest way to start." },
-                          { label: "Course explainer", prompt: "Welcome back. In this short lesson, I’ll explain the key idea step by step so you can understand it quickly and use it right away." },
-                          { label: "Real estate intro", prompt: "Welcome to this beautiful property. In the next few seconds, I’ll show you why this home is comfortable, modern, and worth a closer look." }
+                          { label: "Course explainer", prompt: "Welcome back. In this short lesson, I'll explain the key idea step by step so you can understand it quickly and use it right away." },
+                          { label: "Real estate intro", prompt: "Welcome to this beautiful property. In the next few seconds, I'll show you why this home is comfortable, modern, and worth a closer look." }
                         ]
                     : activeWorkflow === "image-to-video"
                       ? [
@@ -4998,8 +6321,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </button>
                   ))}
                 </div>
+                ) : null}
 
-                <div className="mt-10 grid gap-4 text-left md:grid-cols-3">
+                <div className={showModernWorkbenchRedesign ? "hidden" : "mt-10 grid gap-4 text-left md:grid-cols-3"}>
                   {[
                     { title: st("studio.summary.modelRouting"), body: providerNote },
                     { title: st("studio.summary.canvas"), body: mode === "image" ? `${selectedImageSize.label} / ${selectedImageSize.dimensions}` : `${duration} / ${ratio === "source" ? st("studio.summary.sourceImage") : ratio}` },
@@ -5012,60 +6336,50 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   ))}
                 </div>
                 {showTextToImageTemplates ? (
-                  <section className="mt-12 text-left">
-                    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                  <section className={`${TEXT_IMAGE_PAGE_INNER_CLASS} mt-[26px] text-left`} aria-label={st("studio.textImage.sceneSectionLabel")}>
+                    <div className="mb-3.5 flex flex-wrap items-end justify-between gap-4">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#98a2b3]">{st("studio.gallery.eyebrow")}</p>
-                        <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[#202633]">{st("studio.gallery.title")}</h3>
+                        <h3 className="text-2xl font-black tracking-[-0.04em] text-[#202a42]">{st("studio.textImage.sceneTitle")}</h3>
+                        <p className="mt-1.5 max-w-3xl text-[13px] font-bold leading-5 text-[#8290a7]">{st("studio.textImage.sceneDescription")}</p>
                       </div>
-                      <Link href="/gallery" className="rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] shadow-sm transition hover:bg-[#f8fafc] hover:text-[#202633]">
-                        {st("studio.gallery.browse")}
+                      <Link href={TEXT_IMAGE_GALLERY_URL} className="inline-flex h-[38px] items-center rounded-full border border-[#758bac]/15 bg-white/70 px-3.5 text-[13px] font-black text-[#66758b] shadow-[0_8px_24px_rgba(42,67,112,0.08)] transition hover:bg-white hover:text-[#202633]">
+                        {st("studio.textImage.viewAllTemplates")}
                       </Link>
                     </div>
-                    {galleryTemplateNote ? (
-                      <p className="rounded-2xl border border-black/[0.06] bg-white/70 p-4 text-sm text-[#667085]">{galleryTemplateNote}</p>
-                    ) : null}
-                    {galleryTemplates.length ? (
-                      <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
-                        {galleryTemplates.map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => {
-                              setPrompt(item.prompt);
-                              setImageWorkflow("text-to-image");
-                              setProvider("chatgpt-image");
-                              setReferenceImagesText("");
-                              setReferenceImageFiles([]);
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                              trackEvent("gallery_template_applied", { gallery_id: item.id, model: item.model, surface: "studio" }, accessToken);
-                            }}
-                            className="mb-4 block w-full break-inside-avoid overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-white text-left shadow-[0_14px_42px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_60px_rgba(15,23,42,0.12)]"
-                          >
-                            <img
-                              src={item.thumbnailUrl || item.imageUrl}
-                              alt={item.title}
-                              className="w-full bg-[#f2f6fb] object-cover"
-                              loading="lazy"
-                            />
-                            <div className="p-4">
-                              <p className="line-clamp-1 text-sm font-semibold text-[#202633]">{item.title}</p>
-                              <p className="mt-2 line-clamp-3 text-xs leading-5 text-[#7a8496]">{item.prompt}</p>
-                              <div className="mt-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98a2b3]">
-                                <span>{item.category}</span>
-                                <span>{item.model || "Prompt"}</span>
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    ) : !galleryTemplateNote ? (
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {[1, 2, 3, 4, 5, 6].map((item) => (
-                          <div key={item} className="h-56 animate-pulse rounded-[1.35rem] border border-black/[0.04] bg-white/60" />
-                        ))}
-                      </div>
-                    ) : null}
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                      {TEXT_TO_IMAGE_SCENES.map((scene) => (
+                        <button
+                          key={scene.key}
+                          type="button"
+                          onClick={() => {
+                            setPrompt(st(`studio.textImage.scene.${scene.key}.prompt`));
+                            setImageWorkflow("text-to-image");
+                            setReferenceImagesText("");
+                            setReferenceImageFiles([]);
+                            trackEvent("text_image_scene_applied", { scene: scene.key, surface: "studio" }, accessToken);
+                          }}
+                          className="group relative min-h-[186px] overflow-hidden rounded-[28px] border border-[#758bac]/15 bg-white/70 p-[19px] text-left shadow-[0_8px_24px_rgba(42,67,112,0.08)] transition hover:-translate-y-1 hover:bg-white/85 hover:shadow-[0_16px_36px_rgba(42,67,112,0.14)]"
+                        >
+                          <span className="pointer-events-none absolute -right-[52px] -top-[60px] h-[168px] w-[168px] rounded-full opacity-85 blur-[3px] transition group-hover:scale-110" style={{ background: scene.glow }} />
+                          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-[linear-gradient(180deg,transparent,rgba(255,255,255,0.52))]" />
+                          <span className="relative z-[1] grid h-[42px] w-[42px] place-items-center rounded-2xl border border-[#758bac]/15 bg-white/75 text-lg shadow-[0_8px_24px_rgba(42,67,112,0.08)]">
+                            {st(`studio.textImage.scene.${scene.key}.icon`)}
+                          </span>
+                          <span className="relative z-[1] mt-3.5 inline-flex h-7 items-center rounded-full border border-[#758bac]/15 bg-white/75 px-2.5 text-xs font-black text-[#617087]">
+                            {st(`studio.textImage.scene.${scene.key}.kicker`)}
+                          </span>
+                          <h4 className="relative z-[1] my-2 text-[19px] font-black tracking-[-0.035em] text-[#24304a]">{st(`studio.textImage.scene.${scene.key}.title`)}</h4>
+                          <p className="relative z-[1] max-w-[300px] text-[13px] font-bold leading-[1.45] text-[#8290a7]">{st(`studio.textImage.scene.${scene.key}.body`)}</p>
+                          <div className="relative z-[1] mt-[15px] flex flex-wrap gap-[7px]">
+                            {[0, 1, 2].map((index) => (
+                              <span key={index} className="inline-flex h-[25px] items-center rounded-full border border-[#758bac]/15 bg-[#f6f8fc]/90 px-2.5 text-[11px] font-black text-[#6c7a91]">
+                                {st(`studio.textImage.scene.${scene.key}.tag.${index}`)}
+                              </span>
+                            ))}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </section>
                 ) : null}
               </div>
@@ -5216,7 +6530,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       <span className="block truncate text-base font-bold text-white">{selectedProviderMeta.label}</span>
                       <span className="mt-0.5 block truncate text-xs font-medium text-white/46">{st(`studio.modelSelect.desc.${provider}`)}</span>
                     </span>
-                    <span className={`shrink-0 text-lg text-white/58 transition ${modelSelectOpen ? "rotate-180" : ""}`}>⌄</span>
+                    <span className={`shrink-0 text-lg text-white/58 transition ${modelSelectOpen ? "rotate-180" : ""}`}>v</span>
                   </button>
                   {modelSelectOpen ? (
                     <div
