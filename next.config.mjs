@@ -20,6 +20,8 @@ const deploymentId =
   process.env.GIT_SHA?.trim() ||
   gitSha();
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -33,17 +35,17 @@ const securityHeaders = [
       "object-src 'none'",
       "frame-ancestors 'none'",
       "form-action 'self'",
-      "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
+      `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} https://www.googletagmanager.com`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "media-src 'self' blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https: wss:",
+      `connect-src 'self' https: wss:${isProduction ? "" : " ws:"}`,
       "frame-src https://www.googletagmanager.com",
       "worker-src 'self' blob:"
     ].join("; ")
   },
-  ...(process.env.NODE_ENV === "production"
+  ...(isProduction
     ? [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }]
     : [])
 ];

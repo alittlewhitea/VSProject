@@ -40,9 +40,13 @@ export async function SiteFooter() {
           <p className="text-sm text-[#4f5a67]">{t("footer.videoStudio")}</p>
         </div>
         <div>
-          <p className="text-sm font-semibold">{t("footer.platform")}</p>
-          <p className="mt-2 text-sm text-[#4f5a67]">{t("footer.providerRouting")}</p>
-          <p className="text-sm text-[#4f5a67]">{t("footer.creditsBilling")}</p>
+          <Link href="/compare" className="block text-sm font-semibold hover:text-[#1d1d1f]">Compare</Link>
+          <Link href="/compare/dreamface-vs-higgsfield" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">DreamFace vs Higgsfield</Link>
+          <Link href="/compare/dreamface-vs-runway" className="block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">DreamFace vs Runway</Link>
+          <Link href="/compare/dreamface-vs-kling-ai" className="block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">DreamFace vs Kling AI</Link>
+          <Link href="/compare/dreamface-vs-pika" className="block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">DreamFace vs Pika</Link>
+          <Link href="/compare/dreamface-vs-artlist" className="block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">DreamFace vs Artlist</Link>
+          <Link href="/compare/dreamface-vs-heygen" className="block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">DreamFace vs HeyGen</Link>
         </div>
         <div>
           <p className="text-sm font-semibold">{t("footer.company")}</p>

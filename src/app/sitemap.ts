@@ -5,6 +5,13 @@ import { fetchPublishedGalleryItems } from "../lib/gallery-server";
 import { LEGAL_DOCUMENTS } from "../lib/legal";
 import { absoluteUrl, siteUrl } from "../lib/site-url";
 
+const higgsfieldComparisonVerifiedDate = "2026-07-10";
+const runwayComparisonVerifiedDate = "2026-07-10";
+const klingAiComparisonVerifiedDate = "2026-07-10";
+const pikaComparisonVerifiedDate = "2026-07-10";
+const artlistComparisonVerifiedDate = "2026-07-10";
+const heygenComparisonVerifiedDate = "2026-07-10";
+
 // Only include public, canonical marketing pages. Authentication and billing
 // pages are user-flow pages rather than search landing pages.
 const localizedMarketingPaths = ["/", "/price"] as const;
@@ -64,6 +71,47 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: absoluteUrl(baseUrl, "/about"),
       changeFrequency: "monthly",
       priority: 0.6
+    },
+    {
+      url: absoluteUrl(baseUrl, "/compare"),
+      changeFrequency: "monthly",
+      priority: 0.75
+    },
+    {
+      url: absoluteUrl(baseUrl, "/compare/dreamface-vs-higgsfield"),
+      lastModified: higgsfieldComparisonVerifiedDate,
+      changeFrequency: "monthly",
+      priority: 0.8
+    },
+    {
+      url: absoluteUrl(baseUrl, "/compare/dreamface-vs-runway"),
+      lastModified: runwayComparisonVerifiedDate,
+      changeFrequency: "monthly",
+      priority: 0.8
+    },
+    {
+      url: absoluteUrl(baseUrl, "/compare/dreamface-vs-kling-ai"),
+      lastModified: klingAiComparisonVerifiedDate,
+      changeFrequency: "monthly",
+      priority: 0.8
+    },
+    {
+      url: absoluteUrl(baseUrl, "/compare/dreamface-vs-pika"),
+      lastModified: pikaComparisonVerifiedDate,
+      changeFrequency: "monthly",
+      priority: 0.8
+    },
+    {
+      url: absoluteUrl(baseUrl, "/compare/dreamface-vs-artlist"),
+      lastModified: artlistComparisonVerifiedDate,
+      changeFrequency: "monthly",
+      priority: 0.8
+    },
+    {
+      url: absoluteUrl(baseUrl, "/compare/dreamface-vs-heygen"),
+      lastModified: heygenComparisonVerifiedDate,
+      changeFrequency: "monthly",
+      priority: 0.8
     }
   ];
 
