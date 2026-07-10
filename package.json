@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
+    "@swc/helpers": "0.5.23",
     "mysql2": "^3.22.5",
     "next": "^15.5.15",
     "next-intl": "^4.13.0",
