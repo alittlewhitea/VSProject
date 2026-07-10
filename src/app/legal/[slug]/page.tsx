@@ -7,16 +7,16 @@ export function generateStaticParams() {
   return LEGAL_DOCUMENTS.map((document) => ({ slug: document.slug }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }) {
-  const document = getLegalDocument(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const document = getLegalDocument((await params).slug);
   return {
     title: document ? `${document.title} | DreamFace` : "Legal | DreamFace",
     description: document?.summary || "DreamFace legal information."
   };
 }
 
-export default function LegalPage({ params }: { params: { slug: string } }) {
-  const document = getLegalDocument(params.slug);
+export default async function LegalPage({ params }: { params: Promise<{ slug: string }> }) {
+  const document = getLegalDocument((await params).slug);
   if (!document) notFound();
 
   return (

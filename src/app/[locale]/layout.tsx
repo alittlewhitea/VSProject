@@ -13,14 +13,15 @@ export default async function LocaleLayout({
   params
 }: {
   children: ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  if (!isLocale(params.locale)) {
+  const { locale } = await params;
+  if (!isLocale(locale)) {
     notFound();
   }
 
   return (
-    <NextIntlClientProvider locale={params.locale} messages={await loadMessages(params.locale)}>
+    <NextIntlClientProvider locale={locale} messages={await loadMessages(locale)}>
       {children}
     </NextIntlClientProvider>
   );

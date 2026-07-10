@@ -3,6 +3,7 @@ import { getUserFromBearerToken } from "../../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { getStripe } from "../../../../lib/stripe";
 import { getLatestUserSubscription } from "../../../../lib/subscriptions";
+import { trustedPublicOrigin } from "../../../../lib/request-security";
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No Stripe subscription customer found for this account." }, { status: 400 });
     }
 
-    const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+    const origin = trustedPublicOrigin(request.url);
     const session = await getStripe().billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
       return_url: `${origin}/billing`

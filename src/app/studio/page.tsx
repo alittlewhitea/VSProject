@@ -4,7 +4,7 @@ import { StudioPageClient } from "./studio-client";
 
 export const dynamic = "force-dynamic";
 
-export default function StudioPage() {
-  const cookieLocale = cookies().get(localeCookieKey)?.value;
+export default async function StudioPage() {
+  const cookieLocale = (await cookies()).get(localeCookieKey)?.value;
   return <StudioPageClient initialLocale={isLocale(cookieLocale) ? cookieLocale : defaultLocale} />;
 }

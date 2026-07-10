@@ -4,9 +4,9 @@ import { fetchPublishedGalleryItem } from "../../../lib/gallery-server";
 import { GalleryDetailClient } from "./gallery-detail-client";
 
 type GalleryDetailPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 function promptDescription(prompt: string) {
@@ -15,7 +15,7 @@ function promptDescription(prompt: string) {
 }
 
 export async function generateMetadata({ params }: GalleryDetailPageProps): Promise<Metadata> {
-  const itemId = extractGalleryId(params.id);
+  const itemId = extractGalleryId((await params).id);
   const row = await fetchPublishedGalleryItem(itemId).catch(() => null);
   if (!row) {
     return {
@@ -55,6 +55,6 @@ export async function generateMetadata({ params }: GalleryDetailPageProps): Prom
   };
 }
 
-export default function GalleryDetailPage({ params }: GalleryDetailPageProps) {
-  return <GalleryDetailClient itemId={extractGalleryId(params.id)} />;
+export default async function GalleryDetailPage({ params }: GalleryDetailPageProps) {
+  return <GalleryDetailClient itemId={extractGalleryId((await params).id)} />;
 }

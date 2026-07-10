@@ -3,12 +3,17 @@ import path from "node:path";
 import ts from "typescript";
 
 const root = process.cwd();
-const locales = ["en", "zh-CN", "zh-TW", "pt-BR", "ru", "vi", "de", "fr", "ja", "th", "nl", "he", "ko", "es"];
+const locales = ["en", "zh-CN", "zh-TW", "pt-BR", "ru", "vi", "de", "fr", "ja", "th", "nl", "he", "ko", "es", "it", "ar"];
 const studioSources = [
   ["studio-i18n-dreamface-io.ts", "studioDreamfaceIoMessages"],
   ["studio-i18n-workspace-home.ts", "studioWorkspaceHomeMessages"],
   ["studio-i18n-fal-errors.ts", "studioFalErrorMessages"],
   ["studio-i18n-additions.ts", "studioAdditionalMessages"],
+  ["studio-i18n-audio-workbench.ts", "studioAudioWorkbenchMessages"],
+  ["studio-i18n-video-workbench.ts", "studioVideoWorkbenchMessages"],
+  ["studio-i18n-avatar-workbench.ts", "studioAvatarWorkbenchMessages"],
+  ["studio-i18n-text-image.ts", "studioTextImageMessages"],
+  ["studio-i18n-image-workbench.ts", "studioImageWorkbenchMessages"],
   ["studio-i18n.ts", "messages"],
   ["studio-i18n.ts", "workflowMessages"],
   ["studio-i18n-home.ts", "studioHomeMessages"],
@@ -59,7 +64,9 @@ function evaluate(node, available) {
   if (ts.isObjectLiteralExpression(node)) {
     const result = {};
     for (const property of node.properties) {
-      if (ts.isShorthandPropertyAssignment(property)) {
+      if (ts.isSpreadAssignment(property)) {
+        Object.assign(result, evaluate(property.expression, available));
+      } else if (ts.isShorthandPropertyAssignment(property)) {
         result[property.name.text] = evaluate(property.name, available);
       } else if (ts.isPropertyAssignment(property)) {
         const key = propertyName(property.name);

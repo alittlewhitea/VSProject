@@ -3,18 +3,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSession, SESSION_COOKIE_NAME, upsertGoogleUser } from "../../../../../lib/server-auth";
 import { ensureSignupCreditAccount, getRequestCountryCode } from "../../../../../lib/credits";
 import { createSupabaseAdminClient } from "../../../../../lib/supabase-admin";
+import { safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
 
 const STATE_COOKIE = "dreamface_google_state";
 
 function callbackUrl(request: NextRequest) {
   const configured = process.env.GOOGLE_REDIRECT_URI?.trim();
   if (configured) return configured;
-  const base = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || process.env.SITE_URL?.trim().replace(/\/$/, "") || request.nextUrl.origin;
+  const base = trustedPublicOrigin(request.url);
   return `${base}/api/auth/google/callback`;
 }
 
 function publicBaseUrl(request: NextRequest) {
-  return process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || process.env.SITE_URL?.trim().replace(/\/$/, "") || request.nextUrl.origin;
+  return trustedPublicOrigin(request.url);
 }
 
 function redirectUrl(request: NextRequest, path: string) {
@@ -33,8 +34,9 @@ function decodeState(value: string | null) {
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = decodeState(request.nextUrl.searchParams.get("state"));
-  const expectedCsrf = cookies().get(STATE_COOKIE)?.value;
-  cookies().delete(STATE_COOKIE);
+  const cookieStore = await cookies();
+  const expectedCsrf = cookieStore.get(STATE_COOKIE)?.value;
+  cookieStore.delete(STATE_COOKIE);
 
   if (!code || !state?.csrf || state.csrf !== expectedCsrf) {
     return NextResponse.redirect(redirectUrl(request, "/auth?error=google_state"));
@@ -86,7 +88,7 @@ export async function GET(request: NextRequest) {
     await ensureSignupCreditAccount(admin, user.id, request.headers);
   }
   const session = await createSession(user);
-  cookies().set(SESSION_COOKIE_NAME, session.access_token, {
+  cookieStore.set(SESSION_COOKIE_NAME, session.access_token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -94,6 +96,6 @@ export async function GET(request: NextRequest) {
     expires: new Date(session.expires_at)
   });
 
-  const next = state.next && state.next.startsWith("/") ? state.next : "/studio";
+  const next = safeInternalPath(state.next);
   return NextResponse.redirect(redirectUrl(request, next));
 }

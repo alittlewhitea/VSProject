@@ -31,7 +31,9 @@ const openGraphLocales: Record<Locale, string> = {
   nl: "nl_NL",
   he: "he_IL",
   ko: "ko_KR",
-  es: "es_ES"
+  es: "es_ES",
+  it: "it_IT",
+  ar: "ar_AR"
 };
 
 function localizedPath(locale: Locale, page: MarketingPage) {

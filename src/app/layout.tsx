@@ -51,7 +51,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const requestLocale = headers().get("x-dreamface-locale");
+  const requestLocale = (await headers()).get("x-dreamface-locale");
   const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
   const messages = await loadMessages(locale);
 

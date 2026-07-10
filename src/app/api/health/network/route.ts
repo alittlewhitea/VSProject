@@ -1,6 +1,12 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { fetchFal } from "../../../../lib/fal-fetch";
 import { mysqlExecute } from "../../../../lib/mysql";
+import { cronAuthorized } from "../../../../lib/cron-auth";
+import { getAdminEmails } from "../../../../lib/admin-auth";
+import { getSessionFromToken, SESSION_COOKIE_NAME } from "../../../../lib/server-auth";
+
+export const dynamic = "force-dynamic";
 
 type CheckResult = {
   target: string;
@@ -94,7 +100,14 @@ async function checkMysql(): Promise<CheckResult> {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const session = await getSessionFromToken((await cookies()).get(SESSION_COOKIE_NAME)?.value);
+  const email = session?.user.email?.trim().toLowerCase();
+  const adminAuthorized = Boolean(email && getAdminEmails().includes(email));
+  if (!adminAuthorized && !cronAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
   const falKey = process.env.FAL_KEY?.trim();
   const falModels = Array.from(
     new Set(

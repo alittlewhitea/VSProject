@@ -374,7 +374,7 @@ export function CreationDetailClient({ taskId }: { taskId: string }) {
                 <div className="flex flex-wrap gap-2">
                   {task.mediaUrl ? (
                     <a
-                      href={`/api/generate/download?url=${encodeURIComponent(task.mediaUrl)}&name=${encodeURIComponent(task.id)}`}
+                      href={`/api/generate/download?taskId=${encodeURIComponent(task.id)}&name=${encodeURIComponent(task.id)}`}
                       className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white"
                     >
                       Download

@@ -5,7 +5,7 @@ import { defaultLocale, isLocale } from "../i18n/routing";
 import { LEGAL_DOCUMENTS } from "../lib/legal";
 
 export async function SiteFooter() {
-  const requestLocale = headers().get("x-dreamface-locale");
+  const requestLocale = (await headers()).get("x-dreamface-locale");
   const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
   const t = await getTranslations({ locale });
 

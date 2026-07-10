@@ -1002,6 +1002,8 @@ function detectBrowserLocale(): Locale {
     if (normalized.startsWith("he") || normalized.startsWith("iw")) return "he";
     if (normalized.startsWith("ko")) return "ko";
     if (normalized.startsWith("es")) return "es";
+    if (normalized.startsWith("it")) return "it";
+    if (normalized.startsWith("ar")) return "ar";
   }
   return defaultLocale;
 }

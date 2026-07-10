@@ -12,7 +12,9 @@ const localeTargets = {
   nl: "nl",
   he: "he",
   ko: "ko",
-  es: "es"
+  es: "es",
+  it: "it",
+  ar: "ar"
 };
 
 const studioSources = [
@@ -20,6 +22,11 @@ const studioSources = [
   ["studio-i18n-workspace-home.ts", "studioWorkspaceHomeMessages"],
   ["studio-i18n-fal-errors.ts", "studioFalErrorMessages"],
   ["studio-i18n-additions.ts", "studioAdditionalMessages"],
+  ["studio-i18n-audio-workbench.ts", "studioAudioWorkbenchMessages"],
+  ["studio-i18n-video-workbench.ts", "studioVideoWorkbenchMessages"],
+  ["studio-i18n-avatar-workbench.ts", "studioAvatarWorkbenchMessages"],
+  ["studio-i18n-text-image.ts", "studioTextImageMessages"],
+  ["studio-i18n-image-workbench.ts", "studioImageWorkbenchMessages"],
   ["studio-i18n.ts", "messages"],
   ["studio-i18n.ts", "workflowMessages"],
   ["studio-i18n-home.ts", "studioHomeMessages"],
@@ -92,6 +99,10 @@ function evaluate(node, declarations) {
   if (ts.isObjectLiteralExpression(node)) {
     const result = {};
     for (const property of node.properties) {
+      if (ts.isSpreadAssignment(property)) {
+        Object.assign(result, evaluate(property.expression, declarations));
+        continue;
+      }
       if (ts.isShorthandPropertyAssignment(property)) {
         const name = property.name.text;
         result[name] = evaluate(property.name, declarations);
@@ -386,6 +397,16 @@ async function refreshUnchanged(source, translated, target, label, checkpointFil
 }
 
 function writeStudioFile(allLocales) {
+  const currentFile = path.join(root, "src", "lib", "studio-i18n-new-locales.ts");
+  let mergedLocales = allLocales;
+  if (requestedLocales && fs.existsSync(currentFile)) {
+    const declarations = parseDeclarations(currentFile);
+    const existing = declarations.get("studioNewLocaleMessages")
+      ? evaluate(declarations.get("studioNewLocaleMessages"), declarations)
+      : {};
+    mergedLocales = { ...existing, ...allLocales };
+  }
+
   const lines = [
     'import type { Locale } from "../i18n/routing";',
     "",
@@ -393,12 +414,12 @@ function writeStudioFile(allLocales) {
     "",
     "export const studioNewLocaleMessages: Partial<Record<Locale, Messages>> = {"
   ];
-  for (const [locale, messages] of Object.entries(allLocales)) {
+  for (const [locale, messages] of Object.entries(mergedLocales)) {
     lines.push(`  ${JSON.stringify(locale)}: ${JSON.stringify(messages, null, 2).replace(/\n/g, "\n  ")},`);
   }
   lines.push("};", "");
   fs.writeFileSync(
-    path.join(root, "src", "lib", "studio-i18n-new-locales.ts"),
+    currentFile,
     lines.join("\n"),
     "utf8"
   );

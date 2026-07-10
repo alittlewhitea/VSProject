@@ -12,7 +12,9 @@ export const locales = [
   "nl",
   "he",
   "ko",
-  "es"
+  "es",
+  "it",
+  "ar"
 ] as const;
 
 export type Locale = (typeof locales)[number];
@@ -45,11 +47,13 @@ export const localeLabels: Record<Locale, string> = {
   nl: "Nederlands",
   he: "עברית",
   ko: "한국어",
-  es: "Español"
+  es: "Español",
+  it: "Italiano",
+  ar: "العربية"
 };
 
 export function isRtlLocale(locale: Locale) {
-  return locale === "he";
+  return locale === "he" || locale === "ar";
 }
 
 export const localizedMarketingPaths = ["/", "/price", "/auth", "/billing"] as const;

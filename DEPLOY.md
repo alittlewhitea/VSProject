@@ -15,6 +15,12 @@ npm run build
 pm2 restart VSProject --update-env
 ```
 
+Before deploying a release that introduces new tables, apply the idempotent schema update in MySQL:
+
+```bash
+mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p "$MYSQL_DATABASE" < migration/mysql-schema.sql
+```
+
 `--update-env` matters when the PM2 process already exists because the deployment ID is part of the build and should stay visible to the restarted process.
 
 ## Verify the build

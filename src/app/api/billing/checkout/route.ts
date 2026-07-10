@@ -3,6 +3,7 @@ import { getCreditPack, getSubscriptionPlanPrice } from "../../../../lib/billing
 import { getUserFromBearerToken } from "../../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { getStripe } from "../../../../lib/stripe";
+import { trustedPublicOrigin } from "../../../../lib/request-security";
 
 type CheckoutBody = {
   type?: "credits" | "subscription";
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json().catch(() => null)) as CheckoutBody | null;
-    const origin = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+    const origin = trustedPublicOrigin(request.url);
     const automaticTaxEnabled = process.env.STRIPE_AUTOMATIC_TAX === "true";
     const stripe = getStripe();
 

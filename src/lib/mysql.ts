@@ -14,6 +14,8 @@ export function getMysqlPool() {
   const database = process.env.MYSQL_DATABASE?.trim();
   const password = process.env.MYSQL_PASSWORD ?? "";
   const port = Number(process.env.MYSQL_PORT || 3306);
+  const sslEnabled = boolEnv(process.env.MYSQL_SSL);
+  const sslCa = process.env.MYSQL_SSL_CA?.replace(/\\n/g, "\n");
 
   if (!host || !user || !database) {
     throw new Error("MySQL env vars are missing. Set MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, and MYSQL_DATABASE.");
@@ -29,7 +31,12 @@ export function getMysqlPool() {
     connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT || 10),
     charset: "utf8mb4",
     dateStrings: true,
-    ssl: boolEnv(process.env.MYSQL_SSL) ? { rejectUnauthorized: false } : undefined,
+    ssl: sslEnabled
+      ? {
+          rejectUnauthorized: process.env.MYSQL_SSL_REJECT_UNAUTHORIZED !== "false",
+          ...(sslCa ? { ca: sslCa } : {})
+        }
+      : undefined,
     namedPlaceholders: false
   });
 

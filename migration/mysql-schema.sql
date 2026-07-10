@@ -54,6 +54,16 @@ create table if not exists email_otp_codes (
   key email_otp_codes_email_created_at_idx (email, created_at)
 ) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
+create table if not exists request_rate_limits (
+  scope varchar(64) not null,
+  subject_hash char(64) not null,
+  window_start bigint not null,
+  request_count int unsigned not null default 1,
+  expires_at datetime(6) not null,
+  primary key (scope, subject_hash, window_start),
+  key request_rate_limits_expires_at_idx (expires_at)
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
 create table if not exists generation_tasks (
   id varchar(191) primary key,
   user_id char(36) not null,

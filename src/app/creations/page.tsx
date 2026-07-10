@@ -598,7 +598,7 @@ export default function CreationsPage() {
                       </button>
                       {selectedTask.mediaUrl ? (
                         <a
-                          href={`/api/generate/download?url=${encodeURIComponent(selectedTask.mediaUrl)}&name=${encodeURIComponent(selectedTask.id)}`}
+                          href={`/api/generate/download?taskId=${encodeURIComponent(selectedTask.id)}&name=${encodeURIComponent(selectedTask.id)}`}
                           className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-semibold text-white"
                         >
                           Download

@@ -3,7 +3,7 @@ import path from "node:path";
 import ts from "typescript";
 
 const root = process.cwd();
-const locales = ["ja", "th", "nl", "he", "ko", "es"];
+const locales = ["it", "ar"];
 
 function flatten(value, prefix = "", result = {}) {
   for (const [key, child] of Object.entries(value)) {
@@ -78,7 +78,7 @@ function verifyMap(label, reference, localized) {
 
 const englishMarketing = flatten(JSON.parse(fs.readFileSync(path.join(root, "messages", "en.json"), "utf8")));
 const studioLocales = parseStudioLocales();
-const studioReference = studioLocales.es;
+const studioReference = studioLocales.it;
 
 for (const locale of locales) {
   const marketing = flatten(JSON.parse(fs.readFileSync(path.join(root, "messages", `${locale}.json`), "utf8")));

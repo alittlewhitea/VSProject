@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { getUserFromBearerToken } from "../../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 
@@ -73,6 +73,13 @@ function requestCountryCode(headers: Headers) {
   );
 }
 
+function hashIp(value: string | null) {
+  if (!value) return null;
+  const secret = process.env.ANALYTICS_IP_SECRET || process.env.AUTH_SESSION_SECRET || process.env.MYSQL_PASSWORD;
+  if (!secret) return null;
+  return createHmac("sha256", secret).update(value.split(",")[0].trim()).digest("hex");
+}
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as TrackBody | null;
   const eventName = cleanText(body?.eventName, 80);
@@ -101,7 +108,7 @@ export async function POST(request: Request) {
     page_path: cleanText(body?.pagePath, 700),
     referrer: cleanText(body?.referrer, 700),
     user_agent: cleanText(userAgent, 500),
-    ip_hash: forwardedFor ? Buffer.from(forwardedFor.split(",")[0].trim()).toString("base64").slice(0, 80) : null,
+    ip_hash: hashIp(forwardedFor),
     properties: countryCode ? { ...properties, countryCode } : properties
   });
 

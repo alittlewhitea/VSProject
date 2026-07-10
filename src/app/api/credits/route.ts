@@ -113,6 +113,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV === "production" || process.env.ENABLE_DEV_CREDIT_TOPUP !== "true") {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
   let userId: string | null = null;
   let amount = 0;
 
@@ -137,7 +141,7 @@ export async function POST(request: Request) {
     const balance = await withTimeout(addCredits(admin, user.id, amount, "manual_top_up_dev"), CREDIT_TIMEOUT_MS);
     return NextResponse.json({ balance });
   } catch (error) {
-    if (userId && process.env.NODE_ENV !== "production" && Number.isInteger(amount) && amount > 0 && amount <= 100000) {
+    if (userId && Number.isInteger(amount) && amount > 0 && amount <= 100000) {
       return NextResponse.json({
         balance: addDevCredits(userId, amount),
         storageWarning: "Using local development credits because cloud credit storage is unavailable."

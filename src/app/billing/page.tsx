@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -324,7 +324,7 @@ function SubscriptionPlanCard({
   );
 }
 
-export function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }) {
+function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }) {
   const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1274,9 +1274,11 @@ export function PricingContent({ surface = "price" }: { surface?: "price" | "bil
 }
 
 export default function BillingPage() {
+  const pathname = usePathname();
+  const surface = pathname.endsWith("/price") ? "price" : "billing";
   return (
     <Suspense fallback={null}>
-      <PricingContent surface="billing" />
+      <PricingContent surface={surface} />
     </Suspense>
   );
 }

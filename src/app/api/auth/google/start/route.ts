@@ -1,13 +1,14 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { newAuthToken } from "../../../../../lib/server-auth";
+import { safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
 
 const STATE_COOKIE = "dreamface_google_state";
 
 function callbackUrl(request: NextRequest) {
   const configured = process.env.GOOGLE_REDIRECT_URI?.trim();
   if (configured) return configured;
-  const base = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || process.env.SITE_URL?.trim().replace(/\/$/, "") || request.nextUrl.origin;
+  const base = trustedPublicOrigin(request.url);
   return `${base}/api/auth/google/callback`;
 }
 
@@ -16,10 +17,10 @@ export async function GET(request: NextRequest) {
   if (!clientId) return NextResponse.redirect(new URL("/auth?error=google_not_configured", request.url));
 
   const next = request.nextUrl.searchParams.get("next") || "/studio";
-  const safeNext = next.startsWith("/") ? next : "/studio";
+  const safeNext = safeInternalPath(next);
   const csrf = newAuthToken();
   const state = Buffer.from(JSON.stringify({ csrf, next: safeNext })).toString("base64url");
-  cookies().set(STATE_COOKIE, csrf, {
+  (await cookies()).set(STATE_COOKIE, csrf, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

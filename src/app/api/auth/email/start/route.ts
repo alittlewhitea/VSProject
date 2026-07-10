@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import type { ResultSetHeader } from "mysql2/promise";
 import { mysqlExecute, toMysqlDate } from "../../../../../lib/mysql";
 import { hashAuthToken, newAuthToken } from "../../../../../lib/server-auth";
+import { getRequestIp } from "../../../../../lib/credits";
+import { consumeRateLimit, safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
 
 function cleanEmail(value: unknown) {
   const email = typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -9,9 +11,7 @@ function cleanEmail(value: unknown) {
 }
 
 function originFromRequest(request: NextRequest) {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || process.env.SITE_URL?.trim().replace(/\/$/, "");
-  if (configured) return configured;
-  return request.nextUrl.origin;
+  return trustedPublicOrigin(request.url);
 }
 
 async function sendSigninEmail(email: string, link: string) {
@@ -51,6 +51,19 @@ export async function POST(request: NextRequest) {
     const email = cleanEmail(body?.email);
     if (!email) return NextResponse.json({ error: "Invalid email." }, { status: 400 });
 
+    const ip = getRequestIp(request.headers) || "unknown";
+    const [emailLimit, ipLimit] = await Promise.all([
+      consumeRateLimit({ scope: "auth_email", subject: email, limit: 3, windowSeconds: 10 * 60 }),
+      consumeRateLimit({ scope: "auth_ip", subject: ip, limit: 10, windowSeconds: 10 * 60 })
+    ]);
+    if (!emailLimit.allowed || !ipLimit.allowed) {
+      const retryAfter = Math.max(emailLimit.retryAfterSeconds, ipLimit.retryAfterSeconds);
+      return NextResponse.json(
+        { error: "Too many sign-in attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
+      );
+    }
+
     const token = newAuthToken();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await mysqlExecute<ResultSetHeader>("insert into email_otp_codes (email, code_hash, expires_at, created_at) values (?, ?, ?, ?)", [
@@ -60,7 +73,7 @@ export async function POST(request: NextRequest) {
       toMysqlDate(new Date())
     ]);
 
-    const next = typeof body?.next === "string" && body.next.startsWith("/") ? body.next : "/studio";
+    const next = safeInternalPath(body?.next);
     const verifyUrl = new URL("/api/auth/verify", originFromRequest(request));
     verifyUrl.searchParams.set("token", token);
     verifyUrl.searchParams.set("next", next);

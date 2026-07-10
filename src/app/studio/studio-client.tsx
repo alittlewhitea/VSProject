@@ -13,7 +13,7 @@ import {
   formatUsd,
   type BillingCycle
 } from "../../lib/billing";
-import type { Locale } from "../../i18n/routing";
+import { isRtlLocale, type Locale } from "../../i18n/routing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, estimateGenerationCredits } from "../../lib/model-pricing";
 import { useStudioI18n } from "../../lib/studio-i18n";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
@@ -3006,7 +3006,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   return (
     <main
-      dir={studioI18n.locale === "he" ? "rtl" : "ltr"}
+      dir={isRtlLocale(studioI18n.locale) ? "rtl" : "ltr"}
       className="relative min-h-screen w-full max-w-full overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10 text-[#1f2430]"
     >
       <div className="pointer-events-none absolute left-[18%] top-10 h-72 w-72 rounded-full bg-[#bde0fe]/30 blur-3xl" />
@@ -3297,7 +3297,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               <a href="https://dreamface.io" aria-label={st("studio.menu.dreamfaceHome")} className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
                 DF
               </a>
-              <nav className={showModernWorkbenchRedesign ? "mt-[26px] grid w-full gap-2.5" : "mt-9 flex flex-1 flex-col items-center gap-4"}>
+              <nav className={showModernWorkbenchRedesign ? "mt-[26px] grid w-full gap-2.5" : "mt-9 flex w-full flex-col items-center gap-4"}>
                 {[
                   { label: "Home", display: st("studio.nav.home"), href: "/studio?view=home", icon: "home" as StudioIconName },
                   { label: "Avatar", display: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "video" as StudioIconName },
@@ -3318,7 +3318,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       <div key={item.label} className="group relative w-full">
                         <Link
                           href={item.href}
-                          className={`flex w-full flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold transition ${
+                          className={`flex w-full min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl px-2 py-2 text-[11px] font-semibold transition ${
                             active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#6b7280] hover:bg-black/[0.035] hover:text-[#202633]"
                           }`}
                         >
@@ -3327,7 +3327,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           }`}>
                             <StudioIcon name={item.icon} className="h-4 w-4" />
                           </span>
-                          {item.display}
+                          <span className="block max-w-full text-center leading-tight [overflow-wrap:anywhere]">{item.display}</span>
                         </Link>
                         <div className="pointer-events-none absolute left-full top-0 z-50 w-64 translate-x-2 pl-3 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100">
                           <div className="rounded-3xl border border-black/[0.06] bg-white/95 p-2 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur-xl">
@@ -3374,7 +3374,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     <Link
                       key={item.label}
                       href={item.href}
-                      className={`group flex w-full flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold transition ${
+                      className={`group flex w-full min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl px-2 py-2 text-[11px] font-semibold transition ${
                         active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#6b7280] hover:bg-black/[0.035] hover:text-[#202633]"
                       }`}
                     >
@@ -3383,12 +3383,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       }`}>
                         <StudioIcon name={item.icon} className="h-4 w-4" />
                       </span>
-                      {item.display}
+                      <span className="block max-w-full text-center leading-tight [overflow-wrap:anywhere]">{item.display}</span>
                     </Link>
                   );
                 })}
               </nav>
-              <Link href="/billing" className="flex w-full items-center justify-center rounded-2xl bg-[#ecfeff] px-2 py-2 text-[11px] font-semibold text-[#06b6d4]">
+              <Link href="/billing" className="mt-5 flex w-full items-center justify-center rounded-2xl bg-[#ecfeff] px-2 py-2 text-center text-[11px] font-semibold leading-tight text-[#06b6d4]">
                 {st("studio.billing.open")}
               </Link>
             </aside>
@@ -3922,7 +3922,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                               <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                                 {selectedProjectTask.mediaUrl ? (
                                   <a
-                                    href={`/api/generate/download?url=${encodeURIComponent(selectedProjectTask.mediaUrl)}&name=${encodeURIComponent(selectedProjectTask.id)}`}
+                                    href={`/api/generate/download?taskId=${encodeURIComponent(selectedProjectTask.id)}&name=${encodeURIComponent(selectedProjectTask.id)}`}
                                     className="flex min-w-0 items-center justify-center rounded-xl bg-[#202633] px-3 py-2.5 text-center text-xs font-semibold text-white sm:rounded-full sm:px-4 sm:py-2 sm:text-sm"
                                   >
                                     {st("studio.projects.download")}
@@ -7611,7 +7611,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <p className="text-xs text-[#677388]">{task.id}</p>
                         <a
-                          href={`/api/generate/download?url=${encodeURIComponent(task.mediaUrl || "")}&name=${encodeURIComponent(task.id)}`}
+                          href={`/api/generate/download?taskId=${encodeURIComponent(task.id)}&name=${encodeURIComponent(task.id)}`}
                           className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold text-[#2e3b52] hover:bg-[#f3f7ff]"
                         >
                           Download

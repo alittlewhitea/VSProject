@@ -37,7 +37,7 @@ const homeFaqKeys = [
 ];
 
 export default async function HomePage() {
-  const requestLocale = headers().get("x-dreamface-locale");
+  const requestLocale = (await headers()).get("x-dreamface-locale");
   const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
   const t = await getTranslations({ locale });
   const galleryItems = await fetchPublishedGalleryItems({ limit: 8, featuredFirst: true })

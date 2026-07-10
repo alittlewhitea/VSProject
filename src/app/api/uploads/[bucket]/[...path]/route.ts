@@ -23,10 +23,11 @@ function safeResolve(root: string, parts: string[]) {
 
 export async function GET(
   _request: Request,
-  context: { params: { bucket: string; path?: string[] } }
+  context: { params: Promise<{ bucket: string; path?: string[] }> }
 ) {
-  const bucket = context.params.bucket;
-  const objectPath = context.params.path || [];
+  const params = await context.params;
+  const bucket = params.bucket;
+  const objectPath = params.path || [];
   if (!/^[a-z0-9_-]+$/i.test(bucket) || !objectPath.length) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
