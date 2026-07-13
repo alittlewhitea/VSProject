@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AppButton } from "../../components/ui/button";
 import { trackEvent } from "../../lib/analytics";
 import {
@@ -120,6 +121,64 @@ const TEXT_IMAGE_GALLERY_URL = "https://dreamface.io/gallery";
 const STUDIO_SIGN_IN_URL = "https://dreamface.io/en/auth?next=%2Fstudio%3Fview%3Dhome";
 
 const WORKSPACE_VIDEO_BASE_URL = "https://media.dreamface.io/ai_video";
+const YOUNG_KOREAN_WOMAN_VIDEO_URL = `${WORKSPACE_VIDEO_BASE_URL}/16x9/young_Korean_woman.mp4`;
+const YOUNG_KOREAN_WOMAN_PROMPT = `Main subject: young Korean woman, early 20s, natural everyday appearance, faded charcoal-grey sleeveless crop top, loose high-waisted light-wash jeans, black canvas sneakers, black cord necklace, black wavy hair in a messy side ponytail with wispy bangs. Realistic skin texture, minimal makeup, warm and approachable personality. Maintain consistent identity, clothing, hairstyle, and appearance throughout the entire video.
+Location: Authentic Korean residential neighborhood during a calm late morning. Narrow concrete alleys, low-rise homes, small terraces, potted plants, laundry lines, bicycles, utility poles, overhead wires, mature trees casting moving shadows, quiet residential atmosphere. No stores, advertisements, cafés, crowds, or commercial activity.
+Visual Style: Ultra-realistic documentary realism. Genuine candid behavior. Natural body language. Unscripted slice-of-life feeling. Strong environmental authenticity. Rich real-world details and believable human motion.
+Camera Style: Early-2000s consumer DV camcorder aesthetic. Friend casually recording everyday moments. Heavy handheld shake, imperfect framing, frequent autofocus hunting, lens breathing, exposure pumping when moving between sun and shade, occasional motion blur, subtle rolling shutter, mild digital compression artifacts, faded colors, soft contrast, slight sensor noise. No stabilization. No cinematic camera moves. No modern color grading.
+00:00–00:02
+Outside a small house entrance. She sits on a low concrete wall adjusting her ponytail with both hands raised. A light breeze moves loose strands of hair. She smiles naturally while the camera struggles to hold focus.
+00:02–00:04
+The camera follows her into a narrow alley lined with potted plants and concrete walls. She notices a stray cat approaching and crouches down. Framing drifts off-center as the operator tries to keep up.
+00:04–00:06
+She gently pets and feeds the cat. Autofocus repeatedly shifts between her face and the animal. Morning sunlight flickers through leaves overhead.
+00:06–00:08
+Small front yard beside her house. She hangs laundry on a clothesline while fabrics sway in the breeze. Exposure changes as clouds briefly pass overhead.
+00:08–00:10
+On a quiet terrace with a ceramic coffee cup. She sits comfortably watching the neighborhood, occasionally brushing hair behind her ear. Loose handheld side angle with natural camera drift.
+00:10–00:12
+Close side profile. Someone off-camera greets her. She turns, raises her hand, smiles warmly, and casually says, “Annyeong.” The camera catches the moment slightly late.
+00:12–00:15
+Walking slowly down a tree-lined residential lane holding her coffee cup. She notices the camera, gives a small genuine smile, then looks away and continues walking. Recording cuts abruptly to black mid-motion as if the camcorder was switched off.
+
+Audio: Natural ambient sound only — morning birds, distant motorcycles, light wind, leaves rustling, faint neighborhood chatter, cat sounds, footsteps on concrete, fabric moving on clotheslines, subtle residential ambience. No music. No sound design. No narration.
+
+Goal: Authentic Korean neighborhood life captured like a forgotten home video from the early 2000s — candid, imperfect, realistic, warm, and deeply believable.`;
+const EASTBOURNE_KOREAN_WOMAN_VIDEO_URL = `${WORKSPACE_VIDEO_BASE_URL}/16x9/A_young_Korean_woman.mp4`;
+const EASTBOURNE_KOREAN_WOMAN_PROMPT = `Main Character:
+A young Korean woman, around 25 years old, wearing refined, natural everyday makeup. She wears a wide-brim beige straw hat with a thick dark brown band around the brim, a light green off-shoulder cross-pleated dress, pearl earrings, and a delicate gold bracelet. Her long dark brown hair falls naturally beneath the hat or is loosely pinned back. She has a warm, friendly personality. Maintain the exact same identity, clothing, hairstyle, facial features, and overall appearance consistently throughout the entire video. Realistic skin texture with subtle natural makeup.
+
+Location:
+A bright afternoon at the real Eastbourne tennis tournament spectator stands. A lush green grass court is visible in the foreground. The seating consists of wooden and plastic spectator seats. In the background, other spectators wear light-colored suits and casual summer clothing. Strong natural sunlight shines from above, with occasional passing clouds creating subtle shifts in lighting, shadows, and exposure. The atmosphere is warm, relaxed, and authentically captures a live tennis event. The visual focus always remains on her genuine reactions and intimate personal moments.
+
+Visual Style:
+Ultra-realistic documentary realism. Authentic unscripted behavior. Natural body language. Feels like spontaneous everyday life captured without planning. Strong environmental authenticity. Rich real-world details with believable human movement and subtle imperfections.
+
+Camera Style:
+Shot entirely with the aesthetic of an early-2000s consumer DV camcorder. Feels like a friend casually recording everyday moments. Pronounced handheld shake, imperfect framing, frequent autofocus hunting, visible lens breathing, exposure fluctuations while moving between sunlight and shade, occasional motion blur, slight rolling shutter, moderate digital compression artifacts, faded colors, soft contrast, and light sensor noise. No stabilization. No cinematic camera movement. No modern color grading.
+
+00:00–00:02
+She sits on a green spectator seat, gently holding the brim of her straw hat with her right hand while smiling toward the tennis court. A light breeze softly moves the edge of the hat and a few strands of her hair. She smiles naturally as the handheld camera struggles slightly to keep focus on her face, with noticeable handheld shake.
+
+00:02–00:04
+The camera follows from her side. She subtly turns her body while watching the match and reacts to an exciting point with expressive facial expressions. The composition drifts slightly off-center as the camera operator tries to keep up with her spontaneous reaction. Autofocus repeatedly shifts between her face and the distant tennis court.
+
+00:04–00:06
+A close-up captures her warm smile as she appears amused by a great shot on the court, her shoulders trembling slightly with a quiet laugh. Sunlight filtering through the straw hat casts gently moving shadows across her face. Natural lens breathing and slight exposure fluctuations remain visible.
+
+00:06–00:08
+A slightly wider composition. She sits comfortably and relaxed in her seat, her left hand resting naturally on her lap while continuing to watch the match. Occasionally she brushes hair behind her ear or adjusts the hem of her dress. The handheld camera drifts naturally as passing clouds subtly change the lighting.
+
+00:08–00:10
+A close side-profile shot. She notices the camera—her friend filming—and turns toward it with a sincere, warm smile. She gently waves or lightly adjusts her hat. The camera catches the moment a fraction of a second late before naturally ending the recording.
+
+Audio:
+Natural location sound only. Gentle wind, the crisp sound of distant tennis racket hits, soft conversations among spectators, occasional applause, subtle creaking of stadium seats, and the rustling of grass or nearby flags. A delicate, authentic tennis tournament atmosphere. No music. No sound design. No narration.
+
+Goal:
+Capture a warm, authentic slice of life from a real tennis spectator, as if it were a forgotten home video recorded in the early 2000s. The footage should feel spontaneous, imperfect, genuine, warm, emotionally convincing, and unmistakably real.`;
+const SPORTS_BROADCAST_VIDEO_URL = `${WORKSPACE_VIDEO_BASE_URL}/16x9/Ultra-realistic_sports_broadcast.mp4`;
+const SPORTS_BROADCAST_PROMPT = `Ultra-realistic sports broadcast still of a glamorous woman sitting in a packed football stadium crowd during a night match, wearing a dark brown sleeveless high-neck satin top and black square earrings, shoulder-length light brown/blonde hair styled in soft waves. She is casually drinking from a tall blue aluminum can while holding a half-eaten cheeseburger in the other hand. Around her are fans in bright yellow and blue football jerseys and scarves, creating strong team-color contrast. The scene feels candid and cinematic, captured mid-game from a TV broadcast camera angle with shallow depth of field. Include realistic stadium seating, crowded audience atmosphere, broadcast overlay graphics in the top-left corner showing a live football score and match timer, and a sports network watermark in the top-right. Natural arena lighting, detailed skin texture, sharp focus on the woman, slightly blurred background crowd, authentic live sports broadcast aesthetic, 16:9 composition.`;
 
 const WORKSPACE_SHOWCASES: Array<{
   key: "baseball" | "cgi" | "tokyo" | "spectator";
@@ -172,15 +231,17 @@ function workspaceShowcaseHref(prompt: string) {
 function WorkspaceShowcaseVideo({
   file,
   desktopRatio = "16x9",
+  mobileRatio = "1x1",
   className = ""
 }: {
   file: string;
   desktopRatio?: "16x9" | "1x1";
+  mobileRatio?: "16x9" | "1x1";
   className?: string;
 }) {
   return (
     <video autoPlay muted loop playsInline preload="metadata" className={className}>
-      <source media="(max-width: 639px)" src={`${WORKSPACE_VIDEO_BASE_URL}/1x1/${file}-1x1.mp4`} type="video/mp4" />
+      <source media="(max-width: 639px)" src={`${WORKSPACE_VIDEO_BASE_URL}/${mobileRatio}/${file}-${mobileRatio}.mp4`} type="video/mp4" />
       <source src={`${WORKSPACE_VIDEO_BASE_URL}/${desktopRatio}/${file}-${desktopRatio}.mp4`} type="video/mp4" />
     </video>
   );
@@ -1385,6 +1446,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [thinkingLevel, setThinkingLevel] = useState("");
   const [duration, setDuration] = useState(mode === "video" || mode === "avatar" ? DEFAULT_VIDEO_DURATION : "single");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isYoungKoreanWomanPlaying, setIsYoungKoreanWomanPlaying] = useState(false);
+  const [isEastbourneKoreanWomanPlaying, setIsEastbourneKoreanWomanPlaying] = useState(false);
+  const [isSportsBroadcastPlaying, setIsSportsBroadcastPlaying] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [statusTone, setStatusTone] = useState<"ok" | "error" | "idle">("idle");
   const [taskHistoryNote, setTaskHistoryNote] = useState("");
@@ -3294,8 +3358,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
           <div className="grid min-h-[calc(100vh-1rem)] min-w-0 lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
             <aside className={`hidden border-r lg:flex lg:flex-col lg:items-center ${showModernWorkbenchRedesign ? "border-[#758bac]/15 bg-[#f5faff]/60 px-3 py-5" : "border-black/[0.06] bg-white/64 px-3 py-5"}`}>
-              <a href="https://dreamface.io" aria-label={st("studio.menu.dreamfaceHome")} className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#8b5cf6_58%,#34d399)] text-base font-black text-white shadow-[0_16px_36px_rgba(56,189,248,0.28)]">
-                DF
+              <a href="https://dreamface.io" aria-label={st("studio.menu.dreamfaceHome")} className="block h-12 w-12 overflow-hidden rounded-2xl shadow-[0_16px_36px_rgba(16,130,101,0.22)] transition hover:-translate-y-0.5">
+                <img src="/icons/icon-512x512.png" alt="" width={48} height={48} className="h-full w-full object-cover" />
               </a>
               <nav className={showModernWorkbenchRedesign ? "mt-[26px] grid w-full gap-2.5" : "mt-9 flex w-full flex-col items-center gap-4"}>
                 {[
@@ -3440,8 +3504,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         className="fixed inset-0 z-[55] cursor-default bg-transparent lg:hidden"
                       />
                       <div className="fixed left-4 top-[4.45rem] z-[60] max-h-[calc(100dvh-6rem)] w-[min(17rem,calc(100vw-2rem))] overflow-y-auto rounded-[1.15rem] border border-black/[0.08] bg-white p-1.5 shadow-[0_18px_52px_rgba(15,23,42,0.20)] lg:hidden">
+                        <a
+                          href="https://dreamface.io/"
+                          onClick={() => setMobileStudioMenuOpen(false)}
+                          className="mb-1 flex items-center gap-3 border-b border-black/[0.06] px-2.5 pb-3 pt-1.5 text-base font-black tracking-tight text-[#202633]"
+                        >
+                          <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-[13px] shadow-[0_9px_22px_rgba(16,130,101,0.18)]">
+                            <img src="/icons/icon-512x512.png" alt="" width={40} height={40} className="h-full w-full object-cover" />
+                          </span>
+                          DreamFace
+                        </a>
                         {[
-                          { label: st("studio.menu.dreamfaceHome"), href: "https://dreamface.io/", icon: "home" as StudioIconName, active: false },
                           { label: st("studio.menu.studioHome"), href: "/studio?view=home", icon: "home" as StudioIconName, active: isAppsHome },
                           { label: st("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "video" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "avatar" },
                           { label: st("studio.header.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image" as StudioIconName, active: !isAppsHome && !isProjectsView && mode === "image" },
@@ -3648,7 +3721,27 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 md:gap-4">
+                    <div className="grid gap-4 lg:hidden">
+                      {WORKSPACE_SHOWCASES.map((item) => (
+                        <Link
+                          key={`mobile-${item.key}`}
+                          href={workspaceShowcaseHref(item.prompt)}
+                          className="group relative block aspect-video overflow-hidden rounded-[1.5rem] bg-[#0f172a] shadow-[0_18px_46px_rgba(15,23,42,0.14)]"
+                        >
+                          <WorkspaceShowcaseVideo file={item.file} desktopRatio={item.desktopRatio} mobileRatio={item.desktopRatio} className="absolute inset-0 h-full w-full object-cover" />
+                          <span className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(15,23,42,0.02),rgba(15,23,42,0.84))]" />
+                          <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-white/16 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-white backdrop-blur-md">
+                            {st(item.labelKey)}
+                          </span>
+                          <span className="absolute inset-x-4 bottom-4 text-white">
+                            <strong className="block text-lg font-black leading-tight">{st(item.titleKey)}</strong>
+                            <span className="mt-1 block text-xs font-semibold text-white/72">{st(item.metaKey)}</span>
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+
+                    <div className="hidden grid-cols-2 gap-3 md:gap-4 lg:grid">
                       {WORKSPACE_SHOWCASES.map((item) => (
                         <Link
                           key={item.key}
@@ -3700,7 +3793,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </div>
                   </section>
 
-                  <section id="workspace-examples" className="mt-12 scroll-mt-24">
+                  <section id="workspace-examples" className="mt-12 hidden scroll-mt-24 lg:block">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                       <div>
                         <h2 className="text-2xl font-black tracking-tight text-[#0f172a] md:text-3xl">{st("studio.workspace.featuredTitle")}</h2>
@@ -4273,6 +4366,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             </div>
                           </div>
                         </div>
+
                       </div>
                     ) : showImageUtilityRedesign ? (
                       <div>
@@ -4598,7 +4692,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             />
                             <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
                               <span>{st(videoWorkflow === "image-to-video" ? "studio.videoWorkbench.motionTip" : "studio.videoWorkbench.promptTip")}</span>
-                              <span>{prompt.length.toLocaleString()} / 2,000</span>
+                              <span>{prompt.length.toLocaleString()} characters</span>
                             </div>
                           </div>
                         </div>
@@ -5829,27 +5923,41 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 setModelSelectPlacement(getModelSelectPlacement(modelSelectRef.current));
                                 setModelSelectOpen((open) => !open);
                               }}
-                              className="inline-flex min-h-[45px] w-full items-center justify-between gap-4 rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none transition hover:bg-[#fbfdff] sm:w-auto sm:min-w-[240px]"
+                              className="inline-flex min-h-[58px] w-full items-center justify-between gap-4 rounded-[18px] border border-[#758bac]/20 bg-white px-5 text-left text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none transition hover:bg-[#fbfdff] sm:min-h-[45px] sm:w-auto sm:min-w-[240px] sm:rounded-full"
                               aria-haspopup="listbox"
                               aria-expanded={modelSelectOpen}
                             >
-                              <span className="truncate">{selectedProviderMeta.label}</span>
+                              <span className="block min-w-0 truncate">{selectedProviderMeta.label}</span>
                               <span className={`shrink-0 text-base transition ${modelSelectOpen ? "rotate-180" : ""}`}>v</span>
                             </button>
-                            {modelSelectOpen ? (
+                            {modelSelectOpen ? createPortal((
+                              <>
+                              <button
+                                type="button"
+                                aria-label="Close model selector"
+                                onClick={() => setModelSelectOpen(false)}
+                                className="fixed inset-0 z-[190] cursor-default bg-[#111827]/55 backdrop-blur-[2px]"
+                              />
                               <div
                                 ref={modelSelectPanelRef}
                                 onMouseDown={(event) => event.stopPropagation()}
                                 onTouchStart={(event) => event.stopPropagation()}
-                                className="fixed left-1/2 top-1/2 z-[200] max-h-[min(76vh,620px)] w-[min(calc(100vw-2rem),640px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-[1.35rem] border border-[#758bac]/15 bg-[#fbfdff]/98 text-[#263244] shadow-[0_24px_70px_rgba(42,67,112,0.22)] backdrop-blur-xl"
+                                className="fixed inset-x-3 bottom-3 z-[200] max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain rounded-[1.35rem] border border-[#758bac]/20 bg-white text-[#263244] shadow-[0_24px_70px_rgba(8,20,42,0.35)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-[min(76vh,620px)] sm:w-[min(calc(100vw-2rem),640px)] sm:-translate-x-1/2 sm:-translate-y-1/2"
                                 role="listbox"
                               >
+                                <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#dce5f0] bg-white px-5 py-4 sm:hidden">
+                                  <div>
+                                    <span className="block text-[11px] font-black uppercase tracking-[0.16em] text-[#8c9ab0]">Current model</span>
+                                    <strong className="mt-1 block text-lg font-black text-[#263244]">{selectedProviderMeta.label}</strong>
+                                  </div>
+                                  <button type="button" onClick={() => setModelSelectOpen(false)} className="grid h-11 w-11 place-items-center rounded-full bg-[#eef3f9] text-xl font-bold text-[#526176]" aria-label="Close model selector">x</button>
+                                </div>
                                 {videoModelGroups.map((group) => {
                                   const groupOptions = options.filter((option) => videoModelGroup(option.value) === group.key);
                                   if (!groupOptions.length) return null;
                                   return (
                                     <div key={group.key}>
-                                      <div className="bg-gradient-to-b from-[#f8fafc] to-white/0 px-5 py-3 pb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#9aa6b8]">
+                                      <div className="border-y border-[#e4eaf2] bg-[#f3f6fa] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#8795aa]">
                                         {group.label}
                                       </div>
                                       {groupOptions.map((option) => {
@@ -5882,13 +5990,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                               applyProvider(option.value);
                                               setModelSelectOpen(false);
                                             }}
-                                            className={`flex w-full items-center justify-between gap-4 border-t border-[#e2e8f0]/80 px-5 py-4 text-left transition hover:bg-[#f5f9ff] ${active ? "bg-gradient-to-r from-[#eef8ff] to-white" : "bg-transparent"}`}
+                                            className={`flex w-full items-center justify-between gap-4 border-b border-[#e2e8f0] px-5 py-4 text-left transition hover:bg-[#f5f9ff] ${active ? "bg-[#eaf4ff] shadow-[inset_4px_0_0_#2585e8]" : "bg-white"}`}
                                           >
                                             <span className="min-w-0">
                                               <span className="block text-[15px] font-black text-[#263244]">{meta.label}</span>
                                               <span className="mt-1 block text-xs leading-5 text-[#7f8ca3]">{st(`studio.modelSelect.desc.${option.value}`)}</span>
                                             </span>
-                                            <span className="flex shrink-0 items-center gap-2">
+                                            <span className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2">
+                                              {active ? <span className="rounded-full bg-[#1677d2] px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white">Active</span> : null}
                                               {option.value !== "dreamface-io-video" ? (
                                                 <span className="text-xs font-bold text-[#64748b]">{st("studio.modelSelect.credits", { credits: modelCredits })}</span>
                                               ) : null}
@@ -5913,7 +6022,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                   );
                                 })}
                               </div>
-                            ) : null}
+                              </>
+                            ), document.body) : null}
                           </div>
                           <select value={duration} onChange={(e) => setDuration(e.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
                             {videoDurationOptions.map((item) => (
@@ -5960,6 +6070,140 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           <span className="grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
                         </button>
                       </div>
+
+                      {videoWorkflow === "text-to-video" ? (
+                        <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                          <article className="group relative overflow-hidden rounded-[22px] border border-[#758bac]/15 bg-[#e7eef5] shadow-[0_12px_30px_rgba(35,58,97,0.08)]">
+                            <video
+                              src={YOUNG_KOREAN_WOMAN_VIDEO_URL}
+                              controls
+                              muted
+                              playsInline
+                              preload="metadata"
+                              onPlay={() => setIsYoungKoreanWomanPlaying(true)}
+                              onPause={() => setIsYoungKoreanWomanPlaying(false)}
+                              onEnded={() => setIsYoungKoreanWomanPlaying(false)}
+                              className="aspect-video w-full bg-black object-cover"
+                            />
+                            <div className={`pointer-events-none absolute inset-0 hidden items-end bg-gradient-to-t from-[#0b1528]/75 via-transparent to-transparent p-3 transition sm:flex ${isYoungKoreanWomanPlaying ? "opacity-0" : "opacity-0 sm:group-hover:opacity-100"}`}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  applyProvider("seedance-video");
+                                  setPrompt(YOUNG_KOREAN_WOMAN_PROMPT);
+                                  setDuration("15s");
+                                  setRatio("16:9");
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="pointer-events-auto inline-flex min-h-10 w-full items-center justify-center rounded-full bg-white/95 px-4 text-sm font-black text-[#2468ad] shadow-[0_8px_22px_rgba(3,16,38,0.2)] backdrop-blur transition hover:bg-white"
+                              >
+                                Copy Prompt
+                              </button>
+                            </div>
+                            <div className="border-t border-[#758bac]/12 bg-white p-3 sm:hidden">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  applyProvider("seedance-video");
+                                  setPrompt(YOUNG_KOREAN_WOMAN_PROMPT);
+                                  setDuration("15s");
+                                  setRatio("16:9");
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#eef7ff] px-4 text-sm font-black text-[#2468ad] transition active:bg-[#e1f0ff]"
+                              >
+                                Copy Prompt
+                              </button>
+                            </div>
+                          </article>
+                          <article className="group relative overflow-hidden rounded-[22px] border border-[#758bac]/15 bg-[#e7eef5] shadow-[0_12px_30px_rgba(35,58,97,0.08)]">
+                            <video
+                              src={EASTBOURNE_KOREAN_WOMAN_VIDEO_URL}
+                              controls
+                              muted
+                              playsInline
+                              preload="metadata"
+                              onPlay={() => setIsEastbourneKoreanWomanPlaying(true)}
+                              onPause={() => setIsEastbourneKoreanWomanPlaying(false)}
+                              onEnded={() => setIsEastbourneKoreanWomanPlaying(false)}
+                              className="aspect-video w-full bg-black object-cover"
+                            />
+                            <div className={`pointer-events-none absolute inset-0 hidden items-end bg-gradient-to-t from-[#0b1528]/75 via-transparent to-transparent p-3 transition sm:flex ${isEastbourneKoreanWomanPlaying ? "opacity-0" : "opacity-0 sm:group-hover:opacity-100"}`}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  applyProvider("seedance-video");
+                                  setPrompt(EASTBOURNE_KOREAN_WOMAN_PROMPT);
+                                  setDuration("10s");
+                                  setRatio("16:9");
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="pointer-events-auto inline-flex min-h-10 w-full items-center justify-center rounded-full bg-white/95 px-4 text-sm font-black text-[#2468ad] shadow-[0_8px_22px_rgba(3,16,38,0.2)] backdrop-blur transition hover:bg-white"
+                              >
+                                Copy Prompt
+                              </button>
+                            </div>
+                            <div className="border-t border-[#758bac]/12 bg-white p-3 sm:hidden">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  applyProvider("seedance-video");
+                                  setPrompt(EASTBOURNE_KOREAN_WOMAN_PROMPT);
+                                  setDuration("10s");
+                                  setRatio("16:9");
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#eef7ff] px-4 text-sm font-black text-[#2468ad] transition active:bg-[#e1f0ff]"
+                              >
+                                Copy Prompt
+                              </button>
+                            </div>
+                          </article>
+                          <article className="group relative overflow-hidden rounded-[22px] border border-[#758bac]/15 bg-[#e7eef5] shadow-[0_12px_30px_rgba(35,58,97,0.08)]">
+                            <video
+                              src={SPORTS_BROADCAST_VIDEO_URL}
+                              controls
+                              muted
+                              playsInline
+                              preload="metadata"
+                              onPlay={() => setIsSportsBroadcastPlaying(true)}
+                              onPause={() => setIsSportsBroadcastPlaying(false)}
+                              onEnded={() => setIsSportsBroadcastPlaying(false)}
+                              className="aspect-video w-full bg-black object-cover"
+                            />
+                            <div className={`pointer-events-none absolute inset-0 hidden items-end bg-gradient-to-t from-[#0b1528]/75 via-transparent to-transparent p-3 transition sm:flex ${isSportsBroadcastPlaying ? "opacity-0" : "opacity-0 sm:group-hover:opacity-100"}`}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  applyProvider("seedance-video");
+                                  setPrompt(SPORTS_BROADCAST_PROMPT);
+                                  setDuration("15s");
+                                  setRatio("16:9");
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="pointer-events-auto inline-flex min-h-10 w-full items-center justify-center rounded-full bg-white/95 px-4 text-sm font-black text-[#2468ad] shadow-[0_8px_22px_rgba(3,16,38,0.2)] backdrop-blur transition hover:bg-white"
+                              >
+                                Copy Prompt
+                              </button>
+                            </div>
+                            <div className="border-t border-[#758bac]/12 bg-white p-3 sm:hidden">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  applyProvider("seedance-video");
+                                  setPrompt(SPORTS_BROADCAST_PROMPT);
+                                  setDuration("15s");
+                                  setRatio("16:9");
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#eef7ff] px-4 text-sm font-black text-[#2468ad] transition active:bg-[#e1f0ff]"
+                              >
+                                Copy Prompt
+                              </button>
+                            </div>
+                          </article>
+                        </div>
+                      ) : null}
 
                       <div className="grid gap-3 md:grid-cols-3">
                         {[

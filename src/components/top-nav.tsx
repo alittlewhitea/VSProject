@@ -97,8 +97,19 @@ export function TopNav() {
     >
       <div className="flex items-center justify-between gap-3 sm:gap-5">
         <div className="flex min-w-0 items-center gap-5 lg:gap-10">
-          <Link href={localizedHref("/")} onClick={() => trackEvent("nav_clicked", { item: "logo", target: "/" })} className="shrink-0 text-xl font-black leading-none tracking-tight sm:text-3xl">
-            {t("nav.logo")}
+          <Link
+            href={localizedHref("/")}
+            onClick={() => trackEvent("nav_clicked", { item: "logo", target: "/" })}
+            className="flex shrink-0 items-center gap-2 text-xl font-black leading-none tracking-tight sm:gap-2.5 sm:text-3xl"
+          >
+            <img
+              src="/icons/icon-512x512.png"
+              alt=""
+              width={40}
+              height={40}
+              className="h-8 w-8 shrink-0 rounded-[10px] object-cover shadow-[0_7px_18px_rgba(16,130,101,0.18)] sm:h-10 sm:w-10 sm:rounded-[13px]"
+            />
+            <span>{t("nav.logo")}</span>
           </Link>
           <span className="hidden h-7 w-px bg-black/12 lg:block" />
           <nav className="hidden gap-7 whitespace-nowrap text-base font-bold text-[#2f2f32] lg:flex">
