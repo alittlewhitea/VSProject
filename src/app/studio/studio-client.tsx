@@ -6094,10 +6094,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           <article className="group relative overflow-hidden rounded-[22px] border border-[#758bac]/15 bg-[#e7eef5] shadow-[0_12px_30px_rgba(35,58,97,0.08)]">
                             <video
                               src={YOUNG_KOREAN_WOMAN_VIDEO_URL}
+                              poster="/images/video-examples/young-korean-neighborhood.png"
                               controls
                               muted
                               playsInline
-                              preload="metadata"
+                              preload="none"
                               onPlay={() => setIsYoungKoreanWomanPlaying(true)}
                               onPause={() => setIsYoungKoreanWomanPlaying(false)}
                               onEnded={() => setIsYoungKoreanWomanPlaying(false)}
@@ -6137,10 +6138,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           <article className="group relative overflow-hidden rounded-[22px] border border-[#758bac]/15 bg-[#e7eef5] shadow-[0_12px_30px_rgba(35,58,97,0.08)]">
                             <video
                               src={EASTBOURNE_KOREAN_WOMAN_VIDEO_URL}
+                              poster="/images/video-examples/eastbourne-tennis.png"
                               controls
                               muted
                               playsInline
-                              preload="metadata"
+                              preload="none"
                               onPlay={() => setIsEastbourneKoreanWomanPlaying(true)}
                               onPause={() => setIsEastbourneKoreanWomanPlaying(false)}
                               onEnded={() => setIsEastbourneKoreanWomanPlaying(false)}
@@ -6180,10 +6182,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           <article className="group relative overflow-hidden rounded-[22px] border border-[#758bac]/15 bg-[#e7eef5] shadow-[0_12px_30px_rgba(35,58,97,0.08)]">
                             <video
                               src={SPORTS_BROADCAST_VIDEO_URL}
+                              poster="/images/video-examples/sports-broadcast.png"
                               controls
                               muted
                               playsInline
-                              preload="metadata"
+                              preload="none"
                               onPlay={() => setIsSportsBroadcastPlaying(true)}
                               onPause={() => setIsSportsBroadcastPlaying(false)}
                               onEnded={() => setIsSportsBroadcastPlaying(false)}
