@@ -1926,7 +1926,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? audioWorkflow : mode === "avatar" ? "avatar-video" : videoWorkflow;
   const activeWorkflowMeta = WORKFLOW_META[activeWorkflow];
-  const isPromptlessImageWorkflow = mode === "image" && activeWorkflow === "background-remove";
+  const isPromptlessImageWorkflow = mode === "image" && (activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove");
   const allReferenceImageUrls = [
     ...referenceImagesText
       .split(/\r?\n|,/)
@@ -2611,7 +2611,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         provider,
         ratio: isAvatarWorkflow ? isDreamfaceTalkingAvatar ? ratio : "source" : ratio,
         duration: requestDuration,
-        prompt,
+        prompt: isPromptlessImageWorkflow ? "" : prompt,
         imageSize: mode === "image" ? imageSize : undefined,
         imageUrls:
           (mode === "image" && referenceImageUrls.length > 0) || (mode === "avatar" || (mode === "video" && videoWorkflow === "image-to-video"))
@@ -2625,7 +2625,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               ? videoResolution
               : undefined,
         generateAudio: mode === "video" ? generateAudio : undefined,
-        outputFormat: mode === "image" && !isPromptlessImageWorkflow ? outputFormat : undefined,
+        outputFormat: mode === "image" && provider !== "bria-background-remove" ? outputFormat : undefined,
         quality: mode === "image" && !isPromptlessImageWorkflow ? imageQuality : undefined,
         numImages: mode === "image" && !isPromptlessImageWorkflow ? numImages : undefined,
         guidanceScale: mode === "image" && !isPromptlessImageWorkflow ? guidanceScale : undefined,
@@ -4245,7 +4245,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           />
                           <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
                             <span>{st("studio.textImage.tip")}</span>
-                            <span>{prompt.length.toLocaleString()} / 2,000</span>
+                            <span>{prompt.length.toLocaleString()} characters</span>
                           </div>
                         </div>
                       </div>
@@ -4362,7 +4362,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             />
                             <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
                               <span>{st("studio.imageImage.tip")}</span>
-                              <span>{prompt.length.toLocaleString()} / 2,000</span>
+                              <span>{prompt.length.toLocaleString()} characters</span>
                             </div>
                           </div>
                         </div>
@@ -4460,30 +4460,31 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
                           <div className="min-w-0">
                             {imageWorkflow === "enhance-cleanup" ? (
-                              <>
-                                <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
-                                  <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{st("studio.utilityImage.enhancePrompt")}</div>
-                                  <button
-                                    type="button"
-                                    onClick={() => setPrompt("")}
-                                    className="inline-flex h-8 items-center rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]"
-                                  >
-                                    {st("studio.action.clear")}
-                                  </button>
+                              <div className="flex min-h-[300px] flex-col justify-between rounded-[28px] border border-[#758bac]/15 bg-[linear-gradient(145deg,#f5faff,#ffffff)] p-5 shadow-[0_10px_28px_rgba(35,58,97,0.06)] md:p-6">
+                                <div>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#2886d3]">Topaz image enhancement</p>
+                                      <h3 className="mt-2 text-xl font-black text-[#283249]">Standard V2</h3>
+                                    </div>
+                                    <span className="rounded-full bg-[#e9f7ff] px-3 py-1.5 text-xs font-black text-[#1787c4]">2x</span>
+                                  </div>
+                                  <p className="mt-4 text-sm font-bold leading-6 text-[#7b899f]">{st("studio.model.topaz-image")}</p>
                                 </div>
-                                <textarea
-                                  dir="auto"
-                                  rows={7}
-                                  value={prompt}
-                                  onChange={(e) => setPrompt(e.target.value)}
-                                  className="min-h-[300px] w-full resize-y bg-transparent p-0 text-[18px] leading-[1.62] tracking-[-0.02em] text-[#182033] outline-none placeholder:text-[#a6b2c7] md:text-[22px]"
-                                  placeholder={st("studio.utilityImage.enhancePlaceholder")}
-                                />
-                                <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
-                                  <span>{st("studio.utilityImage.enhanceTip")}</span>
-                                  <span>{prompt.length.toLocaleString()} / 2,000</span>
+                                <div className="mt-6 grid grid-cols-2 gap-3">
+                                  {[
+                                    ["Subject", "All"],
+                                    ["Face enhancement", "80%"],
+                                    ["Upscale", "2x"],
+                                    ["Output", outputFormat === "png" ? "PNG" : "JPEG"]
+                                  ].map(([label, value]) => (
+                                    <div key={label} className="rounded-[18px] border border-[#758bac]/12 bg-white px-4 py-3 shadow-[0_6px_16px_rgba(35,58,97,0.04)]">
+                                      <span className="block text-[10px] font-black uppercase tracking-[0.1em] text-[#98a4b6]">{label}</span>
+                                      <strong className="mt-1 block text-sm font-black text-[#42516a]">{value}</strong>
+                                    </div>
+                                  ))}
                                 </div>
-                              </>
+                              </div>
                             ) : (
                               <div className="grid min-h-[300px] place-items-center rounded-[28px] border border-[#758bac]/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,251,255,0.86))] p-6 text-center shadow-[0_8px_18px_rgba(35,58,97,0.045)]">
                                 <div>
@@ -5538,7 +5539,24 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                               </option>
                             ))}
                           </select>
-                          {isNanoBananaProvider(provider) ? (
+                          {showImageUtilityRedesign ? (
+                            imageWorkflow === "enhance-cleanup" ? (
+                              <>
+                                <span className="inline-flex min-h-[45px] items-center rounded-full border border-[#758bac]/15 bg-white px-5 text-sm font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)]">
+                                  Standard V2 / 2x
+                                </span>
+                                <select
+                                  value={outputFormat === "png" ? "png" : "jpeg"}
+                                  onChange={(e) => setOutputFormat(e.target.value)}
+                                  className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-sm font-black uppercase text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none"
+                                  aria-label={st("studio.field.outputFormat")}
+                                >
+                                  <option value="jpeg">JPEG</option>
+                                  <option value="png">PNG</option>
+                                </select>
+                              </>
+                            ) : null
+                          ) : isNanoBananaProvider(provider) ? (
                             <select
                               value={ratio}
                               onChange={(e) => {

@@ -752,7 +752,7 @@ export async function POST(request: Request) {
     const isDreamfaceIo = body.provider === DREAMFACE_IO_PROVIDER;
     const isDreamfaceIoTalkingAvatar = isDreamfaceIo && body.mode === "avatar";
     const storageMode = storedModeForRequest(body);
-    const isPromptlessImageTool = body.mode === "image" && body.provider === "bria-background-remove";
+    const isPromptlessImageTool = body.mode === "image" && (body.provider === "topaz-image" || body.provider === "bria-background-remove");
     const prompt = body.prompt.trim() || (isAvatarProvider || isDreamfaceIoTalkingAvatar || isPromptlessImageTool ? "." : "");
     if (!isPromptlessImageTool && !prompt.trim()) {
       return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
