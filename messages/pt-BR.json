@@ -109,7 +109,7 @@
       },
       "availableTools": {
         "question": "Quais ferramentas estão disponíveis na DreamFace?",
-        "answer": "A DreamFace inclui texto para imagem, imagem para imagem, texto para vídeo, imagem para vídeo, melhoria de imagem e histórico de projetos reutilizável."
+        "answer": "A DreamFace reúne texto para imagem, edição de imagem, texto para vídeo, imagem para vídeo, avatares de IA, melhoria de imagem, remoção de fundo, voz de IA e música de IA em um só estúdio. Projetos organiza prompts, resultados, status, cobranças e reembolsos de créditos."
       },
       "textImageSupport": {
         "question": "A DreamFace suporta texto para imagem e imagem para imagem?",
@@ -137,7 +137,7 @@
       },
       "models": {
         "question": "Quais modelos de IA posso usar?",
-        "answer": "As opções dependem do fluxo. Imagens incluem GPT Image 2, Nano Banana 2 e FLUX Schnell; vídeo inclui Seedance, Kling, Veo e Grok Imagine Video."
+        "answer": "A disponibilidade depende do fluxo. As opções atuais incluem GPT Image 2, Nano Banana 2, FLUX e Topaz para imagens; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video e Happy Horse 1.1 para vídeo; e ElevenLabs Eleven v3 e MiniMax Music 2.6 para áudio."
       },
       "videoTiming": {
         "question": "Quanto tempo leva para gerar um vídeo?",
@@ -153,7 +153,7 @@
       },
       "freeTrial": {
         "question": "A DreamFace é grátis para testar?",
-        "answer": "Novas contas recebem créditos de teste para experimentar fluxos disponíveis. Depois, é possível comprar créditos ou assinar um plano."
+        "answer": "Sim. Novas contas recebem 100 créditos de cadastro para testar os fluxos disponíveis. Depois, é possível comprar pacotes avulsos ou escolher uma assinatura Premium com cobrança semanal, mensal ou anual."
       },
       "failedTask": {
         "question": "O que acontece se uma geração falhar?",
@@ -165,7 +165,7 @@
       },
       "audioSupport": {
         "question": "A DreamFace tem música ou voz com IA?",
-        "answer": "O foco principal é visual, mas alguns fluxos incluem recursos de voz. A disponibilidade depende do workspace ativo."
+        "answer": "Sim. A DreamFace oferece ElevenLabs Eleven v3 para texto em voz e MiniMax Music 2.6 para texto em música. Ambos ficam no espaço de Áudio e mostram o custo estimado em créditos antes da geração."
       },
       "replaceProduction": {
         "question": "Vídeos de IA substituem produção tradicional?",

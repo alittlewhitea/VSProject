@@ -29,6 +29,7 @@ import { studioAudioWorkbenchMessages } from "./studio-i18n-audio-workbench";
 import { studioNewLocaleMessages } from "./studio-i18n-new-locales";
 import { studioMusicMessages } from "./studio-i18n-music";
 import { studioTraditionalChineseMessages } from "./studio-i18n-zh-tw";
+import { studioControlMessages } from "./studio-i18n-controls";
 
 type StudioMessages = Record<string, string>;
 
@@ -1029,6 +1030,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
 
   function t(key: string, values?: Record<string, string | number | null | undefined>) {
     let template =
+      studioControlMessages[locale]?.[key] ||
       studioAudioWorkbenchMessages[locale]?.[key] ||
       studioVideoWorkbenchMessages[locale]?.[key] ||
       studioAvatarWorkbenchMessages[locale]?.[key] ||

@@ -109,7 +109,7 @@
       },
       "availableTools": {
         "question": "Quels outils de génération d'IA sont disponibles dans DreamFace?",
-        "answer": "DreamFace comprend des outils pour texte vers image, image vers image, texte vers vidéo, image vers vidéo, flux de travail d'amélioration de photo, et l'historique du projet réutilisable. Le studio est conçu autour du choix de ce que vous voulez créer d'abord, puis le routage vers un modèle AI approprié."
+        "answer": "DreamFace réunit dans un seul studio la génération et l'édition d'images, le texte vers vidéo, l'image vers vidéo, les avatars IA, l'amélioration d'image, la suppression d'arrière-plan, la voix IA et la musique IA. Projets organise les prompts, résultats, statuts, débits et remboursements de crédits."
       },
       "textImageSupport": {
         "question": "DreamFace prend-il en charge le texte à image et l'image à image?",
@@ -137,7 +137,7 @@
       },
       "models": {
         "question": "Quels modèles d'IA puis-je utiliser?",
-        "answer": "Les options de modèle dépendent du flux de travail. La création d'images comprend des fournisseurs tels que GPT Image 2, Nano Banana 2 et FLUX Schnell, et la création vidéo comprend des fournisseurs routés tels que Seedance, Kling, Veo et Grok Imagine Video."
+        "answer": "La disponibilité dépend du flux de travail. Les options actuelles incluent GPT Image 2, Nano Banana 2, FLUX et Topaz pour l'image ; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video et Happy Horse 1.1 pour la vidéo ; ElevenLabs Eleven v3 et MiniMax Music 2.6 pour l'audio."
       },
       "videoTiming": {
         "question": "Combien de temps faut-il pour générer une vidéo AI ?",
@@ -153,7 +153,7 @@
       },
       "freeTrial": {
         "question": "DreamFace est-il libre d'essayer ?",
-        "answer": "Les nouveaux comptes reçoivent des crédits d'inscription afin qu'ils puissent tester les flux de production supportés. Les packs de crédit payants sont disponibles lorsque vous avez besoin de plus de générations d'images ou de vidéos."
+        "answer": "Oui. Les nouveaux comptes reçoivent 100 crédits d'inscription pour tester les flux pris en charge. Ensuite, DreamFace propose des packs de crédits ponctuels et des abonnements Premium facturés à la semaine, au mois ou à l'année."
       },
       "failedTask": {
         "question": "Que se passe-t-il si une tâche de génération d'IA échoue?",
@@ -165,7 +165,7 @@
       },
       "audioSupport": {
         "question": "Est-ce que DreamFace inclut la musique AI ou la génération de voix AI?",
-        "answer": "DreamFace se concentre d'abord sur la génération visuelle, avec des flux d'images et de vidéos disponibles en studio. Les outils audio et vocaux peuvent apparaître à mesure que la couverture des produits s'étend, mais la disponibilité actuelle dépend de l'espace de travail en direct."
+        "answer": "Oui. DreamFace propose ElevenLabs Eleven v3 pour la synthèse vocale et MiniMax Music 2.6 pour la génération de musique à partir de texte. Les deux sont disponibles dans l'espace Audio avec une estimation du coût en crédits avant la génération."
       },
       "replaceProduction": {
         "question": "Les vidéos AI peuvent-elles remplacer la production vidéo traditionnelle ?",

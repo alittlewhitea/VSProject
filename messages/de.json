@@ -109,7 +109,7 @@
       },
       "availableTools": {
         "question": "Welche KI-Werkzeuge sind in DreamFace verfügbar?",
-        "answer": "DreamFace bietet Text-zu-Bild, Bild-zu-Bild, Text-zu-Video, Bild-zu-Video, Bildverbesserung und einen wiederverwendbaren Projektverlauf. Du wählst zuerst das gewünschte Ergebnis, danach wird ein passendes KI-Modell verwendet."
+        "answer": "DreamFace vereint Text-zu-Bild, Bildbearbeitung, Text-zu-Video, Bild-zu-Video, KI-Avatare, Bildverbesserung, Hintergrundentfernung, KI-Stimmen und KI-Musik in einem Studio. Projekte organisiert Prompts, Ergebnisse, Aufgabenstatus, Credit-Abbuchungen und Rückerstattungen."
       },
       "textImageSupport": {
         "question": "Unterstützt DreamFace Text-zu-Bild und Bild-zu-Bild?",
@@ -137,7 +137,7 @@
       },
       "models": {
         "question": "Welche KI-Modelle kann ich verwenden?",
-        "answer": "Die Modellauswahl hängt vom Workflow ab. Für Bilder stehen unter anderem GPT Image 2, Nano Banana 2 und FLUX Schnell zur Verfügung; Videos werden beispielsweise über Seedance, Kling, Veo und Grok Imagine Video erstellt."
+        "answer": "Die Verfügbarkeit hängt vom Workflow ab. Aktuelle Optionen sind GPT Image 2, Nano Banana 2, FLUX und Topaz für Bilder; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video und Happy Horse 1.1 für Videos; sowie ElevenLabs Eleven v3 und MiniMax Music 2.6 für Audio."
       },
       "videoTiming": {
         "question": "Wie lange dauert die Erstellung eines KI-Videos?",
@@ -153,7 +153,7 @@
       },
       "freeTrial": {
         "question": "Kann ich DreamFace kostenlos testen?",
-        "answer": "Neue Konten erhalten Start-Credits, um unterstützte Workflows auszuprobieren. Wenn du weitere Bilder oder Videos erstellen möchtest, kannst du zusätzliche Credit-Pakete kaufen."
+        "answer": "Ja. Neue Konten erhalten 100 Start-Credits, um unterstützte Workflows zu testen. Danach stehen einmalige Credit-Pakete sowie Premium-Mitgliedschaften mit wöchentlicher, monatlicher oder jährlicher Abrechnung zur Verfügung."
       },
       "failedTask": {
         "question": "Was passiert bei einer fehlgeschlagenen Erstellung?",
@@ -165,7 +165,7 @@
       },
       "audioSupport": {
         "question": "Bietet DreamFace KI-Musik oder KI-Sprachgenerierung?",
-        "answer": "DreamFace konzentriert sich auf visuelle Generierung und bietet zusätzlich Sprach- und Audio-Workflows. Die konkrete Verfügbarkeit hängt vom aktuellen Studio und den verbundenen Anbietern ab."
+        "answer": "Ja. DreamFace bietet ElevenLabs Eleven v3 für Text-zu-Sprache und MiniMax Music 2.6 für Text-zu-Musik. Beide laufen im Audio-Arbeitsbereich und zeigen die geschätzten Credit-Kosten vor der Generierung an."
       },
       "replaceProduction": {
         "question": "Können KI-Videos klassische Videoproduktion ersetzen?",

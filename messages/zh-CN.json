@@ -109,7 +109,7 @@
       },
       "availableTools": {
         "question": "DreamFace 提供哪些 AI 创作工具？",
-        "answer": "DreamFace 支持文生图、图生图、文生视频、图生视频、图片增强和项目历史。你可以先选择创作目标，再进入合适的模型流程。"
+        "answer": "DreamFace 在一个工作台中整合了文生图、图片编辑、文生视频、图生视频、AI Avatar、图片增强、背景移除、AI 语音和 AI 音乐。项目页会集中管理提示词、生成结果、任务状态、积分扣费与退款记录。"
       },
       "textImageSupport": {
         "question": "支持文生图和图生图吗？",
@@ -137,7 +137,7 @@
       },
       "models": {
         "question": "可以使用哪些 AI 模型？",
-        "answer": "可用模型取决于工作流。图片方向包含 GPT Image 2、Nano Banana 2、FLUX Schnell 等，视频方向包含 Seedance、Kling、Veo 和 Grok Imagine Video 等。"
+        "answer": "可用模型取决于工作流。目前图片方向包括 GPT Image 2、Nano Banana 2、FLUX 和 Topaz；视频方向包括 Seedance 2、Kling v3、Veo 3.1、Grok Imagine Video 和 Happy Horse 1.1；音频方向包括 ElevenLabs Eleven v3 和 MiniMax Music 2.6。"
       },
       "videoTiming": {
         "question": "生成 AI 视频需要多久？",
@@ -153,7 +153,7 @@
       },
       "freeTrial": {
         "question": "DreamFace 可以免费试用吗？",
-        "answer": "新账户会获得试用积分，可用于体验支持的生成流程。需要更多生成次数时，可以购买积分包或订阅方案。"
+        "answer": "可以。新账户可获得 100 注册积分，用于体验支持的生成流程。后续可购买一次性积分包，或选择按周、按月、按年计费的 Premium 会员。"
       },
       "failedTask": {
         "question": "生成失败会怎样？",
@@ -165,7 +165,7 @@
       },
       "audioSupport": {
         "question": "DreamFace 支持 AI 音乐或语音吗？",
-        "answer": "DreamFace 目前以视觉创作为主，同时部分流程包含语音能力。实际可用功能以线上工作台显示为准。"
+        "answer": "支持。DreamFace 的音频工作台提供 ElevenLabs Eleven v3 文生语音和 MiniMax Music 2.6 文生音乐，并会在生成前显示预计积分消耗。"
       },
       "replaceProduction": {
         "question": "AI 视频可以替代传统拍摄吗？",

@@ -109,7 +109,7 @@
       },
       "availableTools": {
         "question": "DreamFace có những công cụ nào?",
-        "answer": "DreamFace có văn bản thành ảnh, ảnh thành ảnh, văn bản thành video, ảnh thành video, nâng cấp ảnh và lịch sử dự án."
+        "answer": "DreamFace kết hợp tạo và chỉnh sửa ảnh, văn bản thành video, ảnh thành video, avatar AI, nâng cấp ảnh, xóa nền, giọng nói AI và nhạc AI trong một studio. Dự án lưu prompt, kết quả, trạng thái tác vụ, khoản trừ và hoàn credit."
       },
       "textImageSupport": {
         "question": "Có hỗ trợ văn bản thành ảnh và ảnh thành ảnh không?",
@@ -137,7 +137,7 @@
       },
       "models": {
         "question": "Có thể dùng mô hình AI nào?",
-        "answer": "Tùy quy trình. Ảnh có GPT Image 2, Nano Banana 2 và FLUX Schnell; video có Seedance, Kling, Veo và Grok Imagine Video."
+        "answer": "Khả dụng tùy theo quy trình. Hiện có GPT Image 2, Nano Banana 2, FLUX và Topaz cho ảnh; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video và Happy Horse 1.1 cho video; ElevenLabs Eleven v3 và MiniMax Music 2.6 cho âm thanh."
       },
       "videoTiming": {
         "question": "Tạo video AI mất bao lâu?",
@@ -153,7 +153,7 @@
       },
       "freeTrial": {
         "question": "DreamFace có dùng thử miễn phí không?",
-        "answer": "Tài khoản mới nhận credit dùng thử. Sau đó bạn có thể mua credit hoặc chọn gói đăng ký."
+        "answer": "Có. Tài khoản mới nhận 100 credit đăng ký để thử các quy trình được hỗ trợ. Sau đó, bạn có thể mua gói credit một lần hoặc chọn Premium thanh toán theo tuần, tháng hoặc năm."
       },
       "failedTask": {
         "question": "Nếu tạo thất bại thì sao?",
@@ -165,7 +165,7 @@
       },
       "audioSupport": {
         "question": "Có AI music hoặc giọng nói không?",
-        "answer": "DreamFace tập trung vào hình ảnh và video, nhưng một số quy trình có khả năng giọng nói. Tính năng thực tế phụ thuộc workspace."
+        "answer": "Có. DreamFace cung cấp ElevenLabs Eleven v3 để chuyển văn bản thành giọng nói và MiniMax Music 2.6 để tạo nhạc từ văn bản. Cả hai nằm trong không gian Âm thanh và hiển thị chi phí credit ước tính trước khi tạo."
       },
       "replaceProduction": {
         "question": "Video AI có thay thế sản xuất truyền thống không?",

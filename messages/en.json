@@ -109,7 +109,7 @@
       },
       "availableTools": {
         "question": "Which AI generation tools are available in DreamFace?",
-        "answer": "DreamFace includes tools for text-to-image, image-to-image, text-to-video, image-to-video, photo enhancement workflows, and reusable project history. The studio is designed around choosing what you want to create first, then routing to a suitable AI model."
+        "answer": "DreamFace combines text-to-image, image editing, text-to-video, image-to-video, AI avatar, image enhancement, background removal, AI voice, and AI music tools in one studio. Projects keeps prompts, outputs, task status, credit charges, and refunds organized."
       },
       "textImageSupport": {
         "question": "Does DreamFace support text-to-image and image-to-image?",
@@ -137,7 +137,7 @@
       },
       "models": {
         "question": "Which AI models can I use?",
-        "answer": "Model options depend on the workflow. Image creation includes providers such as GPT Image 2, Nano Banana 2, and FLUX Schnell, and video creation includes routed providers such as Seedance, Kling, Veo, and Grok Imagine Video."
+        "answer": "Model availability depends on the workflow. Current options include GPT Image 2, Nano Banana 2, FLUX, and Topaz for images; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video, and Happy Horse 1.1 for video; and ElevenLabs Eleven v3 and MiniMax Music 2.6 for audio."
       },
       "videoTiming": {
         "question": "How long does it take to generate an AI video?",
@@ -153,7 +153,7 @@
       },
       "freeTrial": {
         "question": "Is DreamFace free to try?",
-        "answer": "New accounts receive signup credits so they can test supported generation workflows. Paid credit packs are available when you need more image or video generations."
+        "answer": "Yes. New accounts receive 100 signup credits to test supported workflows. For continued use, DreamFace offers one-time credit packs plus Premium memberships with weekly, monthly, or yearly billing."
       },
       "failedTask": {
         "question": "What happens if an AI generation task fails?",
@@ -165,7 +165,7 @@
       },
       "audioSupport": {
         "question": "Does DreamFace include AI music or AI voice generation?",
-        "answer": "DreamFace is focused on visual generation first, with image and video workflows available in the studio. Audio and voice-related tools may appear as product coverage expands, but current availability depends on the live workspace."
+        "answer": "Yes. DreamFace includes ElevenLabs Eleven v3 for text-to-speech voiceovers and MiniMax Music 2.6 for text-to-music generation. Both run in the Audio workspace and show the estimated credit cost before generation."
       },
       "replaceProduction": {
         "question": "Can AI videos replace traditional video production?",

@@ -5,6 +5,7 @@ import ts from "typescript";
 const root = process.cwd();
 const locales = ["en", "zh-CN", "zh-TW", "pt-BR", "ru", "vi", "de", "fr", "ja", "th", "nl", "he", "ko", "es", "it", "ar"];
 const studioSources = [
+  ["studio-i18n-controls.ts", "studioControlMessages"],
   ["studio-i18n-dreamface-io.ts", "studioDreamfaceIoMessages"],
   ["studio-i18n-workspace-home.ts", "studioWorkspaceHomeMessages"],
   ["studio-i18n-fal-errors.ts", "studioFalErrorMessages"],

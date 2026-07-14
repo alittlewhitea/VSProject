@@ -4464,7 +4464,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 <div>
                                   <div className="flex items-center justify-between gap-3">
                                     <div>
-                                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#2886d3]">Topaz image enhancement</p>
+                                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#2886d3]">{st("studio.topaz.enhancement")}</p>
                                       <h3 className="mt-2 text-xl font-black text-[#283249]">Standard V2</h3>
                                     </div>
                                     <span className="rounded-full bg-[#e9f7ff] px-3 py-1.5 text-xs font-black text-[#1787c4]">2x</span>
@@ -4473,10 +4473,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 </div>
                                 <div className="mt-6 grid grid-cols-2 gap-3">
                                   {[
-                                    ["Subject", "All"],
-                                    ["Face enhancement", "80%"],
-                                    ["Upscale", "2x"],
-                                    ["Output", outputFormat === "png" ? "PNG" : "JPEG"]
+                                    [st("studio.topaz.subject"), st("studio.topaz.all")],
+                                    [st("studio.topaz.faceEnhancement"), "80%"],
+                                    [st("studio.topaz.upscale"), "2x"],
+                                    [st("studio.field.output"), outputFormat === "png" ? "PNG" : "JPEG"]
                                   ].map(([label, value]) => (
                                     <div key={label} className="rounded-[18px] border border-[#758bac]/12 bg-white px-4 py-3 shadow-[0_6px_16px_rgba(35,58,97,0.04)]">
                                       <span className="block text-[10px] font-black uppercase tracking-[0.1em] text-[#98a4b6]">{label}</span>
@@ -5952,7 +5952,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                               <>
                               <button
                                 type="button"
-                                aria-label="Close model selector"
+                                aria-label={st("studio.modelSelect.close")}
                                 onClick={() => setModelSelectOpen(false)}
                                 className="fixed inset-0 z-[190] cursor-default bg-[#111827]/55 backdrop-blur-[2px]"
                               />
@@ -5965,10 +5965,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                               >
                                 <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#dce5f0] bg-white px-5 py-4 sm:hidden">
                                   <div>
-                                    <span className="block text-[11px] font-black uppercase tracking-[0.16em] text-[#8c9ab0]">Current model</span>
+                                    <span className="block text-[11px] font-black uppercase tracking-[0.16em] text-[#8c9ab0]">{st("studio.modelSelect.current")}</span>
                                     <strong className="mt-1 block text-lg font-black text-[#263244]">{selectedProviderMeta.label}</strong>
                                   </div>
-                                  <button type="button" onClick={() => setModelSelectOpen(false)} className="grid h-11 w-11 place-items-center rounded-full bg-[#eef3f9] text-xl font-bold text-[#526176]" aria-label="Close model selector">x</button>
+                                  <button type="button" onClick={() => setModelSelectOpen(false)} className="grid h-11 w-11 place-items-center rounded-full bg-[#eef3f9] text-xl font-bold text-[#526176]" aria-label={st("studio.modelSelect.close")}>x</button>
                                 </div>
                                 {videoModelGroups.map((group) => {
                                   const groupOptions = options.filter((option) => videoModelGroup(option.value) === group.key);
@@ -6015,7 +6015,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                               <span className="mt-1 block text-xs leading-5 text-[#7f8ca3]">{st(`studio.modelSelect.desc.${option.value}`)}</span>
                                             </span>
                                             <span className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-                                              {active ? <span className="rounded-full bg-[#1677d2] px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white">Active</span> : null}
+                                              {active ? <span className="rounded-full bg-[#1677d2] px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white">{st("studio.modelSelect.active")}</span> : null}
                                               {option.value !== "dreamface-io-video" ? (
                                                 <span className="text-xs font-bold text-[#64748b]">{st("studio.modelSelect.credits", { credits: modelCredits })}</span>
                                               ) : null}
@@ -6116,7 +6116,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 }}
                                 className="pointer-events-auto inline-flex min-h-10 w-full items-center justify-center rounded-full bg-white/95 px-4 text-sm font-black text-[#2468ad] shadow-[0_8px_22px_rgba(3,16,38,0.2)] backdrop-blur transition hover:bg-white"
                               >
-                                Copy Prompt
+                                {st("studio.projects.copyPrompt")}
                               </button>
                             </div>
                             <div className="border-t border-[#758bac]/12 bg-white p-3 sm:hidden">
@@ -6131,7 +6131,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 }}
                                 className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#eef7ff] px-4 text-sm font-black text-[#2468ad] transition active:bg-[#e1f0ff]"
                               >
-                                Copy Prompt
+                                {st("studio.projects.copyPrompt")}
                               </button>
                             </div>
                           </article>
@@ -6160,7 +6160,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 }}
                                 className="pointer-events-auto inline-flex min-h-10 w-full items-center justify-center rounded-full bg-white/95 px-4 text-sm font-black text-[#2468ad] shadow-[0_8px_22px_rgba(3,16,38,0.2)] backdrop-blur transition hover:bg-white"
                               >
-                                Copy Prompt
+                                {st("studio.projects.copyPrompt")}
                               </button>
                             </div>
                             <div className="border-t border-[#758bac]/12 bg-white p-3 sm:hidden">
@@ -6175,7 +6175,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 }}
                                 className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#eef7ff] px-4 text-sm font-black text-[#2468ad] transition active:bg-[#e1f0ff]"
                               >
-                                Copy Prompt
+                                {st("studio.projects.copyPrompt")}
                               </button>
                             </div>
                           </article>
@@ -6204,7 +6204,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 }}
                                 className="pointer-events-auto inline-flex min-h-10 w-full items-center justify-center rounded-full bg-white/95 px-4 text-sm font-black text-[#2468ad] shadow-[0_8px_22px_rgba(3,16,38,0.2)] backdrop-blur transition hover:bg-white"
                               >
-                                Copy Prompt
+                                {st("studio.projects.copyPrompt")}
                               </button>
                             </div>
                             <div className="border-t border-[#758bac]/12 bg-white p-3 sm:hidden">
@@ -6219,7 +6219,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 }}
                                 className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#eef7ff] px-4 text-sm font-black text-[#2468ad] transition active:bg-[#e1f0ff]"
                               >
-                                Copy Prompt
+                                {st("studio.projects.copyPrompt")}
                               </button>
                             </div>
                           </article>

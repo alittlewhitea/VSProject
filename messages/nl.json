@@ -109,7 +109,7 @@
       },
       "availableTools": {
         "question": "Welke tools voor het genereren van AI zijn beschikbaar in DreamFace?",
-        "answer": "DreamFace bevat tools voor tekst-naar-afbeelding, afbeelding-naar-afbeelding, tekst-naar-video, afbeelding-naar-video, workflows voor fotoverbetering en herbruikbare projectgeschiedenis. De studio is ontworpen rond het kiezen van wat je eerst wilt maken en vervolgens doorsturen naar een geschikt AI-model."
+        "answer": "DreamFace combineert tekst-naar-beeld, beeldbewerking, tekst-naar-video, beeld-naar-video, AI-avatars, beeldverbetering, achtergrondverwijdering, AI-stem en AI-muziek in één studio. Projecten ordent prompts, resultaten, taakstatus, creditkosten en terugbetalingen."
       },
       "textImageSupport": {
         "question": "Ondersteunt DreamFace tekst-naar-afbeelding en afbeelding-naar-afbeelding?",
@@ -137,7 +137,7 @@
       },
       "models": {
         "question": "Welke AI-modellen kan ik gebruiken?",
-        "answer": "Modelopties zijn afhankelijk van de workflow. Het maken van afbeeldingen omvat providers zoals GPT Image 2, Nano Banana 2 en FLUX Schnell, en het maken van video's omvat gerouteerde providers zoals Seedance, Kling, Veo en Grok Imagine Video."
+        "answer": "Beschikbaarheid hangt af van de workflow. Huidige opties zijn GPT Image 2, Nano Banana 2, FLUX en Topaz voor beelden; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video en Happy Horse 1.1 voor video; en ElevenLabs Eleven v3 en MiniMax Music 2.6 voor audio."
       },
       "videoTiming": {
         "question": "Hoe lang duurt het om een AI-video te genereren?",
@@ -153,7 +153,7 @@
       },
       "freeTrial": {
         "question": "Is DreamFace gratis te proberen?",
-        "answer": "Nieuwe accounts ontvangen aanmeldingscredits zodat ze ondersteunde generatieworkflows kunnen testen. Er zijn betaalde creditpakketten beschikbaar als u meer beeld- of videogeneraties nodig heeft."
+        "answer": "Ja. Nieuwe accounts krijgen 100 aanmeldcredits om ondersteunde workflows te testen. Daarna zijn eenmalige creditpakketten en Premium-lidmaatschappen met wekelijkse, maandelijkse of jaarlijkse facturering beschikbaar."
       },
       "failedTask": {
         "question": "Wat gebeurt er als een taak voor het genereren van AI mislukt?",
@@ -165,7 +165,7 @@
       },
       "audioSupport": {
         "question": "Bevat DreamFace AI-muziek of AI-stemgeneratie?",
-        "answer": "DreamFace richt zich eerst op het genereren van beelden, waarbij beeld- en videoworkflows beschikbaar zijn in de studio. Audio- en spraakgerelateerde tools kunnen verschijnen naarmate de productdekking groter wordt, maar de huidige beschikbaarheid is afhankelijk van de live werkruimte."
+        "answer": "Ja. DreamFace biedt ElevenLabs Eleven v3 voor tekst-naar-spraak en MiniMax Music 2.6 voor tekst-naar-muziek. Beide staan in de Audio-werkruimte en tonen vóór het genereren de geschatte creditkosten."
       },
       "replaceProduction": {
         "question": "Kunnen AI-video’s de traditionele videoproductie vervangen?",
