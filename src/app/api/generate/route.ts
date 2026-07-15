@@ -167,6 +167,9 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "happy-horse-video": editImage
       ? process.env.FAL_MODEL_VIDEO_HAPPY_HORSE_I2V || "alibaba/happy-horse/v1.1/image-to-video"
       : process.env.FAL_MODEL_VIDEO_HAPPY_HORSE || "alibaba/happy-horse/v1.1/text-to-video",
+    "gemini-omni-flash-video": editImage
+      ? process.env.FAL_MODEL_VIDEO_GEMINI_OMNI_I2V || "google/gemini-omni-flash/image-to-video"
+      : process.env.FAL_MODEL_VIDEO_GEMINI_OMNI || "google/gemini-omni-flash",
     "elevenlabs-tts": process.env.FAL_MODEL_AUDIO_ELEVENLABS || "fal-ai/elevenlabs/tts/eleven-v3",
     "minimax-music-2.6": process.env.FAL_MODEL_AUDIO_MINIMAX_26 || "fal-ai/minimax-music/v2.6"
   };
@@ -206,8 +209,9 @@ const SEEDANCE_VIDEO_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "4:3", "1:
 const HAPPY_HORSE_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21", "5:4", "4:5"]);
 const KLING_TEXT_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1"]);
 const VEO_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
+const GEMINI_OMNI_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
-const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p"]);
+const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p", "4k"]);
 const SEEDANCE_MINI_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 const HAPPY_HORSE_VIDEO_RESOLUTIONS = new Set(["720p", "1080p"]);
 const VEO_VIDEO_RESOLUTIONS = new Set(["720p", "1080p", "4k"]);
@@ -331,6 +335,16 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       image_url: firstInputImage(body),
       audio_url: typeof body.audioUrl === "string" ? body.audioUrl.trim() : "",
       prompt: prompt || "."
+    };
+  }
+
+  if (body.mode === "video" && body.provider === "gemini-omni-flash-video") {
+    const duration = clampInt(body.duration, 3, 10, 8);
+    return {
+      prompt,
+      aspect_ratio: GEMINI_OMNI_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
+      duration,
+      ...(hasInputImages(body) ? { image_url: firstInputImage(body) } : {})
     };
   }
 
@@ -827,6 +841,9 @@ export async function POST(request: Request) {
     }
     if (body.mode === "image" && body.provider === "bria-background-remove" && !imageUrls.length) {
       return NextResponse.json({ error: "Background Remove requires one image." }, { status: 400 });
+    }
+    if (body.mode === "video" && body.provider === "gemini-omni-flash-video" && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
+      return NextResponse.json({ error: "Gemini Omni Flash image-to-video requires one reference image." }, { status: 400 });
     }
     if (isAvatarProvider) {
       if (!imageUrls.length) {

@@ -65,6 +65,7 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "kling-avatar-pro") return "fal-ai/kling-video/ai-avatar/v2/pro";
   if (provider === "veo-video") return "fal-ai/veo3.1";
   if (provider === "grok-video") return hasReferences ? "xai/grok-imagine-video/image-to-video" : "xai/grok-imagine-video/text-to-video";
+  if (provider === "gemini-omni-flash-video") return hasReferences ? "google/gemini-omni-flash/image-to-video" : "google/gemini-omni-flash";
   if (provider === "minimax-music-2.6") return "fal-ai/minimax-music/v2.6";
   if (provider === "elevenlabs-tts") return "fal-ai/elevenlabs/tts/eleven-v3";
   return null;

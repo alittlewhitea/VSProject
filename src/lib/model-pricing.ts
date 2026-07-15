@@ -253,8 +253,13 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
     return Math.ceil(seconds / 5) * 10;
   }
 
+  if (input.provider === "gemini-omni-flash-video") {
+    const billableSeconds = Math.min(10, Math.max(3, seconds));
+    return billableSeconds * (input.hasReferences ? 37 : 35);
+  }
+
   if (input.provider === "seedance-video") {
-    const secondPrice = input.resolution === "1080p" ? 0.682 : input.resolution === "480p" ? 0.1407 : 0.3034;
+    const secondPrice = input.resolution === "4k" ? 1.5552 : input.resolution === "1080p" ? 0.682 : input.resolution === "480p" ? 0.1407 : 0.3034;
     return creditsFromFalUsd(secondPrice * seconds, seconds * 35);
   }
 
@@ -310,6 +315,26 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "DreamFace IO uses a private server-side video provider integration.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "dreamface-io-video", duration: "5s" }),
     unitNote: "10 credits / 5 sec after daily free allowance"
+  },
+  {
+    provider: "gemini-omni-flash-video",
+    label: "Gemini Omni Flash",
+    mode: "video",
+    workflow: "Text to Video",
+    endpointId: "google/gemini-omni-flash",
+    falBasis: "fal lists Gemini Omni Flash text-to-video at approximately $0.125 per second for 720p video with audio.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "gemini-omni-flash-video", duration: "8s" }),
+    unitNote: "35 credits / sec with audio"
+  },
+  {
+    provider: "gemini-omni-flash-video",
+    label: "Gemini Omni Flash I2V",
+    mode: "video",
+    workflow: "Image to Video",
+    endpointId: "google/gemini-omni-flash/image-to-video",
+    falBasis: "fal lists Gemini Omni Flash image-to-video at approximately $0.13 per second for 720p video with audio.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "gemini-omni-flash-video", duration: "8s", hasReferences: true }),
+    unitNote: "37 credits / sec with audio"
   },
   {
     provider: "chatgpt-image",
@@ -427,9 +452,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Text to Video",
     endpointId: "bytedance/seedance-2.0/text-to-video",
-    falBasis: "fal token billing is about $0.1407/s at 480p, $0.3034/s at 720p, and $0.682/s at 1080p.",
+    falBasis: "fal token billing is about $0.1407/s at 480p, $0.3034/s at 720p, $0.682/s at 1080p, and $1.5552/s at 4k.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-video", duration: "6s", resolution: "720p" }),
-    unitNote: "35-169 credits / sec"
+    unitNote: "35-385 credits / sec"
   },
   {
     provider: "seedance-video",
@@ -437,9 +462,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Image to Video",
     endpointId: "bytedance/seedance-2.0/image-to-video",
-    falBasis: "fal token billing is about $0.1407/s at 480p, $0.3034/s at 720p, and $0.682/s at 1080p.",
+    falBasis: "fal token billing is about $0.1407/s at 480p, $0.3034/s at 720p, $0.682/s at 1080p, and $1.5552/s at 4k.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "seedance-video", duration: "6s", resolution: "720p" }),
-    unitNote: "35-169 credits / sec"
+    unitNote: "35-385 credits / sec"
   },
   {
     provider: "seedance-mini-video",
