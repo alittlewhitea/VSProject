@@ -819,6 +819,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     if (modeChanged && !sp.get("prompt")) {
       setPrompt(defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt")));
     }
+    if (modeChanged && mode === "image" && !sp.get("reference")) {
+      setReferenceImagesText("");
+      setReferenceImageFiles([]);
+    }
     const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
     setRatio(mode === "image" ? defaultImageRatioForProvider(nextProvider, nextImageSize) : mode === "avatar" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
     setImageSize(nextImageSize);
@@ -1308,7 +1312,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         setPrompt("");
       }
       setImageWorkflow(nextImageWorkflow);
-      if (nextWorkflow === "text-to-image") {
+      if (mode !== "image" || nextWorkflow === "text-to-image") {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
       } else if (nextWorkflow === "background-remove") {
