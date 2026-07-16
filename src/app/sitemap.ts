@@ -68,6 +68,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9
     },
     {
+      url: absoluteUrl(baseUrl, "/video/gemini-omni"),
+      lastModified: "2026-07-16",
+      changeFrequency: "monthly",
+      priority: 0.85
+    },
+    {
+      url: absoluteUrl(baseUrl, "/video/seedance-2"),
+      lastModified: "2026-07-16",
+      changeFrequency: "monthly",
+      priority: 0.85
+    },
+    {
       url: absoluteUrl(baseUrl, "/about"),
       changeFrequency: "monthly",
       priority: 0.6

@@ -11,9 +11,15 @@ export async function SiteFooter() {
 
   return (
     <footer className="mt-16 rounded-3xl bg-gradient-to-br from-[#dff3fa] via-[#e8f8ff] to-[#efeefe] px-7 py-9">
-      <div className="grid gap-7 border-b border-black/10 pb-7 md:grid-cols-5">
+      <div className="grid gap-7 border-b border-black/10 pb-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.25fr_0.75fr_1.2fr_0.8fr_1.1fr]">
         <div>
-          <p className="text-2xl font-semibold tracking-tight">{t("footer.brand")}</p>
+          <img
+            src="/icons/icon-512x512.png"
+            alt={t("footer.brand")}
+            width={56}
+            height={56}
+            className="h-14 w-14 rounded-2xl object-cover shadow-[0_10px_24px_rgba(16,130,101,0.16)]"
+          />
           <p className="mt-2 text-sm text-[#506170]">{t("footer.description")}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <a
@@ -35,9 +41,9 @@ export async function SiteFooter() {
           </div>
         </div>
         <div>
-          <p className="text-sm font-semibold">{t("footer.platform")}</p>
-          <p className="mt-2 text-sm text-[#4f5a67]">{t("footer.imageStudio")}</p>
-          <p className="text-sm text-[#4f5a67]">{t("footer.videoStudio")}</p>
+          <p className="text-sm font-semibold">Video</p>
+          <Link href="/video/gemini-omni" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Gemini Omni</Link>
+          <Link href="/video/seedance-2" className="block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Seedance 2.0</Link>
         </div>
         <div>
           <Link href="/compare" className="block text-sm font-semibold hover:text-[#1d1d1f]">Compare</Link>
