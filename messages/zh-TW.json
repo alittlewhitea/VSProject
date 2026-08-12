@@ -621,7 +621,8 @@
       "checkoutCancelled": "付款已取消，沒有新增積分。",
       "unableCheckout": "暫時無法開啟付款頁面。",
       "unableSubscriptionCheckout": "暫時無法開啟會員付款頁面。",
-      "unablePortal": "暫時無法開啟帳務管理頁面。"
+      "unablePortal": "暫時無法開啟帳務管理頁面。",
+      "legacyStripeUnavailable": "此舊版 Stripe 帳務資料已無法使用，請聯絡客服移轉或取消這項訂閱。"
     },
     "status": {
       "pending": "待處理",

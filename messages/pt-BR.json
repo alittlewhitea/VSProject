@@ -621,7 +621,8 @@
       "checkoutCancelled": "Checkout cancelado. Nenhum crédito foi adicionado.",
       "unableCheckout": "Não foi possível iniciar o checkout.",
       "unableSubscriptionCheckout": "Não foi possível iniciar o checkout da assinatura.",
-      "unablePortal": "Não foi possível abrir o portal de cobrança."
+      "unablePortal": "Não foi possível abrir o portal de cobrança.",
+      "legacyStripeUnavailable": "Este perfil antigo de cobrança da Stripe não está disponível. Fale com o suporte para migrar ou cancelar a assinatura."
     },
     "status": {
       "pending": "Pendente",

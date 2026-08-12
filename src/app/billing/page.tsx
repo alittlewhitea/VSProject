@@ -723,8 +723,19 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
           Authorization: `Bearer ${accessToken}`
         }
       });
-      const payload = (await response.json()) as { url?: string; error?: string; provider?: string; canCancel?: boolean };
-      if (!response.ok) throw new Error(payload.error || t("billing.message.unablePortal"));
+      const payload = (await response.json()) as {
+        url?: string;
+        error?: string;
+        code?: string;
+        provider?: string;
+        canCancel?: boolean;
+      };
+      if (!response.ok) {
+        if (payload.code === "legacy_stripe_customer_unavailable") {
+          throw new Error(t("billing.message.legacyStripeUnavailable"));
+        }
+        throw new Error(payload.error || t("billing.message.unablePortal"));
+      }
       if (payload.url) {
         window.location.href = payload.url;
         return;

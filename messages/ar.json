@@ -621,7 +621,8 @@
       "checkoutCancelled": "تم إلغاء الدفع. لم تضاف أي اعتمادات.",
       "unableCheckout": "غير قادر على بدء الدفع.",
       "unableSubscriptionCheckout": "غير قادر على بدء الاشتراك والدفع بالخروج.",
-      "unablePortal": "غير قادر على فتح بوابة الفوترة."
+      "unablePortal": "غير قادر على فتح بوابة الفوترة.",
+      "legacyStripeUnavailable": "ملف فوترة Stripe القديم غير متاح. تواصل مع الدعم لنقل الاشتراك أو إلغائه."
     },
     "status": {
       "pending": "قيد الانتظار",

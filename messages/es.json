@@ -621,7 +621,8 @@
       "checkoutCancelled": "La compra fue cancelada. No se agregaron créditos.",
       "unableCheckout": "No se puede iniciar la compra.",
       "unableSubscriptionCheckout": "No se puede iniciar la compra de suscripción.",
-      "unablePortal": "No se puede abrir el portal de facturación."
+      "unablePortal": "No se puede abrir el portal de facturación.",
+      "legacyStripeUnavailable": "Este perfil de facturación antiguo de Stripe no está disponible. Contacta con soporte para migrar o cancelar la suscripción."
     },
     "status": {
       "pending": "Pendiente",

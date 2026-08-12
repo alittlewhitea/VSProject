@@ -621,7 +621,8 @@
       "checkoutCancelled": "チェックアウトがキャンセルされました。クレジットは追加されませんでした。",
       "unableCheckout": "チェックアウトを開始できません。",
       "unableSubscriptionCheckout": "サブスクリプションのチェックアウトを開始できません。",
-      "unablePortal": "請求ポータルを開けません。"
+      "unablePortal": "請求ポータルを開けません。",
+      "legacyStripeUnavailable": "この旧 Stripe 請求プロフィールは利用できません。サブスクリプションの移行または解約についてサポートにお問い合わせください。"
     },
     "status": {
       "pending": "保留中",

@@ -621,7 +621,8 @@
       "checkoutCancelled": "Checkout was cancelled. No credits were added.",
       "unableCheckout": "Unable to start checkout.",
       "unableSubscriptionCheckout": "Unable to start subscription checkout.",
-      "unablePortal": "Unable to open billing portal."
+      "unablePortal": "Unable to open billing portal.",
+      "legacyStripeUnavailable": "This legacy Stripe billing profile is unavailable. Contact support to migrate or cancel the subscription."
     },
     "status": {
       "pending": "Pending",

@@ -621,7 +621,8 @@
       "checkoutCancelled": "Die Zahlung wurde abgebrochen. Es wurden keine Credits hinzugefügt.",
       "unableCheckout": "Die Zahlung konnte nicht gestartet werden.",
       "unableSubscriptionCheckout": "Die Abonnement-Zahlung konnte nicht gestartet werden.",
-      "unablePortal": "Das Abrechnungsportal konnte nicht geöffnet werden."
+      "unablePortal": "Das Abrechnungsportal konnte nicht geöffnet werden.",
+      "legacyStripeUnavailable": "Dieses alte Stripe-Abrechnungsprofil ist nicht verfügbar. Wende dich an den Support, um das Abonnement zu migrieren oder zu kündigen."
     },
     "status": {
       "pending": "Ausstehend",

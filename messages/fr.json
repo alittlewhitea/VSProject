@@ -621,7 +621,8 @@
       "checkoutCancelled": "Le départ a été annulé. Aucun crédit n'a été ajouté.",
       "unableCheckout": "Impossible d'ouvrir la page de paiement.",
       "unableSubscriptionCheckout": "Impossible de commencer la commande d'abonnement.",
-      "unablePortal": "Impossible d'ouvrir le portail de facturation."
+      "unablePortal": "Impossible d'ouvrir le portail de facturation.",
+      "legacyStripeUnavailable": "Cet ancien profil de facturation Stripe n’est plus disponible. Contactez l’assistance pour migrer ou annuler l’abonnement."
     },
     "status": {
       "pending": "En attente",

@@ -621,7 +621,8 @@
       "checkoutCancelled": "Il checkout è stato annullato. Nessun credito è stato aggiunto.",
       "unableCheckout": "Impossibile avviare il checkout.",
       "unableSubscriptionCheckout": "Impossibile avviare il checkout dell'abbonamento.",
-      "unablePortal": "Impossibile aprire il portale di fatturazione."
+      "unablePortal": "Impossibile aprire il portale di fatturazione.",
+      "legacyStripeUnavailable": "Questo profilo di fatturazione Stripe precedente non è disponibile. Contatta l'assistenza per migrare o annullare l'abbonamento."
     },
     "status": {
       "pending": "In sospeso",

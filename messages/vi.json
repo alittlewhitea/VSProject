@@ -621,7 +621,8 @@
       "checkoutCancelled": "Thanh toán đã bị hủy. Không có credit nào được cộng.",
       "unableCheckout": "Không thể mở trang thanh toán.",
       "unableSubscriptionCheckout": "Không thể mở trang thanh toán gói thành viên.",
-      "unablePortal": "Không thể mở cổng quản lý thanh toán."
+      "unablePortal": "Không thể mở cổng quản lý thanh toán.",
+      "legacyStripeUnavailable": "Hồ sơ thanh toán Stripe cũ này không còn khả dụng. Hãy liên hệ hỗ trợ để chuyển đổi hoặc hủy gói đăng ký."
     },
     "status": {
       "pending": "Đang chờ",

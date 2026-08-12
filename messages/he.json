@@ -621,7 +621,8 @@
       "checkoutCancelled": "הקופה בוטלה. לא נוספו קרדיטים.",
       "unableCheckout": "לא ניתן להתחיל בקופה.",
       "unableSubscriptionCheckout": "לא ניתן להתחיל את הוצאת המנויים.",
-      "unablePortal": "לא ניתן לפתוח את פורטל החיובים."
+      "unablePortal": "לא ניתן לפתוח את פורטל החיובים.",
+      "legacyStripeUnavailable": "פרופיל החיוב הישן של Stripe אינו זמין. יש לפנות לתמיכה כדי להעביר או לבטל את המינוי."
     },
     "status": {
       "pending": "בהמתנה",

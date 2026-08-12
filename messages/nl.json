@@ -621,7 +621,8 @@
       "checkoutCancelled": "Het afrekenen is geannuleerd. Er zijn geen credits toegevoegd.",
       "unableCheckout": "Kan het afrekenen niet starten.",
       "unableSubscriptionCheckout": "Kan het afrekenen van het abonnement niet starten.",
-      "unablePortal": "Kan factureringsportaal niet openen."
+      "unablePortal": "Kan factureringsportaal niet openen.",
+      "legacyStripeUnavailable": "Dit oude Stripe-factureringsprofiel is niet beschikbaar. Neem contact op met support om het abonnement te migreren of op te zeggen."
     },
     "status": {
       "pending": "In behandeling",

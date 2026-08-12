@@ -621,7 +621,8 @@
       "checkoutCancelled": "支付已取消，没有新增积分。",
       "unableCheckout": "暂时无法打开支付页面。",
       "unableSubscriptionCheckout": "暂时无法打开会员支付页面。",
-      "unablePortal": "暂时无法打开账单管理页面。"
+      "unablePortal": "暂时无法打开账单管理页面。",
+      "legacyStripeUnavailable": "该历史 Stripe 账单资料已不可用，请联系客服迁移或取消这项订阅。"
     },
     "status": {
       "pending": "待处理",
