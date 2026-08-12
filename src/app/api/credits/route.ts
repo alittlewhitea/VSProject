@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     const { data: purchases } = await withTimeout<CreditPurchasesResult>(
       admin
         .from("credit_purchases")
-        .select("id, stripe_checkout_id, pack_id, credits, amount_cents, currency, status, created_at, updated_at")
+        .select("id,payment_provider,provider_order_id,provider_transaction_id,provider_capture_id,stripe_checkout_id,pack_id,credits,amount_cents,currency,status,created_at,updated_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(25) as unknown as Promise<CreditPurchasesResult>,

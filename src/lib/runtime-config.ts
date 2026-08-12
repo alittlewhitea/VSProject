@@ -1,5 +1,6 @@
 
 export const DREAMFACE_IO_ENABLED_KEY = "dreamface_io_enabled";
+export type PaymentProvider = "stripe" | "paypal";
 
 function envDefaultEnabled() {
   return process.env.DREAMFACE_IO_ENABLED?.trim().toLowerCase() !== "false";

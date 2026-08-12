@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "Gerencie créditos e recargas",
-    "subtitle": "Escolha um pacote avulso, atualize seu saldo e veja atividades de créditos ou compras Stripe em uma só página.",
+    "subtitle": "Gerencie créditos, assinaturas, recargas e histórico de compras em um só lugar seguro.",
     "eyebrow": "Cobrança",
     "currentBalance": "Saldo atual",
     "creditsAvailable": "créditos disponíveis",
@@ -549,6 +549,9 @@
       "currentDescription": "{credits} créditos por {cycle}. {status}",
       "cancellationScheduled": "Cancelamento agendado para o fim do período.",
       "manageThroughStripe": "Gerencie a cobrança pelo Stripe.",
+      "manageThroughProvider": "Gerencie a cobrança pelo {provider}.",
+      "cancelConfirm": "Tem certeza de que deseja cancelar esta assinatura?",
+      "cancelled": "Assinatura cancelada.",
       "accessUntil": "Acesso até",
       "renews": "Renova em"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "Atividade de créditos",
     "noCreditActivity": "Nenhuma atividade ainda.",
     "signInCreditActivity": "Entre para ver sua atividade de créditos.",
-    "stripePurchases": "Compras Stripe",
-    "stripeCheckoutId": "ID do checkout Stripe",
-    "noStripePurchases": "Nenhuma compra Stripe ainda.",
-    "signInStripePurchases": "Entre para ver compras Stripe.",
+    "stripePurchases": "Compras",
+    "stripeCheckoutId": "ID da transação",
+    "noStripePurchases": "Nenhuma compra ainda.",
+    "signInStripePurchases": "Entre para ver suas compras.",
     "openingCheckout": "Abrindo checkout...",
     "recharge": "Recarregar",
     "cycle": {

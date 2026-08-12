@@ -77,6 +77,10 @@ export async function POST(request: Request) {
       .upsert(
         {
           user_id: metadata.userId,
+          payment_provider: "stripe",
+          provider_order_id: referenceId,
+          provider_transaction_id: referenceId,
+          provider_capture_id: typeof invoiceRecord.payment_intent === "string" ? invoiceRecord.payment_intent : null,
           stripe_checkout_id: referenceId,
           pack_id: subscriptionPackId,
           credits: metadata.credits,
@@ -85,7 +89,7 @@ export async function POST(request: Request) {
           status: "completed",
           updated_at: new Date().toISOString()
         },
-        { onConflict: "stripe_checkout_id" }
+        { onConflict: "payment_provider,provider_transaction_id" }
       )
       .throwOnError();
 
@@ -150,6 +154,10 @@ export async function POST(request: Request) {
       .upsert(
         {
           user_id: userId,
+          payment_provider: "stripe",
+          provider_order_id: session.id,
+          provider_transaction_id: session.id,
+          provider_capture_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
           stripe_checkout_id: session.id,
           pack_id: subscriptionPackId,
           credits,
@@ -158,7 +166,7 @@ export async function POST(request: Request) {
           status: "completed",
           updated_at: new Date().toISOString()
         },
-        { onConflict: "stripe_checkout_id" }
+        { onConflict: "payment_provider,provider_transaction_id" }
       )
       .throwOnError();
 
@@ -189,6 +197,10 @@ export async function POST(request: Request) {
 
   const purchase = {
     user_id: userId,
+    payment_provider: "stripe",
+    provider_order_id: session.id,
+    provider_transaction_id: session.id,
+    provider_capture_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
     stripe_checkout_id: session.id,
     pack_id: packId,
     credits,
@@ -198,7 +210,7 @@ export async function POST(request: Request) {
     updated_at: new Date().toISOString()
   };
 
-  await admin.from("credit_purchases").upsert(purchase, { onConflict: "stripe_checkout_id" }).throwOnError();
+  await admin.from("credit_purchases").upsert(purchase, { onConflict: "payment_provider,provider_transaction_id" }).throwOnError();
 
   const { data: existingLedger, error: ledgerError } = await admin
     .from("credit_ledger")

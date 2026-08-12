@@ -160,7 +160,7 @@ export const LEGAL_DOCUMENTS = [
       {
         heading: "Payments and billing",
         body: [
-          "Payments may be processed by Stripe or other third-party payment providers. You must provide accurate billing information and promptly update changes to your payment method, billing address, tax information, or account details.",
+          "Payments may be processed by Stripe, PayPal, or other third-party payment providers. You must provide accurate billing information and promptly update changes to your payment method, billing address, tax information, or account details.",
           "DreamFace uses credits for generation tasks. Credits are prepaid units and are generally deducted when a generation task is submitted. Credit costs may vary by media type, provider, model, duration, quality setting, queue behavior, or future product changes.",
           "If a supported task fails due to provider or platform error, DreamFace may automatically return the estimated credits for that task. Credits are not a bank account, stored-value product, cash equivalent, or transferable currency.",
           "Taxes may be calculated based on your billing information and applicable law. You are responsible for any taxes, duties, bank charges, exchange fees, or similar costs that apply to your purchase.",
@@ -262,7 +262,7 @@ export const LEGAL_DOCUMENTS = [
         heading: "DreamFace entity",
         body: [
           "Until DreamFace publishes additional contracting-entity details or enters into a separate written agreement with you, your relationship is with the operator of dreamface.io.",
-          "Payment processing may be handled by Stripe or another payment provider on behalf of DreamFace. Receipts, taxes, and billing records may identify the relevant payment processor or merchant information available at checkout."
+          "Payment processing may be handled by Stripe, PayPal, or another payment provider on behalf of DreamFace. Receipts, taxes, and billing records may identify the relevant payment processor or merchant information available at checkout."
         ]
       },
       {
@@ -347,7 +347,7 @@ export const LEGAL_DOCUMENTS = [
       {
         heading: "Payments and billing",
         body: [
-          "Business payments may be processed through Stripe or other payment providers. Your organization must provide accurate billing information, maintain an authorized payment method, and promptly update billing contacts, tax information, and address details.",
+          "Business payments may be processed through Stripe, PayPal, or other payment providers. Your organization must provide accurate billing information, maintain an authorized payment method, and promptly update billing contacts, tax information, and address details.",
           "Credits are prepaid units used to submit generation tasks. Credit cost may depend on model, provider, media type, duration, quality setting, queue behavior, or future product changes. Credits are not cash, stored value, or transferable currency.",
           "Subscription fees, credit purchases, and other charges are generally final and non-refundable except where mandatory law or a written agreement requires otherwise. Unused credits may be subject to plan limits, expiration rules, or account restrictions shown in your plan or written agreement.",
           "Your organization is responsible for taxes, duties, bank charges, currency conversion, chargebacks, and payment disputes. Unauthorized or unjustified chargebacks may result in account suspension or termination."
@@ -461,7 +461,7 @@ export const LEGAL_DOCUMENTS = [
         heading: "DreamFace entity",
         body: [
           "Until DreamFace publishes additional contracting-entity details or enters into a separate written agreement with your organization, your business relationship is with the operator of dreamface.io.",
-          "Payment processing may be handled by Stripe or another payment provider on behalf of DreamFace. Receipts, taxes, and billing records may identify the relevant payment processor or merchant information available at checkout."
+          "Payment processing may be handled by Stripe, PayPal, or another payment provider on behalf of DreamFace. Receipts, taxes, and billing records may identify the relevant payment processor or merchant information available at checkout."
         ]
       },
       {
@@ -621,7 +621,7 @@ export const LEGAL_DOCUMENTS = [
         heading: "With whom do we share your personal data?",
         body: [
           "We may share information with internal personnel, contractors, affiliates, and service providers who need access to operate, secure, support, or improve DreamFace.",
-          "Service providers may include hosting providers, database providers, authentication providers, payment processors such as Stripe, analytics providers, email providers, logging and monitoring vendors, storage providers, content delivery networks, AI model providers, and support tools.",
+          "Service providers may include hosting providers, database providers, authentication providers, payment processors such as Stripe and PayPal, analytics providers, email providers, logging and monitoring vendors, storage providers, content delivery networks, AI model providers, and support tools.",
           "If you use third-party login, payments, embedded tools, or integrations, those third parties may process information according to their own privacy policies and terms.",
           "We may disclose information to comply with law, legal process, government request, fraud prevention, security investigation, rights enforcement, payment disputes, copyright claims, or protection of the safety and rights of DreamFace, users, or third parties.",
           "If DreamFace is involved in a merger, acquisition, financing, reorganization, bankruptcy, or sale of assets, information may be transferred or disclosed as part of that transaction, subject to appropriate safeguards where required."

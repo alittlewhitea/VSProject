@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "จัดการเครดิตและการเติมเงิน",
-    "subtitle": "เลือกชุดเครดิตที่จ่ายตามการใช้งาน รีเฟรชยอดคงเหลือของคุณ และตรวจสอบกิจกรรมเครดิตหรือการซื้อ Stripe จากหน้ากระเป๋าสตางค์หน้าเดียว",
+    "subtitle": "จัดการเครดิต การสมัครสมาชิก การเติมเงิน และประวัติการซื้อได้อย่างปลอดภัยในที่เดียว",
     "eyebrow": "การเรียกเก็บเงิน",
     "currentBalance": "ยอดคงเหลือปัจจุบัน",
     "creditsAvailable": "เครดิตที่มีอยู่",
@@ -549,6 +549,9 @@
       "currentDescription": "{credits} เครดิตต่อ {cycle} {status}",
       "cancellationScheduled": "การยกเลิกมีกำหนดเมื่อสิ้นสุดระยะเวลา",
       "manageThroughStripe": "จัดการการเรียกเก็บเงินผ่าน Stripe",
+      "manageThroughProvider": "จัดการการเรียกเก็บเงินผ่าน {provider}",
+      "cancelConfirm": "คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการสมัครนี้",
+      "cancelled": "ยกเลิกการสมัครแล้ว",
       "accessUntil": "เข้าได้ถึง",
       "renews": "ต่ออายุ"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "กิจกรรมสินเชื่อ",
     "noCreditActivity": "ยังไม่มีกิจกรรมเครดิต",
     "signInCreditActivity": "ลงชื่อเข้าใช้เพื่อดูกิจกรรมเครดิตของคุณ",
-    "stripePurchases": "ซื้อลาย",
-    "stripeCheckoutId": "รหัสการชำระเงินลาย",
-    "noStripePurchases": "ยังไม่มีการซื้อ Stripe",
-    "signInStripePurchases": "ลงชื่อเข้าใช้เพื่อดูการซื้อ Stripe",
+    "stripePurchases": "การซื้อ",
+    "stripeCheckoutId": "รหัสธุรกรรม",
+    "noStripePurchases": "ยังไม่มีการซื้อ",
+    "signInStripePurchases": "ลงชื่อเข้าใช้เพื่อดูการซื้อ",
     "openingCheckout": "กำลังเปิดจุดชำระเงิน...",
     "recharge": "เติมเงิน",
     "cycle": {

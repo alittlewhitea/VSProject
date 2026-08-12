@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "管理积分和充值",
-    "subtitle": "在一个钱包页面选择按需积分包、刷新余额，并查看积分记录或 Stripe 购买记录。",
+    "subtitle": "在一个安全页面中管理积分、订阅、充值和购买记录。",
     "eyebrow": "账单",
     "currentBalance": "当前余额",
     "creditsAvailable": "可用积分",
@@ -549,6 +549,9 @@
       "currentDescription": "每 {cycle} {credits} 积分。{status}",
       "cancellationScheduled": "已安排在周期结束时取消。",
       "manageThroughStripe": "通过 Stripe 管理账单。",
+      "manageThroughProvider": "通过 {provider} 管理账单。",
+      "cancelConfirm": "确定要取消此订阅吗？",
+      "cancelled": "订阅已取消。",
       "accessUntil": "可访问至",
       "renews": "续订于"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "积分记录",
     "noCreditActivity": "暂无积分记录。",
     "signInCreditActivity": "登录后查看积分记录。",
-    "stripePurchases": "Stripe 购买记录",
-    "stripeCheckoutId": "Stripe 支付 ID",
-    "noStripePurchases": "暂无 Stripe 购买记录。",
-    "signInStripePurchases": "登录后查看 Stripe 购买记录。",
+    "stripePurchases": "购买记录",
+    "stripeCheckoutId": "交易 ID",
+    "noStripePurchases": "暂无购买记录。",
+    "signInStripePurchases": "登录后查看购买记录。",
     "openingCheckout": "正在打开支付...",
     "recharge": "充值",
     "cycle": {

@@ -1,9 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getCreditPack, getSubscriptionPlanPrice } from "../../../../lib/billing";
+import {
+  createPayPalOrder,
+  createPayPalSubscription,
+  paypalApprovalUrl
+} from "../../../../lib/paypal";
+import { validatePayPalPlan } from "../../../../lib/paypal-billing";
+import { trustedPublicOrigin } from "../../../../lib/request-security";
 import { getUserFromBearerToken } from "../../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
-import { getStripe } from "../../../../lib/stripe";
-import { trustedPublicOrigin } from "../../../../lib/request-security";
+import { getManageableUserSubscription, upsertPayPalSubscription } from "../../../../lib/subscriptions";
 
 type CheckoutBody = {
   type?: "credits" | "subscription";
@@ -19,51 +26,53 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized. Invalid or missing Supabase access token." }, { status: 401 });
     }
 
+    const admin = createSupabaseAdminClient();
+    if (!admin) {
+      return NextResponse.json({ error: "Credit storage is not configured." }, { status: 500 });
+    }
+
     const body = (await request.json().catch(() => null)) as CheckoutBody | null;
     const origin = trustedPublicOrigin(request.url);
-    const automaticTaxEnabled = process.env.STRIPE_AUTOMATIC_TAX === "true";
-    const stripe = getStripe();
+    const provider = "paypal" as const;
 
     if (body?.type === "subscription") {
       const subscription = body.planId && body.cycle ? getSubscriptionPlanPrice(body.planId, body.cycle) : null;
-      const stripePriceId = subscription ? process.env[subscription.price.stripePriceEnv]?.trim() : null;
-      if (!subscription || !stripePriceId) {
-        return NextResponse.json({ error: "Subscription plan is not configured yet." }, { status: 400 });
+      if (!subscription) {
+        return NextResponse.json({ error: "Invalid subscription plan." }, { status: 400 });
       }
 
-      const session = await stripe.checkout.sessions.create({
-        mode: "subscription",
-        success_url: `${origin}/billing?checkout=subscription_success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/billing?checkout=cancelled`,
-        client_reference_id: user.id,
-        customer_email: user.email || undefined,
-        automatic_tax: {
-          enabled: automaticTaxEnabled
-        },
-        line_items: [
-          {
-            quantity: 1,
-            price: stripePriceId
-          }
-        ],
-        metadata: {
-          userId: user.id,
-          checkoutType: "subscription",
-          planId: subscription.plan.id,
-          cycle: subscription.cycle,
-          credits: String(subscription.price.credits)
-        },
-        subscription_data: {
-          metadata: {
-            userId: user.id,
-            planId: subscription.plan.id,
-            cycle: subscription.cycle,
-            credits: String(subscription.price.credits)
-          }
-        }
-      });
+      const existingSubscription = await getManageableUserSubscription(admin, user.id);
+      if (existingSubscription) {
+        return NextResponse.json({ error: "You already have an active or pending subscription." }, { status: 409 });
+      }
 
-      return NextResponse.json({ url: session.url });
+      const paypalPlanId = process.env[subscription.price.paypalPlanEnv]?.trim();
+      const planValidation = await validatePayPalPlan(paypalPlanId, {
+        amountCents: subscription.price.amountCents,
+        currency: "usd",
+        interval: subscription.price.interval
+      });
+      if (!planValidation.valid || !paypalPlanId) {
+        return NextResponse.json({ error: planValidation.error || "PayPal subscription plan is not configured yet." }, { status: 503 });
+      }
+
+      const referenceId = randomUUID();
+      const paypalSubscription = await createPayPalSubscription({
+        planId: paypalPlanId,
+        referenceId,
+        returnUrl: `${origin}/billing?checkout=subscription_success&provider=paypal`,
+        cancelUrl: `${origin}/billing?checkout=cancelled`
+      });
+      const approvalUrl = paypalApprovalUrl(paypalSubscription);
+      if (!approvalUrl) throw new Error("PayPal did not return a subscription approval URL.");
+
+      await upsertPayPalSubscription(admin, paypalSubscription, {
+        userId: user.id,
+        planId: subscription.plan.id,
+        cycle: subscription.cycle,
+        credits: subscription.price.credits
+      });
+      return NextResponse.json({ url: approvalUrl, provider });
     }
 
     const pack = body?.packId ? getCreditPack(body.packId) : null;
@@ -71,68 +80,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid credit pack." }, { status: 400 });
     }
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      success_url: `${origin}/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/billing?checkout=cancelled`,
-      client_reference_id: user.id,
-      customer_email: user.email || undefined,
-      automatic_tax: {
-        enabled: automaticTaxEnabled
-      },
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: pack.amountCents,
-            product_data: {
-              name: `${pack.name} - ${pack.credits.toLocaleString()} credits`,
-              description: pack.description
-            }
-          }
-        }
-      ],
-      metadata: {
-        userId: user.id,
-        packId: pack.id,
-        credits: String(pack.credits)
-      },
-      payment_intent_data: {
-        metadata: {
-          userId: user.id,
-          packId: pack.id,
-          credits: String(pack.credits)
-        }
-      }
+    const referenceId = randomUUID();
+    const order = await createPayPalOrder({
+      referenceId,
+      description: `${pack.name} - ${pack.credits.toLocaleString()} credits`,
+      amountCents: pack.amountCents,
+      currency: "usd",
+      returnUrl: `${origin}/billing?checkout=paypal_return`,
+      cancelUrl: `${origin}/billing?checkout=cancelled`
     });
+    const approvalUrl = paypalApprovalUrl(order);
+    if (!approvalUrl) throw new Error("PayPal did not return an order approval URL.");
 
-    const admin = createSupabaseAdminClient();
-    if (admin && session.id) {
-      await admin
-        .from("credit_purchases")
-        .upsert(
-          {
-            user_id: user.id,
-            stripe_checkout_id: session.id,
-            pack_id: pack.id,
-            credits: pack.credits,
-            amount_cents: pack.amountCents,
-            currency: "usd",
-            status: "pending",
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: "stripe_checkout_id" }
-        )
-        .throwOnError();
-    }
+    await admin.from("credit_purchases").upsert({
+      user_id: user.id,
+      payment_provider: "paypal",
+      provider_order_id: order.id,
+      provider_transaction_id: order.id,
+      provider_capture_id: null,
+      stripe_checkout_id: null,
+      pack_id: pack.id,
+      credits: pack.credits,
+      amount_cents: pack.amountCents,
+      currency: "usd",
+      status: "created",
+      updated_at: new Date().toISOString()
+    }, { onConflict: "payment_provider,provider_transaction_id" }).throwOnError();
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: approvalUrl, provider });
   } catch (error) {
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unable to start checkout."
-      },
+      { error: error instanceof Error ? error.message : "Unable to start checkout." },
       { status: 500 }
     );
   }

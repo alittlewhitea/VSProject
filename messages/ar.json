@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "إدارة الرصيد وإعادة التعبئة",
-    "subtitle": "اختر حزمة ائتمانية بنظام الدفع أثناء الاستخدام، قم بتحديث رصيدك، وراجع نشاط الائتمان أو مشتريات Stripe من صفحة المحفظة الواحدة.",
+    "subtitle": "أدر الأرصدة والاشتراكات وعمليات الشحن وسجل المشتريات في مكان آمن واحد.",
     "eyebrow": "الفوترة",
     "currentBalance": "الرصيد الحالي",
     "creditsAvailable": "الرصيد المتاح",
@@ -549,6 +549,9 @@
       "currentDescription": "{credits} ائتمانات لكل {cycle}. {status}",
       "cancellationScheduled": "تم جدولة الإلغاء عند نهاية الفترة.",
       "manageThroughStripe": "إدارة الفواتير من خلال Stripe.",
+      "manageThroughProvider": "إدارة الفوترة من خلال {provider}.",
+      "cancelConfirm": "هل تريد بالتأكيد إلغاء هذا الاشتراك؟",
+      "cancelled": "تم إلغاء الاشتراك.",
       "accessUntil": "الوصول حتى",
       "renews": "يتجدد"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "نشاط الاعتماد",
     "noCreditActivity": "لا يوجد نشاط اعتماد بعد.",
     "signInCreditActivity": "سجّل الدخول لمشاهدة نشاط اعتماداتك.",
-    "stripePurchases": "مشتريات Stripe",
-    "stripeCheckoutId": "معرّف الدفع عبر Stripe",
-    "noStripePurchases": "لا توجد مشتريات عبر Stripe بعد.",
-    "signInStripePurchases": "سجّل الدخول لمشاهدة مشتريات Stripe.",
+    "stripePurchases": "المشتريات",
+    "stripeCheckoutId": "معرّف المعاملة",
+    "noStripePurchases": "لا توجد مشتريات بعد.",
+    "signInStripePurchases": "سجّل الدخول لمشاهدة المشتريات.",
     "openingCheckout": "جارٍ فتح صفحة الدفع...",
     "recharge": "إعادة شحن",
     "cycle": {

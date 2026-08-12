@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "クレジットとチャージを管理する",
-    "subtitle": "1 つのウォレット ページから、従量課金制のクレジット パックを選択し、残高を更新し、クレジット アクティビティや Stripe での購入を確認します。",
+    "subtitle": "クレジット、サブスクリプション、追加購入、購入履歴を安全な場所でまとめて管理できます。",
     "eyebrow": "請求",
     "currentBalance": "現在の残高",
     "creditsAvailable": "利用可能なクレジット",
@@ -549,6 +549,9 @@
       "currentDescription": "{cycle} あたり {credits} クレジット。 {status}",
       "cancellationScheduled": "キャンセルは期間終了時に予定されています。",
       "manageThroughStripe": "Stripe を通じて請求を管理します。",
+      "manageThroughProvider": "{provider} で請求を管理します。",
+      "cancelConfirm": "このサブスクリプションをキャンセルしますか？",
+      "cancelled": "サブスクリプションをキャンセルしました。",
       "accessUntil": "までのアクセス",
       "renews": "更新します"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "信用活動",
     "noCreditActivity": "まだクレジット活動はありません。",
     "signInCreditActivity": "サインインしてクレジット活動を表示します。",
-    "stripePurchases": "ストライプの購入",
-    "stripeCheckoutId": "ストライプチェックアウトID",
-    "noStripePurchases": "Stripe はまだ購入していません。",
-    "signInStripePurchases": "Stripe の購入を表示するにはサインインしてください。",
+    "stripePurchases": "購入履歴",
+    "stripeCheckoutId": "取引 ID",
+    "noStripePurchases": "購入履歴はまだありません。",
+    "signInStripePurchases": "購入履歴を表示するにはサインインしてください。",
     "openingCheckout": "チェックアウトを開いています...",
     "recharge": "リチャージ",
     "cycle": {

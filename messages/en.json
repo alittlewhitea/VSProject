@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "Manage credits and top ups",
-    "subtitle": "Choose a pay-as-you-go credit pack, refresh your balance, and review credit activity or Stripe purchases from one wallet page.",
+    "subtitle": "Manage credits, subscriptions, top-ups, and purchase history in one secure place.",
     "eyebrow": "Billing",
     "currentBalance": "Current balance",
     "creditsAvailable": "credits available",
@@ -549,6 +549,9 @@
       "currentDescription": "{credits} credits per {cycle}. {status}",
       "cancellationScheduled": "Cancellation is scheduled at period end.",
       "manageThroughStripe": "Manage billing through Stripe.",
+      "manageThroughProvider": "Manage billing through {provider}.",
+      "cancelConfirm": "Are you sure you want to cancel this subscription?",
+      "cancelled": "Subscription cancelled.",
       "accessUntil": "Access until",
       "renews": "Renews"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "Credit activity",
     "noCreditActivity": "No credit activity yet.",
     "signInCreditActivity": "Sign in to view your credit activity.",
-    "stripePurchases": "Stripe purchases",
-    "stripeCheckoutId": "Stripe checkout ID",
-    "noStripePurchases": "No Stripe purchases yet.",
-    "signInStripePurchases": "Sign in to view Stripe purchases.",
+    "stripePurchases": "Purchases",
+    "stripeCheckoutId": "Transaction ID",
+    "noStripePurchases": "No purchases yet.",
+    "signInStripePurchases": "Sign in to view purchases.",
     "openingCheckout": "Opening checkout...",
     "recharge": "Recharge",
     "cycle": {

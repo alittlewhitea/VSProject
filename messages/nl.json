@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "Beheer tegoeden en opwaarderingen",
-    "subtitle": "Kies een pay-as-you-go-tegoedpakket, vernieuw uw saldo en bekijk uw kredietactiviteit of Stripe-aankopen vanaf één portemonneepagina.",
+    "subtitle": "Beheer credits, abonnementen, opwaarderingen en aankoopgeschiedenis op één veilige plek.",
     "eyebrow": "Facturering",
     "currentBalance": "Huidig saldo",
     "creditsAvailable": "beschikbare kredieten",
@@ -549,6 +549,9 @@
       "currentDescription": "{credits} credits per {cycle}. {status}",
       "cancellationScheduled": "Annulering vindt plaats aan het einde van de periode.",
       "manageThroughStripe": "Beheer de facturering via Stripe.",
+      "manageThroughProvider": "Beheer de facturering via {provider}.",
+      "cancelConfirm": "Weet je zeker dat je dit abonnement wilt opzeggen?",
+      "cancelled": "Abonnement opgezegd.",
       "accessUntil": "Toegang tot",
       "renews": "Vernieuwt"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "Kredietactiviteit",
     "noCreditActivity": "Nog geen kredietactiviteit.",
     "signInCreditActivity": "Meld u aan om uw kredietactiviteit te bekijken.",
-    "stripePurchases": "Gestreepte aankopen",
-    "stripeCheckoutId": "Gestreepte kassa-ID",
-    "noStripePurchases": "Nog geen Stripe-aankopen.",
-    "signInStripePurchases": "Log in om Stripe-aankopen te bekijken.",
+    "stripePurchases": "Aankopen",
+    "stripeCheckoutId": "Transactie-ID",
+    "noStripePurchases": "Nog geen aankopen.",
+    "signInStripePurchases": "Log in om aankopen te bekijken.",
     "openingCheckout": "Kassa openen...",
     "recharge": "Opladen",
     "cycle": {

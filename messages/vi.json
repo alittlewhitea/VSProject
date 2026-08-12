@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "Quản lý credit và nạp thêm",
-    "subtitle": "Chọn gói credit trả theo nhu cầu, làm mới số dư và xem lịch sử credit hoặc thanh toán Stripe trên một trang.",
+    "subtitle": "Quản lý credit, gói thành viên, nạp thêm và lịch sử giao dịch tại một nơi an toàn.",
     "eyebrow": "Thanh toán",
     "currentBalance": "Số dư hiện tại",
     "creditsAvailable": "credit khả dụng",
@@ -549,6 +549,9 @@
       "currentDescription": "{credits} credit mỗi {cycle}. {status}",
       "cancellationScheduled": "Đã lên lịch hủy vào cuối chu kỳ.",
       "manageThroughStripe": "Quản lý thanh toán qua Stripe.",
+      "manageThroughProvider": "Quản lý thanh toán qua {provider}.",
+      "cancelConfirm": "Bạn có chắc muốn hủy gói thành viên này không?",
+      "cancelled": "Đã hủy gói thành viên.",
       "accessUntil": "Truy cập đến",
       "renews": "Gia hạn vào"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "Hoạt động credit",
     "noCreditActivity": "Chưa có hoạt động credit.",
     "signInCreditActivity": "Đăng nhập để xem hoạt động credit.",
-    "stripePurchases": "Giao dịch Stripe",
-    "stripeCheckoutId": "ID thanh toán Stripe",
-    "noStripePurchases": "Chưa có giao dịch Stripe.",
-    "signInStripePurchases": "Đăng nhập để xem giao dịch Stripe.",
+    "stripePurchases": "Giao dịch",
+    "stripeCheckoutId": "Mã giao dịch",
+    "noStripePurchases": "Chưa có giao dịch.",
+    "signInStripePurchases": "Đăng nhập để xem giao dịch.",
     "openingCheckout": "Đang mở trang thanh toán...",
     "recharge": "Nạp thêm",
     "cycle": {

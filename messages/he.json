@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "נהל זיכויים והעלאות",
-    "subtitle": "בחר חבילת אשראי של תשלום לפי נסיעה, רענן את היתרה שלך ובדוק את פעילות האשראי או רכישות Stripe מדף ארנק אחד.",
+    "subtitle": "נהלו קרדיטים, מינויים, טעינות והיסטוריית רכישות במקום מאובטח אחד.",
     "eyebrow": "חיוב",
     "currentBalance": "יתרה נוכחית",
     "creditsAvailable": "זיכויים זמינים",
@@ -549,6 +549,9 @@
       "currentDescription": "{credits} זיכויים לכל {cycle}. {status}",
       "cancellationScheduled": "ביטול מתוכנן בסוף התקופה.",
       "manageThroughStripe": "נהל חיוב באמצעות Stripe.",
+      "manageThroughProvider": "נהל חיוב באמצעות {provider}.",
+      "cancelConfirm": "האם לבטל את המינוי הזה?",
+      "cancelled": "המינוי בוטל.",
       "accessUntil": "גישה עד",
       "renews": "מחדשת"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "פעילות אשראי",
     "noCreditActivity": "עדיין אין פעילות אשראי.",
     "signInCreditActivity": "היכנס כדי לראות את פעילות האשראי שלך.",
-    "stripePurchases": "רכישות פסים",
-    "stripeCheckoutId": "תעודה מזהה לקופה",
-    "noStripePurchases": "עדיין אין רכישות של Stripe.",
-    "signInStripePurchases": "היכנס כדי לצפות ברכישות Stripe.",
+    "stripePurchases": "רכישות",
+    "stripeCheckoutId": "מזהה עסקה",
+    "noStripePurchases": "אין עדיין רכישות.",
+    "signInStripePurchases": "יש להתחבר כדי לצפות ברכישות.",
     "openingCheckout": "פותחים את הקופה...",
     "recharge": "טען מחדש",
     "cycle": {

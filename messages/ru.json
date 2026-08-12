@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "Управление кредитами и пополнениями",
-    "subtitle": "Выберите пакет кредитов, обновите баланс и смотрите историю кредитов и покупок Stripe на одной странице.",
+    "subtitle": "Управляйте кредитами, подписками, пополнениями и историей покупок в одном безопасном месте.",
     "eyebrow": "Биллинг",
     "currentBalance": "Текущий баланс",
     "creditsAvailable": "доступных кредитов",
@@ -549,6 +549,9 @@
       "currentDescription": "{credits} кредитов за {cycle}. {status}",
       "cancellationScheduled": "Отмена запланирована на конец периода.",
       "manageThroughStripe": "Управляйте биллингом через Stripe.",
+      "manageThroughProvider": "Управляйте оплатой через {provider}.",
+      "cancelConfirm": "Вы уверены, что хотите отменить эту подписку?",
+      "cancelled": "Подписка отменена.",
       "accessUntil": "Доступ до",
       "renews": "Продлевается"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "История кредитов",
     "noCreditActivity": "Истории кредитов пока нет.",
     "signInCreditActivity": "Войдите, чтобы видеть историю кредитов.",
-    "stripePurchases": "Покупки Stripe",
-    "stripeCheckoutId": "ID платежа Stripe",
-    "noStripePurchases": "Покупок Stripe пока нет.",
-    "signInStripePurchases": "Войдите, чтобы видеть покупки Stripe.",
+    "stripePurchases": "Покупки",
+    "stripeCheckoutId": "ID транзакции",
+    "noStripePurchases": "Покупок пока нет.",
+    "signInStripePurchases": "Войдите, чтобы просмотреть покупки.",
     "openingCheckout": "Открываем оплату...",
     "recharge": "Пополнить",
     "cycle": {

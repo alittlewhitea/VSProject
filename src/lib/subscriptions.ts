@@ -1,11 +1,15 @@
 import type Stripe from "stripe";
 import { getSubscriptionPlanPrice } from "./billing";
+import type { PayPalSubscription } from "./paypal";
 
 export type UserSubscriptionRow = {
   id: number | string;
   user_id: string;
+  payment_provider: "stripe" | "paypal";
+  provider_customer_id: string | null;
+  provider_subscription_id: string | null;
   stripe_customer_id: string | null;
-  stripe_subscription_id: string;
+  stripe_subscription_id: string | null;
   plan_id: string;
   cycle: string;
   credits_per_cycle: number;
@@ -54,6 +58,9 @@ export async function upsertUserSubscription(admin: any, subscription: Stripe.Su
 
   const row = {
     user_id: metadata.userId,
+    payment_provider: "stripe",
+    provider_customer_id: customer,
+    provider_subscription_id: subscription.id,
     stripe_customer_id: customer,
     stripe_subscription_id: subscription.id,
     plan_id: metadata.planId,
@@ -67,7 +74,35 @@ export async function upsertUserSubscription(admin: any, subscription: Stripe.Su
     updated_at: new Date().toISOString()
   };
 
-  await admin.from("user_subscriptions").upsert(row, { onConflict: "stripe_subscription_id" }).throwOnError();
+  await admin.from("user_subscriptions").upsert(row, { onConflict: "payment_provider,provider_subscription_id" }).throwOnError();
+  return row;
+}
+
+export async function upsertPayPalSubscription(
+  admin: any,
+  subscription: PayPalSubscription,
+  metadata: { userId: string; planId: string; cycle: string; credits: number }
+) {
+  const status = subscription.status.toLowerCase();
+  const row = {
+    user_id: metadata.userId,
+    payment_provider: "paypal",
+    provider_customer_id: subscription.subscriber?.payer_id || null,
+    provider_subscription_id: subscription.id,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    plan_id: metadata.planId,
+    cycle: metadata.cycle,
+    credits_per_cycle: metadata.credits,
+    status,
+    cancel_at_period_end: status === "cancelled" || status === "expired",
+    current_period_start: subscription.billing_info?.last_payment?.time || subscription.start_time || null,
+    current_period_end: subscription.billing_info?.next_billing_time || null,
+    canceled_at: status === "cancelled" ? subscription.status_update_time || new Date().toISOString() : null,
+    updated_at: new Date().toISOString()
+  };
+
+  await admin.from("user_subscriptions").upsert(row, { onConflict: "payment_provider,provider_subscription_id" }).throwOnError();
   return row;
 }
 
@@ -75,7 +110,7 @@ export async function listUserSubscriptions(admin: any, userId: string, limit = 
   const { data, error } = await admin
     .from("user_subscriptions")
     .select(
-      "id,user_id,stripe_customer_id,stripe_subscription_id,plan_id,cycle,credits_per_cycle,status,cancel_at_period_end,current_period_start,current_period_end,canceled_at,created_at,updated_at"
+      "id,user_id,payment_provider,provider_customer_id,provider_subscription_id,stripe_customer_id,stripe_subscription_id,plan_id,cycle,credits_per_cycle,status,cancel_at_period_end,current_period_start,current_period_end,canceled_at,created_at,updated_at"
     )
     .eq("user_id", userId)
     .order("updated_at", { ascending: false })
@@ -88,4 +123,18 @@ export async function listUserSubscriptions(admin: any, userId: string, limit = 
 export async function getLatestUserSubscription(admin: any, userId: string) {
   const subscriptions = await listUserSubscriptions(admin, userId, 1);
   return subscriptions[0] || null;
+}
+
+const MANAGEABLE_SUBSCRIPTION_STATUSES = new Set([
+  "active",
+  "trialing",
+  "past_due",
+  "approved",
+  "approval_pending",
+  "suspended"
+]);
+
+export async function getManageableUserSubscription(admin: any, userId: string) {
+  const subscriptions = await listUserSubscriptions(admin, userId, 20);
+  return subscriptions.find((subscription) => MANAGEABLE_SUBSCRIPTION_STATUSES.has(subscription.status.toLowerCase())) || null;
 }

@@ -20,7 +20,7 @@ export type SubscriptionPlanPrice = {
   amountCents: number;
   credits: number;
   interval: "week" | "month" | "year";
-  stripePriceEnv: string;
+  paypalPlanEnv: string;
   monthlyEquivalentCents?: number;
   savingsText?: string;
 };
@@ -181,19 +181,19 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
         amountCents: 499,
         credits: 800,
         interval: "week",
-        stripePriceEnv: "STRIPE_PRICE_PREMIUM_LITE_WEEKLY"
+        paypalPlanEnv: "PAYPAL_PLAN_PREMIUM_LITE_WEEKLY"
       },
       monthly: {
         amountCents: 1299,
         credits: 2400,
         interval: "month",
-        stripePriceEnv: "STRIPE_PRICE_PREMIUM_LITE_MONTHLY"
+        paypalPlanEnv: "PAYPAL_PLAN_PREMIUM_LITE_MONTHLY"
       },
       yearly: {
         amountCents: 9900,
         credits: 18000,
         interval: "year",
-        stripePriceEnv: "STRIPE_PRICE_PREMIUM_LITE_YEARLY",
+        paypalPlanEnv: "PAYPAL_PLAN_PREMIUM_LITE_YEARLY",
         monthlyEquivalentCents: 825,
         savingsText: "Save $56/year"
       }
@@ -223,19 +223,19 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
         amountCents: 999,
         credits: 1700,
         interval: "week",
-        stripePriceEnv: "STRIPE_PRICE_PREMIUM_WEEKLY"
+        paypalPlanEnv: "PAYPAL_PLAN_PREMIUM_WEEKLY"
       },
       monthly: {
         amountCents: 2499,
         credits: 4600,
         interval: "month",
-        stripePriceEnv: "STRIPE_PRICE_PREMIUM_MONTHLY"
+        paypalPlanEnv: "PAYPAL_PLAN_PREMIUM_MONTHLY"
       },
       yearly: {
         amountCents: 19900,
         credits: 38000,
         interval: "year",
-        stripePriceEnv: "STRIPE_PRICE_PREMIUM_YEARLY",
+        paypalPlanEnv: "PAYPAL_PLAN_PREMIUM_YEARLY",
         monthlyEquivalentCents: 1658,
         savingsText: "Save $100/year"
       }

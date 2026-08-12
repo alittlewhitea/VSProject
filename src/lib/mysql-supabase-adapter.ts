@@ -32,7 +32,8 @@ const DATE_COLUMNS = new Set([
   "current_period_start",
   "current_period_end",
   "canceled_at",
-  "refunded_at"
+  "refunded_at",
+  "resolved_at"
 ]);
 
 const TABLE_CONFLICT_KEYS: Record<string, string[]> = {
@@ -41,9 +42,11 @@ const TABLE_CONFLICT_KEYS: Record<string, string[]> = {
   user_credit_accounts: ["user_id"],
   signup_ip_claims: ["ip_hash"],
   runtime_settings: ["key"],
+  payment_webhook_events: ["payment_provider", "event_id"],
+  payment_incidents: ["payment_provider", "event_id"],
   model_daily_usage_events: ["user_id", "model_key", "reference_id"],
-  credit_purchases: ["stripe_checkout_id"],
-  user_subscriptions: ["stripe_subscription_id"],
+  credit_purchases: ["payment_provider", "provider_transaction_id"],
+  user_subscriptions: ["payment_provider", "provider_subscription_id"],
   public_gallery_items: ["id"],
   generation_tasks: ["id"],
   analytics_events: ["id"]
@@ -56,7 +59,8 @@ const TABLE_TIMESTAMP_DEFAULTS: Record<string, string[]> = {
   public_gallery_items: ["published_at", "created_at"],
   signup_ip_claims: ["created_at"],
   user_credit_accounts: ["created_at", "updated_at"],
-  user_subscriptions: ["created_at", "updated_at"]
+  user_subscriptions: ["created_at", "updated_at"],
+  payment_incidents: ["created_at", "updated_at"]
 };
 
 export class MysqlAdapterError extends Error {
@@ -377,12 +381,12 @@ async function applyCreditLedgerOnce(params: Record<string, unknown>) {
     const allowNegative = Boolean(params.p_allow_negative);
     const now = new Date();
 
+    const [accountRows] = await (conn as any).execute("select balance from user_credit_accounts where user_id = ? for update", [userId]);
+    const currentBalance = Number(accountRows[0]?.balance || 0);
     const [existing] = await (conn as any).execute(
       "select id, amount from credit_ledger where user_id = ? and reason = ? and reference_id <=> ? limit 1",
       [userId, reason, referenceId]
     );
-    const [accountRows] = await (conn as any).execute("select balance from user_credit_accounts where user_id = ? for update", [userId]);
-    const currentBalance = Number(accountRows[0]?.balance || 0);
     if (existing.length) {
       return { balance: currentBalance, ledger_id: existing[0].id, duplicate: true, applied: false };
     }

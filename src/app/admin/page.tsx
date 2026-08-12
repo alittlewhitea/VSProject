@@ -55,12 +55,16 @@ type Ledger = {
 type Purchase = {
   id: number | string;
   user_id: string;
-  stripe_checkout_id: string;
+  payment_provider: "stripe" | "paypal";
+  provider_order_id: string | null;
+  provider_transaction_id: string | null;
+  provider_capture_id: string | null;
+  stripe_checkout_id: string | null;
   pack_id: string;
   credits: number;
   amount_cents: number;
   currency: string;
-  status: "pending" | "completed" | "cancelled" | "failed";
+  status: string;
   created_at: string;
   updated_at: string;
 };
@@ -68,8 +72,11 @@ type Purchase = {
 type Subscription = {
   id: number | string;
   user_id: string;
+  payment_provider: "stripe" | "paypal";
+  provider_customer_id: string | null;
+  provider_subscription_id: string | null;
   stripe_customer_id: string | null;
-  stripe_subscription_id: string;
+  stripe_subscription_id: string | null;
   plan_id: string;
   cycle: string;
   credits_per_cycle: number;
@@ -78,6 +85,24 @@ type Subscription = {
   current_period_start: string | null;
   current_period_end: string | null;
   canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type PaymentIncident = {
+  id: number | string;
+  payment_provider: "paypal";
+  event_type: string;
+  user_id: string | null;
+  purchase_id: number | string | null;
+  provider_transaction_id: string | null;
+  amount_cents: number | null;
+  currency: string | null;
+  status: "review_required" | "resolved" | "ignored";
+  reason: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  resolution_note: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -170,12 +195,19 @@ type OpsPayload = {
   ledger?: Ledger[];
   purchases?: Purchase[];
   subscriptions?: Subscription[];
+  paymentIncidents?: PaymentIncident[];
   tasks?: Task[];
   failedTasks?: Task[];
   error?: string;
   runtimeConfig?: {
     dreamfaceIoEnabled: boolean;
     dreamfaceIoConfigured: boolean;
+    paymentProvider: "stripe" | "paypal";
+    stripeConfigured: boolean;
+    paypalConfigured: boolean;
+    paypalPlansConfigured: number;
+    paypalPlansTotal: number;
+    paypalPlanChecks: Array<{ key: string; env: string; valid: boolean; error: string | null }>;
   };
 };
 
@@ -193,6 +225,7 @@ const adminSections = [
   ["credit-ledger", "Ledger"],
   ["purchases", "Purchases"],
   ["subscriptions", "Subscriptions"],
+  ["payment-incidents", "Payment incidents"],
   ["tasks", "Tasks"],
   ["failed-tasks", "Failed"],
   ["events", "Events"]
@@ -323,6 +356,8 @@ export default function AdminHomePage() {
   const [saving, setSaving] = useState(false);
   const [repairing, setRepairing] = useState(false);
   const [savingModelSwitch, setSavingModelSwitch] = useState(false);
+  const [reconcilingPayPal, setReconcilingPayPal] = useState(false);
+  const [resolvingIncidentId, setResolvingIncidentId] = useState<number | string | null>(null);
   const [userPage, setUserPage] = useState(1);
 
   useEffect(() => {
@@ -450,12 +485,12 @@ export default function AdminHomePage() {
       });
       const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error || "Model switch could not be updated.");
-      setPayload((current) => current
+      setPayload((current) => current?.runtimeConfig
         ? {
             ...current,
             runtimeConfig: {
-              dreamfaceIoEnabled: enabled,
-              dreamfaceIoConfigured: current.runtimeConfig?.dreamfaceIoConfigured ?? false
+              ...current.runtimeConfig,
+              dreamfaceIoEnabled: enabled
             }
           }
         : current);
@@ -467,12 +502,57 @@ export default function AdminHomePage() {
     }
   }
 
+  async function reconcilePayPal() {
+    if (!token || reconcilingPayPal) return;
+    setReconcilingPayPal(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/ops", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "reconcile_paypal" })
+      });
+      const result = (await response.json()) as { error?: string; reconciliation?: { purchasesCompleted: number; subscriptionsUpdated: number; errors: unknown[] } };
+      if (!response.ok) throw new Error(result.error || "PayPal reconciliation failed.");
+      setMessage(`PayPal reconciliation complete: ${result.reconciliation?.purchasesCompleted ?? 0} purchases completed, ${result.reconciliation?.subscriptionsUpdated ?? 0} subscriptions updated, ${result.reconciliation?.errors.length ?? 0} errors.`);
+      await loadOps(token, filterUserId);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "PayPal reconciliation failed.");
+    } finally {
+      setReconcilingPayPal(false);
+    }
+  }
+
+  async function resolvePaymentIncident(incidentId: number | string) {
+    if (!token || resolvingIncidentId) return;
+    const note = window.prompt("Describe what was reviewed and any credit adjustment applied:")?.trim();
+    if (!note) return;
+    setResolvingIncidentId(incidentId);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/ops", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "resolve_payment_incident", incidentId, note })
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Payment incident could not be resolved.");
+      setMessage("Payment incident marked resolved.");
+      await loadOps(token, filterUserId);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Payment incident could not be resolved.");
+    } finally {
+      setResolvingIncidentId(null);
+    }
+  }
+
   const summary = payload?.summary || {};
   const users = payload?.users || [];
   const accounts = payload?.accounts || [];
   const ledger = payload?.ledger || [];
   const purchases = payload?.purchases || [];
   const subscriptions = payload?.subscriptions || [];
+  const paymentIncidents = payload?.paymentIncidents || [];
   const tasks = payload?.tasks || [];
   const failedTasks = payload?.failedTasks || [];
   const findings = payload?.findings || [];
@@ -526,7 +606,7 @@ export default function AdminHomePage() {
               <p className="text-xs uppercase tracking-[0.16em] text-[#6e6e73]">DreamFace Admin</p>
               <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-5xl">Operations Console</h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-[#6e6e73]">
-                Users, balances, Stripe purchases, credit ledger, generation tasks, failures, and manual credit adjustments.
+                Users, balances, payments, credit ledger, generation tasks, failures, and manual credit adjustments.
               </p>
               {payload?.adminEmail ? <p className="mt-2 text-xs text-[#86868b]">Signed in as {payload.adminEmail}</p> : null}
             </div>
@@ -622,6 +702,38 @@ export default function AdminHomePage() {
                     payload?.runtimeConfig?.dreamfaceIoEnabled ? "left-7" : "left-1"
                   }`}
                 />
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-black/10 bg-[#fbfbfd] p-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold">PayPal checkout</p>
+                  <span className="rounded-full bg-[#e8f7ef] px-2.5 py-1 text-[11px] font-semibold text-[#087443]">Primary</span>
+                </div>
+                <p className="mt-1 text-xs leading-5 text-[#6e6e73]">
+                  All new credit and subscription checkouts use PayPal. Stripe checkout is paused; its webhook and portal remain available only for historical Stripe subscriptions.
+                </p>
+                <p className="mt-1 text-xs text-[#86868b]">
+                  PayPal {payload?.runtimeConfig?.paypalConfigured ? "ready" : `not ready (${payload?.runtimeConfig?.paypalPlansConfigured ?? 0}/${payload?.runtimeConfig?.paypalPlansTotal ?? 6} plans verified)`} · Stripe historical compatibility {payload?.runtimeConfig?.stripeConfigured ? "ready" : "not configured"}
+                </p>
+                {(payload?.runtimeConfig?.paypalPlanChecks || []).some((check) => !check.valid) ? (
+                  <div className="mt-3 space-y-1 text-xs text-[#a14a15]">
+                    {(payload?.runtimeConfig?.paypalPlanChecks || []).filter((check) => !check.valid).map((check) => (
+                      <p key={check.key}><span className="font-semibold">{check.key}</span>: {check.error || `${check.env} is invalid`}</p>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                disabled={reconcilingPayPal || !payload?.runtimeConfig?.paypalConfigured}
+                onClick={reconcilePayPal}
+                className="self-start rounded-xl bg-[#1d1d1f] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-40 sm:self-auto"
+              >
+                {reconcilingPayPal ? "Reconciling..." : "Reconcile PayPal"}
               </button>
             </div>
           </div>
@@ -995,7 +1107,7 @@ export default function AdminHomePage() {
             </div>
           </Panel>
 
-          <Panel id="purchases" title="Stripe Purchases" count={purchases.length}>
+          <Panel id="purchases" title="Purchases" count={purchases.length}>
             <div className="divide-y divide-black/10">
               {purchases.slice(0, 30).map((purchase) => (
                 <div key={purchase.id} className="grid gap-2 py-3 md:grid-cols-[0.8fr_0.8fr_1fr]">
@@ -1011,7 +1123,8 @@ export default function AdminHomePage() {
                   </div>
                   <div className="min-w-0">
                     <p className="break-all text-xs text-[#86868b]">{purchase.user_id}</p>
-                    <p className="break-all text-xs text-[#86868b]">{purchase.stripe_checkout_id}</p>
+                    <p className="text-xs font-semibold capitalize text-[#4f5a6d]">{purchase.payment_provider}</p>
+                    <p className="break-all text-xs text-[#86868b]">{purchase.provider_transaction_id || purchase.stripe_checkout_id || "No transaction id"}</p>
                   </div>
                 </div>
               ))}
@@ -1038,12 +1151,49 @@ export default function AdminHomePage() {
                   </div>
                   <div className="min-w-0">
                     <p className="break-all text-xs text-[#86868b]">{subscription.user_id}</p>
-                    <p className="break-all text-xs text-[#86868b]">{subscription.stripe_subscription_id}</p>
-                    <p className="break-all text-xs text-[#86868b]">{subscription.stripe_customer_id || "No customer id"}</p>
+                    <p className="text-xs font-semibold capitalize text-[#4f5a6d]">{subscription.payment_provider}</p>
+                    <p className="break-all text-xs text-[#86868b]">{subscription.provider_subscription_id || subscription.stripe_subscription_id || "No subscription id"}</p>
+                    <p className="break-all text-xs text-[#86868b]">{subscription.provider_customer_id || subscription.stripe_customer_id || "No customer id"}</p>
                   </div>
                 </div>
               ))}
               {!subscriptions.length ? <Empty loading={loading} /> : null}
+            </div>
+          </Panel>
+
+          <Panel id="payment-incidents" title="Payment Incidents" count={paymentIncidents.length}>
+            <div className="divide-y divide-black/10">
+              {paymentIncidents.slice(0, 50).map((incident) => (
+                <div key={incident.id} className="grid gap-3 py-4 md:grid-cols-[0.65fr_1.5fr_0.8fr]">
+                  <div>
+                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${statusClass(incident.status)}`}>
+                      {incident.status.replaceAll("_", " ")}
+                    </span>
+                    <p className="mt-2 text-xs text-[#86868b]">{formatDate(incident.created_at)}</p>
+                    {incident.amount_cents != null ? <p className="text-xs font-semibold">{formatUsd(incident.amount_cents, incident.currency || "usd")}</p> : null}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">{incident.event_type}</p>
+                    <p className="mt-1 text-xs leading-5 text-[#4f5a6d]">{incident.reason}</p>
+                    <p className="mt-1 break-all text-xs text-[#86868b]">User: {incident.user_id || "Not matched"}</p>
+                    {incident.resolution_note ? <p className="mt-2 text-xs text-[#087443]">Resolution: {incident.resolution_note}</p> : null}
+                  </div>
+                  <div className="md:text-right">
+                    <p className="break-all text-xs text-[#86868b]">Transaction: {incident.provider_transaction_id || "Not matched"}</p>
+                    {incident.status === "review_required" ? (
+                      <button
+                        type="button"
+                        disabled={resolvingIncidentId != null}
+                        onClick={() => resolvePaymentIncident(incident.id)}
+                        className="mt-3 rounded-lg border border-black/10 bg-white px-3 py-2 text-xs font-semibold text-[#1d1d1f] hover:bg-[#f5f5f7] disabled:opacity-40"
+                      >
+                        {resolvingIncidentId === incident.id ? "Saving..." : "Mark resolved"}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+              {!paymentIncidents.length ? <Empty loading={loading} /> : null}
             </div>
           </Panel>
 

@@ -3,8 +3,15 @@ import { randomUUID } from "node:crypto";
 import { getAdminUserFromRequest } from "../../../../lib/admin-auth";
 import { addCredits, refundCredits, spendCredits } from "../../../../lib/credits";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
-import { isDreamfaceIoEnabled, setDreamfaceIoEnabled } from "../../../../lib/runtime-config";
+import {
+  isDreamfaceIoEnabled,
+  setDreamfaceIoEnabled,
+  type PaymentProvider
+} from "../../../../lib/runtime-config";
 import { DREAMFACE_IO_PROVIDER, isDreamfaceIoConfigured, refundDreamfaceIoBilling } from "../../../../lib/dreamface-io";
+import { isPayPalConfigured, isPayPalWebhookConfigured } from "../../../../lib/paypal";
+import { validateConfiguredPayPalPlans } from "../../../../lib/paypal-billing";
+import { reconcilePayPalBilling } from "../../../../lib/paypal-reconciliation";
 
 const RECENT_LIMIT = 80;
 const ADMIN_DATA_LIMIT = 5000;
@@ -32,12 +39,16 @@ type LedgerRow = {
 type PurchaseRow = {
   id: number | string;
   user_id: string;
-  stripe_checkout_id: string;
+  payment_provider: PaymentProvider;
+  provider_order_id: string | null;
+  provider_transaction_id: string | null;
+  provider_capture_id: string | null;
+  stripe_checkout_id: string | null;
   pack_id: string;
   credits: number;
   amount_cents: number;
   currency: string;
-  status: "pending" | "completed" | "cancelled" | "failed";
+  status: string;
   created_at: string;
   updated_at: string;
 };
@@ -45,8 +56,11 @@ type PurchaseRow = {
 type SubscriptionRow = {
   id: number | string;
   user_id: string;
+  payment_provider: PaymentProvider;
+  provider_customer_id: string | null;
+  provider_subscription_id: string | null;
   stripe_customer_id: string | null;
-  stripe_subscription_id: string;
+  stripe_subscription_id: string | null;
   plan_id: string;
   cycle: string;
   credits_per_cycle: number;
@@ -100,11 +114,30 @@ type CountrySummaryRow = {
 };
 
 type AdjustmentPayload = {
-  action?: "credit_adjustment" | "repair_generation_safety" | "set_dreamface_io_enabled";
+  action?: "credit_adjustment" | "repair_generation_safety" | "set_dreamface_io_enabled" | "reconcile_paypal" | "resolve_payment_incident";
   userId?: string;
   amount?: number;
   note?: string;
   enabled?: boolean;
+  incidentId?: number | string;
+};
+
+type PaymentIncidentRow = {
+  id: number | string;
+  payment_provider: "paypal";
+  event_type: string;
+  user_id: string | null;
+  purchase_id: number | string | null;
+  provider_transaction_id: string | null;
+  amount_cents: number | null;
+  currency: string | null;
+  status: "review_required" | "resolved" | "ignored";
+  reason: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  resolution_note: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 type OpsFinding = {
@@ -178,7 +211,15 @@ function hasLedger(entries: LedgerRow[] | undefined, reason: string) {
   return Boolean(entries?.some((entry) => entry.reason === reason));
 }
 
-function buildSystemHealth(tasks: TaskRow[], ledger: LedgerRow[], purchases: PurchaseRow[]) {
+function buildSystemHealth(
+  tasks: TaskRow[],
+  ledger: LedgerRow[],
+  purchases: PurchaseRow[],
+  subscriptions: SubscriptionRow[],
+  paypalPlansValid: number,
+  paypalPlansTotal: number,
+  openPaymentIncidents: number
+) {
   const findings = buildOpsFindings(tasks, ledger);
   const criticalFindings = findings
     .filter((finding) => finding.severity === "critical")
@@ -187,7 +228,9 @@ function buildSystemHealth(tasks: TaskRow[], ledger: LedgerRow[], purchases: Pur
   const recentFailed = recentTasks.filter((task) => task.status === "failed").length;
   const recentCompleted = recentTasks.filter((task) => task.status === "completed").length;
   const recentFailureRate = recentTasks.length ? recentFailed / recentTasks.length : 0;
-  const pendingPurchases = purchases.filter((purchase) => purchase.status === "pending").length;
+  const pendingPurchases = purchases.filter((purchase) => ["created", "pending", "payment_capture_pending"].includes(purchase.status)).length;
+  const activeStatuses = new Set(["active", "trialing", "past_due", "approved", "approval_pending"]);
+  const hasStripeSubscriptions = subscriptions.some((subscription) => subscription.payment_provider === "stripe" && activeStatuses.has(subscription.status));
 
   const checks: SystemHealthCheck[] = [
     requiredEnvCheck("MYSQL_HOST", "MySQL host"),
@@ -200,16 +243,34 @@ function buildSystemHealth(tasks: TaskRow[], ledger: LedgerRow[], purchases: Pur
     requiredEnvCheck("ADMIN_EMAILS", "Admin allowlist"),
     requiredEnvCheck("FAL_KEY", "fal.ai API key"),
     {
-      key: "stripe_secret_key",
-      label: "Stripe secret key",
-      status: envPresent("STRIPE_SECRET_KEY") ? "ok" : "warning",
-      detail: envPresent("STRIPE_SECRET_KEY") ? "Configured" : "Missing; checkout cannot create paid sessions"
+      key: "paypal_credentials",
+      label: "Primary payment provider: PayPal",
+      status: isPayPalConfigured() ? "ok" : "critical",
+      detail: isPayPalConfigured() ? "Checkout credentials configured" : "PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET is missing"
     },
     {
-      key: "stripe_webhook_secret",
-      label: "Stripe webhook secret",
-      status: envPresent("STRIPE_WEBHOOK_SECRET") ? "ok" : "critical",
-      detail: envPresent("STRIPE_WEBHOOK_SECRET") ? "Configured" : "Missing; paid credits cannot be granted safely"
+      key: "legacy_stripe_webhook",
+      label: "Stripe historical compatibility",
+      status: envPresent("STRIPE_WEBHOOK_SECRET") ? "ok" as const : hasStripeSubscriptions ? "critical" as const : "warning" as const,
+      detail: envPresent("STRIPE_WEBHOOK_SECRET") ? "Historical webhook remains configured; new Stripe checkout is paused" : hasStripeSubscriptions ? "Missing while Stripe subscriptions remain active" : "No active Stripe subscriptions detected"
+    },
+    {
+      key: "paypal_webhook",
+      label: "PayPal webhook",
+      status: isPayPalWebhookConfigured() ? "ok" : "critical",
+      detail: isPayPalWebhookConfigured() ? "Configured" : "PAYPAL_WEBHOOK_ID is missing"
+    },
+    {
+      key: "paypal_plans",
+      label: "PayPal subscription plans",
+      status: paypalPlansValid === paypalPlansTotal ? "ok" as const : "critical" as const,
+      detail: `${paypalPlansValid}/${paypalPlansTotal} plans verified active with matching amount and billing cycle`
+    },
+    {
+      key: "payment_incidents",
+      label: "Payment incidents requiring review",
+      status: openPaymentIncidents > 0 ? "warning" : "ok",
+      detail: `${openPaymentIncidents} unresolved PayPal refund, reversal, dispute, or reconciliation finding(s)`
     },
     {
       key: "app_url",
@@ -236,8 +297,8 @@ function buildSystemHealth(tasks: TaskRow[], ledger: LedgerRow[], purchases: Pur
       detail: `${recentCompleted} completed tasks in the recent sample`
     },
     {
-      key: "pending_stripe_purchases",
-      label: "Pending Stripe purchases",
+      key: "pending_purchases",
+      label: "Pending purchases",
       status: pendingPurchases > 5 ? "warning" : "ok",
       detail: `${pendingPurchases} pending purchase records in recent sample`
     }
@@ -756,13 +817,13 @@ export async function GET(request: Request) {
     .limit(userId ? 1000 : ADMIN_DATA_LIMIT);
   let purchasesQuery = admin
     .from("credit_purchases")
-    .select("id,user_id,stripe_checkout_id,pack_id,credits,amount_cents,currency,status,created_at,updated_at")
+    .select("id,user_id,payment_provider,provider_order_id,provider_transaction_id,provider_capture_id,stripe_checkout_id,pack_id,credits,amount_cents,currency,status,created_at,updated_at")
     .order("created_at", { ascending: false })
     .limit(userId ? 1000 : ADMIN_DATA_LIMIT);
   let subscriptionsQuery = admin
     .from("user_subscriptions")
     .select(
-      "id,user_id,stripe_customer_id,stripe_subscription_id,plan_id,cycle,credits_per_cycle,status,cancel_at_period_end,current_period_start,current_period_end,canceled_at,created_at,updated_at"
+      "id,user_id,payment_provider,provider_customer_id,provider_subscription_id,stripe_customer_id,stripe_subscription_id,plan_id,cycle,credits_per_cycle,status,cancel_at_period_end,current_period_start,current_period_end,canceled_at,created_at,updated_at"
     )
     .order("updated_at", { ascending: false })
     .limit(userId ? 1000 : ADMIN_DATA_LIMIT);
@@ -780,6 +841,11 @@ export async function GET(request: Request) {
     .gte("created_at", daysAgoIso(7))
     .order("created_at", { ascending: false })
     .limit(600);
+  let incidentsQuery = admin
+    .from("payment_incidents")
+    .select("id,payment_provider,event_type,user_id,purchase_id,provider_transaction_id,amount_cents,currency,status,reason,resolved_at,resolved_by,resolution_note,created_at,updated_at")
+    .order("created_at", { ascending: false })
+    .limit(userId ? 1000 : ADMIN_DATA_LIMIT);
 
   if (userId) {
     accountsQuery = accountsQuery.eq("user_id", userId);
@@ -788,16 +854,18 @@ export async function GET(request: Request) {
     subscriptionsQuery = subscriptionsQuery.eq("user_id", userId);
     tasksQuery = tasksQuery.eq("user_id", userId);
     analyticsQuery = analyticsQuery.eq("user_id", userId);
+    incidentsQuery = incidentsQuery.eq("user_id", userId);
   }
 
-  const [authUsersResult, accountsResult, ledgerResult, purchasesResult, subscriptionsResult, tasksResult, analyticsResult] = await Promise.all([
+  const [authUsersResult, accountsResult, ledgerResult, purchasesResult, subscriptionsResult, tasksResult, analyticsResult, incidentsResult] = await Promise.all([
     listAuthUsers(admin, userId || undefined),
     accountsQuery,
     ledgerQuery,
     purchasesQuery,
     subscriptionsQuery,
     tasksQuery,
-    analyticsQuery
+    analyticsQuery,
+    incidentsQuery
   ]);
 
   if (accountsResult.error) return NextResponse.json({ error: accountsResult.error.message }, { status: 500 });
@@ -805,6 +873,7 @@ export async function GET(request: Request) {
   if (purchasesResult.error) return NextResponse.json({ error: purchasesResult.error.message }, { status: 500 });
   if (subscriptionsResult.error) return NextResponse.json({ error: subscriptionsResult.error.message }, { status: 500 });
   if (tasksResult.error) return NextResponse.json({ error: tasksResult.error.message }, { status: 500 });
+  if (incidentsResult.error) return NextResponse.json({ error: incidentsResult.error.message }, { status: 500 });
 
   const authUsers = authUsersResult;
   const accounts = (accountsResult.data || []) as CreditAccountRow[];
@@ -813,14 +882,23 @@ export async function GET(request: Request) {
   const subscriptions = (subscriptionsResult.data || []) as SubscriptionRow[];
   const tasks = (tasksResult.data || []) as TaskRow[];
   const analytics = (analyticsResult.error ? [] : analyticsResult.data || []) as AnalyticsRow[];
+  const incidents = (incidentsResult.data || []) as PaymentIncidentRow[];
   const users = buildUserRows(authUsers, accounts, ledger, purchases, tasks, subscriptions, analytics);
   const dreamfaceIoEnabled = await isDreamfaceIoEnabled(admin);
+  const paypalPlans = await validateConfiguredPayPalPlans();
+  const openPaymentIncidents = incidents.filter((incident) => incident.status === "review_required").length;
 
   return NextResponse.json({
     adminEmail: adminUser.email,
     runtimeConfig: {
       dreamfaceIoEnabled,
-      dreamfaceIoConfigured: isDreamfaceIoConfigured()
+      dreamfaceIoConfigured: isDreamfaceIoConfigured(),
+      paymentProvider: "paypal",
+      stripeConfigured: envPresent("STRIPE_SECRET_KEY") && envPresent("STRIPE_WEBHOOK_SECRET"),
+      paypalConfigured: isPayPalConfigured() && isPayPalWebhookConfigured() && paypalPlans.valid,
+      paypalPlansConfigured: paypalPlans.validCount,
+      paypalPlansTotal: paypalPlans.total,
+      paypalPlanChecks: paypalPlans.entries
     },
     summary: {
       authUsers: authUsers.length,
@@ -833,13 +911,14 @@ export async function GET(request: Request) {
       recentEvents: userId ? analytics.filter((event) => event.user_id === userId).slice(0, 80) : analytics.slice(0, 80),
       storageWarning: analyticsResult.error ? analyticsResult.error.message : null
     },
-    health: buildSystemHealth(tasks, ledger, purchases),
+    health: buildSystemHealth(tasks, ledger, purchases, subscriptions, paypalPlans.validCount, paypalPlans.total, openPaymentIncidents),
     findings: buildOpsFindings(tasks, ledger),
     users: userId ? users.filter((user) => user.id === userId) : users,
     accounts: userId ? accounts.filter((account) => account.user_id === userId) : accounts,
     ledger: userId ? ledger.filter((entry) => entry.user_id === userId) : ledger,
     purchases: userId ? purchases.filter((purchase) => purchase.user_id === userId) : purchases,
     subscriptions: userId ? subscriptions.filter((subscription) => subscription.user_id === userId) : subscriptions,
+    paymentIncidents: incidents,
     tasks: userId ? tasks.filter((task) => task.user_id === userId) : tasks,
     failedTasks: (userId ? tasks.filter((task) => task.user_id === userId) : tasks).filter((task) => task.status === "failed")
   });
@@ -871,6 +950,25 @@ export async function POST(request: Request) {
     }
     const enabled = await setDreamfaceIoEnabled(admin, body.enabled, adminUser.email);
     return NextResponse.json({ ok: true, enabled, adminEmail: adminUser.email });
+  }
+
+  if (action === "reconcile_paypal") {
+    const reconciliation = await reconcilePayPalBilling(admin);
+    return NextResponse.json({ ok: reconciliation.errors.length === 0, reconciliation, adminEmail: adminUser.email });
+  }
+
+  if (action === "resolve_payment_incident") {
+    if (!body?.incidentId) return NextResponse.json({ error: "Payment incident id is required." }, { status: 400 });
+    const note = typeof body.note === "string" ? body.note.trim().slice(0, 500) : "";
+    if (!note) return NextResponse.json({ error: "A resolution note is required." }, { status: 400 });
+    await admin.from("payment_incidents").update({
+      status: "resolved",
+      resolved_at: new Date().toISOString(),
+      resolved_by: adminUser.email,
+      resolution_note: note,
+      updated_at: new Date().toISOString()
+    }).eq("id", body.incidentId).throwOnError();
+    return NextResponse.json({ ok: true, incidentId: body.incidentId, adminEmail: adminUser.email });
   }
 
   const amount = Number(body?.amount);

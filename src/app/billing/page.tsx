@@ -25,7 +25,11 @@ type LedgerEntry = {
 
 type PurchaseEntry = {
   id: number | string;
-  stripe_checkout_id: string;
+  payment_provider: "stripe" | "paypal";
+  provider_order_id: string | null;
+  provider_transaction_id: string | null;
+  provider_capture_id: string | null;
+  stripe_checkout_id: string | null;
   pack_id: string;
   credits: number;
   amount_cents: number;
@@ -37,8 +41,11 @@ type PurchaseEntry = {
 
 type SubscriptionEntry = {
   id: number | string;
+  payment_provider: "stripe" | "paypal";
+  provider_customer_id: string | null;
+  provider_subscription_id: string | null;
   stripe_customer_id: string | null;
-  stripe_subscription_id: string;
+  stripe_subscription_id: string | null;
   plan_id: string;
   cycle: string;
   credits_per_cycle: number;
@@ -87,6 +94,10 @@ function subscriptionFromPackId(packId: string) {
   const price = plan?.prices[cycle];
   if (!plan || !price) return null;
   return { plan, cycle, price };
+}
+
+function purchaseReference(purchase: PurchaseEntry) {
+  return purchase.provider_transaction_id || purchase.provider_order_id || purchase.stripe_checkout_id || String(purchase.id);
 }
 
 function CreditUsageExamples({ credits, compact = false }: { credits: number; compact?: boolean }) {
@@ -344,8 +355,12 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   const trackedLoginSuccessRef = useRef<string | null>(null);
   const trackedCheckoutSuccessRef = useRef<string | null>(null);
   const trackedSubscriptionSuccessRef = useRef<string | null>(null);
+  const capturingPayPalOrderRef = useRef<string | null>(null);
   const checkoutState = searchParams.get("checkout");
+  const checkoutProvider = searchParams.get("provider");
   const checkoutSessionId = searchParams.get("session_id");
+  const paypalOrderId = searchParams.get("token");
+  const checkoutPaymentId = searchParams.get("payment_id") || checkoutSessionId;
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -421,8 +436,28 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   useEffect(() => {
     if (!accessToken) return undefined;
 
+    if (checkoutState === "paypal_return" && paypalOrderId && capturingPayPalOrderRef.current !== paypalOrderId) {
+      capturingPayPalOrderRef.current = paypalOrderId;
+      setMessage(t("billing.success.paymentReceived"));
+      fetch("/api/billing/paypal/capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ orderId: paypalOrderId })
+      })
+        .then(async (response) => {
+          const payload = (await response.json()) as { error?: string };
+          if (!response.ok) throw new Error(payload.error || t("billing.message.paymentProcessing"));
+          router.replace(`${window.location.pathname}?checkout=success&provider=paypal&payment_id=${encodeURIComponent(paypalOrderId)}`);
+        })
+        .catch((error) => {
+          capturingPayPalOrderRef.current = null;
+          setMessage(error instanceof Error ? error.message : t("billing.message.paymentProcessing"));
+        });
+      return undefined;
+    }
+
     if (checkoutState === "subscription_success") {
-      setMessage(t("billing.message.subscriptionChecking"));
+      setMessage(checkoutProvider === "paypal" ? t("billing.subscriptionSuccess.title") : t("billing.message.subscriptionChecking"));
       let attempts = 0;
       const timer = window.setInterval(async () => {
         attempts += 1;
@@ -430,10 +465,10 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
         const matchingPurchase = payload?.purchases?.find(
           (purchase) =>
             purchase.pack_id.startsWith("subscription:") &&
-            (!checkoutSessionId || purchase.stripe_checkout_id === checkoutSessionId)
+            (!checkoutPaymentId || purchaseReference(purchase) === checkoutPaymentId)
         );
         if (matchingPurchase?.status === "completed") {
-          const trackingKey = matchingPurchase.stripe_checkout_id || String(matchingPurchase.id);
+          const trackingKey = purchaseReference(matchingPurchase);
           if (trackedSubscriptionSuccessRef.current !== trackingKey) {
             trackedSubscriptionSuccessRef.current = trackingKey;
             const subscription = subscriptionFromPackId(matchingPurchase.pack_id);
@@ -446,7 +481,8 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
             trackEvent(
               "subscription_checkout_success",
               {
-                stripe_checkout_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || null,
+                payment_provider: matchingPurchase.payment_provider,
+                provider_transaction_id: purchaseReference(matchingPurchase),
                 plan_id: planId,
                 cycle,
                 credits: matchingPurchase.credits,
@@ -458,7 +494,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
             );
             trackPurchaseEvent(
               {
-                transaction_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || String(matchingPurchase.id),
+                transaction_id: purchaseReference(matchingPurchase),
                 value,
                 currency,
                 item_id: matchingPurchase.pack_id,
@@ -468,7 +504,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                 cycle,
                 credits: matchingPurchase.credits,
                 amount_cents: matchingPurchase.amount_cents,
-                stripe_checkout_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || null,
+                payment_provider: matchingPurchase.payment_provider,
                 items: [
                   {
                     item_id: matchingPurchase.pack_id,
@@ -488,7 +524,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
           setMessage(
             matchingPurchase?.status === "completed"
               ? t("billing.message.subscriptionConfirmed")
-              : t("billing.message.subscriptionProcessing")
+              : checkoutProvider === "paypal" ? t("billing.subscriptionSuccess.title") : t("billing.message.subscriptionProcessing")
           );
         }
       }, 1800);
@@ -496,22 +532,23 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
     }
 
     if (checkoutState === "success") {
-      setMessage(t("billing.message.paymentChecking"));
+      setMessage(checkoutProvider === "paypal" ? t("billing.success.paymentReceived") : t("billing.message.paymentChecking"));
       let attempts = 0;
       const timer = window.setInterval(async () => {
         attempts += 1;
         const payload = await loadCredits(accessToken);
         const matchingPurchase = payload?.purchases?.find(
-          (purchase) => !checkoutSessionId || purchase.stripe_checkout_id === checkoutSessionId
+          (purchase) => !checkoutPaymentId || purchaseReference(purchase) === checkoutPaymentId
         );
         if (matchingPurchase?.status === "completed") {
-          const trackingKey = matchingPurchase.stripe_checkout_id || String(matchingPurchase.id);
+          const trackingKey = purchaseReference(matchingPurchase);
           if (trackedCheckoutSuccessRef.current !== trackingKey) {
             trackedCheckoutSuccessRef.current = trackingKey;
             trackEvent(
               "checkout_success",
               {
-                stripe_checkout_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || null,
+                payment_provider: matchingPurchase.payment_provider,
+                provider_transaction_id: purchaseReference(matchingPurchase),
                 pack_id: matchingPurchase.pack_id,
                 credits: matchingPurchase.credits,
                 amount_cents: matchingPurchase.amount_cents,
@@ -522,7 +559,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
             );
             trackPurchaseEvent(
               {
-                transaction_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || String(matchingPurchase.id),
+                transaction_id: purchaseReference(matchingPurchase),
                 value: matchingPurchase.amount_cents / 100,
                 currency: (matchingPurchase.currency || "usd").toUpperCase(),
                 item_id: matchingPurchase.pack_id,
@@ -531,7 +568,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                 pack_id: matchingPurchase.pack_id,
                 credits: matchingPurchase.credits,
                 amount_cents: matchingPurchase.amount_cents,
-                stripe_checkout_id: matchingPurchase.stripe_checkout_id || checkoutSessionId || null,
+                payment_provider: matchingPurchase.payment_provider,
                 items: [
                   {
                     item_id: matchingPurchase.pack_id,
@@ -551,7 +588,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
           setMessage(
             matchingPurchase?.status === "completed"
               ? t("billing.message.paymentConfirmed")
-              : t("billing.message.paymentProcessing")
+              : checkoutProvider === "paypal" ? t("billing.success.paymentReceived") : t("billing.message.paymentProcessing")
           );
         }
       }, 1800);
@@ -563,15 +600,15 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
       setMessage(t("billing.message.checkoutCancelled"));
     }
     return undefined;
-  }, [accessToken, checkoutSessionId, checkoutState, t]);
+  }, [accessToken, checkoutPaymentId, checkoutProvider, checkoutState, paypalOrderId, router, t]);
 
   const bestValuePack = useMemo(
     () => CREDIT_PACKS.reduce((best, pack) => (pack.credits / pack.amountCents > best.credits / best.amountCents ? pack : best), CREDIT_PACKS[0]),
     []
   );
   const matchingCheckoutPurchase = useMemo(
-    () => purchases.find((purchase) => !checkoutSessionId || purchase.stripe_checkout_id === checkoutSessionId) || null,
-    [checkoutSessionId, purchases]
+    () => purchases.find((purchase) => !checkoutPaymentId || purchaseReference(purchase) === checkoutPaymentId) || null,
+    [checkoutPaymentId, purchases]
   );
   const currentSubscription = useMemo(
     () => subscriptions.find((subscription) => ["active", "trialing", "past_due"].includes(subscription.status)) || subscriptions[0] || null,
@@ -686,9 +723,25 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
           Authorization: `Bearer ${accessToken}`
         }
       });
-      const payload = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !payload.url) throw new Error(payload.error || t("billing.message.unablePortal"));
-      window.location.href = payload.url;
+      const payload = (await response.json()) as { url?: string; error?: string; provider?: string; canCancel?: boolean };
+      if (!response.ok) throw new Error(payload.error || t("billing.message.unablePortal"));
+      if (payload.url) {
+        window.location.href = payload.url;
+        return;
+      }
+      if (payload.provider === "paypal" && payload.canCancel) {
+        if (!window.confirm(t("billing.subscription.cancelConfirm"))) return;
+        const cancelResponse = await fetch("/api/billing/subscription/cancel", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const cancelPayload = (await cancelResponse.json()) as { error?: string };
+        if (!cancelResponse.ok) throw new Error(cancelPayload.error || t("billing.message.unablePortal"));
+        setMessage(t("billing.subscription.cancelled"));
+        await loadCredits(accessToken);
+        return;
+      }
+      throw new Error(payload.error || t("billing.message.unablePortal"));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t("billing.message.unablePortal"));
     }
@@ -755,7 +808,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                         cycle: currentSubscription.cycle,
                         status: currentSubscription.cancel_at_period_end
                           ? t("billing.subscription.cancellationScheduled")
-                          : t("billing.subscription.manageThroughStripe")
+                          : t("billing.subscription.manageThroughProvider", { provider: currentSubscription.payment_provider === "paypal" ? "PayPal" : "Stripe" })
                       })
                     : t("billing.subscription.choosePlan")}
                 </p>
@@ -768,7 +821,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
               <button
                 type="button"
                 onClick={openBillingPortal}
-                disabled={!currentSubscription?.stripe_customer_id}
+                disabled={!currentSubscription?.provider_subscription_id && !currentSubscription?.stripe_customer_id}
                 className="rounded-full border border-black/10 bg-[#f0f2f5] px-5 py-3 text-sm font-black text-[#16171a] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t("billing.subscription.manage")}
@@ -789,7 +842,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                     amount: formatUsd(matchingCheckoutPurchase.amount_cents),
                     status: formatStatus(matchingCheckoutPurchase.status, t)
                   })
-                : t("billing.success.description")}
+                : checkoutProvider === "paypal" ? t("billing.success.paymentReceived") : t("billing.success.description")}
               </p>
             </section>
           ) : null}
@@ -799,7 +852,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
               <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">{t("billing.subscriptionSuccess.eyebrow")}</p>
               <h2 className="mt-2 text-3xl font-black">{t("billing.subscriptionSuccess.title")}</h2>
               <p className="mt-2 text-sm leading-6 text-[#3f6b52]">
-                {t("billing.subscriptionSuccess.description")}
+                {checkoutProvider === "paypal" ? t("billing.subscriptionSuccess.title") : t("billing.subscriptionSuccess.description")}
               </p>
             </section>
           ) : null}
@@ -943,7 +996,8 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                         </p>
                         <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-black">{formatStatus(purchase.status, t)}</span>
                       </div>
-                      <p className="mt-2 break-all text-xs font-medium text-[#667084]">{t("billing.stripeCheckoutId")}: {purchase.stripe_checkout_id}</p>
+                      <p className="mt-2 text-xs font-semibold capitalize text-[#4f5a6d]">{purchase.payment_provider}</p>
+                      <p className="mt-1 break-all text-xs font-medium text-[#667084]">{t("billing.stripeCheckoutId")}: {purchaseReference(purchase)}</p>
                       <p className="mt-2 text-xs font-medium text-[#667084]">
                         {formatUsd(purchase.amount_cents)} - {formatDate(purchase.updated_at)}
                       </p>
@@ -1074,7 +1128,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                     amount: formatUsd(matchingCheckoutPurchase.amount_cents),
                     status: formatStatus(matchingCheckoutPurchase.status, t)
                   })
-                : t("billing.success.description")}
+                : checkoutProvider === "paypal" ? t("billing.success.paymentReceived") : t("billing.success.description")}
             </p>
           </section>
         ) : null}
@@ -1084,7 +1138,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">{t("billing.subscriptionSuccess.eyebrow")}</p>
             <h2 className="mt-2 text-3xl font-black">{t("billing.subscriptionSuccess.title")}</h2>
             <p className="mt-2 text-sm leading-6 text-[#3f6b52]">
-              {t("billing.subscriptionSuccess.description")}
+              {checkoutProvider === "paypal" ? t("billing.subscriptionSuccess.title") : t("billing.subscriptionSuccess.description")}
             </p>
           </section>
         ) : null}

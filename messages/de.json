@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "Credits und Aufladungen verwalten",
-    "subtitle": "Wähle ein Credit-Paket, aktualisiere dein Guthaben und prüfe Credit-Aktivitäten sowie Stripe-Käufe.",
+    "subtitle": "Verwalte Credits, Abonnements, Aufladungen und Kaufverlauf an einem sicheren Ort.",
     "eyebrow": "Abrechnung",
     "currentBalance": "Aktueller Kontostand",
     "creditsAvailable": "Credits verfügbar",
@@ -549,6 +549,9 @@
       "currentDescription": "{credits} Credits pro {cycle}. {status}",
       "cancellationScheduled": "Die Kündigung ist zum Ende des Abrechnungszeitraums geplant.",
       "manageThroughStripe": "Abrechnung über Stripe verwalten.",
+      "manageThroughProvider": "Abrechnung über {provider} verwalten.",
+      "cancelConfirm": "Möchtest du dieses Abonnement wirklich kündigen?",
+      "cancelled": "Abonnement gekündigt.",
       "accessUntil": "Zugriff bis",
       "renews": "Verlängert sich"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "Credit-Aktivität",
     "noCreditActivity": "Noch keine Credit-Aktivität.",
     "signInCreditActivity": "Melde dich an, um deine Credit-Aktivität anzusehen.",
-    "stripePurchases": "Stripe-Käufe",
-    "stripeCheckoutId": "Stripe-Zahlungs-ID",
-    "noStripePurchases": "Noch keine Stripe-Käufe.",
-    "signInStripePurchases": "Melde dich an, um deine Stripe-Käufe anzusehen.",
+    "stripePurchases": "Käufe",
+    "stripeCheckoutId": "Transaktions-ID",
+    "noStripePurchases": "Noch keine Käufe.",
+    "signInStripePurchases": "Melde dich an, um deine Käufe anzusehen.",
     "openingCheckout": "Kasse wird geöffnet...",
     "recharge": "Aufladen",
     "cycle": {

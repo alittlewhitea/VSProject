@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "Gestionar créditos y recargas",
-    "subtitle": "Elige un paquete de créditos de pago por uso, actualiza tu saldo y revisa la actividad de créditos o compras en Stripe desde una página de billetera.",
+    "subtitle": "Gestiona créditos, suscripciones, recargas e historial de compras en un solo lugar seguro.",
     "eyebrow": "Facturación",
     "currentBalance": "Saldo actual",
     "creditsAvailable": "créditos disponibles",
@@ -549,6 +549,9 @@
       "currentDescription": "{credits} créditos por {cycle}. {status}",
       "cancellationScheduled": "La cancelación está programada al final del período.",
       "manageThroughStripe": "Gestiona la facturación a través de Stripe.",
+      "manageThroughProvider": "Gestiona la facturación a través de {provider}.",
+      "cancelConfirm": "¿Seguro que quieres cancelar esta suscripción?",
+      "cancelled": "Suscripción cancelada.",
       "accessUntil": "Acceso hasta",
       "renews": "Se renueva"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "Actividad de créditos",
     "noCreditActivity": "Aún no hay actividad de créditos.",
     "signInCreditActivity": "Inicia sesión para ver la actividad de tus créditos.",
-    "stripePurchases": "Compras de Stripe",
-    "stripeCheckoutId": "ID de pago de Stripe",
-    "noStripePurchases": "Aún no hay compras en Stripe.",
-    "signInStripePurchases": "Inicia sesión para ver las compras de Stripe.",
+    "stripePurchases": "Compras",
+    "stripeCheckoutId": "ID de transacción",
+    "noStripePurchases": "Aún no hay compras.",
+    "signInStripePurchases": "Inicia sesión para ver las compras.",
     "openingCheckout": "Abriendo el pago...",
     "recharge": "Recargar",
     "cycle": {

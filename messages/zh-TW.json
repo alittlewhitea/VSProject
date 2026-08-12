@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "管理積分和儲值",
-    "subtitle": "在同一個錢包頁面選擇隨用隨付積分包、重新整理餘額，並查看積分與 Stripe 購買紀錄。",
+    "subtitle": "在同一個安全頁面管理積分、訂閱、加值與購買紀錄。",
     "eyebrow": "帳務",
     "currentBalance": "目前餘額",
     "creditsAvailable": "可用積分",
@@ -549,6 +549,9 @@
       "currentDescription": "每 {cycle} {credits} 積分。{status}",
       "cancellationScheduled": "已安排在週期結束時取消。",
       "manageThroughStripe": "透過 Stripe 管理訂閱與帳務。",
+      "manageThroughProvider": "透過 {provider} 管理訂閱與帳務。",
+      "cancelConfirm": "確定要取消此訂閱嗎？",
+      "cancelled": "訂閱已取消。",
       "accessUntil": "可使用至",
       "renews": "續訂於"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "積分紀錄",
     "noCreditActivity": "目前沒有積分紀錄。",
     "signInCreditActivity": "登入後查看積分紀錄。",
-    "stripePurchases": "Stripe 購買紀錄",
-    "stripeCheckoutId": "Stripe 付款 ID",
-    "noStripePurchases": "目前沒有 Stripe 購買紀錄。",
-    "signInStripePurchases": "登入後查看 Stripe 購買紀錄。",
+    "stripePurchases": "購買紀錄",
+    "stripeCheckoutId": "交易 ID",
+    "noStripePurchases": "目前沒有購買紀錄。",
+    "signInStripePurchases": "登入後查看購買紀錄。",
     "openingCheckout": "正在開啟付款頁面...",
     "recharge": "儲值",
     "cycle": {

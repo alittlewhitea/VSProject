@@ -535,7 +535,7 @@
   },
   "billing": {
     "title": "크레딧 및 충전 관리",
-    "subtitle": "한 지갑 페이지에서 종량제 크레딧 팩을 선택하고, 잔고를 새로 고치고, 크레딧 활동이나 Stripe 구매 내역을 검토하세요.",
+    "subtitle": "크레딧, 구독, 충전 및 구매 내역을 한 곳에서 안전하게 관리하세요.",
     "eyebrow": "청구",
     "currentBalance": "현재 잔액",
     "creditsAvailable": "사용 가능한 크레딧",
@@ -549,6 +549,9 @@
       "currentDescription": "{cycle}당 {credits} 크레딧. {status}",
       "cancellationScheduled": "기간 종료 시 취소가 예정되어 있습니다.",
       "manageThroughStripe": "Stripe을 통해 청구를 관리하세요.",
+      "manageThroughProvider": "{provider}에서 결제를 관리하세요.",
+      "cancelConfirm": "이 구독을 취소하시겠습니까?",
+      "cancelled": "구독이 취소되었습니다.",
       "accessUntil": "액세스 기간:",
       "renews": "갱신하다"
     },
@@ -582,10 +585,10 @@
     "creditActivity": "신용 활동",
     "noCreditActivity": "아직 신용 활동이 없습니다.",
     "signInCreditActivity": "귀하의 신용 활동을 보려면 로그인하세요.",
-    "stripePurchases": "스트라이프 구매",
-    "stripeCheckoutId": "스트라이프 결제 ID",
-    "noStripePurchases": "아직 Stripe 구매가 없습니다.",
-    "signInStripePurchases": "Stripe 구매 내역을 보려면 로그인하세요.",
+    "stripePurchases": "구매 내역",
+    "stripeCheckoutId": "거래 ID",
+    "noStripePurchases": "아직 구매 내역이 없습니다.",
+    "signInStripePurchases": "구매 내역을 보려면 로그인하세요.",
     "openingCheckout": "결제를 여는 중...",
     "recharge": "재충전",
     "cycle": {

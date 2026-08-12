@@ -21,6 +21,41 @@ Before deploying a release that introduces new tables, apply the idempotent sche
 mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p "$MYSQL_DATABASE" < migration/mysql-schema.sql
 ```
 
+When the app and MySQL run on the same BT server, keep `MYSQL_HOST=127.0.0.1`, bind MySQL to localhost, and remove public TCP 3306 firewall access after maintenance. Do not leave an application database user as `user@'%'` with broad privileges.
+
+For an existing database upgrading to PayPal checkout, run the focused migration before deploying the new application build. It preserves historical Stripe records and adds provider-neutral fields plus the payment incident review table:
+
+```bash
+mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p "$MYSQL_DATABASE" < migration/add-payment-providers.sql
+```
+
+## PayPal checkout
+
+PayPal is the only provider used for new checkouts. Start with `PAYPAL_ENV=sandbox`. Configure `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, and all six `PAYPAL_PLAN_*` values from `.env.example`. Each recurring plan must be `ACTIVE` and use the exact USD amount and weekly, monthly, or yearly interval of its matching DreamFace plan. The Admin page validates these values against PayPal before reporting checkout as ready.
+
+Register this webhook URL in the matching PayPal sandbox or live app:
+
+```text
+https://dreamface.io/api/billing/paypal/webhook
+```
+
+Subscribe to these PayPal event groups:
+
+- `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.REFUNDED`, and `PAYMENT.CAPTURE.REVERSED`
+- `PAYMENT.SALE.COMPLETED`, `PAYMENT.SALE.REFUNDED`, and `PAYMENT.SALE.REVERSED`
+- `BILLING.SUBSCRIPTION.*`
+- `CUSTOMER.DISPUTE.CREATED`, `CUSTOMER.DISPUTE.UPDATED`, and `CUSTOMER.DISPUTE.RESOLVED`
+
+Refunds, reversals, disputes, and amount mismatches create a review item in Admin instead of automatically deducting credits that may already have been spent. Keep the Stripe webhook configured while historical Stripe subscriptions remain active; the application no longer creates new Stripe checkouts.
+
+Schedule PayPal reconciliation at least hourly using the same bearer secret as the existing generation cron:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://dreamface.io/api/cron/reconcile-paypal
+```
+
+After sandbox checkout, renewal, cancellation, refund, dispute, duplicate-webhook, and reconciliation tests pass, switch `PAYPAL_ENV=live`, install the live credentials, live webhook ID, and live Plan IDs, then restart with `--update-env`. Confirm the Admin page reports all six plans verified before opening checkout traffic.
+
 `--update-env` matters when the PM2 process already exists because the deployment ID is part of the build and should stay visible to the restarted process.
 
 ## Verify the build

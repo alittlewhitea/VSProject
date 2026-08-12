@@ -1,5 +1,5 @@
 -- DreamFace Supabase -> MySQL schema
--- Run this against an empty MySQL 8+ database before importing CSV data.
+-- Run this against an empty MySQL 5.7+ database before importing CSV data.
 
 set names utf8mb4;
 
@@ -112,7 +112,7 @@ create table if not exists signup_ip_claims (
 ) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
 create table if not exists credit_ledger (
-  id bigint primary key,
+  id bigint primary key auto_increment,
   user_id char(36) not null,
   amount int not null,
   reason varchar(128) not null,
@@ -124,26 +124,36 @@ create table if not exists credit_ledger (
 ) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
 create table if not exists credit_purchases (
-  id bigint primary key,
+  id bigint primary key auto_increment,
   user_id char(36) not null,
-  stripe_checkout_id varchar(255) not null,
+  payment_provider varchar(32) not null default 'stripe',
+  provider_order_id varchar(255),
+  provider_transaction_id varchar(255),
+  provider_capture_id varchar(255),
+  stripe_checkout_id varchar(255),
   pack_id varchar(128) not null,
   credits int not null,
   amount_cents int not null default 0,
   currency varchar(16) not null default 'usd',
-  status enum('pending', 'completed', 'cancelled', 'failed') not null default 'pending',
+  status varchar(64) not null default 'pending',
   created_at datetime(6) not null,
   updated_at datetime(6) not null,
   unique key credit_purchases_stripe_checkout_unique (stripe_checkout_id),
+  unique key credit_purchases_provider_transaction_unique (payment_provider, provider_transaction_id),
+  key credit_purchases_provider_order_idx (payment_provider, provider_order_id),
+  key credit_purchases_provider_capture_idx (payment_provider, provider_capture_id),
   key credit_purchases_user_created_idx (user_id, created_at),
   constraint credit_purchases_user_id_fk foreign key (user_id) references users(id) on delete cascade
 ) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
 create table if not exists user_subscriptions (
-  id bigint primary key,
+  id bigint primary key auto_increment,
   user_id char(36) not null,
+  payment_provider varchar(32) not null default 'stripe',
+  provider_customer_id varchar(255),
+  provider_subscription_id varchar(255),
   stripe_customer_id varchar(255),
-  stripe_subscription_id varchar(255) not null,
+  stripe_subscription_id varchar(255),
   plan_id varchar(128) not null,
   cycle varchar(32) not null,
   credits_per_cycle int not null,
@@ -155,6 +165,7 @@ create table if not exists user_subscriptions (
   created_at datetime(6) not null,
   updated_at datetime(6) not null,
   unique key user_subscriptions_stripe_subscription_unique (stripe_subscription_id),
+  unique key user_subscriptions_provider_subscription_unique (payment_provider, provider_subscription_id),
   key user_subscriptions_user_updated_idx (user_id, updated_at),
   key user_subscriptions_status_idx (status),
   constraint user_subscriptions_user_id_fk foreign key (user_id) references users(id) on delete cascade
@@ -168,8 +179,41 @@ create table if not exists runtime_settings (
   updated_at datetime(6) not null default current_timestamp(6)
 ) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
+create table if not exists payment_webhook_events (
+  payment_provider varchar(32) not null,
+  event_id varchar(255) not null,
+  event_type varchar(128) not null,
+  processed_at datetime(6) not null,
+  primary key (payment_provider, event_id),
+  key payment_webhook_events_processed_idx (processed_at)
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
+create table if not exists payment_incidents (
+  id bigint primary key auto_increment,
+  payment_provider varchar(32) not null,
+  event_id varchar(255) not null,
+  event_type varchar(128) not null,
+  user_id char(36) null,
+  purchase_id bigint null,
+  provider_transaction_id varchar(255) null,
+  amount_cents int null,
+  currency varchar(16) null,
+  status varchar(32) not null default 'review_required',
+  reason varchar(500) not null,
+  resolved_at datetime(6) null,
+  resolved_by varchar(255) null,
+  resolution_note varchar(500) null,
+  created_at datetime(6) not null,
+  updated_at datetime(6) not null,
+  unique key payment_incidents_provider_event_unique (payment_provider, event_id),
+  key payment_incidents_status_created_idx (status, created_at),
+  key payment_incidents_user_created_idx (user_id, created_at),
+  constraint payment_incidents_user_id_fk foreign key (user_id) references users(id) on delete set null,
+  constraint payment_incidents_purchase_id_fk foreign key (purchase_id) references credit_purchases(id) on delete set null
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
 create table if not exists model_daily_usage_events (
-  id bigint primary key,
+  id bigint primary key auto_increment,
   user_id char(36) not null,
   model_key varchar(128) not null,
   usage_date date not null,
