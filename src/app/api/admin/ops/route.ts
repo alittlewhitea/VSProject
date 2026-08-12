@@ -218,6 +218,8 @@ function buildSystemHealth(
   subscriptions: SubscriptionRow[],
   paypalPlansValid: number,
   paypalPlansTotal: number,
+  paypalUpgradeCompatible: boolean,
+  paypalProductCount: number,
   openPaymentIncidents: number
 ) {
   const findings = buildOpsFindings(tasks, ledger);
@@ -265,6 +267,14 @@ function buildSystemHealth(
       label: "PayPal subscription plans",
       status: paypalPlansValid === paypalPlansTotal ? "ok" as const : "critical" as const,
       detail: `${paypalPlansValid}/${paypalPlansTotal} plans verified active with matching amount and billing cycle`
+    },
+    {
+      key: "paypal_plan_upgrades",
+      label: "PayPal in-place subscription upgrades",
+      status: paypalUpgradeCompatible ? "ok" as const : "warning" as const,
+      detail: paypalUpgradeCompatible
+        ? "All subscription plans belong to one PayPal product"
+        : `Plans span ${paypalProductCount} PayPal product group(s); all plans must share one product for in-place upgrades`
     },
     {
       key: "payment_incidents",
@@ -898,6 +908,8 @@ export async function GET(request: Request) {
       paypalConfigured: isPayPalConfigured() && isPayPalWebhookConfigured() && paypalPlans.valid,
       paypalPlansConfigured: paypalPlans.validCount,
       paypalPlansTotal: paypalPlans.total,
+      paypalUpgradeCompatible: paypalPlans.upgradeCompatible,
+      paypalProductCount: paypalPlans.productCount,
       paypalPlanChecks: paypalPlans.entries
     },
     summary: {
@@ -911,7 +923,17 @@ export async function GET(request: Request) {
       recentEvents: userId ? analytics.filter((event) => event.user_id === userId).slice(0, 80) : analytics.slice(0, 80),
       storageWarning: analyticsResult.error ? analyticsResult.error.message : null
     },
-    health: buildSystemHealth(tasks, ledger, purchases, subscriptions, paypalPlans.validCount, paypalPlans.total, openPaymentIncidents),
+    health: buildSystemHealth(
+      tasks,
+      ledger,
+      purchases,
+      subscriptions,
+      paypalPlans.validCount,
+      paypalPlans.total,
+      paypalPlans.upgradeCompatible,
+      paypalPlans.productCount,
+      openPaymentIncidents
+    ),
     findings: buildOpsFindings(tasks, ledger),
     users: userId ? users.filter((user) => user.id === userId) : users,
     accounts: userId ? accounts.filter((account) => account.user_id === userId) : accounts,

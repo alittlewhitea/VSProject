@@ -553,7 +553,11 @@
       "cancelConfirm": "Are you sure you want to cancel this subscription?",
       "cancelled": "Subscription cancelled.",
       "accessUntil": "Access until",
-      "renews": "Renews"
+      "renews": "Renews",
+      "upgrade": "Upgrade plan",
+      "currentPlan": "Current plan",
+      "changeUnavailable": "Change unavailable",
+      "upgradeConfirm": "Change to this plan? PayPal will ask you to approve the change. The new price and credits apply from the next billing cycle."
     },
     "success": {
       "title": "Checkout success",
@@ -622,7 +626,12 @@
       "unableCheckout": "Unable to start checkout.",
       "unableSubscriptionCheckout": "Unable to start subscription checkout.",
       "unablePortal": "Unable to open billing portal.",
-      "legacyStripeUnavailable": "This legacy Stripe billing profile is unavailable. Contact support to migrate or cancel the subscription."
+      "legacyStripeUnavailable": "This legacy Stripe billing profile is unavailable. Contact support to migrate or cancel the subscription.",
+      "subscriptionUpgradeSyncing": "PayPal approved the change. Confirming your upgraded plan...",
+      "subscriptionUpgradeConfirmed": "Plan upgrade confirmed. The new price and credits apply from your next billing cycle.",
+      "subscriptionChangeUnavailable": "This subscription cannot be changed to the selected plan. Contact support if you need to downgrade.",
+      "subscriptionPlanUnchanged": "This is already your current subscription plan.",
+      "subscriptionProductMismatch": "These PayPal plans must belong to the same PayPal product before an in-place upgrade can be enabled."
     },
     "status": {
       "pending": "Pending",

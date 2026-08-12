@@ -44,6 +44,7 @@ export type PayPalSubscription = {
 
 export type PayPalPlan = {
   id: string;
+  product_id?: string;
   status: string;
   billing_cycles?: Array<{
     tenure_type?: string;
@@ -213,6 +214,32 @@ export async function createPayPalSubscription(input: {
       }
     })
   });
+}
+
+export async function revisePayPalSubscription(input: {
+  subscriptionId: string;
+  planId: string;
+  referenceId: string;
+  returnUrl: string;
+  cancelUrl: string;
+}) {
+  return paypalRequest<{ plan_id?: string; links?: PayPalLink[] }>(
+    `/v1/billing/subscriptions/${encodeURIComponent(input.subscriptionId)}/revise`,
+    {
+      method: "POST",
+      requestId: `revise-${input.referenceId}`,
+      body: JSON.stringify({
+        plan_id: input.planId,
+        application_context: {
+          brand_name: "Dreamface",
+          shipping_preference: "NO_SHIPPING",
+          user_action: "SUBSCRIBE_NOW",
+          return_url: input.returnUrl,
+          cancel_url: input.cancelUrl
+        }
+      })
+    }
+  );
 }
 
 export async function getPayPalSubscription(subscriptionId: string) {

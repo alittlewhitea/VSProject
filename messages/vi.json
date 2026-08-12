@@ -553,7 +553,11 @@
       "cancelConfirm": "Bạn có chắc muốn hủy gói thành viên này không?",
       "cancelled": "Đã hủy gói thành viên.",
       "accessUntil": "Truy cập đến",
-      "renews": "Gia hạn vào"
+      "renews": "Gia hạn vào",
+      "upgrade": "Nâng cấp gói",
+      "currentPlan": "Gói hiện tại",
+      "changeUnavailable": "Không thể thay đổi",
+      "upgradeConfirm": "Chuyển sang gói này? PayPal sẽ yêu cầu bạn xác nhận thay đổi. Giá và credit mới áp dụng từ chu kỳ thanh toán tiếp theo."
     },
     "success": {
       "title": "Thanh toán thành công",
@@ -622,7 +626,12 @@
       "unableCheckout": "Không thể mở trang thanh toán.",
       "unableSubscriptionCheckout": "Không thể mở trang thanh toán gói thành viên.",
       "unablePortal": "Không thể mở cổng quản lý thanh toán.",
-      "legacyStripeUnavailable": "Hồ sơ thanh toán Stripe cũ này không còn khả dụng. Hãy liên hệ hỗ trợ để chuyển đổi hoặc hủy gói đăng ký."
+      "legacyStripeUnavailable": "Hồ sơ thanh toán Stripe cũ này không còn khả dụng. Hãy liên hệ hỗ trợ để chuyển đổi hoặc hủy gói đăng ký.",
+      "subscriptionUpgradeSyncing": "PayPal đã xác nhận thay đổi. Đang đồng bộ gói đã nâng cấp...",
+      "subscriptionUpgradeConfirmed": "Đã xác nhận nâng cấp. Giá và credit mới áp dụng từ chu kỳ tiếp theo.",
+      "subscriptionChangeUnavailable": "Không thể chuyển gói đăng ký này sang gói đã chọn. Hãy liên hệ hỗ trợ nếu cần hạ cấp.",
+      "subscriptionPlanUnchanged": "Đây đã là gói hiện tại của bạn.",
+      "subscriptionProductMismatch": "Các gói này phải thuộc cùng một sản phẩm PayPal để có thể nâng cấp trực tiếp."
     },
     "status": {
       "pending": "Đang chờ",

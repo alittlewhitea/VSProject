@@ -11,6 +11,7 @@ type PayPalPlanExpectation = {
 export type PayPalPlanValidation = {
   valid: boolean;
   planId: string | null;
+  productId: string | null;
   error: string | null;
 };
 
@@ -31,7 +32,7 @@ export async function validatePayPalPlan(
   expected: PayPalPlanExpectation
 ): Promise<PayPalPlanValidation> {
   const normalizedPlanId = planId?.trim() || null;
-  if (!normalizedPlanId) return { valid: false, planId: null, error: "PayPal plan ID is missing." };
+  if (!normalizedPlanId) return { valid: false, planId: null, productId: null, error: "PayPal plan ID is missing." };
 
   const cacheKey = [
     process.env.PAYPAL_ENV?.trim().toLowerCase() || "sandbox",
@@ -59,18 +60,32 @@ export async function validatePayPalPlan(
       error = `PayPal plan amount does not match ${(expected.amountCents / 100).toFixed(2)} ${expected.currency.toUpperCase()}.`;
     }
 
-    const result = { valid: !error, planId: normalizedPlanId, error };
+    const result = { valid: !error, planId: normalizedPlanId, productId: plan.product_id || null, error };
     planValidationCache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, result });
     return result;
   } catch (error) {
     const result = {
       valid: false,
       planId: normalizedPlanId,
+      productId: null,
       error: error instanceof Error ? error.message : "Unable to validate PayPal plan."
     };
     planValidationCache.set(cacheKey, { expiresAt: Date.now() + 30_000, result });
     return result;
   }
+}
+
+export function getConfiguredSubscriptionForPayPalPlan(planId: string | null | undefined) {
+  const normalizedPlanId = planId?.trim();
+  if (!normalizedPlanId) return null;
+  for (const plan of SUBSCRIPTION_PLANS) {
+    for (const [cycle, price] of Object.entries(plan.prices)) {
+      if (process.env[price.paypalPlanEnv]?.trim() === normalizedPlanId) {
+        return { plan, cycle: cycle as keyof typeof plan.prices, price, paypalPlanId: normalizedPlanId };
+      }
+    }
+  }
+  return null;
 }
 
 export async function validateConfiguredPayPalPlans() {
@@ -84,10 +99,13 @@ export async function validateConfiguredPayPalPlans() {
       return { key: `${plan.id}:${cycle}`, env: price.paypalPlanEnv, ...result };
     })
   ));
+  const productIds = new Set(entries.map((entry) => entry.productId).filter((productId): productId is string => Boolean(productId)));
   return {
     valid: entries.every((entry) => entry.valid),
     validCount: entries.filter((entry) => entry.valid).length,
     total: entries.length,
+    productCount: productIds.size,
+    upgradeCompatible: entries.every((entry) => entry.valid && Boolean(entry.productId)) && productIds.size === 1,
     entries
   };
 }

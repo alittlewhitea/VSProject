@@ -553,7 +553,11 @@
       "cancelConfirm": "Möchtest du dieses Abonnement wirklich kündigen?",
       "cancelled": "Abonnement gekündigt.",
       "accessUntil": "Zugriff bis",
-      "renews": "Verlängert sich"
+      "renews": "Verlängert sich",
+      "upgrade": "Plan upgraden",
+      "currentPlan": "Aktueller Plan",
+      "changeUnavailable": "Änderung nicht verfügbar",
+      "upgradeConfirm": "Zu diesem Plan wechseln? PayPal bittet dich, die Änderung zu bestätigen. Neuer Preis und neue Credits gelten ab dem nächsten Abrechnungszeitraum."
     },
     "success": {
       "title": "Zahlung erfolgreich",
@@ -622,7 +626,12 @@
       "unableCheckout": "Die Zahlung konnte nicht gestartet werden.",
       "unableSubscriptionCheckout": "Die Abonnement-Zahlung konnte nicht gestartet werden.",
       "unablePortal": "Das Abrechnungsportal konnte nicht geöffnet werden.",
-      "legacyStripeUnavailable": "Dieses alte Stripe-Abrechnungsprofil ist nicht verfügbar. Wende dich an den Support, um das Abonnement zu migrieren oder zu kündigen."
+      "legacyStripeUnavailable": "Dieses alte Stripe-Abrechnungsprofil ist nicht verfügbar. Wende dich an den Support, um das Abonnement zu migrieren oder zu kündigen.",
+      "subscriptionUpgradeSyncing": "PayPal hat die Änderung bestätigt. Der neue Plan wird synchronisiert...",
+      "subscriptionUpgradeConfirmed": "Plan-Upgrade bestätigt. Neuer Preis und neue Credits gelten ab dem nächsten Abrechnungszeitraum.",
+      "subscriptionChangeUnavailable": "Dieses Abonnement kann nicht zum gewählten Plan geändert werden. Wende dich für ein Downgrade an den Support.",
+      "subscriptionPlanUnchanged": "Dies ist bereits dein aktueller Plan.",
+      "subscriptionProductMismatch": "Für ein direktes Upgrade müssen diese PayPal-Pläne zum selben PayPal-Produkt gehören."
     },
     "status": {
       "pending": "Ausstehend",

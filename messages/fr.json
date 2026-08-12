@@ -553,7 +553,11 @@
       "cancelConfirm": "Voulez-vous vraiment annuler cet abonnement ?",
       "cancelled": "Abonnement annulé.",
       "accessUntil": "Accès jusqu'à",
-      "renews": "Renouvellement"
+      "renews": "Renouvellement",
+      "upgrade": "Changer de formule",
+      "currentPlan": "Formule actuelle",
+      "changeUnavailable": "Changement indisponible",
+      "upgradeConfirm": "Passer à cette formule ? PayPal vous demandera de confirmer. Le nouveau prix et les nouveaux crédits s’appliqueront au prochain cycle de facturation."
     },
     "success": {
       "title": "Paiement réussi",
@@ -622,7 +626,12 @@
       "unableCheckout": "Impossible d'ouvrir la page de paiement.",
       "unableSubscriptionCheckout": "Impossible de commencer la commande d'abonnement.",
       "unablePortal": "Impossible d'ouvrir le portail de facturation.",
-      "legacyStripeUnavailable": "Cet ancien profil de facturation Stripe n’est plus disponible. Contactez l’assistance pour migrer ou annuler l’abonnement."
+      "legacyStripeUnavailable": "Cet ancien profil de facturation Stripe n’est plus disponible. Contactez l’assistance pour migrer ou annuler l’abonnement.",
+      "subscriptionUpgradeSyncing": "PayPal a approuvé le changement. Confirmation de votre nouvelle formule...",
+      "subscriptionUpgradeConfirmed": "Changement de formule confirmé. Le nouveau prix et les nouveaux crédits s’appliqueront au prochain cycle.",
+      "subscriptionChangeUnavailable": "Cet abonnement ne peut pas passer à la formule choisie. Contactez l’assistance pour rétrograder.",
+      "subscriptionPlanUnchanged": "Il s’agit déjà de votre formule actuelle.",
+      "subscriptionProductMismatch": "Ces formules PayPal doivent appartenir au même produit PayPal pour permettre une mise à niveau directe."
     },
     "status": {
       "pending": "En attente",

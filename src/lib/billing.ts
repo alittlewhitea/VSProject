@@ -270,6 +270,47 @@ export function getSubscriptionPlanPrice(planId: string, cycle: string) {
   };
 }
 
+export function getSubscriptionPlanPriceByAmountCents(amountCents: number) {
+  const matches = SUBSCRIPTION_PLANS.flatMap((plan) =>
+    Object.entries(plan.prices)
+      .filter(([, price]) => price.amountCents === amountCents)
+      .map(([cycle, price]) => ({ plan, cycle: cycle as BillingCycle, price }))
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+
+const SUBSCRIPTION_PLAN_RANK: Record<SubscriptionPlan["id"], number> = {
+  "premium-lite": 1,
+  premium: 2
+};
+
+const SUBSCRIPTION_CYCLE_RANK: Record<BillingCycle, number> = {
+  weekly: 1,
+  monthly: 2,
+  yearly: 3
+};
+
+export function isSubscriptionUpgrade(
+  currentPlanId: string,
+  currentCycle: string,
+  targetPlanId: string,
+  targetCycle: string
+) {
+  const current = getSubscriptionPlanPrice(currentPlanId, currentCycle);
+  const target = getSubscriptionPlanPrice(targetPlanId, targetCycle);
+  if (!current || !target) return false;
+
+  const currentPlanRank = SUBSCRIPTION_PLAN_RANK[current.plan.id];
+  const targetPlanRank = SUBSCRIPTION_PLAN_RANK[target.plan.id];
+  const currentCycleRank = SUBSCRIPTION_CYCLE_RANK[current.cycle];
+  const targetCycleRank = SUBSCRIPTION_CYCLE_RANK[target.cycle];
+  return (
+    targetPlanRank >= currentPlanRank &&
+    targetCycleRank >= currentCycleRank &&
+    (targetPlanRank > currentPlanRank || targetCycleRank > currentCycleRank)
+  );
+}
+
 export function formatUsd(amountCents: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

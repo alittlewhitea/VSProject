@@ -553,7 +553,11 @@
       "cancelConfirm": "¿Seguro que quieres cancelar esta suscripción?",
       "cancelled": "Suscripción cancelada.",
       "accessUntil": "Acceso hasta",
-      "renews": "Se renueva"
+      "renews": "Se renueva",
+      "upgrade": "Mejorar plan",
+      "currentPlan": "Plan actual",
+      "changeUnavailable": "Cambio no disponible",
+      "upgradeConfirm": "¿Cambiar a este plan? PayPal te pedirá confirmar el cambio. El nuevo precio y los créditos se aplicarán desde el próximo ciclo de facturación."
     },
     "success": {
       "title": "Compra completada con éxito",
@@ -622,7 +626,12 @@
       "unableCheckout": "No se puede iniciar la compra.",
       "unableSubscriptionCheckout": "No se puede iniciar la compra de suscripción.",
       "unablePortal": "No se puede abrir el portal de facturación.",
-      "legacyStripeUnavailable": "Este perfil de facturación antiguo de Stripe no está disponible. Contacta con soporte para migrar o cancelar la suscripción."
+      "legacyStripeUnavailable": "Este perfil de facturación antiguo de Stripe no está disponible. Contacta con soporte para migrar o cancelar la suscripción.",
+      "subscriptionUpgradeSyncing": "PayPal aprobó el cambio. Confirmando tu nuevo plan...",
+      "subscriptionUpgradeConfirmed": "Mejora de plan confirmada. El nuevo precio y los créditos se aplicarán desde el próximo ciclo.",
+      "subscriptionChangeUnavailable": "Esta suscripción no puede cambiar al plan seleccionado. Contacta con soporte si necesitas bajar de plan.",
+      "subscriptionPlanUnchanged": "Este ya es tu plan actual.",
+      "subscriptionProductMismatch": "Estos planes deben pertenecer al mismo producto de PayPal para habilitar una mejora directa."
     },
     "status": {
       "pending": "Pendiente",

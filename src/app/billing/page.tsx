@@ -8,6 +8,7 @@ import {
   SUBSCRIPTION_PLANS,
   creditUsageCapacity,
   formatUsd,
+  isSubscriptionUpgrade,
   type BillingCycle
 } from "../../lib/billing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, MODEL_PRICING_ROWS } from "../../lib/model-pricing";
@@ -237,13 +238,15 @@ function SubscriptionPlanCard({
   cycle,
   onCycleChange,
   onCheckout,
-  loading
+  loading,
+  action
 }: {
   plan: (typeof SUBSCRIPTION_PLANS)[number];
   cycle: BillingCycle;
   onCycleChange: (cycle: BillingCycle) => void;
   onCheckout: () => void;
   loading: boolean;
+  action?: "subscribe" | "upgrade" | "current" | "unavailable";
 }) {
   const t = useTranslations();
   const price = plan.prices[cycle];
@@ -315,12 +318,20 @@ function SubscriptionPlanCard({
       <button
         type="button"
         onClick={onCheckout}
-        disabled={loading}
+        disabled={loading || action === "current" || action === "unavailable"}
         className={`mt-6 rounded-xl px-5 py-3 text-base font-black transition active:scale-[0.98] disabled:opacity-60 ${
           featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#16171a] text-white"
         }`}
       >
-        {loading ? t("billing.openingCheckout") : t(`pricing.plan.${planKey}.cta`)}
+        {loading
+          ? t("billing.openingCheckout")
+          : action === "upgrade"
+            ? t("billing.subscription.upgrade")
+            : action === "current"
+              ? t("billing.subscription.currentPlan")
+              : action === "unavailable"
+                ? t("billing.subscription.changeUnavailable")
+                : t(`pricing.plan.${planKey}.cta`)}
       </button>
 
       <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
@@ -356,11 +367,15 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   const trackedCheckoutSuccessRef = useRef<string | null>(null);
   const trackedSubscriptionSuccessRef = useRef<string | null>(null);
   const capturingPayPalOrderRef = useRef<string | null>(null);
+  const syncingPayPalSubscriptionRef = useRef<string | null>(null);
   const checkoutState = searchParams.get("checkout");
   const checkoutProvider = searchParams.get("provider");
   const checkoutSessionId = searchParams.get("session_id");
   const paypalOrderId = searchParams.get("token");
   const checkoutPaymentId = searchParams.get("payment_id") || checkoutSessionId;
+  const paypalSubscriptionId = searchParams.get("subscription_id");
+  const revisedPlanId = searchParams.get("plan_id");
+  const revisedCycle = searchParams.get("cycle");
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -435,6 +450,52 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
 
   useEffect(() => {
     if (!accessToken) return undefined;
+
+    if (
+      checkoutState === "subscription_revise_success" &&
+      paypalSubscriptionId &&
+      syncingPayPalSubscriptionRef.current !== paypalSubscriptionId
+    ) {
+      syncingPayPalSubscriptionRef.current = paypalSubscriptionId;
+      setMessage(t("billing.message.subscriptionUpgradeSyncing"));
+      let cancelled = false;
+      const confirmSubscriptionChange = async () => {
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          const response = await fetch("/api/billing/subscription/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({
+              subscriptionId: paypalSubscriptionId,
+              planId: revisedPlanId,
+              cycle: revisedCycle
+            })
+          });
+          const payload = (await response.json()) as { error?: string; code?: string };
+          if (response.ok) {
+            if (cancelled) return;
+            await loadCredits(accessToken);
+            if (cancelled) return;
+            setMessage(t("billing.message.subscriptionUpgradeConfirmed"));
+            router.replace(window.location.pathname);
+            return;
+          }
+          if (payload.code === "subscription_change_not_confirmed" && attempt < 7) {
+            await new Promise((resolve) => window.setTimeout(resolve, 1500));
+            if (cancelled) return;
+            continue;
+          }
+          throw new Error(payload.error || t("billing.message.subscriptionChangeUnavailable"));
+        }
+      };
+      confirmSubscriptionChange().catch((error) => {
+        if (cancelled) return;
+        syncingPayPalSubscriptionRef.current = null;
+        setMessage(error instanceof Error ? error.message : t("billing.message.subscriptionChangeUnavailable"));
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
 
     if (checkoutState === "paypal_return" && paypalOrderId && capturingPayPalOrderRef.current !== paypalOrderId) {
       capturingPayPalOrderRef.current = paypalOrderId;
@@ -600,7 +661,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
       setMessage(t("billing.message.checkoutCancelled"));
     }
     return undefined;
-  }, [accessToken, checkoutPaymentId, checkoutProvider, checkoutState, paypalOrderId, router, t]);
+  }, [accessToken, checkoutPaymentId, checkoutProvider, checkoutState, paypalOrderId, paypalSubscriptionId, revisedCycle, revisedPlanId, router, t]);
 
   const bestValuePack = useMemo(
     () => CREDIT_PACKS.reduce((best, pack) => (pack.credits / pack.amountCents > best.credits / best.amountCents ? pack : best), CREDIT_PACKS[0]),
@@ -611,9 +672,19 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
     [checkoutPaymentId, purchases]
   );
   const currentSubscription = useMemo(
-    () => subscriptions.find((subscription) => ["active", "trialing", "past_due"].includes(subscription.status)) || subscriptions[0] || null,
+    () => subscriptions.find((subscription) => ["active", "trialing", "past_due", "approved", "approval_pending", "suspended"].includes(subscription.status.toLowerCase())) || subscriptions[0] || null,
     [subscriptions]
   );
+
+  function subscriptionCardAction(planId: string, cycle: BillingCycle) {
+    if (!currentSubscription || ["cancelled", "expired"].includes(currentSubscription.status.toLowerCase())) return "subscribe" as const;
+    if (!["active", "suspended"].includes(currentSubscription.status.toLowerCase())) return "unavailable" as const;
+    if (currentSubscription.plan_id === planId && currentSubscription.cycle === cycle) return "current" as const;
+    if (currentSubscription.payment_provider !== "paypal") return "unavailable" as const;
+    return isSubscriptionUpgrade(currentSubscription.plan_id, currentSubscription.cycle, planId, cycle)
+      ? "upgrade" as const
+      : "unavailable" as const;
+  }
   const lowBalance = typeof balance === "number" && balance < CREDIT_LOW_BALANCE_THRESHOLD;
   const billingFaqs = billingFaqKeys.map((key) => ({
     q: t(`pricing.faq.items.${key}.q`),
@@ -677,6 +748,17 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
       return;
     }
 
+    const action = subscriptionCardAction(planId, cycle);
+    if (action === "current") {
+      setMessage(t("billing.message.subscriptionPlanUnchanged"));
+      return;
+    }
+    if (action === "unavailable") {
+      setMessage(t("billing.message.subscriptionChangeUnavailable"));
+      return;
+    }
+    if (action === "upgrade" && !window.confirm(t("billing.subscription.upgradeConfirm"))) return;
+
     setLoadingSubscription(`${planId}:${cycle}`);
     setMessage("");
     trackEvent(
@@ -701,8 +783,14 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
         },
         body: JSON.stringify({ type: "subscription", planId, cycle })
       });
-      const payload = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !payload.url) throw new Error(payload.error || t("billing.message.unableSubscriptionCheckout"));
+      const payload = (await response.json()) as { url?: string; error?: string; code?: string };
+      if (!response.ok || !payload.url) {
+        if (payload.code === "subscription_plan_unchanged") throw new Error(t("billing.message.subscriptionPlanUnchanged"));
+        if (payload.code === "subscription_downgrade_unsupported") throw new Error(t("billing.message.subscriptionChangeUnavailable"));
+        if (payload.code === "paypal_plan_product_mismatch") throw new Error(t("billing.message.subscriptionProductMismatch"));
+        if (payload.code?.startsWith("subscription_")) throw new Error(t("billing.message.subscriptionChangeUnavailable"));
+        throw new Error(payload.error || t("billing.message.unableSubscriptionCheckout"));
+      }
       window.location.href = payload.url;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t("billing.message.unableSubscriptionCheckout"));
@@ -926,6 +1014,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                     onCycleChange={(cycle) => setSelectedCycles((prev) => ({ ...prev, [plan.id]: cycle }))}
                     onCheckout={() => startSubscriptionCheckout(plan.id, selectedCycle)}
                     loading={loadingSubscription === `${plan.id}:${selectedCycle}`}
+                    action={subscriptionCardAction(plan.id, selectedCycle)}
                   />
                 );
               })}
@@ -1113,6 +1202,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                 onCycleChange={(cycle) => setSelectedCycles((prev) => ({ ...prev, [plan.id]: cycle }))}
                 onCheckout={() => startSubscriptionCheckout(plan.id, selectedCycle)}
                 loading={loadingSubscription === `${plan.id}:${selectedCycle}`}
+                action={subscriptionCardAction(plan.id, selectedCycle)}
               />
             );
           })}

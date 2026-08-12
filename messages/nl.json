@@ -553,7 +553,11 @@
       "cancelConfirm": "Weet je zeker dat je dit abonnement wilt opzeggen?",
       "cancelled": "Abonnement opgezegd.",
       "accessUntil": "Toegang tot",
-      "renews": "Vernieuwt"
+      "renews": "Vernieuwt",
+      "upgrade": "Abonnement upgraden",
+      "currentPlan": "Huidig abonnement",
+      "changeUnavailable": "Wijziging niet beschikbaar",
+      "upgradeConfirm": "Naar dit abonnement wijzigen? PayPal vraagt je de wijziging goed te keuren. De nieuwe prijs en credits gelden vanaf de volgende factureringscyclus."
     },
     "success": {
       "title": "Succes bij het afrekenen",
@@ -622,7 +626,12 @@
       "unableCheckout": "Kan het afrekenen niet starten.",
       "unableSubscriptionCheckout": "Kan het afrekenen van het abonnement niet starten.",
       "unablePortal": "Kan factureringsportaal niet openen.",
-      "legacyStripeUnavailable": "Dit oude Stripe-factureringsprofiel is niet beschikbaar. Neem contact op met support om het abonnement te migreren of op te zeggen."
+      "legacyStripeUnavailable": "Dit oude Stripe-factureringsprofiel is niet beschikbaar. Neem contact op met support om het abonnement te migreren of op te zeggen.",
+      "subscriptionUpgradeSyncing": "PayPal heeft de wijziging goedgekeurd. Je nieuwe abonnement wordt bevestigd...",
+      "subscriptionUpgradeConfirmed": "Upgrade bevestigd. De nieuwe prijs en credits gelden vanaf de volgende cyclus.",
+      "subscriptionChangeUnavailable": "Dit abonnement kan niet worden gewijzigd naar het gekozen abonnement. Neem contact op met support voor een downgrade.",
+      "subscriptionPlanUnchanged": "Dit is al je huidige abonnement.",
+      "subscriptionProductMismatch": "Deze abonnementen moeten bij hetzelfde PayPal-product horen om direct te kunnen upgraden."
     },
     "status": {
       "pending": "In behandeling",

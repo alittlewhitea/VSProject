@@ -553,7 +553,11 @@
       "cancelConfirm": "このサブスクリプションをキャンセルしますか？",
       "cancelled": "サブスクリプションをキャンセルしました。",
       "accessUntil": "までのアクセス",
-      "renews": "更新します"
+      "renews": "更新します",
+      "upgrade": "プランをアップグレード",
+      "currentPlan": "現在のプラン",
+      "changeUnavailable": "変更できません",
+      "upgradeConfirm": "このプランに変更しますか？PayPal で変更の承認が必要です。新しい料金とクレジットは次回の請求サイクルから適用されます。"
     },
     "success": {
       "title": "チェックアウトの成功",
@@ -622,7 +626,12 @@
       "unableCheckout": "チェックアウトを開始できません。",
       "unableSubscriptionCheckout": "サブスクリプションのチェックアウトを開始できません。",
       "unablePortal": "請求ポータルを開けません。",
-      "legacyStripeUnavailable": "この旧 Stripe 請求プロフィールは利用できません。サブスクリプションの移行または解約についてサポートにお問い合わせください。"
+      "legacyStripeUnavailable": "この旧 Stripe 請求プロフィールは利用できません。サブスクリプションの移行または解約についてサポートにお問い合わせください。",
+      "subscriptionUpgradeSyncing": "PayPal で変更が承認されました。アップグレード後のプランを確認しています...",
+      "subscriptionUpgradeConfirmed": "プランのアップグレードを確認しました。新しい料金とクレジットは次回の請求サイクルから適用されます。",
+      "subscriptionChangeUnavailable": "このサブスクリプションは選択したプランに変更できません。ダウングレードはサポートにお問い合わせください。",
+      "subscriptionPlanUnchanged": "これはすでに現在のプランです。",
+      "subscriptionProductMismatch": "直接アップグレードするには、これらのプランが同じ PayPal 商品に属している必要があります。"
     },
     "status": {
       "pending": "保留中",

@@ -553,7 +553,11 @@
       "cancelConfirm": "Vuoi davvero annullare questo abbonamento?",
       "cancelled": "Abbonamento annullato.",
       "accessUntil": "Accesso fino a",
-      "renews": "Rinnova"
+      "renews": "Rinnova",
+      "upgrade": "Aggiorna piano",
+      "currentPlan": "Piano attuale",
+      "changeUnavailable": "Modifica non disponibile",
+      "upgradeConfirm": "Passare a questo piano? PayPal ti chiederà di approvare la modifica. Il nuovo prezzo e i nuovi crediti saranno applicati dal prossimo ciclo di fatturazione."
     },
     "success": {
       "title": "Pagamento completato con successo",
@@ -622,7 +626,12 @@
       "unableCheckout": "Impossibile avviare il checkout.",
       "unableSubscriptionCheckout": "Impossibile avviare il checkout dell'abbonamento.",
       "unablePortal": "Impossibile aprire il portale di fatturazione.",
-      "legacyStripeUnavailable": "Questo profilo di fatturazione Stripe precedente non è disponibile. Contatta l'assistenza per migrare o annullare l'abbonamento."
+      "legacyStripeUnavailable": "Questo profilo di fatturazione Stripe precedente non è disponibile. Contatta l'assistenza per migrare o annullare l'abbonamento.",
+      "subscriptionUpgradeSyncing": "PayPal ha approvato la modifica. Conferma del nuovo piano in corso...",
+      "subscriptionUpgradeConfirmed": "Aggiornamento del piano confermato. Il nuovo prezzo e i crediti saranno applicati dal prossimo ciclo.",
+      "subscriptionChangeUnavailable": "Questo abbonamento non può passare al piano selezionato. Contatta l'assistenza per effettuare il downgrade.",
+      "subscriptionPlanUnchanged": "Questo è già il tuo piano attuale.",
+      "subscriptionProductMismatch": "Questi piani devono appartenere allo stesso prodotto PayPal per consentire un aggiornamento diretto."
     },
     "status": {
       "pending": "In sospeso",

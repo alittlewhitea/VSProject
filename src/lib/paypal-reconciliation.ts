@@ -1,8 +1,8 @@
 import { addCredits } from "./credits";
-import { getSubscriptionPlanPrice } from "./billing";
-import { getPayPalOrder, getPayPalSubscription, listPayPalSubscriptionTransactions } from "./paypal";
+import { getSubscriptionPlanPriceByAmountCents } from "./billing";
+import { getPayPalOrder, listPayPalSubscriptionTransactions } from "./paypal";
 import { recordPaymentIncident } from "./payment-incidents";
-import { upsertPayPalSubscription } from "./subscriptions";
+import { syncPayPalSubscription } from "./subscriptions";
 
 type PendingPurchase = {
   id: number | string;
@@ -96,19 +96,8 @@ export async function reconcilePayPalBilling(admin: any, limit = 100) {
     if (!row.provider_subscription_id) continue;
     summary.subscriptionsScanned += 1;
     try {
-      const subscription = await getPayPalSubscription(row.provider_subscription_id);
-      await upsertPayPalSubscription(admin, subscription, {
-        userId: row.user_id,
-        planId: row.plan_id,
-        cycle: row.cycle,
-        credits: Number(row.credits_per_cycle)
-      });
+      const { configured: currentPlan } = await syncPayPalSubscription(admin, row.provider_subscription_id, row.user_id);
       summary.subscriptionsUpdated += 1;
-
-      const configured = getSubscriptionPlanPrice(row.plan_id, row.cycle);
-      if (!configured || configured.price.credits !== Number(row.credits_per_cycle)) {
-        throw new Error("Stored PayPal subscription no longer matches Dreamface billing configuration.");
-      }
       const endTime = new Date();
       const startTime = new Date(endTime.getTime() - 30 * 24 * 60 * 60 * 1000);
       const transactions = await listPayPalSubscriptionTransactions(
@@ -118,7 +107,11 @@ export async function reconcilePayPalBilling(admin: any, limit = 100) {
       );
       for (const transaction of transactions.filter((item) => item.status === "COMPLETED")) {
         const amount = transaction.amount_with_breakdown?.gross_amount;
-        if (moneyToCents(amount?.value) !== configured.price.amountCents || amount?.currency_code?.toLowerCase() !== "usd") {
+        const paidAmountCents = moneyToCents(amount?.value);
+        const configured = paidAmountCents === currentPlan.price.amountCents
+          ? currentPlan
+          : paidAmountCents === null ? null : getSubscriptionPlanPriceByAmountCents(paidAmountCents);
+        if (!configured || amount?.currency_code?.toLowerCase() !== "usd") {
           await recordPaymentIncident(admin, {
             eventId: `reconcile-subscription-${transaction.id}-amount-mismatch`,
             eventType: "PAYPAL.RECONCILIATION.SUBSCRIPTION_AMOUNT_MISMATCH",

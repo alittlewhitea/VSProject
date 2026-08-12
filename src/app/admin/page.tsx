@@ -207,7 +207,9 @@ type OpsPayload = {
     paypalConfigured: boolean;
     paypalPlansConfigured: number;
     paypalPlansTotal: number;
-    paypalPlanChecks: Array<{ key: string; env: string; valid: boolean; error: string | null }>;
+    paypalUpgradeCompatible: boolean;
+    paypalProductCount: number;
+    paypalPlanChecks: Array<{ key: string; env: string; valid: boolean; productId: string | null; error: string | null }>;
   };
 };
 
@@ -718,6 +720,9 @@ export default function AdminHomePage() {
                 </p>
                 <p className="mt-1 text-xs text-[#86868b]">
                   PayPal {payload?.runtimeConfig?.paypalConfigured ? "ready" : `not ready (${payload?.runtimeConfig?.paypalPlansConfigured ?? 0}/${payload?.runtimeConfig?.paypalPlansTotal ?? 6} plans verified)`} · Stripe historical compatibility {payload?.runtimeConfig?.stripeConfigured ? "ready" : "not configured"}
+                </p>
+                <p className={`mt-1 text-xs ${payload?.runtimeConfig?.paypalUpgradeCompatible ? "text-[#087443]" : "text-[#a14a15]"}`}>
+                  In-place upgrades {payload?.runtimeConfig?.paypalUpgradeCompatible ? "ready" : `not ready (${payload?.runtimeConfig?.paypalProductCount ?? 0} PayPal product groups detected)`}
                 </p>
                 {(payload?.runtimeConfig?.paypalPlanChecks || []).some((check) => !check.valid) ? (
                   <div className="mt-3 space-y-1 text-xs text-[#a14a15]">

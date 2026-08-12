@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { getSubscriptionPlanPrice } from "./billing";
-import type { PayPalSubscription } from "./paypal";
+import { getPayPalSubscription, type PayPalSubscription } from "./paypal";
+import { getConfiguredSubscriptionForPayPalPlan } from "./paypal-billing";
 
 export type UserSubscriptionRow = {
   id: number | string;
@@ -104,6 +105,32 @@ export async function upsertPayPalSubscription(
 
   await admin.from("user_subscriptions").upsert(row, { onConflict: "payment_provider,provider_subscription_id" }).throwOnError();
   return row;
+}
+
+export async function syncPayPalSubscription(admin: any, subscriptionId: string, expectedUserId?: string) {
+  const { data: existing, error } = await admin.from("user_subscriptions")
+    .select("user_id,plan_id,cycle,credits_per_cycle")
+    .eq("payment_provider", "paypal")
+    .eq("provider_subscription_id", subscriptionId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!existing || (expectedUserId && existing.user_id !== expectedUserId)) {
+    throw new Error("PayPal subscription is not linked to this Dreamface account.");
+  }
+
+  const subscription = await getPayPalSubscription(subscriptionId);
+  const configured = getConfiguredSubscriptionForPayPalPlan(subscription.plan_id);
+  if (!configured) {
+    throw new Error("PayPal subscription plan does not match a configured Dreamface plan.");
+  }
+
+  await upsertPayPalSubscription(admin, subscription, {
+    userId: existing.user_id,
+    planId: configured.plan.id,
+    cycle: configured.cycle,
+    credits: configured.price.credits
+  });
+  return { subscription, configured, userId: existing.user_id };
 }
 
 export async function listUserSubscriptions(admin: any, userId: string, limit = 10) {

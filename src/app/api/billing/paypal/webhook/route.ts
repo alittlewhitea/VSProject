@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getSubscriptionPlanPrice } from "../../../../../lib/billing";
+import { getSubscriptionPlanPriceByAmountCents } from "../../../../../lib/billing";
 import { addCredits } from "../../../../../lib/credits";
-import { getPayPalSubscription, verifyPayPalWebhook } from "../../../../../lib/paypal";
+import { verifyPayPalWebhook } from "../../../../../lib/paypal";
 import { recordPaymentIncident } from "../../../../../lib/payment-incidents";
 import { createSupabaseAdminClient } from "../../../../../lib/supabase-admin";
-import { upsertPayPalSubscription } from "../../../../../lib/subscriptions";
+import { syncPayPalSubscription } from "../../../../../lib/subscriptions";
 
 type PayPalEvent = {
   id?: string;
@@ -18,20 +18,7 @@ function moneyToCents(value: unknown) {
 }
 
 async function syncSubscription(admin: any, subscriptionId: string) {
-  const { data: existing, error } = await admin.from("user_subscriptions")
-    .select("user_id,plan_id,cycle,credits_per_cycle")
-    .eq("payment_provider", "paypal")
-    .eq("provider_subscription_id", subscriptionId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!existing) throw new Error("PayPal subscription is not linked to a Dreamface account.");
-  const subscription = await getPayPalSubscription(subscriptionId);
-  await upsertPayPalSubscription(admin, subscription, {
-    userId: existing.user_id,
-    planId: existing.plan_id,
-    cycle: existing.cycle,
-    credits: Number(existing.credits_per_cycle)
-  });
+  await syncPayPalSubscription(admin, subscriptionId);
 }
 
 async function processCapture(admin: any, resource: Record<string, any>, eventType: string, eventId: string) {
@@ -115,28 +102,19 @@ async function processSubscriptionPayment(admin: any, resource: Record<string, a
   const subscriptionId = resource.billing_agreement_id;
   const transactionId = resource.id;
   if (!subscriptionId || !transactionId) throw new Error("PayPal subscription payment is missing identifiers.");
-  const { data: subscription, error } = await admin.from("user_subscriptions")
-    .select("user_id,plan_id,cycle,credits_per_cycle")
-    .eq("payment_provider", "paypal")
-    .eq("provider_subscription_id", subscriptionId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!subscription) throw new Error("PayPal payment does not match a Dreamface subscription.");
-
-  const configured = getSubscriptionPlanPrice(subscription.plan_id, subscription.cycle);
-  if (!configured || configured.price.credits !== Number(subscription.credits_per_cycle)) {
-    throw new Error("PayPal subscription configuration no longer matches the stored subscription.");
-  }
+  const { configured: currentPlan, userId } = await syncPayPalSubscription(admin, subscriptionId);
   const amount = resource.amount || {};
-  if (
-    moneyToCents(amount.total ?? amount.value) !== configured.price.amountCents ||
-    String(amount.currency ?? amount.currency_code ?? "").toLowerCase() !== "usd"
-  ) {
+  const paidAmountCents = moneyToCents(amount.total ?? amount.value);
+  const paidCurrency = String(amount.currency ?? amount.currency_code ?? "").toLowerCase();
+  const configured = paidAmountCents === currentPlan.price.amountCents
+    ? currentPlan
+    : paidAmountCents === null ? null : getSubscriptionPlanPriceByAmountCents(paidAmountCents);
+  if (!configured || paidCurrency !== "usd") {
     throw new Error("PayPal subscription payment amount does not match the configured plan.");
   }
 
   await admin.from("credit_purchases").upsert({
-    user_id: subscription.user_id,
+    user_id: userId,
     payment_provider: "paypal",
     provider_order_id: subscriptionId,
     provider_transaction_id: transactionId,
@@ -151,7 +129,7 @@ async function processSubscriptionPayment(admin: any, resource: Record<string, a
   }, { onConflict: "payment_provider,provider_transaction_id" }).throwOnError();
   await addCredits(
     admin,
-    subscription.user_id,
+    userId,
     configured.price.credits,
     "payment_subscription",
     `paypal:sale:${transactionId}`
@@ -162,7 +140,6 @@ async function processSubscriptionPayment(admin: any, resource: Record<string, a
   }).eq("payment_provider", "paypal")
     .eq("provider_transaction_id", transactionId)
     .throwOnError();
-  await syncSubscription(admin, subscriptionId);
 }
 
 async function processSubscriptionPaymentIncident(admin: any, resource: Record<string, any>, eventType: string, eventId: string) {

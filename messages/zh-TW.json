@@ -553,7 +553,11 @@
       "cancelConfirm": "確定要取消此訂閱嗎？",
       "cancelled": "訂閱已取消。",
       "accessUntil": "可使用至",
-      "renews": "續訂於"
+      "renews": "續訂於",
+      "upgrade": "升級方案",
+      "currentPlan": "目前方案",
+      "changeUnavailable": "暫時無法變更",
+      "upgradeConfirm": "確定改成此方案嗎？PayPal 會要求你確認變更，新價格和新積分將從下一個帳務週期開始生效。"
     },
     "success": {
       "title": "付款成功",
@@ -622,7 +626,12 @@
       "unableCheckout": "暫時無法開啟付款頁面。",
       "unableSubscriptionCheckout": "暫時無法開啟會員付款頁面。",
       "unablePortal": "暫時無法開啟帳務管理頁面。",
-      "legacyStripeUnavailable": "此舊版 Stripe 帳務資料已無法使用，請聯絡客服移轉或取消這項訂閱。"
+      "legacyStripeUnavailable": "此舊版 Stripe 帳務資料已無法使用，請聯絡客服移轉或取消這項訂閱。",
+      "subscriptionUpgradeSyncing": "PayPal 已確認變更，正在同步升級後的方案……",
+      "subscriptionUpgradeConfirmed": "方案升級已確認，新價格和新積分將從下一個帳務週期開始生效。",
+      "subscriptionChangeUnavailable": "目前訂閱無法變更為所選方案；如需降級，請聯絡客服。",
+      "subscriptionPlanUnchanged": "這已經是你目前使用的方案。",
+      "subscriptionProductMismatch": "這些 PayPal 方案必須屬於同一個 PayPal 產品，才能進行原訂閱升級。"
     },
     "status": {
       "pending": "待處理",

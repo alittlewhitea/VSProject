@@ -553,7 +553,11 @@
       "cancelConfirm": "هل تريد بالتأكيد إلغاء هذا الاشتراك؟",
       "cancelled": "تم إلغاء الاشتراك.",
       "accessUntil": "الوصول حتى",
-      "renews": "يتجدد"
+      "renews": "يتجدد",
+      "upgrade": "ترقية الخطة",
+      "currentPlan": "الخطة الحالية",
+      "changeUnavailable": "التغيير غير متاح",
+      "upgradeConfirm": "هل تريد الانتقال إلى هذه الخطة؟ سيطلب PayPal تأكيد التغيير. يطبق السعر والرصيد الجديدان من دورة الفوترة التالية."
     },
     "success": {
       "title": "تم إتمام الدفع بنجاح",
@@ -622,7 +626,12 @@
       "unableCheckout": "غير قادر على بدء الدفع.",
       "unableSubscriptionCheckout": "غير قادر على بدء الاشتراك والدفع بالخروج.",
       "unablePortal": "غير قادر على فتح بوابة الفوترة.",
-      "legacyStripeUnavailable": "ملف فوترة Stripe القديم غير متاح. تواصل مع الدعم لنقل الاشتراك أو إلغائه."
+      "legacyStripeUnavailable": "ملف فوترة Stripe القديم غير متاح. تواصل مع الدعم لنقل الاشتراك أو إلغائه.",
+      "subscriptionUpgradeSyncing": "وافق PayPal على التغيير. جارٍ تأكيد الخطة الجديدة...",
+      "subscriptionUpgradeConfirmed": "تم تأكيد ترقية الخطة. يطبق السعر والرصيد الجديدان من الدورة التالية.",
+      "subscriptionChangeUnavailable": "لا يمكن تغيير هذا الاشتراك إلى الخطة المحددة. تواصل مع الدعم لخفض الخطة.",
+      "subscriptionPlanUnchanged": "هذه هي خطتك الحالية بالفعل.",
+      "subscriptionProductMismatch": "يجب أن تنتمي هذه الخطط إلى منتج PayPal نفسه لتمكين الترقية المباشرة."
     },
     "status": {
       "pending": "قيد الانتظار",

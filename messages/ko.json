@@ -553,7 +553,11 @@
       "cancelConfirm": "이 구독을 취소하시겠습니까?",
       "cancelled": "구독이 취소되었습니다.",
       "accessUntil": "액세스 기간:",
-      "renews": "갱신하다"
+      "renews": "갱신하다",
+      "upgrade": "요금제 업그레이드",
+      "currentPlan": "현재 요금제",
+      "changeUnavailable": "변경할 수 없음",
+      "upgradeConfirm": "이 요금제로 변경하시겠습니까? PayPal에서 변경 승인이 필요합니다. 새 가격과 크레딧은 다음 결제 주기부터 적용됩니다."
     },
     "success": {
       "title": "결제 성공",
@@ -622,7 +626,12 @@
       "unableCheckout": "결제를 시작할 수 없습니다.",
       "unableSubscriptionCheckout": "구독 결제를 시작할 수 없습니다.",
       "unablePortal": "결제 포털을 열 수 없습니다.",
-      "legacyStripeUnavailable": "이전 Stripe 결제 프로필을 사용할 수 없습니다. 구독 이전 또는 취소는 지원팀에 문의해 주세요."
+      "legacyStripeUnavailable": "이전 Stripe 결제 프로필을 사용할 수 없습니다. 구독 이전 또는 취소는 지원팀에 문의해 주세요.",
+      "subscriptionUpgradeSyncing": "PayPal에서 변경을 승인했습니다. 업그레이드된 요금제를 확인하는 중입니다...",
+      "subscriptionUpgradeConfirmed": "요금제 업그레이드가 확인되었습니다. 새 가격과 크레딧은 다음 결제 주기부터 적용됩니다.",
+      "subscriptionChangeUnavailable": "이 구독은 선택한 요금제로 변경할 수 없습니다. 다운그레이드는 지원팀에 문의해 주세요.",
+      "subscriptionPlanUnchanged": "이미 현재 사용 중인 요금제입니다.",
+      "subscriptionProductMismatch": "직접 업그레이드하려면 이 요금제들이 동일한 PayPal 상품에 속해야 합니다."
     },
     "status": {
       "pending": "보류 중",
