@@ -2538,7 +2538,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
         <section className={showModernStudioChrome ? "relative min-h-screen w-full max-w-full bg-transparent" : "relative min-h-[calc(100vh-1rem)] w-full max-w-full overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-white/72 shadow-[0_20px_60px_rgba(71,85,105,0.10)] backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-[0_32px_120px_rgba(71,85,105,0.14)]"}>
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
-          <div className={`grid min-h-screen min-w-0 ${showModernStudioChrome ? videoSidebarCollapsed ? "lg:grid-cols-[76px_minmax(0,1fr)]" : "lg:grid-cols-[220px_minmax(0,1fr)]" : "lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]"}`}>
+          <div className={`grid min-h-screen min-w-0 transition-[grid-template-columns] duration-300 ease-out ${showModernStudioChrome ? videoSidebarCollapsed ? "lg:grid-cols-[76px_minmax(0,1fr)]" : "lg:grid-cols-[220px_minmax(0,1fr)]" : "lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]"}`}>
             <StudioSidebar
               t={st}
               modern={showModernStudioChrome}
@@ -2686,7 +2686,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         tasks={tasks}
                         translate={st}
                         modelSelector={avatarModelSelector}
-                        avatarSamplePreviewUrl={!isDreamfaceTalkingAvatar ? KLING_AVATAR_PREVIEW_VIDEO_URL : undefined}
+                        avatarSamplePreviewUrl={isAvatarProvider(provider) ? KLING_AVATAR_PREVIEW_VIDEO_URL : undefined}
                         editor={<AvatarWorkbench
                           canSubmit={canSubmit}
                           prompt={prompt}

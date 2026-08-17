@@ -115,7 +115,17 @@ export function StudioSidebar({ t, modern, videoStudio = false, collapsed = fals
     videoItems.push({ label: t("studio.billing.open"), href: "/billing", icon: "💳", active: false });
 
     return (
-      <aside className="hidden h-screen flex-col border-r border-[#eaecf0] bg-white/90 px-3.5 py-5 backdrop-blur-xl lg:sticky lg:top-0 lg:flex">
+      <aside className="relative hidden h-screen flex-col border-r border-[#eaecf0] bg-white/90 px-3.5 py-5 backdrop-blur-xl lg:sticky lg:top-0 lg:flex">
+        <button
+          type="button"
+          onClick={() => onCollapsedChange?.(!collapsed)}
+          aria-label={t(collapsed ? "studio.menu.open" : "studio.menu.close")}
+          title={t(collapsed ? "studio.menu.open" : "studio.menu.close")}
+          className="group absolute -end-3 top-1/2 z-30 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[#ded8ff] bg-white text-[#6a5af9] shadow-[0_5px_16px_rgba(73,56,180,0.16)] transition duration-200 hover:scale-110 hover:border-[#bcb1ff] hover:bg-[#f7f5ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a78ff] focus-visible:ring-offset-2"
+        >
+          <StudioIcon name={collapsed ? "chevron-right" : "chevron-left"} className="h-3.5 w-3.5" />
+          <span className="pointer-events-none absolute start-full ms-2.5 whitespace-nowrap rounded-lg bg-[#101828] px-2.5 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">{t(collapsed ? "studio.menu.open" : "studio.menu.close")}</span>
+        </button>
         <a href="https://dreamface.io" className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-1"}`}>
           <span className="block h-9 w-9 shrink-0 overflow-hidden rounded-xl shadow-sm"><img src="/icons/icon-512x512.png" alt="" className="h-full w-full object-cover" /></span>
           {!collapsed ? <span className="min-w-0"><strong className="block text-[17px] font-black leading-none tracking-tight text-[#101828]">DreamFace</strong><span className="mt-1 block text-[11px] text-[#98a2b3]">AI Studio</span></span> : null}
@@ -124,7 +134,6 @@ export function StudioSidebar({ t, modern, videoStudio = false, collapsed = fals
           {videoItems.map((item) => <Link key={`${item.label}-${item.href}`} href={item.href} title={collapsed ? item.label : undefined} className={`flex h-11 items-center rounded-[14px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[#f1efff] font-bold text-[#6a5af9]" : "text-[#344054] hover:bg-[#f8f8fb]"}`}><span aria-hidden="true" className={`grid h-5 w-5 shrink-0 place-items-center text-[16px] leading-none ${item.icon === "✦" ? "text-[#7458ff]" : ""}`}>{item.icon}</span>{!collapsed ? <span className="truncate">{item.label}</span> : null}</Link>)}
         </nav>
         <div className="flex-1" />
-        <button type="button" onClick={() => onCollapsedChange?.(!collapsed)} aria-label={t("studio.workbench.collapse")} className={`mt-3 flex h-11 items-center rounded-[10px] text-sm text-[#667085] hover:bg-[#f7f8fb] ${collapsed ? "justify-center" : "gap-2.5 px-2.5"}`}><StudioIcon name={collapsed ? "chevron-right" : "chevron-left"} className="h-4 w-4" />{!collapsed ? <span>{t("studio.workbench.collapse")}</span> : null}</button>
         <div className={`mx-[-14px] mb-[-14px] mt-2.5 flex items-center border-t border-[#eaecf0] bg-white/95 px-3.5 py-3 ${collapsed ? "justify-center" : "gap-2.5"}`}>
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,#fde1c8,#b57f63)] text-sm">DF</span>
           {!collapsed ? <span className="min-w-0"><strong className="block truncate text-[13px] text-[#101828]">{t(signedIn ? "studio.workbench.user" : "studio.workbench.guest")}</strong><span className="mt-1 block text-[11px] text-[#98a2b3]">{creditBalance === null ? "--" : creditBalance.toLocaleString()} {t("studio.common.credits")}</span></span> : null}
