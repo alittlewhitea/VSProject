@@ -11,7 +11,6 @@ type AvatarWorkbenchProps = {
   referenceImagesText: string;
   referenceImageUrls: string[];
   isDreamfaceTalkingAvatar: boolean;
-  previewVideoUrl: string;
   avatarScriptTooLong: boolean;
   avatarScriptMeta: string;
   avatarDuration: string;
@@ -40,7 +39,6 @@ export function AvatarWorkbench({
   referenceImagesText,
   referenceImageUrls,
   isDreamfaceTalkingAvatar,
-  previewVideoUrl,
   avatarScriptTooLong,
   avatarScriptMeta,
   avatarDuration,
@@ -68,9 +66,9 @@ export function AvatarWorkbench({
 
   return (
     <div>
-      <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-4 border-b border-[#758bac]/10 bg-[linear-gradient(90deg,rgba(248,251,255,0.98),rgba(255,255,255,0.75)),radial-gradient(circle_at_12%_50%,rgba(24,199,243,0.16),transparent_34%)] px-[18px] py-[18px] md:px-7">
+      <div className="flex min-h-[58px] flex-wrap items-center justify-between gap-3 border-b border-[#f1f3f7] px-4 py-3">
         <div className="flex items-center gap-3">
-          <span className="grid h-[34px] w-[34px] place-items-center rounded-[13px] bg-[linear-gradient(135deg,rgba(37,99,255,0.12),rgba(24,199,243,0.18))] text-sm font-black text-[#187be6]">
+          <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-[#f1efff] text-sm font-black text-[#6a5af9]">
             {"\u25b6"}
           </span>
           <div>
@@ -78,15 +76,15 @@ export function AvatarWorkbench({
             <span className="mt-0.5 block text-xs font-bold text-[#91a0b6]">{translate("studio.avatarWorkbench.studioDescription")}</span>
           </div>
         </div>
-        <div className={`inline-flex h-[34px] items-center gap-2 rounded-full px-3 text-xs font-black ${canSubmit ? "bg-[#20c997]/10 text-[#17916e]" : "bg-[#fff7ed] text-[#c2410c]"}`}>
+        <div className={`inline-flex h-8 items-center gap-2 rounded-[10px] px-3 text-xs font-bold ${canSubmit ? "bg-[#ecfdf3] text-[#039855]" : "bg-[#fff7ed] text-[#c2410c]"}`}>
           <span className={`h-2 w-2 rounded-full shadow-[0_0_0_5px_rgba(32,201,151,0.12)] ${canSubmit ? "bg-[#20c997]" : "bg-[#fb923c]"}`} />
           {canSubmit ? translate("studio.avatarWorkbench.ready") : translate("studio.avatarWorkbench.waiting")}
         </div>
       </div>
 
-      <div className="grid gap-5 px-[18px] pb-5 pt-7 md:px-7 lg:grid-cols-[0.95fr_1.05fr]">
+      <div className="grid gap-4 px-4 pb-4 pt-3">
         <div
-          className="rounded-[28px] border border-dashed border-[#8fb6e8]/45 bg-[linear-gradient(135deg,rgba(232,247,255,0.72),rgba(255,255,255,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+          className="rounded-2xl border border-dashed border-[#cfc9ff] bg-[#faf9ff] p-3"
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
@@ -98,7 +96,7 @@ export function AvatarWorkbench({
               <p className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{translate("studio.field.avatarImage")}</p>
               <p className="mt-1 text-xs font-bold leading-5 text-[#8290a7]">{translate("studio.reference.avatarHint")}</p>
             </div>
-            <label className="inline-flex h-10 cursor-pointer items-center rounded-full bg-white px-4 text-xs font-black text-[#187be6] shadow-[0_8px_24px_rgba(42,67,112,0.08)] transition hover:-translate-y-0.5">
+            <label className="inline-flex min-h-11 cursor-pointer items-center rounded-[10px] border border-[#e2defe] bg-white px-3 text-xs font-bold text-[#6a5af9] transition hover:bg-[#f8f7ff]">
               {translate("studio.action.chooseImage")}
               <input type="file" accept="image/*" className="hidden" onChange={(event) => handleReferenceFiles(event.target.files)} />
             </label>
@@ -107,7 +105,7 @@ export function AvatarWorkbench({
             value={referenceImagesText}
             onChange={(event) => onReferenceImagesTextChange(event.target.value)}
             placeholder="https://.../avatar.jpg"
-            className="h-12 w-full rounded-2xl border border-[#758bac]/15 bg-white px-4 text-sm font-bold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+            className="h-10 w-full rounded-[10px] border border-[#eaecf0] bg-white px-3 text-sm font-semibold text-[#344054] outline-none transition focus:border-[#8d80ff]"
           />
           {referenceImageUrls.length ? (
             <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -118,21 +116,12 @@ export function AvatarWorkbench({
               ))}
             </div>
           ) : (
-            <button type="button" onClick={onStartImageGuide} className="mt-4 block w-full rounded-[24px] border border-[#758bac]/15 bg-white/55 px-5 py-5 text-left transition hover:bg-white">
+            <button type="button" onClick={onStartImageGuide} className="mt-3 block min-h-11 w-full rounded-xl border border-[#eaecf0] bg-white px-4 py-3 text-start transition hover:bg-[#fcfcfe]">
               <span className="text-xs font-black uppercase tracking-[0.12em] text-[#2563eb]">{translate("studio.avatar.guideEyebrow")}</span>
               <span className="mt-2 block text-sm font-black text-[#283249]">{translate("studio.avatar.guideTitle")}</span>
               <span className="mt-1 block text-xs font-bold leading-5 text-[#8290a7]">{translate("studio.avatar.guideDescription")}</span>
             </button>
           )}
-          {!isDreamfaceTalkingAvatar ? (
-            <div className="mt-4 overflow-hidden rounded-[24px] border border-[#758bac]/15 bg-[#0f172a] shadow-[0_8px_20px_rgba(35,58,97,0.08)]">
-              <video src={previewVideoUrl} controls muted playsInline preload="metadata" className="aspect-video w-full bg-black object-cover" />
-              <div className="border-t border-white/10 px-4 py-3">
-                <p className="text-xs font-black text-white/82">{translate("studio.avatar.example")}</p>
-                <p className="mt-1 text-xs leading-5 text-white/48">{translate("studio.avatar.exampleDescription")}</p>
-              </div>
-            </div>
-          ) : null}
         </div>
 
         <div className="min-w-0">
@@ -147,7 +136,7 @@ export function AvatarWorkbench({
             rows={7}
             value={prompt}
             onChange={(event) => onPromptChange(event.target.value)}
-            className="min-h-[260px] w-full resize-y bg-transparent p-0 text-[18px] leading-[1.62] tracking-[-0.02em] text-[#182033] outline-none placeholder:text-[#a6b2c7] md:min-h-[310px] md:text-[22px]"
+            className="min-h-[180px] w-full resize-y rounded-2xl border border-[#eaecf0] bg-white p-4 text-[15px] leading-[1.55] text-[#101828] outline-none placeholder:text-[#98a2b3]"
             placeholder={translate("studio.placeholder.avatar")}
           />
           <div className={`mt-[18px] text-xs font-extrabold leading-5 ${avatarScriptTooLong ? "text-[#e11d48]" : "text-[#96a2b7]"}`}>
@@ -159,7 +148,7 @@ export function AvatarWorkbench({
           </div>
 
           {!isDreamfaceTalkingAvatar ? (
-            <div className="mt-5 rounded-[24px] border border-[#758bac]/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,251,255,0.86))] p-4 shadow-[0_8px_18px_rgba(35,58,97,0.045)]">
+            <div className="mt-4 rounded-2xl border border-[#eaecf0] bg-[#fcfcfe] p-3">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-sm font-black text-[#283249]">{translate("studio.avatar.voice")}</span>
                 <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#66758b]">{ttsVoice}</span>

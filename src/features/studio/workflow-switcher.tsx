@@ -52,6 +52,25 @@ export function WorkflowSwitcher({
             ? t("studio.avatarWorkbench.heroDescription")
             : t("studio.textImage.heroDescription");
 
+  if (mode === "video" && videoRedesign) return null;
+
+  if (modern) {
+    if (mode === "avatar") return null;
+    const workflows = mode === "image"
+      ? (["text-to-image", "image-to-image", "enhance-cleanup", "background-remove"] as ImageWorkflow[])
+      : (["text-to-audio", "text-to-music"] as AudioWorkflow[]);
+    return (
+      <div className="mb-3 flex w-full justify-start overflow-x-auto px-0.5 pb-1 overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className={`grid min-w-max gap-1 rounded-[14px] border border-[#eaecf0] bg-white p-1 shadow-sm ${mode === "image" ? "grid-cols-4" : "grid-cols-2"}`}>
+          {workflows.map((workflow) => {
+            const active = mode === "image" ? imageWorkflow === workflow : audioWorkflow === workflow;
+            return <button key={workflow} type="button" onClick={() => onWorkflowChange(workflow)} className={`min-h-11 rounded-[10px] px-4 text-xs font-bold transition ${active ? "bg-[#f1efff] text-[#6a5af9] shadow-[inset_0_0_0_1px_#ddd8ff]" : "text-[#667085] hover:bg-[#f8f8fb] hover:text-[#344054]"}`}>{t(`studio.workflow.${workflow}`)}</button>;
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <h2 className={modern ? "mx-auto max-w-[900px] text-[34px] font-black leading-[0.98] tracking-[-0.06em] text-[#151827] sm:text-[clamp(42px,4.15vw,66px)]" : "hidden text-3xl font-semibold tracking-tight text-[#202633] sm:block md:text-5xl"}>{t("studio.heading.createToday")}</h2>

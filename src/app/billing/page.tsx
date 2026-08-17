@@ -105,20 +105,21 @@ function CreditUsageExamples({ credits, compact = false }: { credits: number; co
   const t = useTranslations();
   const capacity = creditUsageCapacity(credits);
   const examples = [
-    { key: "images", value: capacity.images, label: t("billing.usage.images") },
-    { key: "videos", value: capacity.videos, label: t("billing.usage.videos") },
-    { key: "voiceovers", value: capacity.voiceovers, label: t("billing.usage.voiceovers") },
-    { key: "avatars", value: capacity.avatars, label: t("billing.usage.avatars") }
+    { key: "images", value: capacity.images, label: t("billing.usage.images"), icon: "🖼️" },
+    { key: "videos", value: capacity.videos, label: t("billing.usage.videos"), icon: "🎞️" },
+    { key: "voiceovers", value: capacity.voiceovers, label: t("billing.usage.voiceovers"), icon: "🎙️" },
+    { key: "avatars", value: capacity.avatars, label: t("billing.usage.avatars"), icon: "💬" }
   ];
 
   return (
     <div className={compact ? "mt-4" : "mt-5"}>
-      <p className="text-xs font-black uppercase tracking-[0.12em] text-[#687386]">
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#887c99]">
         {t("billing.usage.title")}
       </p>
-      <div className={`mt-3 grid grid-cols-2 ${compact ? "gap-2" : "gap-3"}`}>
+      <div className={`mt-3 grid grid-cols-2 ${compact ? "gap-1.5" : "gap-2"}`}>
         {examples.map((example) => (
-          <div key={example.key} className="rounded-xl border border-black/[0.07] bg-white/80 px-3 py-3">
+          <div key={example.key} className="rounded-xl border border-[#ebe8f1] bg-white/85 px-3 py-2.5">
+            <span aria-hidden="true" className="text-sm">{example.icon}</span>
             <p className={`${compact ? "text-xl" : "text-2xl"} font-black tracking-tight text-[#17191f]`}>
               {example.value.toLocaleString()}
             </p>
@@ -126,7 +127,7 @@ function CreditUsageExamples({ credits, compact = false }: { credits: number; co
           </div>
         ))}
       </div>
-      <p className="mt-3 text-[11px] font-medium leading-5 text-[#737d8d]">{t("billing.usage.note")}</p>
+      <p className="mt-3 text-[10px] font-medium leading-4 text-[#80778d]">{t("billing.usage.note")}</p>
     </div>
   );
 }
@@ -239,7 +240,8 @@ function SubscriptionPlanCard({
   onCycleChange,
   onCheckout,
   loading,
-  action
+  action,
+  workspace = false
 }: {
   plan: (typeof SUBSCRIPTION_PLANS)[number];
   cycle: BillingCycle;
@@ -247,6 +249,7 @@ function SubscriptionPlanCard({
   onCheckout: () => void;
   loading: boolean;
   action?: "subscribe" | "upgrade" | "current" | "unavailable";
+  workspace?: boolean;
 }) {
   const t = useTranslations();
   const price = plan.prices[cycle];
@@ -257,31 +260,35 @@ function SubscriptionPlanCard({
 
   return (
     <article
-      className={`relative flex min-h-[620px] flex-col overflow-hidden rounded-[1.75rem] border p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-7 ${
-        featured
-          ? "border-[#08bff1] bg-white ring-4 ring-[#08bff1]/15"
-          : premium
-            ? "border-[#ccb4ff] bg-[linear-gradient(135deg,#ffffff_0%,#f5f1ff_55%,#eafaff_100%)]"
-            : "border-black/10 bg-white"
+      className={`relative flex flex-col overflow-hidden border bg-white p-5 md:p-6 ${workspace ? "min-h-0 rounded-[22px] shadow-[0_14px_40px_rgba(31,20,54,0.08)]" : "min-h-[620px] rounded-[1.75rem] shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-7"} ${
+        workspace
+          ? featured
+            ? "border-[#8b74ff] ring-2 ring-[#ede9ff]"
+            : "border-[#e4e0ea]"
+          : featured
+            ? "border-[#08bff1] ring-4 ring-[#08bff1]/15"
+            : premium
+              ? "border-[#ccb4ff] bg-[linear-gradient(135deg,#ffffff_0%,#f5f1ff_55%,#eafaff_100%)]"
+              : "border-black/10"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#f2f2f4] text-[#555963]"}`}>
+          <p className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${workspace ? featured ? "bg-[#eeeaff] text-[#6854ee]" : "bg-[#f3f1f6] text-[#746b80]" : featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#f2f2f4] text-[#555963]"}`}>
             {t(`pricing.plan.${planKey}.badge`)}
           </p>
-          <h3 className="mt-5 text-4xl font-black tracking-normal">{t(`pricing.plan.${planKey}.name`)}</h3>
+          <h3 className={`${workspace ? "mt-3 text-[28px] tracking-[-0.035em]" : "mt-5 text-4xl tracking-normal"} font-black`}>{t(`pricing.plan.${planKey}.name`)}</h3>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 rounded-full bg-[#f3f4f6] p-1">
+      <div className={`${workspace ? "mt-4 rounded-[13px] border border-[#e8e4ee] bg-[#f8f7fa]" : "mt-5 rounded-full bg-[#f3f4f6]"} grid grid-cols-3 p-1`}>
         {(Object.keys(cycleLabels) as BillingCycle[]).map((item) => (
           <button
             key={`${plan.id}-${item}`}
             type="button"
             onClick={() => onCycleChange(item)}
-            className={`rounded-full px-3 py-2 text-xs font-black transition ${
-              cycle === item ? "bg-white text-[#111318] shadow-sm" : "text-[#697181]"
+            className={`${workspace ? "rounded-[9px]" : "rounded-full"} min-h-10 px-2 text-xs font-black transition ${
+              cycle === item ? workspace ? "bg-white text-[#624eef] shadow-sm" : "bg-white text-[#111318] shadow-sm" : "text-[#776f82]"
             }`}
           >
             {t(`billing.cycle.${item}`)}
@@ -289,8 +296,8 @@ function SubscriptionPlanCard({
         ))}
       </div>
 
-      <div className="mt-7">
-        <p className="text-5xl font-black tracking-normal">
+      <div className={workspace ? "mt-5" : "mt-7"}>
+        <p className={`${workspace ? "text-[42px] tracking-[-0.05em]" : "text-5xl tracking-normal"} font-black`}>
           {formatUsd(price.amountCents).replace(".00", "")}
           <span className="text-xl font-bold text-[#5d6675]"> / {price.interval}</span>
         </p>
@@ -303,7 +310,7 @@ function SubscriptionPlanCard({
         )}
       </div>
 
-      <div className="mt-5 rounded-2xl border border-[#08bff1]/25 bg-[linear-gradient(135deg,#f0fbff_0%,#ffffff_55%,#f4f1ff_100%)] px-5 py-4 shadow-[0_12px_30px_rgba(8,191,241,0.08)]">
+      <div className={`mt-5 rounded-2xl border px-4 py-4 ${workspace ? "border-[#ddd7ff] bg-[linear-gradient(135deg,#f5f2ff,#fcfbff)]" : "border-[#08bff1]/25 bg-[linear-gradient(135deg,#f0fbff_0%,#ffffff_55%,#f4f1ff_100%)] shadow-[0_12px_30px_rgba(8,191,241,0.08)]"}`}>
         <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#487080]">{t("billing.includedCredits")}</p>
         <p className="mt-1 text-4xl font-black tracking-tight text-[#101318]">
           {price.credits.toLocaleString()}
@@ -313,14 +320,14 @@ function SubscriptionPlanCard({
         <CreditUsageExamples credits={price.credits} />
       </div>
 
-      <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">{t(`pricing.plan.${planKey}.bestFor`)}</p>
+      <p className={`${workspace ? "min-h-[48px]" : "min-h-[72px]"} mt-5 text-sm font-semibold leading-6 text-[#4f5868]`}>{t(`pricing.plan.${planKey}.bestFor`)}</p>
 
       <button
         type="button"
         onClick={onCheckout}
         disabled={loading || action === "current" || action === "unavailable"}
-        className={`mt-6 rounded-xl px-5 py-3 text-base font-black transition active:scale-[0.98] disabled:opacity-60 ${
-          featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#16171a] text-white"
+        className={`mt-5 min-h-12 rounded-xl px-5 py-3 text-sm font-black transition hover:-translate-y-px active:translate-y-0 disabled:opacity-60 ${
+          workspace ? featured ? "bg-[linear-gradient(90deg,#7458ff,#6757f6_55%,#8d59f5)] text-white shadow-[0_10px_24px_rgba(106,90,249,0.24)]" : "bg-[#171321] text-white" : featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#16171a] text-white"
         }`}
       >
         {loading
@@ -334,7 +341,7 @@ function SubscriptionPlanCard({
                 : t(`pricing.plan.${planKey}.cta`)}
       </button>
 
-      <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
+      <ul className={`${workspace ? "grid gap-x-4 gap-y-2 sm:grid-cols-2" : "space-y-3"} mt-5 text-xs font-semibold leading-5 text-[#4f4659]`}>
         {features.map((feature) => (
           <li key={feature} className="flex gap-3">
             <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#08bff1] text-[10px] font-black text-[#061215]">✓</span>
@@ -848,44 +855,31 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
 
   if (surface === "billing") {
     return (
-      <main className="min-h-screen bg-[#f7f7f5] pb-24 text-[#141416]">
-        <div className="mx-auto max-w-[1540px] px-4 pt-4 md:px-8 md:pt-5">
+      <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(1000px_420px_at_88%_-8%,rgba(106,90,249,0.08),transparent_48%),#fafafc] pb-24 text-[#171321]">
+        <div className="mx-auto max-w-[1420px] px-3 pt-3 md:px-6 md:pt-4">
           <TopNav />
         </div>
 
-        <section className="mx-auto max-w-[1360px] px-4 py-10 md:px-8 md:py-16">
-          <div className="grid gap-7 lg:grid-cols-[0.82fr_1.18fr] lg:items-end">
-            <div>
-              <p className="inline-flex rounded-full border border-black/10 bg-white px-5 py-2 text-sm font-black text-[#44444a] shadow-sm">
-                {t("billing.eyebrow")}
-              </p>
-              <h1 className="mt-7 text-[clamp(3.5rem,8vw,7rem)] font-black leading-[0.92] tracking-normal">
-                {t("billing.title")}
-              </h1>
-              <p className="mt-6 max-w-2xl text-xl font-medium leading-9 text-[#46464b]">
-                {t("billing.subtitle")}
-              </p>
-            </div>
-
-            <div className="rounded-[2rem] border border-black/10 bg-white p-7 shadow-[0_22px_60px_rgba(20,20,24,0.08)]">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#6a6a72]">{t("billing.currentBalance")}</p>
-              <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <p className="text-5xl font-black">{balance === null ? "--" : balance.toLocaleString()}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    trackEvent("balance_refreshed", { surface: "billing" }, accessToken);
-                    accessToken ? loadCredits(accessToken) : router.push(`/auth?next=${encodeURIComponent("/billing")}`);
-                  }}
-                  disabled={refreshingCredits}
-                  className="rounded-full bg-[#08bff1] px-5 py-3 text-sm font-black text-[#061215] disabled:opacity-60"
-                >
-                  {refreshingCredits ? t("pricing.refreshing") : accessToken ? t("billing.refreshBalance") : t("billing.signInToView")}
-                </button>
+        <section className="mx-auto max-w-[1280px] px-3 py-5 sm:px-5 md:py-8">
+          <section className="relative overflow-hidden rounded-[24px] border border-white/15 bg-[radial-gradient(circle_at_84%_4%,rgba(170,111,255,0.45),transparent_34%),radial-gradient(circle_at_8%_110%,rgba(91,70,255,0.36),transparent_38%),linear-gradient(135deg,#171126,#2a184c_58%,#332064)] p-5 text-white shadow-[0_28px_80px_rgba(22,12,43,0.25)] sm:p-8 md:rounded-[30px]">
+            <span className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:32px_32px]" />
+            <div className="relative grid gap-6 lg:grid-cols-[1fr_400px] lg:items-end">
+              <div>
+                <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#d6ccff]"><span>◆</span>{t("billing.eyebrow")}</p>
+                <h1 className="mt-5 [overflow-wrap:anywhere] text-[clamp(2.4rem,6vw,4.6rem)] font-black leading-[0.95] tracking-[-0.055em]">{t("billing.title")}</h1>
+                <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-white/65 sm:text-base">{t("billing.subtitle")}</p>
+                <a href="/studio?view=home" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 text-xs font-black text-white transition hover:bg-white/15">← Studio</a>
               </div>
-              <p className="mt-2 text-sm font-semibold text-[#667084]">{t("billing.creditsAvailable")}</p>
+              <div className="rounded-[20px] border border-white/15 bg-white/10 p-4 backdrop-blur-md sm:p-5">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-white/55">{t("billing.currentBalance")}</p>
+                <div className="mt-2 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+                  <p className="text-[42px] font-black leading-none tracking-[-0.05em]">{balance === null ? "--" : balance.toLocaleString()} <span className="text-xs uppercase tracking-[0.1em] text-white/55">credits</span></p>
+                  <button type="button" onClick={() => { trackEvent("balance_refreshed", { surface: "billing" }, accessToken); accessToken ? loadCredits(accessToken) : router.push(`/auth?next=${encodeURIComponent("/billing")}`); }} disabled={refreshingCredits} className="min-h-11 w-full shrink-0 rounded-xl bg-white px-4 text-xs font-black text-[#2b1c46] shadow-lg disabled:opacity-60 sm:w-auto">{refreshingCredits ? t("pricing.refreshing") : accessToken ? t("billing.refreshBalance") : t("billing.signInToView")}</button>
+                </div>
+                <p className="mt-2 text-xs font-semibold text-white/55">{t("billing.creditsAvailable")}</p>
+              </div>
             </div>
-          </div>
+          </section>
 
           {message ? (
             <p className="mt-8 rounded-2xl border border-[#d8b85d]/30 bg-[#fff8df] px-5 py-4 text-sm font-semibold text-[#705d1d]">
@@ -893,11 +887,11 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
             </p>
           ) : null}
 
-          <section className="mt-8 rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_18px_48px_rgba(10,16,30,0.06)]">
+          <section className="mt-5 rounded-[22px] border border-[#e5e1eb] bg-white p-5 shadow-[0_12px_36px_rgba(31,20,54,0.06)] sm:p-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">{t("billing.subscription.eyebrow")}</p>
-                <h2 className="mt-2 text-3xl font-black tracking-normal">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#8a7cf5]">💳 {t("billing.subscription.eyebrow")}</p>
+                <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">
                   {currentSubscription ? `${currentSubscription.plan_id.replace("-", " ")} · ${currentSubscription.status}` : t("billing.subscription.noActive")}
                 </h2>
                 <p className="mt-2 text-sm font-semibold leading-6 text-[#667084]">
@@ -921,7 +915,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                 type="button"
                 onClick={openBillingPortal}
                 disabled={!currentSubscription?.provider_subscription_id && !currentSubscription?.stripe_customer_id}
-                className="rounded-full border border-black/10 bg-[#f0f2f5] px-5 py-3 text-sm font-black text-[#16171a] disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-11 rounded-xl border border-[#ddd7ff] bg-[#f7f5ff] px-5 text-sm font-black text-[#6651ee] transition hover:bg-[#f0edff] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t("billing.subscription.manage")}
               </button>
@@ -962,37 +956,37 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
             </section>
           ) : null}
 
-          <section className="mt-10">
+          <section className="mt-8">
             <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">{t("billing.membership.eyebrow")}</p>
-                <h2 className="mt-2 text-4xl font-black tracking-normal">{t("billing.membership.title")}</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#8a7cf5]">{t("billing.membership.eyebrow")}</p>
+                <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">{t("billing.membership.title")}</h2>
               </div>
               <p className="max-w-xl text-sm font-semibold leading-6 text-[#667084]">
                 {t("billing.membership.description")}
               </p>
             </div>
-            <div className="grid gap-6 lg:grid-cols-3">
-              <article className="flex min-h-[620px] flex-col rounded-[1.75rem] border border-black/10 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] md:p-7">
-                <p className="inline-flex w-fit rounded-full bg-[#f2f2f4] px-3 py-1 text-xs font-black text-[#555963]">{t("pricing.free.badge")}</p>
-                <h3 className="mt-5 text-4xl font-black tracking-normal">{t("pricing.free.name")}</h3>
-                <p className="mt-7 text-5xl font-black tracking-normal">$0<span className="text-xl font-bold text-[#5d6675]"> / {t("pricing.free.priceInterval")}</span></p>
-                <div className="mt-5 rounded-2xl border border-black/10 bg-[#fbfbfd] px-4 py-3">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <article className="flex flex-col rounded-[22px] border border-[#e4e0ea] bg-white p-5 shadow-[0_14px_40px_rgba(31,20,54,0.06)] md:p-6">
+                <p className="inline-flex w-fit rounded-full bg-[#f3f1f6] px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#746b80]">{t("pricing.free.badge")}</p>
+                <h3 className="mt-3 text-[28px] font-black tracking-[-0.035em]">{t("pricing.free.name")}</h3>
+                <p className="mt-5 text-[42px] font-black tracking-[-0.05em]">$0<span className="text-base font-bold text-[#716879]"> / {t("pricing.free.priceInterval")}</span></p>
+                <div className="mt-5 rounded-2xl border border-[#ebe8f1] bg-[#faf9fb] px-4 py-3">
                   <p className="text-xl font-black">{t("pricing.free.credits")}</p>
                   <p className="mt-1 text-sm font-semibold text-[#5d6675]">{t("pricing.free.eligible")}</p>
                   <CreditUsageExamples credits={100} />
                 </div>
-                <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">
+                <p className="mt-5 min-h-[48px] text-sm font-semibold leading-6 text-[#4f5868]">
                   {t("pricing.free.description")}
                 </p>
                 <button
                   type="button"
                   onClick={() => router.push(accessToken ? "/studio" : `/auth?next=${encodeURIComponent("/studio")}`)}
-                  className="mt-6 rounded-xl bg-[#16171a] px-5 py-3 text-base font-black text-white transition active:scale-[0.98]"
+                  className="mt-5 min-h-12 rounded-xl bg-[#171321] px-5 py-3 text-sm font-black text-white transition hover:-translate-y-px active:translate-y-0"
                 >
                   {t("pricing.free.cta")}
                 </button>
-                <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
+                <ul className="mt-5 grid gap-x-4 gap-y-2 text-xs font-semibold leading-5 text-[#4f4659] sm:grid-cols-2">
                   {["image", "editing", "voice", "video", "watermark", "queue"].map((featureKey) => {
                     const feature = t(`pricing.freeFeatures.${featureKey}`);
                     return (
@@ -1015,17 +1009,18 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                     onCheckout={() => startSubscriptionCheckout(plan.id, selectedCycle)}
                     loading={loadingSubscription === `${plan.id}:${selectedCycle}`}
                     action={subscriptionCardAction(plan.id, selectedCycle)}
+                    workspace
                   />
                 );
               })}
             </div>
           </section>
 
-          <section className="mt-12">
+          <section className="mt-10">
             <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">{t("billing.extraCredits.eyebrow")}</p>
-                <h2 className="mt-2 text-3xl font-black tracking-normal">{t("billing.extraCredits.title")}</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#8a7cf5]">{t("billing.extraCredits.eyebrow")}</p>
+                <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">{t("billing.extraCredits.title")}</h2>
               </div>
               <p className="max-w-xl text-sm font-semibold leading-6 text-[#667084]">
                 {t("billing.extraCredits.description")}
@@ -1033,16 +1028,16 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {CREDIT_PACKS.map((pack) => (
-                <article key={pack.id} className={`rounded-[1.4rem] border bg-white p-5 shadow-[0_14px_36px_rgba(10,16,30,0.05)] ${pack.id === bestValuePack.id ? "border-[#08bff1]" : "border-black/10"}`}>
+                <article key={pack.id} className={`rounded-[20px] border bg-white p-4 shadow-[0_12px_32px_rgba(31,20,54,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(31,20,54,0.1)] ${pack.id === bestValuePack.id ? "border-[#8b74ff] ring-2 ring-[#eeeaff]" : "border-[#e5e1eb]"}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-2xl font-black tracking-normal">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.name`)}</h3>
+                      <h3 className="text-lg font-black tracking-[-0.02em]">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.name`)}</h3>
                       <p className="mt-2 text-3xl font-black tracking-tight text-[#17191f]">
                         {pack.credits.toLocaleString()}
                         <span className="ml-1.5 text-xs uppercase tracking-[0.1em] text-[#667084]">{t("pricing.credits")}</span>
                       </p>
                     </div>
-                    <p className="text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
+                    <p className="rounded-lg bg-[#f1efff] px-2.5 py-1.5 text-lg font-black text-[#6854ee]">{formatUsd(pack.amountCents).replace(".00", "")}</p>
                   </div>
                   <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.idealFor`)}</p>
                   <CreditUsageExamples credits={pack.credits} compact />
@@ -1050,7 +1045,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                     type="button"
                     onClick={() => startCheckout(pack.id)}
                     disabled={Boolean(loadingPack)}
-                    className="mt-5 w-full rounded-xl bg-[#f0f2f5] px-5 py-3 text-sm font-black text-[#16171a] transition active:scale-[0.98] disabled:opacity-60"
+                    className="mt-4 min-h-11 w-full rounded-xl border border-[#ded8ff] bg-[#f7f5ff] px-5 text-sm font-black text-[#6651ee] transition hover:bg-[#eeeaff] active:scale-[0.98] disabled:opacity-60"
                   >
                     {loadingPack === pack.id ? t("billing.openingCheckout") : t("billing.recharge")}
                   </button>
@@ -1059,13 +1054,13 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
             </div>
           </section>
 
-          <section className="mt-10 grid gap-8 lg:grid-cols-2">
-            <article className="rounded-[2rem] border border-black/10 bg-white p-7 shadow-[0_18px_48px_rgba(10,16,30,0.06)]">
-              <h2 className="text-3xl font-black tracking-normal">{t("billing.creditActivity")}</h2>
+          <section className="mt-10 grid gap-5 lg:grid-cols-2">
+            <article className="rounded-[22px] border border-[#e5e1eb] bg-white p-5 shadow-[0_12px_36px_rgba(31,20,54,0.06)] sm:p-6">
+              <h2 className="text-2xl font-black tracking-[-0.03em]">{t("billing.creditActivity")}</h2>
               <div className="mt-6 space-y-3">
                 {ledger.length ? (
                   ledger.slice(0, 10).map((entry) => (
-                    <div key={entry.id} className="flex items-center justify-between gap-4 rounded-2xl bg-[#f7f7f5] px-4 py-3">
+                    <div key={entry.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#efedf2] bg-[#faf9fb] px-4 py-3">
                       <div className="min-w-0">
                         <p className="text-sm font-black">{formatReason(entry.reason, t)}</p>
                         <p className="mt-1 text-xs font-medium text-[#667084]">{formatDate(entry.created_at)}</p>
@@ -1084,12 +1079,12 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
               </div>
             </article>
 
-            <article className="rounded-[2rem] border border-black/10 bg-white p-7 shadow-[0_18px_48px_rgba(10,16,30,0.06)]">
-              <h2 className="text-3xl font-black tracking-normal">{t("billing.stripePurchases")}</h2>
+            <article className="rounded-[22px] border border-[#e5e1eb] bg-white p-5 shadow-[0_12px_36px_rgba(31,20,54,0.06)] sm:p-6">
+              <h2 className="text-2xl font-black tracking-[-0.03em]">{t("billing.stripePurchases")}</h2>
               <div className="mt-6 space-y-3">
                 {purchases.length ? (
                   purchases.slice(0, 10).map((purchase) => (
-                    <div key={purchase.id} className="rounded-2xl bg-[#f7f7f5] px-4 py-3">
+                    <div key={purchase.id} className="rounded-xl border border-[#efedf2] bg-[#faf9fb] px-4 py-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <p className="text-sm font-black">
                           {purchase.pack_id} - {purchase.credits.toLocaleString()} credits

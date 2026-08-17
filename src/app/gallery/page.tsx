@@ -7,12 +7,13 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { TopNav } from "../../components/top-nav";
 import { AppButton } from "../../components/ui/button";
 import { GALLERY_CATEGORIES, galleryItemPath, isGalleryCategory, type GalleryCategory, type GalleryItem } from "../../lib/gallery";
+import { filterFallbackGalleryItems } from "../../lib/gallery-fallback";
 
 type GallerySort = "featured" | "latest";
 
 function sourceLabel(item: GalleryItem) {
   const handle = item.authorHandle ? `@${item.authorHandle.replace(/^@/, "")}` : item.authorName;
-  return [item.sourcePlatform || "Source", handle].filter(Boolean).join(" / ");
+  return [item.sourcePlatform || (handle ? "Source" : "DreamFace"), handle].filter(Boolean).join(" / ");
 }
 
 function GalleryContent() {
@@ -45,20 +46,22 @@ function GalleryContent() {
       limit: "80"
     });
     if (activeQuery) params.set("q", activeQuery);
+    const fallbackItems = filterFallbackGalleryItems(activeCategory, activeQuery);
 
     fetch(`/api/gallery?${params.toString()}`)
       .then(async (response) => {
         const payload = (await response.json()) as { items?: GalleryItem[]; storageWarning?: string };
         if (!response.ok) throw new Error(payload.storageWarning || "Gallery could not be loaded.");
         if (!cancelled) {
-          setItems(Array.isArray(payload.items) ? payload.items : []);
-          setNote(payload.storageWarning || "");
+          const apiItems = Array.isArray(payload.items) ? payload.items : [];
+          setItems(apiItems.length ? apiItems : fallbackItems);
+          setNote(payload.storageWarning ? "Showing built-in examples while the live gallery reconnects." : !apiItems.length && fallbackItems.length ? "Showing built-in examples while the live gallery reconnects." : "");
         }
       })
-      .catch((error) => {
+      .catch(() => {
         if (!cancelled) {
-          setItems([]);
-          setNote(error instanceof Error ? error.message : "Gallery could not be loaded.");
+          setItems(fallbackItems);
+          setNote(fallbackItems.length ? "Showing built-in examples while the live gallery reconnects." : "Gallery could not be loaded.");
         }
       })
       .finally(() => {
@@ -242,7 +245,7 @@ function GalleryContent() {
             {items.map((item) => (
               <Link
                 key={item.id}
-                href={galleryItemPath(item)}
+                href={item.id.startsWith("sample-") ? `/studio?mode=image&workflow=text-to-image&prompt=${encodeURIComponent(item.prompt)}` : galleryItemPath(item)}
                 className="group mb-4 block break-inside-avoid overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_14px_36px_rgba(13,18,35,0.07)] transition hover:-translate-y-1 hover:shadow-[0_22px_48px_rgba(13,18,35,0.11)]"
               >
                 <img
@@ -275,13 +278,13 @@ function GalleryContent() {
                       >
                         {viewPromptLabel(item)}
                       </button>
-                      <button
+                      {item.sourceUrl ? <button
                         type="button"
                         onClick={(event) => openSource(event, item.sourceUrl)}
                         className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#1d1d1f] shadow-sm hover:bg-[#f8fbff]"
                       >
                         Source
-                      </button>
+                      </button> : null}
                     </div>
                   </div>
                 </div>

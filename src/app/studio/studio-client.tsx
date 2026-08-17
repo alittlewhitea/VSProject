@@ -9,13 +9,13 @@ import { trackEvent } from "../../lib/analytics";
 import {
   CREDIT_PACKS,
   SUBSCRIPTION_PLANS,
+  formatApproximateCreditValue,
   type BillingCycle
 } from "../../lib/billing";
 import { isRtlLocale, type Locale } from "../../i18n/routing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, estimateGenerationCredits } from "../../lib/model-pricing";
 import { useStudioI18n } from "../../lib/studio-i18n";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
-import { VideoWorkbench } from "../../features/studio/video-workbench";
 import { AudioWorkbench } from "../../features/studio/audio-workbench";
 import { AvatarWorkbench } from "../../features/studio/avatar-workbench";
 import { ImageWorkbench } from "../../features/studio/image-workbench";
@@ -23,6 +23,8 @@ import { ImageSettings } from "../../features/studio/image-settings";
 import { AudioSettings } from "../../features/studio/audio-settings";
 import { VideoSettings } from "../../features/studio/video-settings";
 import { AvatarSettings } from "../../features/studio/avatar-settings";
+import { UnifiedWorkbenchLayout } from "../../features/studio/unified-workbench-layout";
+import { ModelPicker } from "../../features/studio/model-picker";
 import {
   StudioBottomNavigation,
   StudioIcon,
@@ -31,7 +33,7 @@ import {
 } from "../../features/studio/studio-navigation";
 import { StudioHeader } from "../../features/studio/studio-header";
 import { WorkflowSwitcher } from "../../features/studio/workflow-switcher";
-import { StudioBillingModal } from "../../features/studio/studio-billing-modal";
+import { StudioBillingModal, type GenerationBillingContext } from "../../features/studio/studio-billing-modal";
 import { StudioHome } from "../../features/studio/studio-home";
 import { StudioProjects } from "../../features/studio/studio-projects";
 import {
@@ -84,6 +86,7 @@ type AudioWorkflow = "text-to-audio" | "text-to-music";
 type StudioWorkflow = ImageWorkflow | VideoWorkflow | AudioWorkflow;
 
 const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
+const LAST_MODEL_STORAGE_PREFIX = "dreamface_studio_last_model_v1";
 const TEXT_IMAGE_PAGE_INNER_CLASS = "mx-auto w-full max-w-[1220px]";
 const STUDIO_SIGN_IN_URL = "https://dreamface.io/en/auth?next=%2Fstudio%3Fview%3Dhome";
 
@@ -366,6 +369,58 @@ const WORKFLOW_META: Record<
   }
 };
 
+function lastModelStorageKey(workflow: StudioWorkflow) {
+  return `${LAST_MODEL_STORAGE_PREFIX}:${workflow}`;
+}
+
+function readRememberedModel(workflow: StudioWorkflow) {
+  if (typeof window === "undefined") return null;
+  try {
+    const remembered = window.localStorage.getItem(lastModelStorageKey(workflow));
+    return remembered && WORKFLOW_META[workflow].providers.includes(remembered) ? remembered : null;
+  } catch {
+    return null;
+  }
+}
+
+function modelPickerGroup(mode: StudioMode, workflow: StudioWorkflow, provider: string, recommendedProvider: string) {
+  if (provider === recommendedProvider) return "studio.modelPicker.group.recommended";
+  if (mode === "video") {
+    const group = videoModelGroup(provider);
+    if (group === "premium") return "studio.modelPicker.group.premium";
+    if (group === "betterQuality") return "studio.modelPicker.group.better";
+    return "studio.modelPicker.group.fast";
+  }
+  if (mode === "image") {
+    if (provider === "chatgpt-image" || provider === "nano-banana-pro") return "studio.modelPicker.group.highQuality";
+    return workflow === "image-to-image" ? "studio.modelPicker.group.editing" : "studio.modelPicker.group.efficient";
+  }
+  if (mode === "avatar") return provider === "kling-avatar-pro" ? "studio.modelPicker.group.premiumAvatar" : "studio.modelPicker.group.avatar";
+  return "studio.modelPicker.group.available";
+}
+
+function modelPickerBadge(mode: StudioMode, provider: string, recommendedProvider: string) {
+  if (provider === recommendedProvider) return "studio.modelSelect.badge.recommended";
+  if (mode === "video") {
+    const badge = videoModelBadge(provider);
+    if (badge === "free") return "studio.modelSelect.badge.free";
+    if (badge === "pro") return "studio.modelSelect.badge.pro";
+    if (badge === "premium") return "studio.modelSelect.badge.premium";
+  }
+  if (provider === "kling-avatar-pro" || provider === "nano-banana-pro") return "studio.modelSelect.badge.pro";
+  return undefined;
+}
+
+function modelPickerSpeedKey(speed: string) {
+  const normalized = speed.toLowerCase();
+  if (normalized === "fastest") return "studio.modelPicker.speed.fastest";
+  if (normalized === "fast") return "studio.modelPicker.speed.fast";
+  if (normalized === "balanced") return "studio.modelPicker.speed.balanced";
+  if (normalized === "medium") return "studio.modelPicker.speed.medium";
+  if (normalized === "slower") return "studio.modelPicker.speed.slower";
+  return "studio.modelPicker.speed.standard";
+}
+
 const PROMPT_IMPROVE_TEXT =
   "Optimize this prompt for a professional AI-generated image. Improve detail, lighting, composition, and overall quality while preserving intent.";
 
@@ -607,6 +662,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [provider, setProvider] = useState(initialProvider);
   const [imageWorkflow, setImageWorkflow] = useState<ImageWorkflow>(initialImageWorkflow);
   const [videoWorkflow, setVideoWorkflow] = useState<VideoWorkflow>(initialVideoWorkflow);
+  const [videoSidebarCollapsed, setVideoSidebarCollapsed] = useState(false);
   const [audioWorkflow, setAudioWorkflow] = useState<AudioWorkflow>(initialAudioWorkflow);
   const [ratio, setRatio] = useState(mode === "image" ? "1:1" : mode === "avatar" ? initialProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
   const [imageSize, setImageSize] = useState("default_4_3");
@@ -677,6 +733,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [mobileStudioMenuOpen, setMobileStudioMenuOpen] = useState(false);
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [billingMessage, setBillingMessage] = useState("");
+  const [billingGenerationContext, setBillingGenerationContext] = useState<GenerationBillingContext | null>(null);
   const [loadingBillingItem, setLoadingBillingItem] = useState<string | null>(null);
   const [modelSelectOpen, setModelSelectOpen] = useState(false);
   const [toolbarModelSelectOpen, setToolbarModelSelectOpen] = useState(false);
@@ -811,9 +868,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           : "text-to-video"
     );
     setAudioWorkflow(mode === "audio" && workflowParam === "text-to-music" ? "text-to-music" : "text-to-audio");
+    const validProviderParam = isProviderAllowedForMode(providerParam, mode) ? providerParam : null;
+    const rememberedProvider = validProviderParam ? null : readRememberedModel(workflowParam);
     const nextProvider = providerForWorkflow(
       workflowParam,
-      isProviderAllowedForMode(providerParam, mode) ? providerParam : null
+      validProviderParam || rememberedProvider
     );
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
     if (modeChanged && !sp.get("prompt")) {
@@ -1162,6 +1221,64 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     dreamfaceIoEligible &&
     dreamfaceIoRemainingUnits >= dreamfaceIoUnits;
   const estCredits = usesDreamfaceIoFreeAllowance ? 0 : baseEstCredits;
+  const recommendedProvider = WORKFLOW_META[activeWorkflow].recommendedProvider;
+  const modelPickerOptions = options.map((option) => {
+    const meta = PROVIDER_META[option.value] || {
+      label: option.label,
+      shortLabel: option.label,
+      speed: "Standard",
+      quality: "Balanced",
+      bestFor: "General generation"
+    };
+    const optionDurationOptions = mode === "video" ? videoModelDurations(option.value) : [];
+    const optionAvatarPrompt = isAvatarWorkflow
+      ? promptForProviderChange(prompt, defaultPromptForProvider(option.value, st("studio.music.defaultPrompt")), st("studio.music.defaultPrompt"))
+      : prompt;
+    const optionDuration = isAvatarWorkflow
+      ? option.value === "dreamface-io-video" ? duration : avatarDurationFromPrompt(optionAvatarPrompt)
+      : mode === "video"
+        ? optionDurationOptions.includes(duration) ? duration : videoModelDefaultDuration(option.value)
+        : duration;
+    const optionResolution = mode === "image"
+      ? editResolution
+      : defaultVideoResolutionForProvider(option.value);
+    const optionGenerateAudio = mode === "video" && Boolean(videoModelConfig(option.value)?.showAudioControl) && generateAudio;
+    const optionImageSize = mode === "image" ? defaultImageSizeForProvider(option.value) : imageSize;
+    const rawOptionCredits = option.value === provider
+      ? estCredits
+      : estimateGenerationCredits({
+          mode: modeForPricing(mode),
+          provider: option.value,
+          imageSize: optionImageSize,
+          duration: optionDuration,
+          hasReferences: referenceImageUrls.length > 0,
+          resolution: optionResolution,
+          generateAudio: optionGenerateAudio,
+          quality: option.value === "chatgpt-image" ? "low" : "high",
+          numImages: mode === "image" ? numImages : 1,
+          enableWebSearch,
+          thinkingLevel,
+          promptText: prompt
+        });
+    const optionDreamfaceUnits = option.value === "dreamface-io-video"
+      ? Math.max(1, Math.ceil((Number.parseInt(optionDuration, 10) || 5) / 5))
+      : 0;
+    const optionCredits = option.value === "dreamface-io-video" && dreamfaceIoEligible && dreamfaceIoRemainingUnits >= optionDreamfaceUnits
+      ? 0
+      : rawOptionCredits;
+    const groupKey = modelPickerGroup(mode, activeWorkflow, option.value, recommendedProvider);
+    const badgeKey = modelPickerBadge(mode, option.value, recommendedProvider);
+    return {
+      value: option.value,
+      label: meta.label,
+      description: st(groupKey),
+      speed: st(modelPickerSpeedKey(meta.speed)),
+      quality: meta.quality,
+      credits: optionCredits,
+      badge: badgeKey ? st(badgeKey) : undefined,
+      group: st(groupKey)
+    };
+  });
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const hasMiniMaxLyrics = isInstrumental || lyricsOptimizer || musicLyrics.trim().length > 0;
@@ -1175,7 +1292,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
   const canSubmit = isPromptValid && hasRequiredReference;
-  const generateDisabled = accessToken ? !canSubmit || isSubmitting || !hasEnoughCredits : false;
+  const generateDisabled = accessToken ? !canSubmit || isSubmitting : false;
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const hasCompletedCreation = completedTasks.length > 0;
@@ -1238,7 +1355,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const showAvatarWorkbenchRedesign = !isAppsHome && !isProjectsView && isAvatarWorkflow;
   const showImageWorkbenchRedesign = showTextToImageTemplates || showImageToImageRedesign || showImageUtilityRedesign;
   const showModernWorkbenchRedesign = showImageWorkbenchRedesign || showVideoWorkbenchRedesign || showAudioWorkbenchRedesign || showAvatarWorkbenchRedesign;
-  const useWideStudioShell = showModernWorkbenchRedesign || isAppsHome || isProjectsView;
+  const showModernStudioChrome = showModernWorkbenchRedesign || isProjectsView || isAppsHome;
+  const useWideStudioShell = showModernStudioChrome || isAppsHome;
   const providerSettingsLabel =
     provider === "chatgpt-image"
       ? `${imageQuality} / ${outputFormat.toUpperCase()} / ${numImages}`
@@ -1305,7 +1423,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           : nextWorkflow === "avatar-video"
             ? "avatar"
             : "video";
-    const nextProvider = providerForWorkflow(nextWorkflow, provider);
+    const nextProvider = providerForWorkflow(nextWorkflow, readRememberedModel(nextWorkflow) || provider);
     if (nextMode === "image") {
       const nextImageWorkflow = nextWorkflow as ImageWorkflow;
       if (mode === "image" && imageWorkflow !== nextImageWorkflow) {
@@ -1390,6 +1508,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   function applyProvider(nextProvider: string, videoOverrides?: { duration?: string; ratio?: string }) {
     trackEvent("studio_model_selected", { mode, provider: nextProvider, workflow: activeWorkflow }, accessToken);
+    safeSetLocalStorage(lastModelStorageKey(activeWorkflow), nextProvider);
     setProvider(nextProvider);
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
     setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
@@ -1506,19 +1625,47 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     );
     setReferenceImageFiles((prev) => (isPromptlessImageWorkflow ? nextFiles.slice(0, 1) : [...prev, ...nextFiles].slice(0, 4)));
     if (mode === "image" && imageWorkflow === "text-to-image") {
+      const nextWorkflow: StudioWorkflow = "image-to-image";
+      const nextProvider = providerForWorkflow(nextWorkflow, readRememberedModel(nextWorkflow) || provider);
+      const nextImageSize = defaultImageSizeForProvider(nextProvider);
       setImageWorkflow("image-to-image");
-      if (!WORKFLOW_META["image-to-image"].providers.includes(provider)) {
-        setProvider(WORKFLOW_META["image-to-image"].recommendedProvider);
-      }
+      setProvider(nextProvider);
+      setImageSize(nextImageSize);
+      setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
+      setRatio(defaultImageRatioForProvider(nextProvider, nextImageSize));
+      const params = new URLSearchParams(sp.toString());
+      params.set("mode", "image");
+      params.set("workflow", nextWorkflow);
+      params.set("provider", nextProvider);
+      params.set("imageSize", nextImageSize);
+      params.set("ratio", defaultImageRatioForProvider(nextProvider, nextImageSize));
+      router.replace(`/studio?${params.toString()}`, { scroll: false });
     }
     if (mode === "avatar") {
       setVideoWorkflow("avatar-video");
     }
     if (mode === "video" && videoWorkflow !== "image-to-video") {
+      const nextWorkflow: StudioWorkflow = "image-to-video";
+      const nextProvider = providerForWorkflow(nextWorkflow, readRememberedModel(nextWorkflow) || provider);
+      const nextDurations = videoModelDurations(nextProvider);
+      const nextDuration = nextDurations.includes(duration) ? duration : videoModelDefaultDuration(nextProvider);
+      const nextRatios = videoModelRatios(nextProvider, nextWorkflow);
+      const nextRatio = nextRatios.includes(ratio) ? ratio : nextRatios.includes("auto") ? "auto" : nextRatios[0] || "16:9";
+      const nextResolution = defaultVideoResolutionForProvider(nextProvider);
       setVideoWorkflow("image-to-video");
-      if (!WORKFLOW_META["image-to-video"].providers.includes(provider)) {
-        setProvider(WORKFLOW_META["image-to-video"].recommendedProvider);
-      }
+      setProvider(nextProvider);
+      setDuration(nextDuration);
+      setRatio(nextRatio);
+      setVideoResolution(nextResolution);
+      const params = new URLSearchParams(sp.toString());
+      params.set("mode", "video");
+      params.set("workflow", nextWorkflow);
+      params.set("provider", nextProvider);
+      params.set("duration", nextDuration);
+      params.set("ratio", nextRatio);
+      if (videoModelConfig(nextProvider)?.showResolutionControl) params.set("resolution", nextResolution);
+      else params.delete("resolution");
+      router.replace(`/studio?${params.toString()}`, { scroll: false });
     }
     trackEvent(
       "studio_reference_uploaded",
@@ -1680,6 +1827,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   async function handleGenerate() {
     if (!canSubmit || isSubmitting) {
+      return;
+    }
+    if (accessToken && !hasEnoughCredits) {
+      openInsufficientCreditsModal();
       return;
     }
 
@@ -2105,9 +2256,31 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   function openBillingModal(source: string) {
     setSelectedBillingCycles(Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, "monthly" as BillingCycle])));
+    setBillingGenerationContext(null);
     setBillingModalOpen(true);
     setBillingMessage("");
     trackEvent("studio_billing_modal_opened", { source, balance: creditBalance, mode, provider }, accessToken);
+  }
+
+  function openInsufficientCreditsModal() {
+    if (typeof creditBalance !== "number") return;
+    const context: GenerationBillingContext = {
+      requiredCredits: estCredits,
+      balance: creditBalance,
+      providerLabel: selectedProviderMeta.label
+    };
+    setSelectedBillingCycles(Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, "monthly" as BillingCycle])));
+    setBillingGenerationContext(context);
+    setBillingMessage("");
+    setBillingModalOpen(true);
+    trackEvent("generation_insufficient_credits_shown", {
+      mode,
+      provider,
+      workflow: activeWorkflow,
+      required_credits: estCredits,
+      balance: creditBalance,
+      shortfall: Math.max(0, estCredits - creditBalance)
+    }, accessToken);
   }
 
   function improveTextToImagePrompt() {
@@ -2118,22 +2291,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     trackEvent("studio_prompt_improved", { mode, provider, workflow: activeWorkflow }, accessToken);
   }
 
-  useEffect(() => {
-    if (!billingModalOpen || typeof window === "undefined" || window.innerWidth >= 768) return;
-    const frame = window.requestAnimationFrame(() => {
-      const scrollContainer = billingModalScrollRef.current;
-      const target = premiumLitePlanRef.current;
-      if (!scrollContainer || !target) return;
-      const containerRect = scrollContainer.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      scrollContainer.scrollTop += targetRect.top - containerRect.top - 12;
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [billingModalOpen]);
-
   async function startStudioCreditCheckout(packId: string) {
+    const checkoutSurface = billingGenerationContext ? "generation_insufficient_modal" : "studio_modal";
     if (!accessToken) {
-      trackEvent("checkout_login_required", { pack_id: packId, surface: "studio_modal" });
+      trackEvent("checkout_login_required", { pack_id: packId, surface: checkoutSurface });
       const nextPath = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?view=home";
       router.push(`/auth?next=${encodeURIComponent(nextPath)}`);
       return;
@@ -2144,7 +2305,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setBillingMessage("");
     trackEvent(
       "checkout_started",
-      { surface: "studio_modal", pack_id: packId, credits: pack?.credits || null, amount_cents: pack?.amountCents || null },
+      { surface: checkoutSurface, pack_id: packId, credits: pack?.credits || null, amount_cents: pack?.amountCents || null },
       accessToken
     );
 
@@ -2169,8 +2330,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }
 
   async function startStudioSubscriptionCheckout(planId: string, cycle: BillingCycle) {
+    const checkoutSurface = billingGenerationContext ? "generation_insufficient_modal" : "studio_modal";
     if (!accessToken) {
-      trackEvent("checkout_login_required", { plan_id: planId, cycle, surface: "studio_modal" });
+      trackEvent("checkout_login_required", { plan_id: planId, cycle, surface: checkoutSurface });
       const nextPath = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?view=home";
       router.push(`/auth?next=${encodeURIComponent(nextPath)}`);
       return;
@@ -2183,7 +2345,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     trackEvent(
       "subscription_checkout_started",
       {
-        surface: "studio_modal",
+        surface: checkoutSurface,
         plan_id: planId,
         cycle,
         credits: price?.credits || null,
@@ -2214,15 +2376,137 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     }
   }
 
+  const imageSettingsPanel = showImageWorkbenchRedesign ? (
+    <ImageSettings
+      provider={provider}
+      providerOptions={modelPickerOptions}
+      utilityWorkflow={showImageUtilityRedesign ? imageWorkflow === "enhance-cleanup" ? "enhance-cleanup" : "background-remove" : null}
+      isImageToImage={showImageToImageRedesign}
+      isNanoBanana={isNanoBananaProvider(provider)}
+      isNanoBananaLite={isNanoBananaLiteProvider(provider)}
+      ratio={ratio}
+      ratioOptions={provider === "nano-banana-pro" || provider === "nano-banana-2-lite" ? NANO_ASPECT_RATIO_OPTIONS.filter((item) => !["4:1", "1:4", "8:1", "1:8"].includes(item)) : NANO_ASPECT_RATIO_OPTIONS}
+      imageSize={imageSize}
+      imageSizePresets={IMAGE_SIZE_PRESETS}
+      outputFormat={outputFormat}
+      imageQuality={imageQuality}
+      editResolution={editResolution}
+      numInferenceSteps={numInferenceSteps}
+      guidanceScale={guidanceScale}
+      numImages={numImages}
+      seed={seed}
+      enableSafetyChecker={enableSafetyChecker}
+      acceleration={acceleration}
+      safetyTolerance={safetyTolerance}
+      limitGenerations={limitGenerations}
+      enableWebSearch={enableWebSearch}
+      thinkingLevel={thinkingLevel}
+      systemPrompt={systemPrompt}
+      generateDisabled={generateDisabled}
+      isSubmitting={isSubmitting}
+      isAuthenticated={Boolean(accessToken)}
+      estimatedCredits={estCredits}
+      creditBalance={creditBalance}
+      translate={st}
+      onProviderChange={applyProvider}
+      onRatioChange={(value) => {
+        trackEvent("studio_size_selected", { mode, provider, ratio: value }, accessToken);
+        setRatio(value);
+      }}
+      onImageSizeChange={(value) => {
+        trackEvent("studio_size_selected", { mode, provider, image_size: value, ratio: ratioFromImageSize(value) }, accessToken);
+        setImageSize(value);
+        setRatio(ratioFromImageSize(value));
+      }}
+      onOutputFormatChange={setOutputFormat}
+      onImageQualityChange={setImageQuality}
+      onEditResolutionChange={setEditResolution}
+      onNumInferenceStepsChange={setNumInferenceSteps}
+      onGuidanceScaleChange={setGuidanceScale}
+      onNumImagesChange={setNumImages}
+      onSeedChange={setSeed}
+      onEnableSafetyCheckerChange={setEnableSafetyChecker}
+      onAccelerationChange={setAcceleration}
+      onSafetyToleranceChange={setSafetyTolerance}
+      onLimitGenerationsChange={setLimitGenerations}
+      onEnableWebSearchChange={setEnableWebSearch}
+      onThinkingLevelChange={setThinkingLevel}
+      onSystemPromptChange={setSystemPrompt}
+      onGenerate={handleGenerateClick}
+    />
+  ) : null;
+
+  const audioSettingsPanel = showAudioWorkbenchRedesign ? (
+    <AudioSettings
+      provider={provider}
+      providerOptions={modelPickerOptions}
+      isElevenLabs={isElevenLabsAudio}
+      audioVoiceOptions={audioVoiceOptions}
+      languageOptions={ELEVENLABS_LANGUAGE_OPTIONS}
+      voiceGenderOptions={ELEVENLABS_VOICE_GENDER_OPTIONS}
+      ttsVoice={ttsVoice}
+      ttsLanguageCode={ttsLanguageCode}
+      ttsTimestamps={ttsTimestamps}
+      audioVoiceGender={audioVoiceGender}
+      ttsStability={ttsStability}
+      textNormalization={textNormalization}
+      textNormalizationOptions={TEXT_NORMALIZATION_OPTIONS}
+      musicSampleRate={musicSampleRate}
+      musicBitrate={musicBitrate}
+      musicFormat={musicFormat}
+      estimatedCredits={estCredits}
+      creditBalance={creditBalance}
+      generateDisabled={generateDisabled}
+      isSubmitting={isSubmitting}
+      isAuthenticated={Boolean(accessToken)}
+      translate={st}
+      onProviderChange={applyProvider}
+      onTtsVoiceChange={setTtsVoice}
+      onTtsLanguageCodeChange={setTtsLanguageCode}
+      onTtsTimestampsChange={setTtsTimestamps}
+      onAudioVoiceGenderChange={setAudioVoiceGender}
+      onTtsStabilityChange={setTtsStability}
+      onTextNormalizationChange={setTextNormalization}
+      onMusicSampleRateChange={setMusicSampleRate}
+      onMusicBitrateChange={setMusicBitrate}
+      onMusicFormatChange={setMusicFormat}
+      onGenerate={handleGenerateClick}
+    />
+  ) : null;
+
+  const avatarSettingsPanel = showAvatarWorkbenchRedesign ? (
+    <AvatarSettings
+      isDreamfaceTalkingAvatar={isDreamfaceTalkingAvatar}
+      duration={duration}
+      durationOptions={videoDurationOptions}
+      ratio={ratio}
+      ratioOptions={videoRatioOptions}
+      automaticDuration={avatarDuration}
+      scriptTooLong={avatarScriptTooLong}
+      estimatedCredits={estCredits}
+      creditBalance={creditBalance}
+      generateDisabled={generateDisabled}
+      isSubmitting={isSubmitting}
+      isAuthenticated={Boolean(accessToken)}
+      translate={st}
+      onDurationChange={setDuration}
+      onRatioChange={setRatio}
+      onGenerate={handleGenerateClick}
+    />
+  ) : null;
+  const avatarModelSelector = showAvatarWorkbenchRedesign ? (
+    <ModelPicker value={provider} options={modelPickerOptions} translate={st} onChange={applyProvider} />
+  ) : null;
+
   return (
     <main
       dir={isRtlLocale(studioI18n.locale) ? "rtl" : "ltr"}
-      className="relative min-h-screen w-full max-w-full overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10 text-[#1f2430]"
+      className={`relative min-h-screen w-full max-w-full overflow-x-hidden text-[#1f2430] ${showModernStudioChrome ? "bg-[radial-gradient(1200px_500px_at_92%_-10%,rgba(106,90,249,0.05),transparent_45%),radial-gradient(900px_380px_at_10%_-20%,rgba(176,77,255,0.04),transparent_38%),#fafafc]" : "bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10"}`}
     >
       <div className="pointer-events-none absolute left-[18%] top-10 h-72 w-72 rounded-full bg-[#bde0fe]/30 blur-3xl" />
       <div className="pointer-events-none absolute right-[14%] top-6 h-80 w-80 rounded-full bg-[#ffc8dd]/24 blur-3xl" />
-      <div className={useWideStudioShell ? "mx-auto my-3 w-[calc(100vw-24px)] max-w-[1760px] md:my-7 md:w-[calc(100vw-56px)]" : "mx-auto w-full max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5"}>
-        {!authReady ? (
+      <div className={showModernStudioChrome ? "w-full" : useWideStudioShell ? "mx-auto my-3 w-[calc(100vw-24px)] max-w-[1760px] md:my-7 md:w-[calc(100vw-56px)]" : "mx-auto w-full max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5"}>
+        {!authReady && !showModernStudioChrome ? (
           <section className="mb-4 rounded-2xl border border-black/[0.06] bg-white/82 p-6 text-sm text-[#667085] shadow-sm">
             {st("studio.checkingSession")}
           </section>
@@ -2234,10 +2518,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           loadingItem={loadingBillingItem}
           message={billingMessage}
           creditBalance={creditBalance}
+          generationContext={billingGenerationContext}
           selectedCycles={selectedBillingCycles}
           scrollRef={billingModalScrollRef}
           premiumLitePlanRef={premiumLitePlanRef}
-          onClose={() => setBillingModalOpen(false)}
+          onClose={() => {
+            setBillingModalOpen(false);
+            setBillingGenerationContext(null);
+          }}
           onAllCyclesChange={(cycle) =>
             setSelectedBillingCycles(Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, cycle])))
           }
@@ -2248,12 +2536,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           onCreditCheckout={startStudioCreditCheckout}
         />
 
-        <section className={`relative w-full max-w-full overflow-hidden border bg-white/72 shadow-[0_20px_60px_rgba(71,85,105,0.10)] backdrop-blur-2xl md:shadow-[0_32px_120px_rgba(71,85,105,0.14)] ${showModernWorkbenchRedesign ? "min-h-[calc(100vh-24px)] rounded-[1.75rem] border-[#8092b2]/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.62),rgba(255,255,255,0.38))] md:min-h-[calc(100vh-56px)] md:rounded-[2.375rem]" : "min-h-[calc(100vh-1rem)] rounded-[1.35rem] border-black/[0.06] md:rounded-[2.25rem]"}`}>
+        <section className={showModernStudioChrome ? "relative min-h-screen w-full max-w-full bg-transparent" : "relative min-h-[calc(100vh-1rem)] w-full max-w-full overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-white/72 shadow-[0_20px_60px_rgba(71,85,105,0.10)] backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-[0_32px_120px_rgba(71,85,105,0.14)]"}>
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
-          <div className="grid min-h-[calc(100vh-1rem)] min-w-0 lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]">
+          <div className={`grid min-h-screen min-w-0 ${showModernStudioChrome ? videoSidebarCollapsed ? "lg:grid-cols-[76px_minmax(0,1fr)]" : "lg:grid-cols-[220px_minmax(0,1fr)]" : "lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]"}`}>
             <StudioSidebar
               t={st}
-              modern={showModernWorkbenchRedesign}
+              modern={showModernStudioChrome}
+              videoStudio={showModernStudioChrome}
+              collapsed={videoSidebarCollapsed}
+              creditBalance={creditBalance}
+              signedIn={Boolean(accessToken)}
+              onCollapsedChange={setVideoSidebarCollapsed}
               mode={mode}
               isAppsHome={isAppsHome}
               isProjectsView={isProjectsView}
@@ -2263,10 +2556,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
             />
 
             <StudioBottomNavigation t={st} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} />
-            <div className={`relative min-w-0 max-w-full ${showModernWorkbenchRedesign ? "px-[18px] pb-[90px] pt-6 md:px-[clamp(22px,3vw,52px)] md:pb-[42px] md:pt-7" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
+            <div className={`relative min-w-0 max-w-full ${showModernStudioChrome ? "px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-[22px] lg:pb-[22px]" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
               <StudioHeader
                 t={st}
-                modern={showModernWorkbenchRedesign}
+                modern={showModernStudioChrome}
+                videoStudio={showModernStudioChrome}
                 mode={mode}
                 isAppsHome={isAppsHome}
                 isProjectsView={isProjectsView}
@@ -2283,7 +2577,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 onBillingOpen={openBillingModal}
                 onAudioWorkflowSelect={applyWorkflow}
               />
-              {creditNote ? (
+              {creditNote && !showModernStudioChrome ? (
                 <p className="mt-3 rounded-2xl border border-black/[0.06] bg-white/76 px-4 py-3 text-xs font-semibold text-[#667085] shadow-sm">
                   {!accessToken && creditNote === st("studio.status.signInCredit") ? (
                     <>
@@ -2315,7 +2609,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               ) : null}
 
 
-              <div className={`${showModernWorkbenchRedesign ? "mx-auto mb-6 w-full text-center" : "mx-auto mt-5 max-w-5xl text-center md:mt-16"} ${isAppsHome || isProjectsView ? "hidden" : ""}`}>
+              <div className={`${showModernWorkbenchRedesign ? "w-full" : "mx-auto mt-5 max-w-5xl text-center md:mt-16"} ${isAppsHome || isProjectsView ? "hidden" : ""}`}>
               <WorkflowSwitcher
                 t={st}
                 mode={mode}
@@ -2332,92 +2626,95 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 hasReferenceImages={Boolean(referenceImageUrls.length)}
                 onWorkflowChange={applyWorkflow}
               />
-                <div className={`overflow-visible border border-black/[0.06] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.09)] md:shadow-[0_28px_80px_rgba(15,23,42,0.12)] ${showModernWorkbenchRedesign ? `${TEXT_IMAGE_PAGE_INNER_CLASS} mt-7 rounded-[28px] sm:rounded-[34px]` : "mt-4 rounded-[1.7rem] sm:mt-5 md:mt-7 md:rounded-[2rem]"}`}>
+                <div className={showModernWorkbenchRedesign ? "w-full max-w-none overflow-visible" : "mt-4 overflow-visible rounded-[1.7rem] border border-black/[0.06] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.09)] sm:mt-5 md:mt-7 md:rounded-[2rem] md:shadow-[0_28px_80px_rgba(15,23,42,0.12)]"}>
                   <div className={showModernWorkbenchRedesign ? "text-left" : "p-5 text-left md:p-7"}>
                     {showImageWorkbenchRedesign ? (
-                      <ImageWorkbench
-                        workflow={imageWorkflow}
-                        canSubmit={canSubmit}
-                        prompt={prompt}
-                        referenceImagesText={referenceImagesText}
-                        referenceImageUrls={referenceImageUrls}
-                        isPromptlessWorkflow={isPromptlessImageWorkflow}
-                        outputFormat={outputFormat}
-                        templatesUrl="/gallery"
+                      <UnifiedWorkbenchLayout
+                        mode="image"
+                        tasks={tasks}
                         translate={st}
-                        onPromptChange={setPrompt}
-                        onImprovePrompt={improveTextToImagePrompt}
-                        onReferenceImagesTextChange={setReferenceImagesText}
-                        onReferenceFiles={handleReferenceFiles}
-                        onReferenceClear={() => {
-                          setReferenceImagesText("");
-                          setReferenceImageFiles([]);
-                        }}
-                        onFileError={() => setStatusText(st("studio.status.fileReadFailed"))}
-                      />
-                    ) : showAudioWorkbenchRedesign ? (
-                      <AudioWorkbench
-                        workflow={audioWorkflow}
-                        canSubmit={canSubmit}
-                        prompt={prompt}
-                        isMiniMaxMusic={isMiniMaxMusic}
-                        musicAdvancedOpen={musicAdvancedOpen}
-                        isInstrumental={isInstrumental}
-                        lyricsOptimizer={lyricsOptimizer}
-                        musicLyrics={musicLyrics}
-                        translate={st}
-                        onPromptChange={setPrompt}
-                        onAdvancedOpenChange={setMusicAdvancedOpen}
-                        onInstrumentalChange={setIsInstrumental}
-                        onLyricsOptimizerChange={setLyricsOptimizer}
-                        onMusicLyricsChange={setMusicLyrics}
-                      />
-                    ) : showVideoWorkbenchRedesign ? (
-                      <VideoWorkbench
-                        workflow={videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video"}
-                        canSubmit={canSubmit}
-                        prompt={prompt}
-                        referenceImageUrls={referenceImageUrls}
-                        translate={st}
-                        onPromptChange={setPrompt}
-                        onClear={() => {
-                          setPrompt("");
-                          if (videoWorkflow === "image-to-video") {
+                        editor={<ImageWorkbench
+                          workflow={imageWorkflow}
+                          canSubmit={canSubmit}
+                          prompt={prompt}
+                          referenceImagesText={referenceImagesText}
+                          referenceImageUrls={referenceImageUrls}
+                          isPromptlessWorkflow={isPromptlessImageWorkflow}
+                          outputFormat={outputFormat}
+                          templatesUrl="/gallery"
+                          translate={st}
+                          onPromptChange={setPrompt}
+                          onImprovePrompt={improveTextToImagePrompt}
+                          onReferenceImagesTextChange={setReferenceImagesText}
+                          onReferenceFiles={handleReferenceFiles}
+                          onReferenceClear={() => {
                             setReferenceImagesText("");
                             setReferenceImageFiles([]);
-                          }
-                        }}
-                        onReferenceFiles={handleReferenceFiles}
-                        onFileError={() => setStatusText(st("studio.status.fileReadFailed"))}
+                          }}
+                          onFileError={() => setStatusText(st("studio.status.fileReadFailed"))}
+                        />}
+                        settings={imageSettingsPanel}
                       />
-                    ) : showAvatarWorkbenchRedesign ? (
-                      <AvatarWorkbench
-                        canSubmit={canSubmit}
-                        prompt={prompt}
-                        referenceImagesText={referenceImagesText}
-                        referenceImageUrls={referenceImageUrls}
-                        isDreamfaceTalkingAvatar={isDreamfaceTalkingAvatar}
-                        previewVideoUrl={KLING_AVATAR_PREVIEW_VIDEO_URL}
-                        avatarScriptTooLong={avatarScriptTooLong}
-                        avatarScriptMeta={avatarScriptMeta}
-                        avatarDuration={avatarDuration}
-                        avatarVoiceGender={avatarVoiceGender}
-                        avatarVoiceOptions={avatarVoiceOptions}
-                        ttsVoice={ttsVoice}
-                        ttsLanguageCode={ttsLanguageCode}
-                        ttsStability={ttsStability}
-                        voiceGenderOptions={ELEVENLABS_VOICE_GENDER_OPTIONS}
-                        languageOptions={ELEVENLABS_LANGUAGE_OPTIONS}
+                    ) : showAudioWorkbenchRedesign ? (
+                      <UnifiedWorkbenchLayout
+                        mode="audio"
+                        tasks={tasks}
                         translate={st}
-                        onPromptChange={setPrompt}
-                        onReferenceImagesTextChange={setReferenceImagesText}
-                        onReferenceFiles={handleReferenceFiles}
-                        onFileError={() => setStatusText(st("studio.status.fileReadFailed"))}
-                        onStartImageGuide={startAvatarImageGuide}
-                        onAvatarVoiceGenderChange={setAvatarVoiceGender}
-                        onTtsVoiceChange={setTtsVoice}
-                        onTtsLanguageCodeChange={setTtsLanguageCode}
-                        onTtsStabilityChange={setTtsStability}
+                        editor={<AudioWorkbench
+                          workflow={audioWorkflow}
+                          canSubmit={canSubmit}
+                          prompt={prompt}
+                          isMiniMaxMusic={isMiniMaxMusic}
+                          musicAdvancedOpen={musicAdvancedOpen}
+                          isInstrumental={isInstrumental}
+                          lyricsOptimizer={lyricsOptimizer}
+                          musicLyrics={musicLyrics}
+                          translate={st}
+                          onPromptChange={setPrompt}
+                          onAdvancedOpenChange={setMusicAdvancedOpen}
+                          onInstrumentalChange={setIsInstrumental}
+                          onLyricsOptimizerChange={setLyricsOptimizer}
+                          onMusicLyricsChange={setMusicLyrics}
+                        />}
+                        settings={audioSettingsPanel}
+                      />
+                    ) : showVideoWorkbenchRedesign ? (
+                      null
+                    ) : showAvatarWorkbenchRedesign ? (
+                      <UnifiedWorkbenchLayout
+                        mode="avatar"
+                        tasks={tasks}
+                        translate={st}
+                        modelSelector={avatarModelSelector}
+                        avatarSamplePreviewUrl={!isDreamfaceTalkingAvatar ? KLING_AVATAR_PREVIEW_VIDEO_URL : undefined}
+                        editor={<AvatarWorkbench
+                          canSubmit={canSubmit}
+                          prompt={prompt}
+                          referenceImagesText={referenceImagesText}
+                          referenceImageUrls={referenceImageUrls}
+                          isDreamfaceTalkingAvatar={isDreamfaceTalkingAvatar}
+                          avatarScriptTooLong={avatarScriptTooLong}
+                          avatarScriptMeta={avatarScriptMeta}
+                          avatarDuration={avatarDuration}
+                          avatarVoiceGender={avatarVoiceGender}
+                          avatarVoiceOptions={avatarVoiceOptions}
+                          ttsVoice={ttsVoice}
+                          ttsLanguageCode={ttsLanguageCode}
+                          ttsStability={ttsStability}
+                          voiceGenderOptions={ELEVENLABS_VOICE_GENDER_OPTIONS}
+                          languageOptions={ELEVENLABS_LANGUAGE_OPTIONS}
+                          translate={st}
+                          onPromptChange={setPrompt}
+                          onReferenceImagesTextChange={setReferenceImagesText}
+                          onReferenceFiles={handleReferenceFiles}
+                          onFileError={() => setStatusText(st("studio.status.fileReadFailed"))}
+                          onStartImageGuide={startAvatarImageGuide}
+                          onAvatarVoiceGenderChange={setAvatarVoiceGender}
+                          onTtsVoiceChange={setTtsVoice}
+                          onTtsLanguageCodeChange={setTtsLanguageCode}
+                          onTtsStabilityChange={setTtsStability}
+                        />}
+                        settings={avatarSettingsPanel}
                       />
                     ) : isPromptlessImageWorkflow ? (
                       <div
@@ -2902,6 +3199,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             ? st("studio.generate.dailyPaid", { credits: estCredits })
                             : st("studio.generate.estimate", { credits: estCredits })
                         : st("studio.generate.estimate", { credits: estCredits })}
+                      <span className="ms-1.5 font-bold text-[#7868df]">· ≈{formatApproximateCreditValue(estCredits)}</span>
                     </span>
                     <button
                       type="button"
@@ -2920,7 +3218,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       </p>
                     ) : null}
                   </div>
-                  {provider === "dreamface-io-video" ? (
+                  {provider === "dreamface-io-video" && !showVideoWorkbenchRedesign ? (
                     <p className="border-t border-black/[0.05] bg-amber-50/55 px-5 py-2.5 text-center text-xs font-medium text-amber-800/80 md:px-7">
                       {st("studio.dreamfaceIo.qualityHint")}
                     </p>
@@ -3020,6 +3318,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             characters: audioCharacterCount.toLocaleString(),
                             credits: estCredits
                           })}
+                          <span className="ms-1.5 font-bold text-[#7868df]">· ≈{formatApproximateCreditValue(estCredits)}</span>
                         </p>
                       </div>
                       </>
@@ -3098,13 +3397,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </div>
                       )}
                     </div>
-                  ) : showImageWorkbenchRedesign ? (
+                  ) : (showImageWorkbenchRedesign || showAudioWorkbenchRedesign || showAvatarWorkbenchRedesign) ? null : showImageWorkbenchRedesign ? (
                     <ImageSettings
                       provider={provider}
-                      providerOptions={options.map((option) => ({
-                        value: option.value,
-                        label: PROVIDER_META[option.value]?.label || option.label
-                      }))}
+                      providerOptions={modelPickerOptions}
                       utilityWorkflow={
                         showImageUtilityRedesign
                           ? imageWorkflow === "enhance-cleanup"
@@ -3141,6 +3437,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       isSubmitting={isSubmitting}
                       isAuthenticated={Boolean(accessToken)}
                       estimatedCredits={estCredits}
+                      creditBalance={creditBalance}
                       translate={st}
                       onProviderChange={applyProvider}
                       onRatioChange={(value) => {
@@ -3176,10 +3473,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   ) : showAudioWorkbenchRedesign ? (
                     <AudioSettings
                       provider={provider}
-                      providerOptions={options.map((option) => ({
-                        value: option.value,
-                        label: PROVIDER_META[option.value]?.label || option.label
-                      }))}
+                      providerOptions={modelPickerOptions}
                       isElevenLabs={isElevenLabsAudio}
                       audioVoiceOptions={audioVoiceOptions}
                       languageOptions={ELEVENLABS_LANGUAGE_OPTIONS}
@@ -3195,6 +3489,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       musicBitrate={musicBitrate}
                       musicFormat={musicFormat}
                       estimatedCredits={estCredits}
+                      creditBalance={creditBalance}
                       generateDisabled={generateDisabled}
                       isSubmitting={isSubmitting}
                       isAuthenticated={Boolean(accessToken)}
@@ -3214,11 +3509,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                   ) : showVideoWorkbenchRedesign ? (
                     <VideoSettings
                       workflow={configuredVideoWorkflow}
+                      prompt={prompt}
+                      referenceImageUrls={referenceImageUrls}
                       provider={provider}
-                      providerOptions={options.map((option) => ({
-                        value: option.value,
-                        label: PROVIDER_META[option.value]?.label || option.label
-                      }))}
+                      providerOptions={modelPickerOptions}
                       duration={duration}
                       durationOptions={videoDurationOptions}
                       ratio={ratio}
@@ -3229,10 +3523,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       resolutionOptions={videoResolutionOptions}
                       showAudioControl={showVideoAudioControl}
                       generateAudio={generateAudio}
+                      seed={seed}
                       estimatedCredits={estCredits}
+                      creditBalance={creditBalance}
                       generateDisabled={generateDisabled}
                       isSubmitting={isSubmitting}
                       isAuthenticated={Boolean(accessToken)}
+                      recentTasks={tasks}
                       promptShowcases={[
                         {
                           videoUrl: YOUNG_KOREAN_WOMAN_VIDEO_URL,
@@ -3254,27 +3551,19 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         }
                       ]}
                       translate={st}
+                      onPromptChange={setPrompt}
+                      onReferenceClear={() => {
+                        setReferenceImagesText("");
+                        setReferenceImageFiles([]);
+                      }}
+                      onReferenceFiles={handleReferenceFiles}
+                      onFileError={() => setStatusText(st("studio.status.fileReadFailed"))}
                       onProviderChange={applyProvider}
                       onDurationChange={setDuration}
                       onRatioChange={setRatio}
                       onResolutionChange={setVideoResolution}
                       onGenerateAudioChange={setGenerateAudio}
-                      onUseModelExample={(example, examplePrompt) => {
-                        setPrompt(examplePrompt);
-                        if (example.sourceImageUrl) {
-                          setReferenceImagesText(example.sourceImageUrl);
-                          setReferenceImageFiles([]);
-                        }
-                        setDuration(example.settings.duration);
-                        setRatio(example.settings.ratio);
-                        if (example.settings.resolution) {
-                          setVideoResolution(example.settings.resolution);
-                        }
-                        if (example.settings.generateAudio !== undefined) {
-                          setGenerateAudio(example.settings.generateAudio);
-                        }
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
+                      onSeedChange={setSeed}
                       onUsePromptShowcase={(showcase) => {
                         applyProvider("seedance-video", { duration: showcase.duration, ratio: "16:9" });
                         setPrompt(showcase.prompt);
@@ -3284,11 +3573,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     />
                   ) : showAvatarWorkbenchRedesign ? (
                     <AvatarSettings
-                      provider={provider}
-                      providerOptions={options.map((option) => ({
-                        value: option.value,
-                        label: PROVIDER_META[option.value]?.label || option.label
-                      }))}
                       isDreamfaceTalkingAvatar={isDreamfaceTalkingAvatar}
                       duration={duration}
                       durationOptions={videoDurationOptions}
@@ -3297,11 +3581,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       automaticDuration={avatarDuration}
                       scriptTooLong={avatarScriptTooLong}
                       estimatedCredits={estCredits}
+                      creditBalance={creditBalance}
                       generateDisabled={generateDisabled}
                       isSubmitting={isSubmitting}
                       isAuthenticated={Boolean(accessToken)}
                       translate={st}
-                      onProviderChange={applyProvider}
                       onDurationChange={setDuration}
                       onRatioChange={setRatio}
                       onGenerate={handleGenerateClick}
@@ -3607,13 +3891,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 {showTextToImageTemplates ? (
                   <ImagePromptGallery
                     translate={st}
-                    onUsePrompt={(item) => {
-                      setPrompt(item.prompt);
-                      setImageWorkflow("text-to-image");
-                      setReferenceImagesText("");
-                      setReferenceImageFiles([]);
-                      trackEvent("gallery_template_applied", { gallery_item_id: item.id, category: item.category, surface: "studio" }, accessToken);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    onPromptCopied={(item) => {
+                      trackEvent("gallery_prompt_copied", { gallery_item_id: item.id, category: item.category, surface: "studio" }, accessToken);
                     }}
                   />
                 ) : null}

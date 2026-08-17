@@ -17,6 +17,7 @@ export type StudioIconName =
   | "motion"
   | "cleanup"
   | "audio"
+  | "billing"
   | "globe"
   | "menu"
   | "x"
@@ -32,22 +33,24 @@ type NavigationState = {
 };
 
 type NavigationItem = {
-  id: "home" | StudioNavigationMode | "projects";
+  id: "home" | StudioNavigationMode | "projects" | "billing";
   label: string;
   href: string;
   icon: StudioIconName;
+  visualIcon: string;
   active: boolean;
 };
 
 function navigationItems(t: Translate, state: NavigationState, homeLabelKey = "studio.nav.home"): NavigationItem[] {
   const inWorkbench = !state.isAppsHome && !state.isProjectsView;
   return [
-    { id: "home", label: t(homeLabelKey), href: "/studio?view=home", icon: "home", active: state.isAppsHome },
-    { id: "avatar", label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "video", active: inWorkbench && state.mode === "avatar" },
-    { id: "image", label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image", active: inWorkbench && state.mode === "image" },
-    { id: "video", label: t("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video", active: inWorkbench && state.mode === "video" },
-    { id: "audio", label: t("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio", active: inWorkbench && state.mode === "audio" },
-    { id: "projects", label: t("studio.nav.projects"), href: "/studio?view=projects", icon: "projects", active: state.isProjectsView }
+    { id: "home", label: t(homeLabelKey), href: "/studio?view=home", icon: "home", visualIcon: "✦", active: state.isAppsHome },
+    { id: "avatar", label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "video", visualIcon: "💬", active: inWorkbench && state.mode === "avatar" },
+    { id: "image", label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image", visualIcon: "🖼️", active: inWorkbench && state.mode === "image" },
+    { id: "video", label: t("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video", visualIcon: "🎞️", active: inWorkbench && state.mode === "video" },
+    { id: "audio", label: t("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio", visualIcon: "🎵", active: inWorkbench && state.mode === "audio" },
+    { id: "projects", label: t("studio.nav.projects"), href: "/studio?view=projects", icon: "projects", visualIcon: "📁", active: state.isProjectsView },
+    { id: "billing", label: t("studio.billing.open"), href: "/billing", icon: "billing", visualIcon: "💳", active: false }
   ];
 }
 
@@ -73,6 +76,7 @@ export function StudioIcon({ name, className = "h-5 w-5" }: { name: StudioIconNa
   if (name === "motion") return <svg {...common}><path d="M5 6h9a5 5 0 0 1 0 10H8" /><path d="m8 12 4 4-4 4" /><path d="M4 10h5" /></svg>;
   if (name === "cleanup") return <svg {...common}><path d="m5 19 10.5-10.5a2.1 2.1 0 0 1 3 3L8 22H5Z" /><path d="m13 11 3 3" /><path d="M6 5h.01" /><path d="M10 3h.01" /><path d="M4 9h.01" /></svg>;
   if (name === "audio") return <svg {...common}><path d="M9 18V5l10-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="16" cy="16" r="3" /></svg>;
+  if (name === "billing") return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M3 10h18" /><path d="M7 15h4" /></svg>;
   if (name === "globe") return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>;
   if (name === "menu") return <svg {...common}><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h16" /></svg>;
   if (name === "x") return <svg {...common}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>;
@@ -82,10 +86,15 @@ export function StudioIcon({ name, className = "h-5 w-5" }: { name: StudioIconNa
 type StudioSidebarProps = NavigationState & {
   t: Translate;
   modern: boolean;
+  videoStudio?: boolean;
+  collapsed?: boolean;
+  creditBalance?: number | null;
+  signedIn?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
   onImageWorkflowSelected: (workflowLabel: string) => void;
 };
 
-export function StudioSidebar({ t, modern, onImageWorkflowSelected, ...state }: StudioSidebarProps) {
+export function StudioSidebar({ t, modern, videoStudio = false, collapsed = false, creditBalance = null, signedIn = false, onCollapsedChange, onImageWorkflowSelected, ...state }: StudioSidebarProps) {
   const items = navigationItems(t, state);
   const imageWorkflows = [
     { label: t("studio.workflow.text-to-image"), body: t("studio.home.quick.textImage"), href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image" },
@@ -93,6 +102,36 @@ export function StudioSidebar({ t, modern, onImageWorkflowSelected, ...state }: 
     { label: t("studio.workflow.enhance-cleanup"), body: t("studio.home.quick.enhance"), href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image" },
     { label: t("studio.workflow.background-remove"), body: t("studio.home.quick.remove"), href: "/studio?mode=image&workflow=background-remove&provider=bria-background-remove" }
   ];
+
+  if (videoStudio) {
+    const videoItems: Array<{ label: string; href: string; icon: string; active?: boolean }> = [
+      { label: t("studio.workbench.navStudio"), href: "/studio?view=home", icon: "✦", active: state.isAppsHome },
+      { label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "💬", active: state.mode === "avatar" && !state.isProjectsView },
+      { label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "🖼️", active: state.mode === "image" && !state.isProjectsView },
+      { label: t("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "🎞️", active: state.mode === "video" && !state.isAppsHome && !state.isProjectsView },
+      { label: t("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "🎵", active: state.mode === "audio" && !state.isProjectsView },
+      { label: t("studio.nav.projects"), href: "/studio?view=projects", icon: "📁", active: state.isProjectsView }
+    ];
+    videoItems.push({ label: t("studio.billing.open"), href: "/billing", icon: "💳", active: false });
+
+    return (
+      <aside className="hidden h-screen flex-col border-r border-[#eaecf0] bg-white/90 px-3.5 py-5 backdrop-blur-xl lg:sticky lg:top-0 lg:flex">
+        <a href="https://dreamface.io" className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-1"}`}>
+          <span className="block h-9 w-9 shrink-0 overflow-hidden rounded-xl shadow-sm"><img src="/icons/icon-512x512.png" alt="" className="h-full w-full object-cover" /></span>
+          {!collapsed ? <span className="min-w-0"><strong className="block text-[17px] font-black leading-none tracking-tight text-[#101828]">DreamFace</strong><span className="mt-1 block text-[11px] text-[#98a2b3]">AI Studio</span></span> : null}
+        </a>
+        <nav className="mt-6 grid gap-1.5">
+          {videoItems.map((item) => <Link key={`${item.label}-${item.href}`} href={item.href} title={collapsed ? item.label : undefined} className={`flex h-11 items-center rounded-[14px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[#f1efff] font-bold text-[#6a5af9]" : "text-[#344054] hover:bg-[#f8f8fb]"}`}><span aria-hidden="true" className={`grid h-5 w-5 shrink-0 place-items-center text-[16px] leading-none ${item.icon === "✦" ? "text-[#7458ff]" : ""}`}>{item.icon}</span>{!collapsed ? <span className="truncate">{item.label}</span> : null}</Link>)}
+        </nav>
+        <div className="flex-1" />
+        <button type="button" onClick={() => onCollapsedChange?.(!collapsed)} aria-label={t("studio.workbench.collapse")} className={`mt-3 flex h-11 items-center rounded-[10px] text-sm text-[#667085] hover:bg-[#f7f8fb] ${collapsed ? "justify-center" : "gap-2.5 px-2.5"}`}><StudioIcon name={collapsed ? "chevron-right" : "chevron-left"} className="h-4 w-4" />{!collapsed ? <span>{t("studio.workbench.collapse")}</span> : null}</button>
+        <div className={`mx-[-14px] mb-[-14px] mt-2.5 flex items-center border-t border-[#eaecf0] bg-white/95 px-3.5 py-3 ${collapsed ? "justify-center" : "gap-2.5"}`}>
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,#fde1c8,#b57f63)] text-sm">DF</span>
+          {!collapsed ? <span className="min-w-0"><strong className="block truncate text-[13px] text-[#101828]">{t(signedIn ? "studio.workbench.user" : "studio.workbench.guest")}</strong><span className="mt-1 block text-[11px] text-[#98a2b3]">{creditBalance === null ? "--" : creditBalance.toLocaleString()} {t("studio.common.credits")}</span></span> : null}
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className={`hidden border-r lg:flex lg:flex-col lg:items-center ${modern ? "border-[#758bac]/15 bg-[#f5faff]/60 px-3 py-5" : "border-black/[0.06] bg-white/64 px-3 py-5"}`}>
@@ -132,13 +171,13 @@ export function StudioSidebar({ t, modern, onImageWorkflowSelected, ...state }: 
 
 export function StudioBottomNavigation({ t, ...state }: NavigationState & { t: Translate }) {
   const itemsById = new Map(navigationItems(t, state).map((item) => [item.id, item]));
-  const items = (["home", "image", "avatar", "video", "audio", "projects"] as const).map((id) => itemsById.get(id)!);
+  const items = (["home", "avatar", "image", "video", "audio", "projects", "billing"] as const).map((id) => itemsById.get(id)!);
 
   return (
-    <nav className="fixed inset-x-2 bottom-2 z-50 grid grid-cols-6 gap-0.5 rounded-[1.25rem] border border-black/[0.08] bg-white/94 p-1 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:inset-x-3 sm:bottom-3 sm:gap-1 sm:rounded-[1.4rem] sm:p-1.5 lg:hidden">
+    <nav className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 isolate grid grid-cols-7 gap-0.5 rounded-[1.25rem] border border-[#e5e1eb] bg-white p-1 shadow-[0_18px_50px_rgba(15,23,42,0.2)] sm:inset-x-3 sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-1 sm:rounded-[1.4rem] sm:p-1.5 lg:hidden">
       {items.map((item) => (
-        <Link key={item.id} href={item.href} className={`min-w-0 flex flex-col items-center justify-center gap-1 rounded-[0.9rem] px-0.5 py-2 text-[9px] font-semibold transition sm:rounded-[1rem] sm:px-2 sm:text-[11px] ${item.active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#667085]"}`}>
-          <StudioIcon name={item.icon} className="h-4 w-4" />
+        <Link key={item.id} href={item.href} className={`min-h-12 min-w-0 flex flex-col items-center justify-center gap-1 rounded-[0.9rem] px-0.5 py-1.5 text-[9px] font-semibold transition sm:rounded-[1rem] sm:px-2 sm:text-[11px] ${item.active ? "bg-[#eeeaff] text-[#6955f6] shadow-[inset_0_0_0_1px_#ddd7ff]" : "text-[#667085]"}`}>
+          <span aria-hidden="true" className={`grid h-6 w-6 place-items-center rounded-lg text-[15px] leading-none ${item.active ? "bg-white shadow-sm" : "bg-[#f6f7fa]"}`}>{item.visualIcon}</span>
           <span className="max-w-full truncate">{item.label}</span>
         </Link>
       ))}
@@ -162,8 +201,8 @@ export function StudioMobileMenu({ t, open, signedIn, signInUrl, locale, locales
   const close = () => onOpenChange(false);
   return (
     <div className="relative shrink-0">
-      <button type="button" aria-label={open ? t("studio.menu.close") : t("studio.menu.open")} aria-expanded={open} onClick={() => onOpenChange(!open)} className="relative z-[65] grid h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-[#202633] shadow-sm transition hover:bg-[#f8fbff] lg:hidden">
-        <StudioIcon name={open ? "x" : "menu"} className="h-5 w-5" />
+      <button type="button" aria-label={open ? t("studio.menu.close") : t("studio.menu.open")} aria-expanded={open} onClick={() => onOpenChange(!open)} className="relative z-[65] grid h-11 w-11 place-items-center overflow-visible rounded-[14px] border border-[#e3dfff] bg-white text-[#5f4ee9] shadow-[0_7px_20px_rgba(86,68,210,0.12)] transition hover:-translate-y-px hover:border-[#bfb5ff] lg:hidden">
+        {open ? <StudioIcon name="x" className="h-5 w-5" /> : <><img src="/icons/icon-512x512.png" alt="" className="h-8 w-8 rounded-[10px] object-cover" /><span className="absolute -bottom-1 -end-1 grid h-[18px] w-[18px] place-items-center rounded-full border-2 border-white bg-[linear-gradient(135deg,#7c63ff,#5b4bea)] text-white shadow-sm"><StudioIcon name="menu" className="h-2.5 w-2.5" /></span></>}
       </button>
       <Link href="/studio?view=home" aria-label={t("studio.menu.studioHome")} className="hidden h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-[#202633] shadow-sm transition hover:bg-[#f8fbff] lg:grid"><StudioIcon name="home" className="h-5 w-5" /></Link>
       {open ? (
@@ -175,8 +214,8 @@ export function StudioMobileMenu({ t, open, signedIn, signInUrl, locale, locales
               DreamFace
             </a>
             {navigationItems(t, state, "studio.menu.studioHome").map((item) => (
-              <Link key={item.id} href={item.href} onClick={close} className={`flex items-center gap-3 rounded-[1rem] px-2.5 py-2.5 text-sm font-semibold transition ${item.active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#485164] hover:bg-[#f6f9fc] hover:text-[#202633]"}`}>
-                <span className={`grid h-8 w-8 place-items-center rounded-xl border ${item.active ? "border-[#bae6fd] bg-white text-[#0ea5e9]" : "border-black/[0.06] bg-white/80 text-[#667085]"}`}><StudioIcon name={item.icon} className="h-4 w-4" /></span>
+              <Link key={item.id} href={item.href} onClick={close} className={`flex items-center gap-3 rounded-[1rem] px-2.5 py-2.5 text-sm font-semibold transition ${item.active ? "bg-[#f1efff] text-[#6955f6]" : "text-[#485164] hover:bg-[#f6f5ff] hover:text-[#202633]"}`}>
+                <span className={`grid h-9 w-9 place-items-center rounded-xl border text-base ${item.active ? "border-[#d8d1ff] bg-white shadow-sm" : "border-[#eceaf2] bg-[#faf9fc]"}`}>{item.visualIcon}</span>
                 {item.label}
               </Link>
             ))}

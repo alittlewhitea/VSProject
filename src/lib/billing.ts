@@ -317,3 +317,21 @@ export function formatUsd(amountCents: number) {
     currency: "USD"
   }).format(amountCents / 100);
 }
+
+/**
+ * A stable, easy-to-understand reference value for credits shown in the studio UI.
+ * It uses the Premium Lite monthly membership and is deliberately presented as an
+ * approximate membership value, never as an additional per-generation charge.
+ */
+export function approximateCreditValueUsd(credits: number) {
+  const reference = SUBSCRIPTION_PLANS.find((plan) => plan.id === "premium-lite")?.prices.monthly;
+  if (!reference || credits <= 0) return 0;
+  return (credits * reference.amountCents) / reference.credits / 100;
+}
+
+export function formatApproximateCreditValue(credits: number) {
+  const value = approximateCreditValueUsd(credits);
+  if (value <= 0) return "$0.00";
+  if (value < 0.01) return "<$0.01";
+  return `$${value.toFixed(2)}`;
+}

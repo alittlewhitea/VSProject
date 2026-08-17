@@ -52,6 +52,7 @@ const securityHeaders = [
 
 const nextConfig = {
   ...(deploymentId ? { deploymentId } : {}),
+  devIndicators: false,
   env: {
     NEXT_PUBLIC_DEPLOYMENT_ID: deploymentId || "local"
   },

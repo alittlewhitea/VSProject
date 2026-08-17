@@ -31,6 +31,8 @@ import { studioMusicMessages } from "./studio-i18n-music";
 import { studioTraditionalChineseMessages } from "./studio-i18n-zh-tw";
 import { studioControlMessages } from "./studio-i18n-controls";
 import { studioGeminiOmniMessages } from "./studio-i18n-gemini-omni";
+import { studioWorkbenchUiMessages } from "./studio-i18n-workbench-ui";
+import { studioCostMessages } from "./studio-i18n-cost";
 
 type StudioMessages = Record<string, string>;
 
@@ -1031,6 +1033,8 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
 
   function t(key: string, values?: Record<string, string | number | null | undefined>) {
     let template =
+      studioCostMessages[locale]?.[key] ||
+      studioWorkbenchUiMessages[locale]?.[key] ||
       studioControlMessages[locale]?.[key] ||
       studioGeminiOmniMessages[locale]?.[key] ||
       studioAudioWorkbenchMessages[locale]?.[key] ||
@@ -1061,6 +1065,8 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
       studioModelMessages[defaultLocale]?.[key] ||
       studioMusicMessages[defaultLocale]?.[key] ||
       studioGeminiOmniMessages[defaultLocale]?.[key] ||
+      studioCostMessages[defaultLocale]?.[key] ||
+      studioWorkbenchUiMessages[defaultLocale]?.[key] ||
       key;
     if (values) {
       for (const [name, value] of Object.entries(values)) {

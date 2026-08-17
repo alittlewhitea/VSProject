@@ -58,7 +58,7 @@ function ReferenceImagePanel({
 
   return (
     <div
-      className="rounded-[28px] border border-dashed border-[#8fb6e8]/45 bg-[linear-gradient(135deg,rgba(232,247,255,0.72),rgba(255,255,255,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+      className="rounded-2xl border border-dashed border-[#cfc9ff] bg-[#faf9ff] p-3"
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault();
@@ -70,7 +70,7 @@ function ReferenceImagePanel({
           <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{translate("studio.imageImage.referenceImages")}</div>
           <p className="mt-1 max-w-md text-xs font-bold leading-5 text-[#8290a7]">{translate(hintKey)}</p>
         </div>
-        <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-full border border-[#758bac]/15 bg-white px-4 text-xs font-black text-[#187be6] shadow-[0_8px_24px_rgba(42,67,112,0.08)] transition hover:-translate-y-0.5 hover:bg-white">
+        <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-[10px] border border-[#e2defe] bg-white px-3 text-xs font-bold text-[#6a5af9] transition hover:bg-[#f8f7ff]">
           {translate("studio.action.chooseImage")}
           <input type="file" accept="image/*" multiple={multiple} className="hidden" onChange={(event) => handleFiles(event.target.files)} />
         </label>
@@ -79,7 +79,7 @@ function ReferenceImagePanel({
         value={referenceImagesText}
         onChange={(event) => onReferenceImagesTextChange(event.target.value)}
         placeholder="https://.../image.jpg"
-        className="mt-4 h-11 w-full rounded-2xl border border-[#758bac]/15 bg-white/85 px-4 text-sm font-bold text-[#43516a] outline-none placeholder:text-[#9aa8bd]"
+        className="mt-3 h-10 w-full rounded-[10px] border border-[#eaecf0] bg-white px-3 text-sm font-semibold text-[#344054] outline-none placeholder:text-[#98a2b3]"
       />
       {referenceImageUrls.length ? (
         <div className="mt-4">
@@ -103,7 +103,7 @@ function ReferenceImagePanel({
           </div>
         </div>
       ) : (
-        <div className="mt-4 grid min-h-[132px] place-items-center rounded-[24px] border border-[#758bac]/15 bg-white/55 px-5 text-center">
+        <div className="mt-3 grid min-h-[96px] place-items-center rounded-xl border border-[#eaecf0] bg-white px-4 text-center">
           <p className="max-w-xs text-sm font-bold leading-6 text-[#8290a7]">{translate("studio.imageImage.emptyReference")}</p>
         </div>
       )}
@@ -113,15 +113,15 @@ function ReferenceImagePanel({
 
 function WorkbenchHeader({ icon, title, description, status }: { icon: string; title: string; description: string; status: string }) {
   return (
-    <div className="flex min-h-[68px] flex-wrap items-center justify-between gap-4 border-b border-[#758bac]/10 bg-[linear-gradient(90deg,rgba(248,251,255,0.98),rgba(255,255,255,0.75)),radial-gradient(circle_at_12%_50%,rgba(24,199,243,0.16),transparent_34%)] px-[18px] py-[18px] md:px-7">
+    <div className="flex min-h-[58px] flex-wrap items-center justify-between gap-3 border-b border-[#f1f3f7] px-4 py-3">
       <div className="flex items-center gap-3">
-        <span className="grid h-[34px] w-[34px] place-items-center rounded-[13px] bg-[linear-gradient(135deg,rgba(37,99,255,0.12),rgba(24,199,243,0.18))] text-sm font-black text-[#187be6]">{icon}</span>
+        <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-[#f1efff] text-sm font-black text-[#6a5af9]">{icon}</span>
         <div>
           <strong className="block text-[15px] font-black tracking-[-0.01em] text-[#283249]">{title}</strong>
           <span className="mt-0.5 block text-xs font-bold text-[#91a0b6]">{description}</span>
         </div>
       </div>
-      <div className="inline-flex h-[34px] items-center gap-2 rounded-full bg-[#20c997]/10 px-3 text-xs font-black text-[#17916e]">
+      <div className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-[#ecfdf3] px-3 text-xs font-bold text-[#039855]">
         <span className="h-2 w-2 rounded-full bg-[#20c997] shadow-[0_0_0_5px_rgba(32,201,151,0.12)]" />
         {status}
       </div>
@@ -155,28 +155,28 @@ export function ImageWorkbench({
           description={translate("studio.textImage.promptStudioDescription")}
           status={translate(canSubmit ? "studio.textImage.ready" : "studio.textImage.waiting")}
         />
-        <div className="px-[18px] pb-5 pt-7 md:px-7">
+        <div className="px-4 pb-4 pt-3">
           <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
             <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{translate("studio.textImage.yourPrompt")}</div>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={onImprovePrompt} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]">
+              <button type="button" onClick={onImprovePrompt} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]">
                 <span aria-hidden="true">{"\u2728"}</span>
                 {translate("studio.textImage.improve")}
               </button>
-              <button type="button" onClick={() => onPromptChange("")} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]">
+              <button type="button" onClick={() => onPromptChange("")} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]">
                 <span aria-hidden="true">{"\u21ba"}</span>
                 {translate("studio.action.clear")}
               </button>
-              <Link href={templatesUrl} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]">
+              <Link href={templatesUrl} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]">
                 <span aria-hidden="true">{"\u2318"}</span>
                 {translate("studio.textImage.templates")}
               </Link>
             </div>
           </div>
-          <textarea dir="auto" rows={7} value={prompt} onChange={(event) => onPromptChange(event.target.value)} className="min-h-[220px] w-full resize-y bg-transparent p-0 text-[18px] leading-[1.62] tracking-[-0.02em] text-[#182033] outline-none placeholder:text-[#a6b2c7] md:min-h-[255px] md:text-[22px]" placeholder={translate("studio.textImage.placeholder")} />
+          <textarea dir="auto" rows={7} value={prompt} onChange={(event) => onPromptChange(event.target.value)} className="min-h-[190px] w-full resize-y rounded-2xl border border-[#eaecf0] bg-white p-4 text-[15px] leading-[1.55] text-[#101828] outline-none placeholder:text-[#98a2b3]" placeholder={translate("studio.textImage.placeholder")} />
           <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
             <span>{translate("studio.textImage.tip")}</span>
-            <span>{prompt.length.toLocaleString()} characters</span>
+            <span>{translate("studio.workbench.characters", { count: prompt.length.toLocaleString() })}</span>
           </div>
         </div>
       </div>
@@ -212,7 +212,7 @@ export function ImageWorkbench({
         status={translate(referenceImageUrls.length ? (isImageToImage ? "studio.imageImage.ready" : "studio.utilityImage.ready") : "studio.imageImage.addReference")}
       />
 
-      <div className="grid gap-5 px-[18px] pb-5 pt-7 md:px-7 lg:grid-cols-[0.95fr_1.05fr]">
+      <div className="grid gap-4 px-4 pb-4 pt-3">
         <ReferenceImagePanel
           referenceImagesText={referenceImagesText}
           referenceImageUrls={referenceImageUrls}
@@ -232,11 +232,10 @@ export function ImageWorkbench({
               <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
                 <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{translate("studio.imageImage.editPrompt")}</div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" onClick={() => onPromptChange("")} className="inline-flex h-8 items-center rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]">{translate("studio.action.clear")}</button>
-                  <Link href="/gallery" className="inline-flex h-8 items-center rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]">{translate("studio.textImage.templates")}</Link>
+                  <button type="button" onClick={() => onPromptChange("")} className="inline-flex min-h-10 items-center rounded-full border border-[#758bac]/15 bg-[#f7f9fd] px-3 text-xs font-black text-[#66758b] transition hover:bg-white hover:text-[#202633]">{translate("studio.action.clear")}</button>
                 </div>
               </div>
-              <textarea dir="auto" rows={7} value={prompt} onChange={(event) => onPromptChange(event.target.value)} className="min-h-[300px] w-full resize-y bg-transparent p-0 text-[18px] leading-[1.62] tracking-[-0.02em] text-[#182033] outline-none placeholder:text-[#a6b2c7] md:text-[22px]" placeholder={translate("studio.imageImage.placeholder")} />
+              <textarea dir="auto" rows={7} value={prompt} onChange={(event) => onPromptChange(event.target.value)} className="min-h-[180px] w-full resize-y rounded-2xl border border-[#eaecf0] bg-white p-4 text-[15px] leading-[1.55] text-[#101828] outline-none placeholder:text-[#98a2b3]" placeholder={translate("studio.imageImage.placeholder")} />
               <div className="mt-[18px] flex flex-wrap items-center justify-between gap-4 text-xs font-extrabold text-[#96a2b7]">
                 <span>{translate("studio.imageImage.tip")}</span>
                 <span>{prompt.length.toLocaleString()} characters</span>

@@ -1,15 +1,21 @@
+"use client";
+
+import { useState } from "react";
+import { formatApproximateCreditValue } from "../../lib/billing";
+import { GenerationCostSummary } from "./generation-cost-summary";
+import { ModelPicker, type ModelPickerOption } from "./model-picker";
+
 type Translate = (
   key: string,
   values?: Record<string, string | number | null | undefined>
 ) => string;
 
-type ProviderOption = { value: string; label: string };
 type ImageSizePreset = { value: string; label: string };
 type ImageQuality = "auto" | "low" | "medium" | "high";
 
 type ImageSettingsProps = {
   provider: string;
-  providerOptions: ProviderOption[];
+  providerOptions: ModelPickerOption[];
   utilityWorkflow: "enhance-cleanup" | "background-remove" | null;
   isImageToImage: boolean;
   isNanoBanana: boolean;
@@ -36,6 +42,7 @@ type ImageSettingsProps = {
   isSubmitting: boolean;
   isAuthenticated: boolean;
   estimatedCredits: number;
+  creditBalance: number | null;
   translate: Translate;
   onProviderChange: (value: string) => void;
   onRatioChange: (value: string) => void;
@@ -69,8 +76,8 @@ function SettingCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)] ${className}`}>
-      <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+    <div className={`rounded-xl border border-[#eaecf0] bg-white p-3 ${className}`}>
+      <div className="mb-2 flex items-center justify-between text-[10px] font-bold text-[#667085]">
         <span>{label}</span>
         <span>{value}</span>
       </div>
@@ -99,10 +106,10 @@ function ChoiceButtons({
           key={item.value || "off"}
           type="button"
           onClick={() => onChange(item.value)}
-          className={`h-10 rounded-[0.9rem] text-xs font-black transition ${uppercase ? "uppercase" : ""} ${
+          className={`min-h-10 min-w-0 rounded-[8px] px-1 text-[10px] font-bold transition ${uppercase ? "uppercase" : ""} ${
             selected === item.value
-              ? "bg-[#151b2a] text-white shadow-[0_10px_18px_rgba(17,24,39,0.18)]"
-              : "bg-[#f8fafd] text-[#758399] hover:bg-white"
+              ? "bg-[#f1efff] text-[#6a5af9] shadow-[inset_0_0_0_1px_#d7d1ff]"
+              : "bg-[#f8f8fb] text-[#667085] hover:bg-[#f3f1ff]"
           }`}
         >
           {item.label ?? item.value}
@@ -141,6 +148,7 @@ export function ImageSettings({
   isSubmitting,
   isAuthenticated,
   estimatedCredits,
+  creditBalance,
   translate,
   onProviderChange,
   onRatioChange,
@@ -163,41 +171,42 @@ export function ImageSettings({
 }: ImageSettingsProps) {
   const isUtility = utilityWorkflow !== null;
   const isFlux = provider === "flux-image" || provider === "flux-dev";
+  const [moreSettingsOpen, setMoreSettingsOpen] = useState(false);
 
   return (
-    <div className="border-t border-[#758bac]/10 bg-[linear-gradient(180deg,rgba(250,252,255,0.82),rgba(255,255,255,0.95))] px-[18px] py-5 text-left md:px-7 md:pb-7">
-      <div className="mb-4 grid gap-3 lg:flex lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
-          <select value={provider} onChange={(event) => onProviderChange(event.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
-            {providerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+    <div className="bg-white px-4 py-4 text-start">
+      <ModelPicker value={provider} options={providerOptions} translate={translate} onChange={onProviderChange} />
+      <div className="mb-3 grid gap-2">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {utilityWorkflow === "enhance-cleanup" ? (
             <>
-              <span className="inline-flex min-h-[45px] items-center rounded-full border border-[#758bac]/15 bg-white px-5 text-sm font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)]">Standard V2 / 2x</span>
-              <select value={outputFormat === "png" ? "png" : "jpeg"} onChange={(event) => onOutputFormatChange(event.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-sm font-black uppercase text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none" aria-label={translate("studio.field.outputFormat")}>
+              <span className="inline-flex h-10 items-center rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054]">Standard V2 / 2x</span>
+              <select value={outputFormat === "png" ? "png" : "jpeg"} onChange={(event) => onOutputFormatChange(event.target.value)} className="h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold uppercase text-[#344054] outline-none" aria-label={translate("studio.field.outputFormat")}>
                 <option value="jpeg">JPEG</option>
                 <option value="png">PNG</option>
               </select>
             </>
           ) : !isUtility && isNanoBanana ? (
-            <select value={ratio} onChange={(event) => onRatioChange(event.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+            <select value={ratio} onChange={(event) => onRatioChange(event.target.value)} className="h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054] outline-none">
               {ratioOptions.map((item) => <option key={item} value={item}>{item === "auto" ? translate("studio.option.autoRatio") : item}</option>)}
             </select>
           ) : !isUtility ? (
-            <select value={imageSize} onChange={(event) => onImageSizeChange(event.target.value)} className="min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none">
+            <select value={imageSize} onChange={(event) => onImageSizeChange(event.target.value)} className="h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054] outline-none">
               {imageSizePresets.map((preset) => <option key={preset.value} value={preset.value}>{preset.label}</option>)}
             </select>
           ) : null}
         </div>
 
-        <button type="button" onClick={onGenerate} disabled={generateDisabled} className="inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-[radial-gradient(circle_at_12%_12%,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,#ff8a00_0%,#ff3d81_45%,#7c3cff_100%)] px-6 text-base font-black text-white shadow-[0_22px_48px_rgba(255,61,129,0.28),0_10px_28px_rgba(124,60,255,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 lg:w-auto lg:min-w-[248px]">
+        <button type="button" onClick={onGenerate} disabled={generateDisabled} className="inline-flex h-[46px] w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(90deg,#744bfb,#6757f6_55%,#7d53ff)] px-5 text-[15px] font-extrabold text-white shadow-[0_10px_24px_rgba(106,90,249,0.2)] transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-55">
           <span>{isSubmitting ? translate("studio.generate.creating") : isAuthenticated ? translate("studio.generate.button") : translate("studio.auth.signInToGenerate")}</span>
-          {isAuthenticated ? <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">{estimatedCredits} {translate("studio.common.credits")}</span> : null}
-          <span className="grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
+          {isAuthenticated ? <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">{estimatedCredits} {translate("studio.common.credits")} · ≈{formatApproximateCreditValue(estimatedCredits)}</span> : null}
+          <span className="grid h-7 w-7 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
         </button>
+        <GenerationCostSummary estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate} />
       </div>
 
-      <div className={isUtility ? "hidden" : "grid gap-3 md:grid-cols-2 lg:grid-cols-[1.05fr_1fr_0.95fr_0.95fr]"}>
+      {!isUtility ? <button type="button" onClick={() => setMoreSettingsOpen((value) => !value)} className="mb-2 min-h-11 w-full rounded-[10px] border border-[#eaecf0] bg-white text-xs font-semibold text-[#344054]">{"\u2637"} &nbsp; {translate(moreSettingsOpen ? "studio.workbench.lessSettings" : "studio.workbench.moreSettings")}</button> : null}
+      {!isUtility && moreSettingsOpen ? <div className="grid gap-2 sm:grid-cols-2">
         {provider === "chatgpt-image" ? (
           <SettingCard label={translate("studio.field.quality")} value={translate("studio.textImage.costOptimized")}>
             <ChoiceButtons values={["auto", "low", "medium", "high"].map((value) => ({ value }))} selected={imageQuality} columns={4} onChange={(value) => onImageQualityChange(value as ImageQuality)} />
@@ -270,9 +279,9 @@ export function ImageSettings({
             <textarea dir="auto" rows={2} value={systemPrompt} onChange={(event) => onSystemPromptChange(event.target.value)} placeholder={translate("studio.placeholder.system")} className="w-full resize-none rounded-[0.9rem] border border-black/[0.06] bg-[#fbfcfe] px-3 py-2 text-sm font-bold leading-5 text-[#66758b] outline-none placeholder:text-[#8b98ad]" />
           </SettingCard>
         ) : null}
-      </div>
+      </div> : null}
 
-      <div className="mt-3.5 grid gap-3 md:grid-cols-3">
+      <div className="hidden">
         {[
           { icon: "$", title: translate("studio.textImage.hintCostTitle"), body: translate(isUtility ? "studio.utilityImage.hintCostBody" : "studio.textImage.hintCostBody") },
           { icon: "@", title: translate(isUtility ? "studio.utilityImage.hintReferenceTitle" : "studio.textImage.hintPromptTitle"), body: translate(isUtility ? "studio.utilityImage.hintReferenceBody" : "studio.textImage.hintPromptBody") },

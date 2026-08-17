@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Locale } from "../../i18n/routing";
-import { StudioMobileMenu, type StudioNavigationMode } from "./studio-navigation";
+import { StudioIcon, StudioMobileMenu, type StudioNavigationMode } from "./studio-navigation";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 type AudioWorkflow = "text-to-audio" | "text-to-music";
@@ -10,6 +10,7 @@ type AudioWorkflow = "text-to-audio" | "text-to-music";
 type StudioHeaderProps = {
   t: Translate;
   modern: boolean;
+  videoStudio?: boolean;
   mode: StudioNavigationMode;
   isAppsHome: boolean;
   isProjectsView: boolean;
@@ -39,6 +40,7 @@ function headerCopy(t: Translate, mode: StudioNavigationMode, isAppsHome: boolea
 export function StudioHeader({
   t,
   modern,
+  videoStudio = false,
   mode,
   isAppsHome,
   isProjectsView,
@@ -56,6 +58,24 @@ export function StudioHeader({
   onAudioWorkflowSelect
 }: StudioHeaderProps) {
   const copy = headerCopy(t, mode, isAppsHome, isProjectsView);
+
+  if (videoStudio) {
+    return (
+      <header className="flex min-h-[84px] items-center justify-between gap-4 py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <StudioMobileMenu t={t} open={mobileMenuOpen} signedIn={signedIn} signInUrl={signInUrl} locale={locale} locales={locales} localeLabels={localeLabels} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} onOpenChange={onMobileMenuOpenChange} onLocaleChange={onLocaleChange} />
+          <span className="hidden text-2xl text-[#6a5af9] sm:block">{"\u2723"}</span>
+          <h1 className="truncate text-[23px] font-black leading-none tracking-[-0.035em] text-[#101828]">{copy.title}</h1>
+        </div>
+        <div className="flex shrink-0 items-center gap-2.5">
+          <button type="button" onClick={() => onBillingOpen("balance")} className="hidden h-11 items-center gap-2 rounded-[14px] border border-[#eaecf0] bg-white px-3.5 text-[13px] font-bold text-[#101828] shadow-sm sm:flex"><span className="text-[#f4a000]">{"\u25C9"}</span><span>{creditBalance === null ? "--" : creditBalance.toLocaleString()} {t("studio.common.credits")}</span></button>
+          <button type="button" aria-label={t("studio.workspace.upgrade")} onClick={() => onBillingOpen("vip_badge")} className="flex h-11 items-center gap-2 rounded-[14px] bg-[linear-gradient(180deg,#7865ff,#6557f6)] px-3.5 text-[13px] font-bold text-white shadow-[0_8px_20px_rgba(106,90,249,0.18)]"><span>{"\u2666"}</span><span className="hidden sm:inline">{t("studio.workspace.upgrade")}</span></button>
+          <label className="hidden h-10 items-center gap-2 rounded-[14px] border border-[#eaecf0] bg-white px-3.5 text-[13px] font-bold text-[#101828] md:flex"><StudioIcon name="globe" className="h-4 w-4 text-[#6a5af9]" /><select value={locale} onChange={(event) => onLocaleChange(event.target.value as Locale)} className="max-w-[96px] bg-transparent outline-none">{locales.map((itemLocale) => <option key={itemLocale} value={itemLocale}>{localeLabels[itemLocale]}</option>)}</select></label>
+          {signedIn ? <Link href="/studio?view=projects" className="grid h-10 w-10 place-items-center rounded-full bg-[linear-gradient(135deg,#8f67ff,#6557f6)] text-sm font-bold text-white shadow-[0_6px_20px_rgba(106,90,249,0.22)]">DF</Link> : <Link href={signInUrl} className="hidden h-10 items-center rounded-[14px] bg-[#101828] px-3.5 text-xs font-bold text-white sm:flex">{t("studio.auth.signIn")}</Link>}
+        </div>
+      </header>
+    );
+  }
 
   return (
     <div className={`gap-3 md:gap-4 ${modern ? "mb-4 flex items-start justify-between md:mb-9 md:items-center" : "flex items-start justify-between md:items-center"}`}>

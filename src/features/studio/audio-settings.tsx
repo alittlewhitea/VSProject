@@ -1,3 +1,7 @@
+import { formatApproximateCreditValue } from "../../lib/billing";
+import { GenerationCostSummary } from "./generation-cost-summary";
+import { ModelPicker, type ModelPickerOption } from "./model-picker";
+
 type Translate = (
   key: string,
   values?: Record<string, string | number | null | undefined>
@@ -8,7 +12,7 @@ type MusicFormat = "mp3" | "wav" | "pcm";
 
 type AudioSettingsProps = {
   provider: string;
-  providerOptions: Array<{ value: string; label: string }>;
+  providerOptions: ModelPickerOption[];
   isElevenLabs: boolean;
   audioVoiceOptions: string[];
   languageOptions: readonly { value: string }[];
@@ -24,6 +28,7 @@ type AudioSettingsProps = {
   musicBitrate: number;
   musicFormat: MusicFormat;
   estimatedCredits: number;
+  creditBalance: number | null;
   generateDisabled: boolean;
   isSubmitting: boolean;
   isAuthenticated: boolean;
@@ -41,7 +46,7 @@ type AudioSettingsProps = {
   onGenerate: () => void;
 };
 
-const controlClass = "min-h-[45px] rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)] outline-none";
+const controlClass = "h-10 min-w-0 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054] outline-none";
 
 export function AudioSettings({
   provider,
@@ -61,6 +66,7 @@ export function AudioSettings({
   musicBitrate,
   musicFormat,
   estimatedCredits,
+  creditBalance,
   generateDisabled,
   isSubmitting,
   isAuthenticated,
@@ -78,13 +84,10 @@ export function AudioSettings({
   onGenerate
 }: AudioSettingsProps) {
   return (
-    <div className="border-t border-[#758bac]/10 bg-[linear-gradient(180deg,rgba(250,252,255,0.82),rgba(255,255,255,0.95))] px-[18px] py-5 text-left md:px-7 md:pb-7">
-      <div className="mb-4 grid gap-3 lg:flex lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
-          <select value={provider} onChange={(event) => onProviderChange(event.target.value)} className={controlClass}>
-            {providerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-
+    <div className="bg-white px-4 py-4 text-start">
+      <ModelPicker value={provider} options={providerOptions} translate={translate} onChange={onProviderChange} />
+      <div className="mb-3 grid gap-2">
+        <div className="mt-3 grid grid-cols-2 gap-2">
           {isElevenLabs ? (
             <>
               <select value={ttsVoice} onChange={(event) => onTtsVoiceChange(event.target.value)} className={controlClass}>
@@ -98,7 +101,7 @@ export function AudioSettings({
               <button
                 type="button"
                 onClick={() => onTtsTimestampsChange(!ttsTimestamps)}
-                className={`inline-flex min-h-[45px] items-center rounded-full border px-5 text-base font-black shadow-[0_8px_24px_rgba(42,67,112,0.08)] ${ttsTimestamps ? "border-[#20c997]/25 bg-[#20c997]/10 text-[#17916e]" : "border-[#758bac]/15 bg-white text-[#66758b]"}`}
+                className={`inline-flex h-10 items-center justify-center rounded-[10px] border px-3 text-[12px] font-bold ${ttsTimestamps ? "border-[#cfc9ff] bg-[#f1efff] text-[#6a5af9]" : "border-[#eaecf0] bg-white text-[#667085]"}`}
               >
                 {translate("studio.field.wordTimestamps")}: {translate(ttsTimestamps ? "studio.state.on" : "studio.state.off")}
               </button>
@@ -117,21 +120,22 @@ export function AudioSettings({
             </>
           )}
 
-          <span className="inline-flex min-h-[45px] items-center rounded-full border border-[#758bac]/15 bg-white px-5 text-base font-black text-[#43516a] shadow-[0_8px_24px_rgba(42,67,112,0.08)]">
+          <span className="inline-flex h-10 items-center justify-center rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054]">
             {estimatedCredits} {translate("studio.common.credits")}
           </span>
         </div>
 
-        <button type="button" onClick={onGenerate} disabled={generateDisabled} className="inline-flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-[radial-gradient(circle_at_12%_12%,rgba(255,255,255,0.55),transparent_28%),linear-gradient(135deg,#ff8a00_0%,#ff3d81_45%,#7c3cff_100%)] px-6 text-base font-black text-white shadow-[0_22px_48px_rgba(255,61,129,0.28),0_10px_28px_rgba(124,60,255,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 lg:w-auto lg:min-w-[248px]">
+        <button type="button" onClick={onGenerate} disabled={generateDisabled} className="inline-flex h-[46px] w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(90deg,#744bfb,#6757f6_55%,#7d53ff)] px-5 text-[15px] font-extrabold text-white shadow-[0_10px_24px_rgba(106,90,249,0.2)] transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-55">
           <span>{isSubmitting ? translate("studio.generate.creating") : isAuthenticated ? translate("studio.generate.button") : translate("studio.auth.signInToGenerate")}</span>
-          {isAuthenticated ? <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">{estimatedCredits} {translate("studio.common.credits")}</span> : null}
-          <span className="grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
+          {isAuthenticated ? <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">{estimatedCredits} {translate("studio.common.credits")} · ≈{formatApproximateCreditValue(estimatedCredits)}</span> : null}
+          <span className="grid h-7 w-7 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
         </button>
+        <GenerationCostSummary estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate} />
       </div>
 
       {isElevenLabs ? (
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl border border-[#eaecf0] bg-white p-3">
             <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
               <span>{translate("studio.music.voiceGender")}</span>
               <span>{translate(`studio.music.${audioVoiceGender}`)}</span>
@@ -144,11 +148,11 @@ export function AudioSettings({
               ))}
             </div>
           </div>
-          <label className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+          <label className="rounded-xl border border-[#eaecf0] bg-white p-3">
             <span className="mb-3 block text-xs font-black text-[#6e7d95]">{translate("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
             <input type="range" min="0" max="1" step="0.05" value={ttsStability} onChange={(event) => onTtsStabilityChange(Number(event.target.value))} className="w-full accent-[#151b2a]" />
           </label>
-          <label className="rounded-[22px] border border-[#758bac]/15 bg-white p-4 shadow-[0_8px_20px_rgba(35,58,97,0.045)]">
+          <label className="rounded-xl border border-[#eaecf0] bg-white p-3">
             <span className="mb-3 block text-xs font-black text-[#6e7d95]">{translate("studio.field.textNormalization")}</span>
             <select value={textNormalization} onChange={(event) => onTextNormalizationChange(event.target.value)} className="h-10 w-full rounded-[0.9rem] border border-black/[0.06] bg-[#fbfcfe] px-3 text-sm font-black text-[#66758b] outline-none">
               {textNormalizationOptions.map((item) => <option key={item.value} value={item.value}>{translate(`studio.textNormalization.${item.value}`)}</option>)}
