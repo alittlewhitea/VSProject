@@ -1432,9 +1432,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }, [duration, mode, provider, ratio, showDreamfaceTalkingVideoControls, showVideoResolutionControl, videoDurationOptions, videoRatioOptions, videoResolution, videoResolutionOptions]);
 
   useEffect(() => {
-    if (!hasCompletedCreation) return;
+    if (!hasCompletedCreation || provider === "minimax-h3-max-video") return;
     setPrompt((currentPrompt) => (isSamplePrompt(currentPrompt) ? "" : currentPrompt));
-  }, [hasCompletedCreation]);
+  }, [hasCompletedCreation, provider]);
 
   function applyWorkflow(nextWorkflow: StudioWorkflow) {
     const nextMode =
@@ -1445,7 +1445,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           : nextWorkflow === "avatar-video"
             ? "avatar"
             : "video";
-    const nextProvider = providerForWorkflow(nextWorkflow, readRememberedModel(nextWorkflow) || provider);
+    const rememberedProvider = readRememberedModel(nextWorkflow);
+    const nextProvider = providerForWorkflow(nextWorkflow, nextMode === "video" ? rememberedProvider : rememberedProvider || provider);
     if (nextMode === "image") {
       const nextImageWorkflow = nextWorkflow as ImageWorkflow;
       if (mode === "image" && imageWorkflow !== nextImageWorkflow) {
@@ -1486,10 +1487,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setRatio(defaultImageRatioForProvider(nextProvider, defaultImageSizeForProvider(nextProvider)));
     }
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, nextWorkflow, st("studio.music.defaultPrompt"));
+    const shouldApplyDefaultPrompt = !hasCompletedCreation || nextProvider === "minimax-h3-max-video";
     setPrompt((current) =>
       nextMode === mode
-        ? promptForProviderChange(current, !hasCompletedCreation ? nextDefaultPrompt : "", st("studio.music.defaultPrompt"))
-        : !hasCompletedCreation
+        ? promptForProviderChange(current, shouldApplyDefaultPrompt ? nextDefaultPrompt : "", st("studio.music.defaultPrompt"))
+        : shouldApplyDefaultPrompt
           ? nextDefaultPrompt
           : ""
     );
@@ -1533,7 +1535,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     safeSetLocalStorage(lastModelStorageKey(activeWorkflow), nextProvider);
     setProvider(nextProvider);
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, activeWorkflow, st("studio.music.defaultPrompt"));
-    setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
+    setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation || nextProvider === "minimax-h3-max-video" ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
     if (isAvatarProvider(nextProvider)) {
       setReferenceImagesText((current) => current || KLING_AVATAR_DEFAULT_IMAGE_URL);
       setReferenceImageFiles([]);
@@ -1633,7 +1635,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   async function handleReferenceFiles(files: FileList | null) {
     if (!files?.length) return;
-    const maxFiles = isPromptlessImageWorkflow ? 1 : 4;
+    const singleReferenceWorkflow = isPromptlessImageWorkflow || mode === "video";
+    const maxFiles = singleReferenceWorkflow ? 1 : 4;
     const nextFiles = await Promise.all(
       Array.from(files)
         .filter((file) => file.type.startsWith("image/"))
@@ -1648,7 +1651,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
             })
         )
     );
-    setReferenceImageFiles((prev) => (isPromptlessImageWorkflow ? nextFiles.slice(0, 1) : [...prev, ...nextFiles].slice(0, 4)));
+    if (mode === "video") {
+      setReferenceImagesText("");
+    }
+    setReferenceImageFiles((prev) => (singleReferenceWorkflow ? nextFiles.slice(0, 1) : [...prev, ...nextFiles].slice(0, 4)));
     if (mode === "image" && imageWorkflow === "text-to-image") {
       const nextWorkflow: StudioWorkflow = "image-to-image";
       const nextProvider = providerForWorkflow(nextWorkflow, readRememberedModel(nextWorkflow) || provider);
@@ -1945,7 +1951,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         resolution:
           mode === "image"
             ? editResolution
-            : mode === "video" && (provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
+            : mode === "video" && (provider === "minimax-h3-max-video" || provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
         generateAudio: mode === "video" ? generateAudio : undefined,

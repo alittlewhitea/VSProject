@@ -52,19 +52,19 @@ export function WorkflowSwitcher({
             ? t("studio.avatarWorkbench.heroDescription")
             : t("studio.textImage.heroDescription");
 
-  if (mode === "video" && videoRedesign) return null;
-
   if (modern) {
     if (mode === "avatar") return null;
     const workflows = mode === "image"
       ? (["text-to-image", "image-to-image", "enhance-cleanup", "background-remove"] as ImageWorkflow[])
-      : (["text-to-audio", "text-to-music"] as AudioWorkflow[]);
+      : mode === "video"
+        ? (["text-to-video", "image-to-video"] as VideoWorkflow[])
+        : (["text-to-audio", "text-to-music"] as AudioWorkflow[]);
     return (
       <div className="mb-3 flex w-full justify-start overflow-x-auto px-0.5 pb-1 overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className={`grid min-w-max gap-1 rounded-[14px] border border-[#eaecf0] bg-white p-1 shadow-sm ${mode === "image" ? "grid-cols-4" : "grid-cols-2"}`}>
+        <div className={`grid gap-1 rounded-[14px] border border-[#eaecf0] bg-white p-1 shadow-sm ${mode === "video" ? "w-full grid-cols-2 sm:w-auto sm:min-w-[360px]" : `min-w-max ${mode === "image" ? "grid-cols-4" : "grid-cols-2"}`}`}>
           {workflows.map((workflow) => {
-            const active = mode === "image" ? imageWorkflow === workflow : audioWorkflow === workflow;
-            return <button key={workflow} type="button" onClick={() => onWorkflowChange(workflow)} className={`min-h-11 rounded-[10px] px-4 text-xs font-bold transition ${active ? "bg-[#f1efff] text-[#6a5af9] shadow-[inset_0_0_0_1px_#ddd8ff]" : "text-[#667085] hover:bg-[#f8f8fb] hover:text-[#344054]"}`}>{t(`studio.workflow.${workflow}`)}</button>;
+            const active = mode === "image" ? imageWorkflow === workflow : mode === "video" ? videoWorkflow === workflow : audioWorkflow === workflow;
+            return <button key={workflow} type="button" onClick={() => onWorkflowChange(workflow)} aria-pressed={active} className={`min-h-11 min-w-0 rounded-[10px] px-3 text-xs font-bold transition sm:px-4 ${active ? "bg-[#f1efff] text-[#6a5af9] shadow-[inset_0_0_0_1px_#ddd8ff]" : "text-[#667085] hover:bg-[#f8f8fb] hover:text-[#344054]"}`}>{t(`studio.workflow.${workflow}`)}</button>;
           })}
         </div>
       </div>
