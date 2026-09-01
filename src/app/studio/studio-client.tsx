@@ -21,7 +21,7 @@ import { AvatarWorkbench } from "../../features/studio/avatar-workbench";
 import { ImageWorkbench } from "../../features/studio/image-workbench";
 import { ImageSettings } from "../../features/studio/image-settings";
 import { AudioSettings } from "../../features/studio/audio-settings";
-import { VideoSettings } from "../../features/studio/video-settings";
+import { VideoSettings, type PromptShowcase } from "../../features/studio/video-settings";
 import { AvatarSettings } from "../../features/studio/avatar-settings";
 import { UnifiedWorkbenchLayout } from "../../features/studio/unified-workbench-layout";
 import { ModelPicker } from "../../features/studio/model-picker";
@@ -69,6 +69,7 @@ import {
   isKnownVideoDuration,
   isKnownVideoRatio,
   isKnownVideoResolution,
+  videoExampleFor,
   videoExampleSourceFor,
   videoModelBadge,
   videoModelConfig,
@@ -346,13 +347,13 @@ const WORKFLOW_META: Record<
   "text-to-video": {
     label: "Text to Video",
     description: "Turn a written scene into a short video.",
-    recommendedProvider: "dreamface-io-video",
+    recommendedProvider: "minimax-h3-max-video",
     providers: VIDEO_PROVIDERS_BY_WORKFLOW["text-to-video"]
   },
   "image-to-video": {
     label: "Image to Video",
     description: "Animate a reference image into a short video.",
-    recommendedProvider: "dreamface-io-video",
+    recommendedProvider: "minimax-h3-max-video",
     providers: VIDEO_PROVIDERS_BY_WORKFLOW["image-to-video"]
   },
   "text-to-audio": {
@@ -448,12 +449,15 @@ function ratioFromImageSize(value: string) {
 
 const MINIMAX_MUSIC_DEFAULT_PROMPT = "City Pop, 80s retro, groovy synth bass, warm female vocal, 104 BPM, nostalgic urban night";
 
-function defaultPromptForProvider(provider: string, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
+function defaultPromptForProvider(provider: string, workflow?: StudioWorkflow, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
   if (provider === "kling-avatar-standard" || provider === "kling-avatar-pro") {
     return KLING_AVATAR_DEFAULT_SCRIPT;
   }
   if (provider === "minimax-music-2.6") {
     return localizedMusicPrompt;
+  }
+  if (provider === "minimax-h3-max-video" && (workflow === "text-to-video" || workflow === "image-to-video")) {
+    return videoExampleFor(provider, workflow)?.prompts[0] || "";
   }
   return "";
 }
@@ -658,7 +662,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     initialWorkflow === "avatar-video" || initialWorkflow === "image-to-video" ? initialWorkflow : "text-to-video";
   const initialAudioWorkflow: AudioWorkflow = initialWorkflow === "text-to-music" ? "text-to-music" : "text-to-audio";
   const initialReferenceUrl = sp.get("reference");
-  const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider, st("studio.music.defaultPrompt")));
+  const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider, initialWorkflow, st("studio.music.defaultPrompt")));
   const [provider, setProvider] = useState(initialProvider);
   const [imageWorkflow, setImageWorkflow] = useState<ImageWorkflow>(initialImageWorkflow);
   const [videoWorkflow, setVideoWorkflow] = useState<VideoWorkflow>(initialVideoWorkflow);
@@ -875,8 +879,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       validProviderParam || rememberedProvider
     );
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
-    if (modeChanged && !sp.get("prompt")) {
-      setPrompt(defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt")));
+    if (!sp.get("prompt") && (modeChanged || nextProvider !== initialProvider)) {
+      setPrompt(defaultPromptForProvider(nextProvider, workflowParam, st("studio.music.defaultPrompt")));
     }
     if (modeChanged && mode === "image" && !sp.get("reference")) {
       setReferenceImagesText("");
@@ -1232,7 +1236,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     };
     const optionDurationOptions = mode === "video" ? videoModelDurations(option.value) : [];
     const optionAvatarPrompt = isAvatarWorkflow
-      ? promptForProviderChange(prompt, defaultPromptForProvider(option.value, st("studio.music.defaultPrompt")), st("studio.music.defaultPrompt"))
+      ? promptForProviderChange(prompt, defaultPromptForProvider(option.value, activeWorkflow, st("studio.music.defaultPrompt")), st("studio.music.defaultPrompt"))
       : prompt;
     const optionDuration = isAvatarWorkflow
       ? option.value === "dreamface-io-video" ? duration : avatarDurationFromPrompt(optionAvatarPrompt)
@@ -1337,6 +1341,24 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   ];
   const selectedVideoModelConfig = videoModelConfig(provider);
   const configuredVideoWorkflow = videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
+  const selectedH3MaxExample = provider === "minimax-h3-max-video"
+    ? videoExampleFor(provider, configuredVideoWorkflow)
+    : null;
+  const videoPromptShowcases: PromptShowcase[] = selectedH3MaxExample
+    ? [{
+        videoUrl: selectedH3MaxExample.videoUrl,
+        posterUrl: selectedH3MaxExample.posterUrl,
+        prompt: selectedH3MaxExample.prompts[0] || "",
+        duration: selectedH3MaxExample.settings.duration,
+        provider: selectedH3MaxExample.provider,
+        ratio: selectedH3MaxExample.settings.ratio,
+        resolution: selectedH3MaxExample.settings.resolution
+      }]
+    : [
+        { videoUrl: YOUNG_KOREAN_WOMAN_VIDEO_URL, posterUrl: "/images/video-examples/young-korean-neighborhood.png", prompt: YOUNG_KOREAN_WOMAN_PROMPT, duration: "15s", provider: "seedance-video", ratio: "16:9" },
+        { videoUrl: EASTBOURNE_KOREAN_WOMAN_VIDEO_URL, posterUrl: "/images/video-examples/eastbourne-tennis.png", prompt: EASTBOURNE_KOREAN_WOMAN_PROMPT, duration: "10s", provider: "seedance-video", ratio: "16:9" },
+        { videoUrl: SPORTS_BROADCAST_VIDEO_URL, posterUrl: "/images/video-examples/sports-broadcast.png", prompt: SPORTS_BROADCAST_PROMPT, duration: "15s", provider: "seedance-video", ratio: "16:9" }
+      ];
   const videoRatioOptions = isAvatarProvider(provider)
     ? ["source"]
     : videoModelRatios(provider, configuredVideoWorkflow);
@@ -1463,7 +1485,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     if (isNanoBananaProvider(nextProvider) || nextProvider === "topaz-image" || nextProvider === "bria-background-remove") {
       setRatio(defaultImageRatioForProvider(nextProvider, defaultImageSizeForProvider(nextProvider)));
     }
-    const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
+    const nextDefaultPrompt = defaultPromptForProvider(nextProvider, nextWorkflow, st("studio.music.defaultPrompt"));
     setPrompt((current) =>
       nextMode === mode
         ? promptForProviderChange(current, !hasCompletedCreation ? nextDefaultPrompt : "", st("studio.music.defaultPrompt"))
@@ -1506,11 +1528,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     router.replace(`/studio?${params.toString()}`, { scroll: false });
   }
 
-  function applyProvider(nextProvider: string, videoOverrides?: { duration?: string; ratio?: string }) {
+  function applyProvider(nextProvider: string, videoOverrides?: { duration?: string; ratio?: string; resolution?: string }) {
     trackEvent("studio_model_selected", { mode, provider: nextProvider, workflow: activeWorkflow }, accessToken);
     safeSetLocalStorage(lastModelStorageKey(activeWorkflow), nextProvider);
     setProvider(nextProvider);
-    const nextDefaultPrompt = defaultPromptForProvider(nextProvider, st("studio.music.defaultPrompt"));
+    const nextDefaultPrompt = defaultPromptForProvider(nextProvider, activeWorkflow, st("studio.music.defaultPrompt"));
     setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
     if (isAvatarProvider(nextProvider)) {
       setReferenceImagesText((current) => current || KLING_AVATAR_DEFAULT_IMAGE_URL);
@@ -1576,7 +1598,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       if (mode !== "avatar") {
         setDuration(nextDuration);
       }
-      const nextResolution = defaultVideoResolutionForProvider(nextProvider);
+      const nextResolutionOptions = videoModelResolutions(nextProvider);
+      const nextResolution = videoOverrides?.resolution && nextResolutionOptions.includes(videoOverrides.resolution)
+        ? videoOverrides.resolution
+        : defaultVideoResolutionForProvider(nextProvider);
       setVideoResolution(nextResolution);
       setRatio(nextRatio);
       const params = new URLSearchParams(sp.toString());
@@ -1646,7 +1671,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     }
     if (mode === "video" && videoWorkflow !== "image-to-video") {
       const nextWorkflow: StudioWorkflow = "image-to-video";
-      const nextProvider = providerForWorkflow(nextWorkflow, readRememberedModel(nextWorkflow) || provider);
+      const nextProvider = WORKFLOW_META[nextWorkflow].recommendedProvider;
       const nextDurations = videoModelDurations(nextProvider);
       const nextDuration = nextDurations.includes(duration) ? duration : videoModelDefaultDuration(nextProvider);
       const nextRatios = videoModelRatios(nextProvider, nextWorkflow);
@@ -1654,6 +1679,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       const nextResolution = defaultVideoResolutionForProvider(nextProvider);
       setVideoWorkflow("image-to-video");
       setProvider(nextProvider);
+      const nextDefaultPrompt = defaultPromptForProvider(nextProvider, nextWorkflow, st("studio.music.defaultPrompt"));
+      setPrompt((current) => promptForProviderChange(current, nextDefaultPrompt, st("studio.music.defaultPrompt")));
       setDuration(nextDuration);
       setRatio(nextRatio);
       setVideoResolution(nextResolution);
@@ -3517,7 +3544,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       durationOptions={videoDurationOptions}
                       ratio={ratio}
                       ratioOptions={videoRatioOptions}
-                      ratioDisabled={provider === "kling-video" && activeWorkflow === "image-to-video"}
+                      ratioDisabled={(provider === "kling-video" || provider === "minimax-h3-max-video") && activeWorkflow === "image-to-video"}
                       showResolutionControl={showVideoResolutionControl}
                       resolution={videoResolution}
                       resolutionOptions={videoResolutionOptions}
@@ -3530,26 +3557,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       isSubmitting={isSubmitting}
                       isAuthenticated={Boolean(accessToken)}
                       recentTasks={tasks}
-                      promptShowcases={[
-                        {
-                          videoUrl: YOUNG_KOREAN_WOMAN_VIDEO_URL,
-                          posterUrl: "/images/video-examples/young-korean-neighborhood.png",
-                          prompt: YOUNG_KOREAN_WOMAN_PROMPT,
-                          duration: "15s"
-                        },
-                        {
-                          videoUrl: EASTBOURNE_KOREAN_WOMAN_VIDEO_URL,
-                          posterUrl: "/images/video-examples/eastbourne-tennis.png",
-                          prompt: EASTBOURNE_KOREAN_WOMAN_PROMPT,
-                          duration: "10s"
-                        },
-                        {
-                          videoUrl: SPORTS_BROADCAST_VIDEO_URL,
-                          posterUrl: "/images/video-examples/sports-broadcast.png",
-                          prompt: SPORTS_BROADCAST_PROMPT,
-                          duration: "15s"
-                        }
-                      ]}
+                      promptShowcases={videoPromptShowcases}
                       translate={st}
                       onPromptChange={setPrompt}
                       onReferenceClear={() => {
@@ -3565,7 +3573,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       onGenerateAudioChange={setGenerateAudio}
                       onSeedChange={setSeed}
                       onUsePromptShowcase={(showcase) => {
-                        applyProvider("seedance-video", { duration: showcase.duration, ratio: "16:9" });
+                        applyProvider(showcase.provider || "seedance-video", { duration: showcase.duration, ratio: showcase.ratio || "16:9", resolution: showcase.resolution });
                         setPrompt(showcase.prompt);
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }}

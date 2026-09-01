@@ -19,12 +19,14 @@ import {
 import { estimateGenerationCreditsWithLivePricing } from "../../../lib/fal-pricing";
 import {
   DREAMFACE_IO_PROVIDER,
+  DREAMFACE_IO_MODEL,
   dreamfaceIoCredits,
   dreamfaceIoUnits,
   enhanceDreamfaceIoPrompt,
   ensureDreamfaceIoPublicImage,
   isDreamfaceIoConfigured,
   isDreamfaceIoDailyEligible,
+  isDreamfaceIoDurationSupported,
   refundDreamfaceIoBilling,
   refundDreamfaceIoDailyUnits,
   reserveDreamfaceIoDailyUnits,
@@ -155,6 +157,9 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "seedance-mini-video": editImage
       ? process.env.FAL_MODEL_VIDEO_SEEDANCE_MINI_I2V || "bytedance/seedance-2.0/mini/image-to-video"
       : process.env.FAL_MODEL_VIDEO_SEEDANCE_MINI || "bytedance/seedance-2.0/mini/text-to-video",
+    "minimax-h3-max-video": editImage
+      ? process.env.FAL_MODEL_VIDEO_MINIMAX_H3_MAX_I2V || "minimax/h3-max/image-to-video"
+      : process.env.FAL_MODEL_VIDEO_MINIMAX_H3_MAX || "minimax/h3-max/text-to-video",
     "kling-video": editImage
       ? process.env.FAL_MODEL_VIDEO_KLING_I2V || "fal-ai/kling-video/v3/pro/image-to-video"
       : process.env.FAL_MODEL_VIDEO_KLING || "fal-ai/kling-video/v3/pro/text-to-video",
@@ -210,6 +215,8 @@ const HAPPY_HORSE_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1", "4:3", "
 const KLING_TEXT_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1"]);
 const VEO_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const GEMINI_OMNI_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
+const MINIMAX_H3_MAX_VIDEO_ASPECT_RATIOS = new Set(["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
+const MINIMAX_H3_MAX_VIDEO_RESOLUTIONS = new Set(["480p", "768p"]);
 const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p", "4k"]);
 const SEEDANCE_MINI_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
@@ -335,6 +342,24 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       image_url: firstInputImage(body),
       audio_url: typeof body.audioUrl === "string" ? body.audioUrl.trim() : "",
       prompt: prompt || "."
+    };
+  }
+
+  if (body.mode === "video" && body.provider === "minimax-h3-max-video") {
+    const duration = clampInt(body.duration, 5, 15, 5);
+    const resolution = body.resolution && MINIMAX_H3_MAX_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "480p";
+    const seed = optionalSeed(body.seed);
+    const imageUrl = firstInputImage(body);
+    return {
+      prompt,
+      duration,
+      resolution: resolution === "768p" ? "768P" : "480P",
+      prompt_expansion_mode: "balanced",
+      enable_safety_checker: body.enableSafetyChecker !== false,
+      ...(imageUrl
+        ? { image_url: imageUrl }
+        : { aspect_ratio: MINIMAX_H3_MAX_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9" }),
+      ...(seed !== undefined ? { seed } : {})
     };
   }
 
@@ -845,6 +870,9 @@ export async function POST(request: Request) {
     if (body.mode === "video" && body.provider === "gemini-omni-flash-video" && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
       return NextResponse.json({ error: "Gemini Omni Flash image-to-video requires one reference image." }, { status: 400 });
     }
+    if (body.mode === "video" && body.provider === "minimax-h3-max-video" && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
+      return NextResponse.json({ error: "MiniMax H3 Max image-to-video requires one reference image." }, { status: 400 });
+    }
     if (isAvatarProvider) {
       if (!imageUrls.length) {
         return NextResponse.json({ error: "AI Avatar requires one avatar reference image." }, { status: 400 });
@@ -856,8 +884,11 @@ export async function POST(request: Request) {
     if (isDreamfaceIoTalkingAvatar && !imageUrls.length) {
       return NextResponse.json({ error: "AI Talking requires one reference image." }, { status: 400 });
     }
+    if (isDreamfaceIo && !isDreamfaceIoDurationSupported(body.duration)) {
+      return NextResponse.json({ error: "DreamFace IO Video 2.5 Flash currently supports 5 or 10 second generations." }, { status: 400 });
+    }
     const falKey = process.env.FAL_KEY;
-    const modelId = isDreamfaceIo ? "dreamface-io" : getModelId(storageMode, body.provider, hasInputImages(body));
+    const modelId = isDreamfaceIo ? DREAMFACE_IO_MODEL : getModelId(storageMode, body.provider, hasInputImages(body));
     const taskId = generationTaskId(body.idempotencyKey);
     const submittedPrompt = isDreamfaceIo
       ? enhanceDreamfaceIoPrompt(prompt, {
@@ -1025,7 +1056,6 @@ export async function POST(request: Request) {
           prompt: submittedPrompt,
           imageUrl: firstInputImage(body),
           ratio: body.ratio,
-          resolution: "720p",
           duration: body.duration,
           seed: optionalSeed(body.seed)
         });

@@ -3,8 +3,10 @@ import { refundCredits } from "./credits";
 export const DREAMFACE_IO_PROVIDER = "dreamface-io-video";
 export const DREAMFACE_IO_DAILY_UNITS = 6;
 export const DREAMFACE_IO_CREDITS_PER_UNIT = 10;
-const DREAMFACE_IO_MODEL = "agnes-video-v2.0";
+export const DREAMFACE_IO_MODEL = "agnes-video-2.5-flash";
 const DREAMFACE_IO_API_BASE = "https://apihub.agnes-ai.com";
+const DREAMFACE_IO_SIZE = "720P";
+const DREAMFACE_IO_ASPECT_RATIOS = new Set(["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
 
 type DreamfaceIoTask = {
   id: string;
@@ -70,6 +72,11 @@ export function dreamfaceIoCredits(duration: string | null | undefined) {
   return dreamfaceIoUnits(duration) * DREAMFACE_IO_CREDITS_PER_UNIT;
 }
 
+export function isDreamfaceIoDurationSupported(duration: string | null | undefined) {
+  const seconds = Number.parseInt(String(duration || ""), 10);
+  return seconds === 5 || seconds === 10;
+}
+
 function dreamfaceIoSpeechInstruction() {
   return [
     "If the subject speaks, use the same language as the dialogue written in the user's prompt.",
@@ -129,24 +136,23 @@ export function enhanceDreamfaceIoPrompt(
   ].filter(Boolean).join(" ");
 }
 
-function frameCount(duration: string | null | undefined) {
-  const seconds = dreamfaceIoDurationSeconds(duration);
-  return seconds === 15 ? 361 : seconds === 10 ? 241 : 121;
-}
-
-function dimensions(ratio: string, resolution: string | null | undefined) {
-  const tier = resolution === "480p" || resolution === "1080p" ? resolution : "720p";
-  const landscape = {
-    "480p": [768, 512],
-    "720p": [1152, 768],
-    "1080p": [1728, 1152]
-  } as const;
-  const [longSide, shortSide] = landscape[tier];
-
-  if (ratio === "9:16" || ratio === "3:4") return { width: shortSide, height: longSide };
-  if (ratio === "1:1") return { width: shortSide, height: shortSide };
-  if (ratio === "4:3") return { width: Math.round(shortSide * 4 / 3), height: shortSide };
-  return { width: longSide, height: shortSide };
+function dreamfaceIoApiError(payload: Record<string, unknown> | null, status: number) {
+  for (const candidate of [payload?.detail, payload?.error, payload?.message]) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+    if (Array.isArray(candidate)) {
+      const messages = candidate
+        .map((item) => item && typeof item === "object" ? (item as Record<string, unknown>).msg : null)
+        .filter((value): value is string => typeof value === "string" && Boolean(value.trim()));
+      if (messages.length) return messages.join("; ");
+    }
+    if (candidate && typeof candidate === "object") {
+      const nested = candidate as Record<string, unknown>;
+      for (const value of [nested.message, nested.detail, nested.error]) {
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+    }
+  }
+  return `DreamFace IO could not accept this request (${status}).`;
 }
 
 export function dreamfaceIoStatusUrl(videoId: string) {
@@ -160,14 +166,18 @@ export async function submitDreamfaceIoVideo(input: {
   prompt: string;
   imageUrl?: string | null;
   ratio: string;
-  resolution?: string | null;
   duration?: string | null;
   seed?: number;
 }) {
   const key = apiKey();
   if (!key) throw new Error("DreamFace IO is not configured.");
 
-  const size = dimensions(input.ratio, input.resolution);
+  if (!isDreamfaceIoDurationSupported(input.duration)) {
+    throw new Error("DreamFace IO Video 2.5 Flash currently supports 5 or 10 second generations.");
+  }
+  const seconds = dreamfaceIoDurationSeconds(input.duration);
+  const aspectRatio = DREAMFACE_IO_ASPECT_RATIOS.has(input.ratio) ? input.ratio : "16:9";
+  const imageUrl = input.imageUrl?.trim() || null;
   const response = await fetch(`${DREAMFACE_IO_API_BASE}/v1/videos`, {
     method: "POST",
     headers: {
@@ -177,10 +187,12 @@ export async function submitDreamfaceIoVideo(input: {
     body: JSON.stringify({
       model: DREAMFACE_IO_MODEL,
       prompt: input.prompt,
-      ...(input.imageUrl ? { image: input.imageUrl, image_url: input.imageUrl } : {}),
-      ...size,
-      num_frames: frameCount(input.duration),
-      frame_rate: 24,
+      mode: imageUrl ? "keyframe" : "text",
+      seconds: String(seconds),
+      size: DREAMFACE_IO_SIZE,
+      aspect_ratio: aspectRatio,
+      n: 1,
+      ...(imageUrl ? { first_frame: imageUrl } : {}),
       ...(typeof input.seed === "number" ? { seed: input.seed } : {})
     }),
     cache: "no-store"
@@ -188,11 +200,7 @@ export async function submitDreamfaceIoVideo(input: {
 
   const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
   if (!response.ok) {
-    throw new Error(
-      typeof payload?.error === "string"
-        ? payload.error
-        : `DreamFace IO could not accept this request (${response.status}).`
-    );
+    throw new Error(dreamfaceIoApiError(payload, response.status));
   }
 
   const videoId = typeof payload?.video_id === "string" ? payload.video_id : null;

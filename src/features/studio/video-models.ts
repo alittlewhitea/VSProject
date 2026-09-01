@@ -55,6 +55,7 @@ export type VideoModelConfig = {
 
 const VIDEO_DURATION_OPTIONS = ["3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s"] as const;
 const DEFAULT_VIDEO_RATIOS = ["16:9", "9:16", "1:1"] as const;
+const DREAMFACE_IO_RATIOS = ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] as const;
 const SEEDANCE_RATIOS = ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] as const;
 const HAPPY_HORSE_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21", "5:4", "4:5"] as const;
 const GROK_TEXT_RATIOS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"] as const;
@@ -71,6 +72,14 @@ const GROK_IMAGE_URL = "https://v3b.fal.media/files/b/0a8b90e0/BFLE9VDlZqsryU-UA
 const SEEDANCE_MINI_TEXT_PROMPT = "An octopus finds a football in the ocean and excitedly calls its octopus friends to come and play. Cut scene to an octopus football game under the sea.";
 const SEEDANCE_MINI_IMAGE_PROMPT = "A dreamy scene, a mother teaches her daughter how to dance";
 const SEEDANCE_MINI_IMAGE_URL = "https://v3b.fal.media/files/b/0a9f9237/8suPAQC2A91XnQqbY63oj_141_edgar-degas-mary-cassatt.png";
+
+const MINIMAX_H3_MAX_TEXT_PROMPT = "An aging warrior-monk in scorched ceremonial armor, a split ceramic mask and a humming prayer-band on his forearm + 0–4s: climbs silently along a cliffside terrace as insect-like surveyor drones comb the sun-bleached ruins, standing alone under as the camera rises over the ruined monastery. Sun-blasted post-apocalyptic sci-fi action, dust, heat haze, practical debris, sweeping crane tracking, silence broken only by wind.";
+const MINIMAX_H3_MAX_IMAGE_PROMPT = "She is saying \"I heard something. MiniMax H3 Max is here?.. Is that true?\"";
+const MINIMAX_H3_MAX_IMAGE_URL = "https://v3b.fal.media/files/b/0aa7ec53/dEJsS9nnNZ-1emO63isC8_50zjcHYr.png";
+const MINIMAX_H3_MAX_TEXT_VIDEO_URL = "https://v3b.fal.media/files/b/0aa7ecbd/cJvT63jq0mDi8-E8fYXHq_minimax-h3.mp4";
+const MINIMAX_H3_MAX_IMAGE_VIDEO_URL = "https://v3b.fal.media/files/b/0aa7ec74/bNpa9-5B0ZKqsrGfdqxZt_minimax-h3.mp4";
+const MINIMAX_H3_MAX_TEXT_POSTER_URL = "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aa7ecbd%2FcJvT63jq0mDi8-E8fYXHq_minimax-h3.mp4/tr:so-0,w-1024,q-80/cJvT63jq0mDi8-E8fYXHq_minimax-h3.webp";
+const MINIMAX_H3_MAX_IMAGE_POSTER_URL = "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aa7ec74%2FbNpa9-5B0ZKqsrGfdqxZt_minimax-h3.mp4/tr:so-0,w-1024,q-80/bNpa9-5B0ZKqsrGfdqxZt_minimax-h3.webp";
 
 const HAPPY_HORSE_TEXT_PROMPT = `Medium shot of a professional news anchor at a sleek desk in a modern broadcast studio, cool blue lighting, softly glowing screens behind. 0-5s: He looks into the camera and says in a clear measured voice, "Good evening. Tonight, a breakthrough that could change how millions of us work." 5-10s: He turns slightly toward a second camera, "We'll have the full story, and what it means for you, right after this." Precise lip-sync, subtle studio room tone, crisp broadcast quality, shallow depth of field.`;
 const HAPPY_HORSE_IMAGE_PROMPT = `character1 in a cozy dim room strums once, looks up and says in English: "This next one I wrote at three in the morning." Warm practical light, intimate, cinematic, precise lip-sync.`;
@@ -97,13 +106,32 @@ const SEEDANCE_IMAGE_PROMPT = "Ultra high-end commercial product shot, photoreal
 const SEEDANCE_IMAGE_URL = "https://v3b.fal.media/files/b/0a95971b/bFYVNRi647e2hEFdbeU2Z_jMhj1ueK.jpg";
 
 export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
+  "minimax-h3-max-video": {
+    id: "minimax-h3-max-video",
+    meta: { label: "MiniMax H3 Max", shortLabel: "H3 Max", speed: "Fast", quality: "Frontier value", bestFor: "Affordable frontier text-to-video and image-to-video with strong prompt adherence and aesthetics" },
+    group: "freeDraft",
+    badge: "recommended",
+    workflows: {
+      "text-to-video": { ratios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] },
+      "image-to-video": { ratios: ["source"] }
+    },
+    durations: VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 5),
+    resolutions: ["480p", "768p"],
+    defaultDuration: "5s",
+    defaultResolution: "480p",
+    showResolutionControl: true,
+    examples: {
+      "text-to-video": { provider: "minimax-h3-max-video", workflow: "text-to-video", modelLabel: "MiniMax H3 Max", prompts: [MINIMAX_H3_MAX_TEXT_PROMPT], videoUrl: MINIMAX_H3_MAX_TEXT_VIDEO_URL, posterUrl: MINIMAX_H3_MAX_TEXT_POSTER_URL, badgeParts: ["480p"], settings: { duration: "5s", ratio: "16:9", resolution: "480p" } },
+      "image-to-video": { provider: "minimax-h3-max-video", workflow: "image-to-video", modelLabel: "MiniMax H3 Max", prompts: [MINIMAX_H3_MAX_IMAGE_PROMPT], videoUrl: MINIMAX_H3_MAX_IMAGE_VIDEO_URL, posterUrl: MINIMAX_H3_MAX_IMAGE_POSTER_URL, sourceImageUrl: MINIMAX_H3_MAX_IMAGE_URL, sourceImageShape: "landscape", videoFit: "contain", badgeParts: ["480p"], settings: { duration: "5s", ratio: "source", resolution: "480p" } }
+    }
+  },
   "dreamface-io-video": {
     id: "dreamface-io-video",
-    meta: { label: "DreamFace IO", shortLabel: "DreamFace IO", speed: "Fast", quality: "Everyday video", bestFor: "Fast daily text-to-video and image-to-video creation with a free daily allowance" },
+    meta: { label: "DreamFace IO", shortLabel: "DreamFace IO", speed: "Fast", quality: "Video 2.5 Flash", bestFor: "Fast 720p text-to-video and image-to-video creation with a free daily allowance" },
     group: "freeDraft",
     badge: "free",
-    workflows: { "text-to-video": { ratios: DEFAULT_VIDEO_RATIOS }, "image-to-video": { ratios: DEFAULT_VIDEO_RATIOS } },
-    durations: ["5s", "10s", "15s"],
+    workflows: { "text-to-video": { ratios: DREAMFACE_IO_RATIOS }, "image-to-video": { ratios: DREAMFACE_IO_RATIOS } },
+    durations: ["5s", "10s"],
     resolutions: ["720p"],
     defaultDuration: "5s",
     defaultResolution: "720p",
@@ -239,8 +267,8 @@ export const VIDEO_PROVIDER_META: Record<string, VideoProviderMeta> = {
 };
 
 export const VIDEO_PROVIDERS_BY_WORKFLOW: Record<StudioVideoWorkflow, string[]> = {
-  "text-to-video": ["dreamface-io-video", "grok-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
-  "image-to-video": ["dreamface-io-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "grok-video"]
+  "text-to-video": ["minimax-h3-max-video", "dreamface-io-video", "grok-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
+  "image-to-video": ["minimax-h3-max-video", "dreamface-io-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "grok-video"]
 };
 
 export const VIDEO_EXAMPLE_PROMPTS = Object.values(VIDEO_MODEL_CONFIGS)
