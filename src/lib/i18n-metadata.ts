@@ -52,7 +52,7 @@ export async function createLocalizedMetadata(rawLocale: string, page: Marketing
 
   return {
     metadataBase: new URL(baseUrl),
-    title: copy.title,
+    title: page === "home" ? { absolute: copy.title } : copy.title,
     description: copy.description,
     alternates: {
       canonical: canonicalPath,

@@ -11,6 +11,7 @@ import { defaultLocale, isLocale } from "../i18n/routing";
 import { CREDIT_PACKS, formatUsd } from "../lib/billing";
 import { galleryItemPath, mapGalleryRow } from "../lib/gallery";
 import { fetchPublishedGalleryItems } from "../lib/gallery-server";
+import { siteUrl } from "../lib/site-url";
 
 const homeFaqKeys = [
   "whatIsDreamFace",
@@ -63,17 +64,48 @@ export default async function HomePage() {
     q: t(`home.faq.${key}.question`),
     a: t(`home.faq.${key}.answer`)
   }));
-  const homeFaqJsonLd = {
+  const baseUrl = siteUrl();
+  const homeStructuredData = {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((faq) => ({
-      "@type": "Question",
-      name: faq.q,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: faq.a
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${baseUrl}/#website`,
+        url: `${baseUrl}/`,
+        name: "DreamFace",
+        alternateName: ["DreamFace AI", "dreamface.io"]
+      },
+      {
+        "@type": "Organization",
+        "@id": `${baseUrl}/#organization`,
+        name: "DreamFace",
+        alternateName: "DreamFace AI",
+        url: `${baseUrl}/`,
+        logo: {
+          "@type": "ImageObject",
+          url: `${baseUrl}/icons/icon-512x512.png`,
+          contentUrl: `${baseUrl}/icons/icon-512x512.png`,
+          width: 512,
+          height: 512
+        },
+        sameAs: [
+          "https://www.youtube.com/@DreamfaceLTD",
+          "https://www.linkedin.com/company/dreamface/"
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${baseUrl}/${locale}#faq`,
+        mainEntity: faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.q,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.a
+          }
+        }))
       }
-    }))
+    ]
   };
 
   return (
@@ -81,7 +113,7 @@ export default async function HomePage() {
       <PageAnalytics eventName="home_view" />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeStructuredData).replace(/</g, "\\u003c") }}
       />
       <div className="mx-auto max-w-[1540px] px-3 pt-3 sm:px-4 sm:pt-4 md:px-8 md:pt-5">
         <TopNav />

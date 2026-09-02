@@ -7,7 +7,7 @@ import { defaultLocale, isLocale, isRtlLocale } from "../i18n/routing";
 
 export const metadata: Metadata = {
   title: {
-    default: "DreamFace AI Image and Video Generator",
+    default: "DreamFace AI — AI Image, Video & Avatar Generator",
     template: "%s | DreamFace"
   },
   description:
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     "FLUX Schnell"
   ],
   openGraph: {
-    title: "DreamFace AI Image and Video Generator",
+    title: "DreamFace AI — AI Image, Video & Avatar Generator",
     description:
       "Create AI images and videos with text-to-image, image-to-image, text-to-video, model routing, credits, and organized creation history.",
     type: "website",
