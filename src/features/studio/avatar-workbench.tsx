@@ -11,6 +11,7 @@ type AvatarWorkbenchProps = {
   referenceImagesText: string;
   referenceImageUrls: string[];
   isDreamfaceTalkingAvatar: boolean;
+  isH3MaxAvatar: boolean;
   avatarScriptTooLong: boolean;
   avatarScriptMeta: string;
   avatarDuration: string;
@@ -39,6 +40,7 @@ export function AvatarWorkbench({
   referenceImagesText,
   referenceImageUrls,
   isDreamfaceTalkingAvatar,
+  isH3MaxAvatar,
   avatarScriptTooLong,
   avatarScriptMeta,
   avatarDuration,
@@ -126,7 +128,7 @@ export function AvatarWorkbench({
 
         <div className="min-w-0">
           <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
-            <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{translate("studio.avatarWorkbench.script")}</div>
+            <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{translate(isH3MaxAvatar ? "studio.field.prompt" : "studio.avatarWorkbench.script")}</div>
             <span className={`rounded-full px-3 py-1 text-xs font-black ${avatarScriptTooLong ? "bg-[#fff1f2] text-[#e11d48]" : "bg-[#f0fdf4] text-[#16a34a]"}`}>
               {avatarScriptMeta}
             </span>
@@ -142,12 +144,14 @@ export function AvatarWorkbench({
           <div className={`mt-[18px] text-xs font-extrabold leading-5 ${avatarScriptTooLong ? "text-[#e11d48]" : "text-[#96a2b7]"}`}>
             {avatarScriptTooLong
               ? translate("studio.avatar.scriptTooLong")
+              : isH3MaxAvatar
+                ? translate("studio.videoWorkbench.imageHeroDescription")
               : isDreamfaceTalkingAvatar
                 ? translate("studio.avatarWorkbench.dreamfaceHint")
                 : translate("studio.avatar.billingHint", { duration: avatarDuration })}
           </div>
 
-          {!isDreamfaceTalkingAvatar ? (
+          {!isDreamfaceTalkingAvatar && !isH3MaxAvatar ? (
             <div className="mt-4 rounded-2xl border border-[#eaecf0] bg-[#fcfcfe] p-3">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-sm font-black text-[#283249]">{translate("studio.avatar.voice")}</span>

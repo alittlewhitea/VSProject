@@ -114,6 +114,10 @@ function isAvatarRequest(body: GenerateRequest) {
   return (body.mode === "avatar" || body.videoWorkflow === "avatar-video") && (body.provider === "kling-avatar-standard" || body.provider === "kling-avatar-pro");
 }
 
+function isH3MaxAvatarRequest(body: GenerateRequest) {
+  return body.mode === "avatar" && body.provider === "minimax-h3-max-video";
+}
+
 function hasReferenceImages(body: GenerateRequest) {
   return body.mode === "image" && Array.isArray(body.imageUrls) && body.imageUrls.some((url) => typeof url === "string" && url.trim());
 }
@@ -345,7 +349,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
-  if (body.mode === "video" && body.provider === "minimax-h3-max-video") {
+  if ((body.mode === "video" || body.mode === "avatar") && body.provider === "minimax-h3-max-video") {
     const duration = clampInt(body.duration, 5, 15, 5);
     const resolution = body.resolution && MINIMAX_H3_MAX_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "480p";
     const seed = optionalSeed(body.seed);
@@ -788,6 +792,7 @@ export async function POST(request: Request) {
     }
 
     const isAvatarProvider = isAvatarRequest(body);
+    const isH3MaxAvatar = isH3MaxAvatarRequest(body);
     const isDreamfaceIo = body.provider === DREAMFACE_IO_PROVIDER;
     const isDreamfaceIoTalkingAvatar = isDreamfaceIo && body.mode === "avatar";
     const storageMode = storedModeForRequest(body);
@@ -816,6 +821,11 @@ export async function POST(request: Request) {
     }
     if (isAvatarProvider) {
       body.duration = avatarDurationFromPrompt(prompt);
+      body.videoWorkflow = "avatar-video";
+      body.ratio = "source";
+    }
+    if (isH3MaxAvatar) {
+      body.duration = `${clampInt(body.duration, 5, 15, 5)}s`;
       body.videoWorkflow = "avatar-video";
       body.ratio = "source";
     }
@@ -880,6 +890,9 @@ export async function POST(request: Request) {
       if (body.audioUrl && !isValidAudioInput(body.audioUrl)) {
         return NextResponse.json({ error: "AI Avatar audio input is invalid." }, { status: 400 });
       }
+    }
+    if (isH3MaxAvatar && !imageUrls.length) {
+      return NextResponse.json({ error: "MiniMax H3 Max Avatar requires one reference image." }, { status: 400 });
     }
     if (isDreamfaceIoTalkingAvatar && !imageUrls.length) {
       return NextResponse.json({ error: "AI Talking requires one reference image." }, { status: 400 });
@@ -1139,7 +1152,7 @@ export async function POST(request: Request) {
         refundedCredits > 0
           ? await refundCredits(admin, user.id, refundedCredits, "generation_refund", taskId)
           : spendResult.balance;
-      const failedSurface = isAvatarProvider ? "Avatar generation" : "provider generation";
+      const failedSurface = body.mode === "avatar" ? "Avatar generation" : "provider generation";
       const failureReason =
         networkError instanceof FalApiError
           ? formatFalFailureReason(failureInfo, estimatedCredits, refundedCredits)

@@ -14,6 +14,7 @@ type UnifiedWorkbenchLayoutProps = {
   modelSelector?: ReactNode;
   tasks: TaskItem[];
   avatarSamplePreviewUrl?: string;
+  avatarSamplePreviewLabel?: string;
   translate: (key: string, values?: Record<string, string | number | null | undefined>) => string;
 };
 
@@ -31,6 +32,7 @@ export function UnifiedWorkbenchLayout({
   modelSelector,
   tasks,
   avatarSamplePreviewUrl,
+  avatarSamplePreviewLabel,
   translate
 }: UnifiedWorkbenchLayoutProps) {
   const taskType = mode === "avatar" ? "Video" : mode === "image" ? "Image" : "Audio";
@@ -83,15 +85,12 @@ export function UnifiedWorkbenchLayout({
 
         <section className="min-h-[420px] min-w-0 self-start overflow-hidden rounded-[20px] border border-[#eaecf0] bg-white/95 p-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)] sm:min-h-[500px]">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5">
-            <span className="text-xs font-bold text-[#667085]">{avatarSamplePreviewUrl ? "Kling Avatar" : translate("studio.nav.avatar")} <span className="mx-1 text-[#c0c4ce]">{"\u2022"}</span> {avatarSamplePreviewUrl ? translate("studio.workbench.example") : translate("studio.workbench.preview")}</span>
+            <span className="text-xs font-bold text-[#667085]">{avatarSamplePreviewUrl ? avatarSamplePreviewLabel || "Kling Avatar" : translate("studio.nav.avatar")} <span className="mx-1 text-[#c0c4ce]">{"\u2022"}</span> {avatarSamplePreviewUrl ? translate("studio.workbench.example") : translate("studio.workbench.preview")}</span>
             {avatarSamplePreviewUrl ? <span className="rounded-[9px] bg-[#f1efff] px-2.5 py-1.5 text-[10px] font-bold text-[#6a5af9]">{translate("studio.workbench.preview")}</span> : null}
           </div>
 
           {avatarSamplePreviewUrl ? (
-            <>
-              <video src={avatarSamplePreviewUrl} controls muted playsInline preload="metadata" className="aspect-video w-full rounded-xl border border-[#191919] bg-[#121212] object-cover sm:rounded-2xl" />
-              <p className="mt-3 text-xs leading-5 text-[#667085]">{translate("studio.workbench.avatarExampleNote")}</p>
-            </>
+            <video src={avatarSamplePreviewUrl} controls muted playsInline preload="metadata" className="aspect-video w-full rounded-xl border border-[#191919] bg-[#121212] object-cover sm:rounded-2xl" />
           ) : (
             <div aria-label={translate("studio.workbench.preview")} className="grid min-h-[340px] place-items-center rounded-xl border border-dashed border-[#e4e0f4] bg-[radial-gradient(circle_at_50%_35%,rgba(123,97,255,0.055),transparent_42%),#fbfbfd] sm:min-h-[430px] sm:rounded-2xl">
               <span aria-hidden="true" className="grid h-12 w-12 place-items-center rounded-2xl border border-[#ebe8f7] bg-white text-xl text-[#b7aecf] shadow-[0_8px_28px_rgba(78,63,140,0.06)]">{"\u2726"}</span>

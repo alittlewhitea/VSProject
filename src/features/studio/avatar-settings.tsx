@@ -8,8 +8,11 @@ type Translate = (
 
 type AvatarSettingsProps = {
   isDreamfaceTalkingAvatar: boolean;
+  isH3MaxAvatar: boolean;
   duration: string;
   durationOptions: string[];
+  resolution: string;
+  resolutionOptions: string[];
   ratio: string;
   ratioOptions: string[];
   automaticDuration: string;
@@ -21,6 +24,7 @@ type AvatarSettingsProps = {
   isAuthenticated: boolean;
   translate: Translate;
   onDurationChange: (value: string) => void;
+  onResolutionChange: (value: string) => void;
   onRatioChange: (value: string) => void;
   onGenerate: () => void;
 };
@@ -29,8 +33,11 @@ const controlClass = "h-10 min-w-0 rounded-[10px] border border-[#eaecf0] bg-whi
 
 export function AvatarSettings({
   isDreamfaceTalkingAvatar,
+  isH3MaxAvatar,
   duration,
   durationOptions,
+  resolution,
+  resolutionOptions,
   ratio,
   ratioOptions,
   automaticDuration,
@@ -42,6 +49,7 @@ export function AvatarSettings({
   isAuthenticated,
   translate,
   onDurationChange,
+  onResolutionChange,
   onRatioChange,
   onGenerate
 }: AvatarSettingsProps) {
@@ -77,6 +85,15 @@ export function AvatarSettings({
               </select>
               <select value={ratio} onChange={(event) => onRatioChange(event.target.value)} className={controlClass}>
                 {ratioOptions.map((item) => <option key={item} value={item}>{item === "source" ? translate("studio.option.sourceImage") : item}</option>)}
+              </select>
+            </>
+          ) : isH3MaxAvatar ? (
+            <>
+              <select value={duration} onChange={(event) => onDurationChange(event.target.value)} className={controlClass}>
+                {durationOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+              <select value={resolution} onChange={(event) => onResolutionChange(event.target.value)} className={controlClass}>
+                {resolutionOptions.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </>
           ) : (
