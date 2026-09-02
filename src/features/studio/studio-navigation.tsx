@@ -19,6 +19,7 @@ export type StudioIconName =
   | "audio"
   | "billing"
   | "globe"
+  | "user"
   | "menu"
   | "x"
   | "chevron-left"
@@ -78,6 +79,7 @@ export function StudioIcon({ name, className = "h-5 w-5" }: { name: StudioIconNa
   if (name === "audio") return <svg {...common}><path d="M9 18V5l10-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="16" cy="16" r="3" /></svg>;
   if (name === "billing") return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M3 10h18" /><path d="M7 15h4" /></svg>;
   if (name === "globe") return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>;
+  if (name === "user") return <svg {...common}><circle cx="12" cy="8" r="3.25" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></svg>;
   if (name === "menu") return <svg {...common}><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h16" /></svg>;
   if (name === "x") return <svg {...common}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>;
   return <svg {...common}><path d={name === "chevron-left" ? "m15 18-6-6 6-6" : "m9 18 6-6-6-6"} /></svg>;
@@ -180,10 +182,10 @@ export function StudioSidebar({ t, modern, videoStudio = false, collapsed = fals
 
 export function StudioBottomNavigation({ t, ...state }: NavigationState & { t: Translate }) {
   const itemsById = new Map(navigationItems(t, state).map((item) => [item.id, item]));
-  const items = (["home", "avatar", "image", "video", "audio", "projects", "billing"] as const).map((id) => itemsById.get(id)!);
+  const items = (["home", "avatar", "image", "video", "audio", "projects"] as const).map((id) => itemsById.get(id)!);
 
   return (
-    <nav className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 isolate grid grid-cols-7 gap-0.5 rounded-[1.25rem] border border-[#e5e1eb] bg-white p-1 shadow-[0_18px_50px_rgba(15,23,42,0.2)] sm:inset-x-3 sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-1 sm:rounded-[1.4rem] sm:p-1.5 lg:hidden">
+    <nav className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 isolate grid grid-cols-6 gap-0.5 rounded-[1.25rem] border border-[#e5e1eb] bg-white p-1 shadow-[0_18px_50px_rgba(15,23,42,0.2)] sm:inset-x-3 sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-1 sm:rounded-[1.4rem] sm:p-1.5 lg:hidden">
       {items.map((item) => (
         <Link key={item.id} href={item.href} className={`min-h-12 min-w-0 flex flex-col items-center justify-center gap-1 rounded-[0.9rem] px-0.5 py-1.5 text-[9px] font-semibold transition sm:rounded-[1rem] sm:px-2 sm:text-[11px] ${item.active ? "bg-[#eeeaff] text-[#6955f6] shadow-[inset_0_0_0_1px_#ddd7ff]" : "text-[#667085]"}`}>
           <span aria-hidden="true" className={`grid h-6 w-6 place-items-center rounded-lg text-[15px] leading-none ${item.active ? "bg-white shadow-sm" : "bg-[#f6f7fa]"}`}>{item.visualIcon}</span>

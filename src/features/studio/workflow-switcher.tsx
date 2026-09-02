@@ -60,11 +60,11 @@ export function WorkflowSwitcher({
         ? (["text-to-video", "image-to-video"] as VideoWorkflow[])
         : (["text-to-audio", "text-to-music"] as AudioWorkflow[]);
     return (
-      <div className="mb-3 flex w-full justify-start overflow-x-auto px-0.5 pb-1 overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className={`grid gap-1 rounded-[14px] border border-[#eaecf0] bg-white p-1 shadow-sm ${mode === "video" ? "w-full grid-cols-2 sm:w-auto sm:min-w-[360px]" : `min-w-max ${mode === "image" ? "grid-cols-4" : "grid-cols-2"}`}`}>
+      <div className="mb-3 flex w-full justify-start px-0.5 pb-1">
+        <div className={`grid w-full gap-1 rounded-[14px] border border-[#eaecf0] bg-white p-1 shadow-sm ${mode === "image" ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:w-auto sm:min-w-[360px]"}`}>
           {workflows.map((workflow) => {
             const active = mode === "image" ? imageWorkflow === workflow : mode === "video" ? videoWorkflow === workflow : audioWorkflow === workflow;
-            return <button key={workflow} type="button" onClick={() => onWorkflowChange(workflow)} aria-pressed={active} className={`min-h-11 min-w-0 rounded-[10px] px-3 text-xs font-bold transition sm:px-4 ${active ? "bg-[#f1efff] text-[#6a5af9] shadow-[inset_0_0_0_1px_#ddd8ff]" : "text-[#667085] hover:bg-[#f8f8fb] hover:text-[#344054]"}`}>{t(`studio.workflow.${workflow}`)}</button>;
+            return <button key={workflow} type="button" onClick={() => onWorkflowChange(workflow)} aria-pressed={active} className={`min-h-11 min-w-0 rounded-[10px] px-2 py-2 text-xs font-bold leading-[1.3] transition sm:px-4 ${active ? "bg-[#f1efff] text-[#6a5af9] shadow-[inset_0_0_0_1px_#ddd8ff]" : "text-[#667085] hover:bg-[#f8f8fb] hover:text-[#344054]"}`}>{t(`studio.workflow.${workflow}`)}</button>;
           })}
         </div>
       </div>
