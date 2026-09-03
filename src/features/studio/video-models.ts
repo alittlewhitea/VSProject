@@ -81,6 +81,26 @@ const MINIMAX_H3_MAX_IMAGE_VIDEO_URL = "https://v3b.fal.media/files/b/0aa7ec74/b
 const MINIMAX_H3_MAX_TEXT_POSTER_URL = "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aa7ecbd%2FcJvT63jq0mDi8-E8fYXHq_minimax-h3.mp4/tr:so-0,w-1024,q-80/cJvT63jq0mDi8-E8fYXHq_minimax-h3.webp";
 const MINIMAX_H3_MAX_IMAGE_POSTER_URL = "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aa7ec74%2FbNpa9-5B0ZKqsrGfdqxZt_minimax-h3.mp4/tr:so-0,w-1024,q-80/bNpa9-5B0ZKqsrGfdqxZt_minimax-h3.webp";
 
+const MINIMAX_H3_MAX_TURBO_TEXT_PROMPT = `0.00–2.50
+Warm ivory background.
+Large black text: **H3 MAX TURBO.**
+Text slides in fast from the left with a clean ease-out. A thin red line grows underneath it. On the beat, the whole composition compresses slightly and snaps back.
+2.50–5.50
+The red line extends across the screen and becomes a crop transition.
+Reveal huge stacked text:
+**FASTER**
+**THAN REAL TIME.**
+Use aggressive kinetic typography: large scale, edge cropping, fast horizontal movement, strong black/ivory/red composition. Keep the text sharp when it lands.
+STYLE
+Premium 2D motion design with very subtle 2.5D card depth. Swiss editorial typography mixed with energetic commercial motion graphics. Warm ivory, black and vermilion red. Large type, strong cropping, fast masks, cards, lines, parallax, precise easing, short motion blur only during transitions. No full 3D scenes, no UI, no particles, no random objects, no glitches, no letter-by-letter animation.
+“fal” must always be lowercase.`;
+const MINIMAX_H3_MAX_TURBO_IMAGE_PROMPT = `Minimalist surreal advertising shot: a weathered bronze sculpture of Poseidon with heavy green verdigris patina, dark oxidation streaks and a wet sheen stands waist-deep in dark, near-black glossy water against a completely flat, saturated vermilion red background with no sky, horizon, or gradient. Wild curling hair, thick sculpted beard, muscular torso, soft diffused frontal lighting, subtle film grain, hyperrealistic 3D render, 16:9. The statue begins still with his head turned slightly off-camera and water rippling gently around the torso, then slowly turns his head to face the lens and raises the bronze trident in one deliberate motion, prongs pointing toward the upper-left corner, water streaming off the shaft. As the trident reaches its peak, his bronze lips move with full lip sync and he speaks, calm and commanding: "H3 Max Turbo. Faster than waves." Bold motion-graphics typography appears in the upper-right red negative space in a heavy clean sans-serif, off-white with a thin verdigris-green edge, each word landing exactly as it is spoken: "H3 MAX" snaps in with a hard scale punch and a quick tracking expansion, "TURBO" slams in below it slightly larger with a brief chromatic-glitch flicker, then the first two words cut away and "FASTER" sweeps in from the right with a fast motion-blur slide, followed by "THAN WAVES" rising from below with a subtle liquid-wave ripple distortion that settles into crisp letters. The stacked words hold for a beat, then dissolve in a fine spray of droplets as a ring of white splashes bursts outward from the water. Slow push-in from a medium shot to a medium close-up, low heroic angle, locked horizon, single continuous take with no cuts. Deep, gravelly male voice with a faint stone-hall reverb, low ocean rumble and lapping water underneath, a subtle metallic creak as the bronze moves, soft percussive whooshes and thuds synced to each text hit, no music.`;
+const MINIMAX_H3_MAX_TURBO_IMAGE_URL = "https://v3b.fal.media/files/b/0aa8e807/WBIFkOV7RYG_lkaIDZ16t_9JNelLPQSPq6030kQApyP_yhDcRfNl.jpg";
+const MINIMAX_H3_MAX_TURBO_TEXT_VIDEO_URL = "https://v3b.fal.media/files/b/0aa8f038/UcnQt_-5BsueASBEHTGEv_minimax-h3.mp4";
+const MINIMAX_H3_MAX_TURBO_IMAGE_VIDEO_URL = "https://v3b.fal.media/files/b/0aa8e7f1/h6xLvyfV4xLB1a4m3ssje_minimax-h3.mp4";
+const MINIMAX_H3_MAX_TURBO_TEXT_POSTER_URL = "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aa8f038%2FUcnQt_-5BsueASBEHTGEv_minimax-h3.mp4/tr:so-0,w-1024,q-80/UcnQt_-5BsueASBEHTGEv_minimax-h3.webp";
+const MINIMAX_H3_MAX_TURBO_IMAGE_POSTER_URL = "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aa8e7f1%2Fh6xLvyfV4xLB1a4m3ssje_minimax-h3.mp4/tr:so-0,w-1024,q-80/h6xLvyfV4xLB1a4m3ssje_minimax-h3.webp";
+
 const HAPPY_HORSE_TEXT_PROMPT = `Medium shot of a professional news anchor at a sleek desk in a modern broadcast studio, cool blue lighting, softly glowing screens behind. 0-5s: He looks into the camera and says in a clear measured voice, "Good evening. Tonight, a breakthrough that could change how millions of us work." 5-10s: He turns slightly toward a second camera, "We'll have the full story, and what it means for you, right after this." Precise lip-sync, subtle studio room tone, crisp broadcast quality, shallow depth of field.`;
 const HAPPY_HORSE_IMAGE_PROMPT = `character1 in a cozy dim room strums once, looks up and says in English: "This next one I wrote at three in the morning." Warm practical light, intimate, cinematic, precise lip-sync.`;
 const HAPPY_HORSE_IMAGE_URL = "https://v3b.fal.media/files/b/0a9eaaaa/A5Z-Bbuk0cZondKU0Cksq_eGkoZngK.png";
@@ -106,11 +126,29 @@ const SEEDANCE_IMAGE_PROMPT = "Ultra high-end commercial product shot, photoreal
 const SEEDANCE_IMAGE_URL = "https://v3b.fal.media/files/b/0a95971b/bFYVNRi647e2hEFdbeU2Z_jMhj1ueK.jpg";
 
 export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
+  "minimax-h3-max-turbo-video": {
+    id: "minimax-h3-max-turbo-video",
+    meta: { label: "MiniMax H3 Max Turbo", shortLabel: "H3 Turbo", speed: "Fastest", quality: "Frontier value", bestFor: "Faster-than-real-time text-to-video and image-to-video with strong prompt adherence and native audio" },
+    group: "freeDraft",
+    badge: "recommended",
+    workflows: {
+      "text-to-video": { ratios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] },
+      "image-to-video": { ratios: ["source"] }
+    },
+    durations: VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 5),
+    resolutions: ["480p", "768p"],
+    defaultDuration: "5s",
+    defaultResolution: "480p",
+    showResolutionControl: true,
+    examples: {
+      "text-to-video": { provider: "minimax-h3-max-turbo-video", workflow: "text-to-video", modelLabel: "MiniMax H3 Max Turbo", prompts: [MINIMAX_H3_MAX_TURBO_TEXT_PROMPT], videoUrl: MINIMAX_H3_MAX_TURBO_TEXT_VIDEO_URL, posterUrl: MINIMAX_H3_MAX_TURBO_TEXT_POSTER_URL, badgeParts: ["480p"], badgeHasAudio: true, settings: { duration: "5s", ratio: "16:9", resolution: "480p" } },
+      "image-to-video": { provider: "minimax-h3-max-turbo-video", workflow: "image-to-video", modelLabel: "MiniMax H3 Max Turbo", prompts: [MINIMAX_H3_MAX_TURBO_IMAGE_PROMPT], videoUrl: MINIMAX_H3_MAX_TURBO_IMAGE_VIDEO_URL, posterUrl: MINIMAX_H3_MAX_TURBO_IMAGE_POSTER_URL, sourceImageUrl: MINIMAX_H3_MAX_TURBO_IMAGE_URL, sourceImageShape: "landscape", videoFit: "contain", badgeParts: ["480p"], badgeHasAudio: true, settings: { duration: "5s", ratio: "source", resolution: "480p" } }
+    }
+  },
   "minimax-h3-max-video": {
     id: "minimax-h3-max-video",
     meta: { label: "MiniMax H3 Max", shortLabel: "H3 Max", speed: "Fast", quality: "Frontier value", bestFor: "Affordable frontier text-to-video and image-to-video with strong prompt adherence and aesthetics" },
     group: "freeDraft",
-    badge: "recommended",
     workflows: {
       "text-to-video": { ratios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] },
       "image-to-video": { ratios: ["source"] }
@@ -267,8 +305,8 @@ export const VIDEO_PROVIDER_META: Record<string, VideoProviderMeta> = {
 };
 
 export const VIDEO_PROVIDERS_BY_WORKFLOW: Record<StudioVideoWorkflow, string[]> = {
-  "text-to-video": ["minimax-h3-max-video", "dreamface-io-video", "grok-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
-  "image-to-video": ["minimax-h3-max-video", "dreamface-io-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "grok-video"]
+  "text-to-video": ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "dreamface-io-video", "grok-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
+  "image-to-video": ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "dreamface-io-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "grok-video"]
 };
 
 export const VIDEO_EXAMPLE_PROMPTS = Object.values(VIDEO_MODEL_CONFIGS)

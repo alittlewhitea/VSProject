@@ -67,6 +67,7 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "grok-video") return hasReferences ? "xai/grok-imagine-video/image-to-video" : "xai/grok-imagine-video/text-to-video";
   if (provider === "gemini-omni-flash-video") return hasReferences ? "google/gemini-omni-flash/image-to-video" : "google/gemini-omni-flash";
   if (provider === "minimax-h3-max-video") return hasReferences ? "minimax/h3-max/image-to-video" : "minimax/h3-max/text-to-video";
+  if (provider === "minimax-h3-max-turbo-video") return hasReferences ? "minimax/h3-max-turbo/image-to-video" : "minimax/h3-max-turbo/text-to-video";
   if (provider === "minimax-music-2.6") return "fal-ai/minimax-music/v2.6";
   if (provider === "elevenlabs-tts") return "fal-ai/elevenlabs/tts/eleven-v3";
   return null;
@@ -280,8 +281,8 @@ export async function getLiveModelPricingRows(): Promise<LiveModelPricingRow[]> 
       const typicalCredits = estimateGenerationCredits({
         mode: row.mode,
         provider: row.provider,
-        duration: row.provider === "dreamface-io-video" || row.provider === "minimax-h3-max-video" ? "5s" : row.mode === "video" ? "6s" : undefined,
-        resolution: row.provider === "minimax-h3-max-video" ? "480p" : undefined,
+        duration: row.provider === "dreamface-io-video" || row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "5s" : row.mode === "video" ? "6s" : undefined,
+        resolution: row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "480p" : undefined,
         imageSize: row.provider === "flux-image" ? "landscape_16_9" : "default_4_3",
         hasReferences: row.workflow.toLowerCase().includes("image to image") || row.workflow.toLowerCase().includes("image to video"),
         promptText: row.mode === "audio" ? "A 1000 character voiceover script." : undefined,

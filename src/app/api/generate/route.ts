@@ -164,6 +164,9 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "minimax-h3-max-video": editImage
       ? process.env.FAL_MODEL_VIDEO_MINIMAX_H3_MAX_I2V || "minimax/h3-max/image-to-video"
       : process.env.FAL_MODEL_VIDEO_MINIMAX_H3_MAX || "minimax/h3-max/text-to-video",
+    "minimax-h3-max-turbo-video": editImage
+      ? process.env.FAL_MODEL_VIDEO_MINIMAX_H3_MAX_TURBO_I2V || "minimax/h3-max-turbo/image-to-video"
+      : process.env.FAL_MODEL_VIDEO_MINIMAX_H3_MAX_TURBO || "minimax/h3-max-turbo/text-to-video",
     "kling-video": editImage
       ? process.env.FAL_MODEL_VIDEO_KLING_I2V || "fal-ai/kling-video/v3/pro/image-to-video"
       : process.env.FAL_MODEL_VIDEO_KLING || "fal-ai/kling-video/v3/pro/text-to-video",
@@ -349,7 +352,10 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
-  if ((body.mode === "video" || body.mode === "avatar") && body.provider === "minimax-h3-max-video") {
+  if (
+    (body.mode === "video" && (body.provider === "minimax-h3-max-video" || body.provider === "minimax-h3-max-turbo-video")) ||
+    (body.mode === "avatar" && body.provider === "minimax-h3-max-video")
+  ) {
     const duration = clampInt(body.duration, 5, 15, 5);
     const resolution = body.resolution && MINIMAX_H3_MAX_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "480p";
     const seed = optionalSeed(body.seed);
@@ -880,8 +886,8 @@ export async function POST(request: Request) {
     if (body.mode === "video" && body.provider === "gemini-omni-flash-video" && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
       return NextResponse.json({ error: "Gemini Omni Flash image-to-video requires one reference image." }, { status: 400 });
     }
-    if (body.mode === "video" && body.provider === "minimax-h3-max-video" && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
-      return NextResponse.json({ error: "MiniMax H3 Max image-to-video requires one reference image." }, { status: 400 });
+    if (body.mode === "video" && (body.provider === "minimax-h3-max-video" || body.provider === "minimax-h3-max-turbo-video") && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
+      return NextResponse.json({ error: "MiniMax H3 image-to-video requires one reference image." }, { status: 400 });
     }
     if (isAvatarProvider) {
       if (!imageUrls.length) {

@@ -31,8 +31,6 @@ export type ModelPricingRow = {
 export const CREDIT_LOW_BALANCE_THRESHOLD = 300;
 export const CREDIT_MARKUP_MULTIPLIER = 1.65;
 export const CREDIT_USD_TO_CREDITS = 150;
-const MINIMAX_H3_MAX_MARKUP_MULTIPLIER = 1.1;
-const MINIMAX_H3_MAX_CREDITS_PER_USD = 185;
 
 const GPT_IMAGE_2_TEXT_HIGH_USD: Record<string, number> = {
   default_4_3: 0.145,
@@ -142,11 +140,6 @@ function nanoFeatureCredits(input: Pick<GenerationEstimateInput, "enableWebSearc
 export function creditsFromFalUsd(amountUsd: number, minimumCredits: number) {
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) return minimumCredits;
   return Math.max(minimumCredits, Math.ceil(amountUsd * CREDIT_USD_TO_CREDITS * CREDIT_MARKUP_MULTIPLIER));
-}
-
-function minimaxH3MaxCreditsFromUsd(amountUsd: number) {
-  if (!Number.isFinite(amountUsd) || amountUsd <= 0) return 1;
-  return Math.max(1, Math.ceil(amountUsd * MINIMAX_H3_MAX_CREDITS_PER_USD * MINIMAX_H3_MAX_MARKUP_MULTIPLIER));
 }
 
 function creditTableFromUsd(prices: Record<string, number>, minimumCredits: number) {
@@ -260,16 +253,12 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
     return Math.ceil(seconds / 5) * 10;
   }
 
+  if (input.provider === "minimax-h3-max-turbo-video") {
+    return Math.ceil(seconds * (input.resolution?.toLowerCase() === "768p" ? 6.4 : 4));
+  }
+
   if (input.provider === "minimax-h3-max-video") {
-    if (input.resolution?.toLowerCase() !== "768p") {
-      return seconds * 10;
-    }
-    const falUnit = normalizedFalUnit(input.falUnit);
-    const secondPrice =
-      typeof input.falUnitPriceUsd === "number" && isFalUnit(falUnit, "second", "seconds", "video second", "video seconds")
-        ? input.falUnitPriceUsd
-        : 0.08;
-    return minimaxH3MaxCreditsFromUsd(secondPrice * seconds);
+    return Math.ceil(seconds * (input.resolution?.toLowerCase() === "768p" ? 9.6 : 6));
   }
 
   if (input.provider === "gemini-omni-flash-video") {
@@ -326,14 +315,34 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 
 export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
   {
+    provider: "minimax-h3-max-turbo-video",
+    label: "MiniMax H3 Max Turbo",
+    mode: "video",
+    workflow: "Text to Video",
+    endpointId: "minimax/h3-max-turbo/text-to-video",
+    falBasis: "Promotional launch pricing through September 7: $0.00625 per output second at 480p and $0.01 at 768p.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "minimax-h3-max-turbo-video", duration: "5s", resolution: "480p" }),
+    unitNote: "20 credits / 5 sec at 480p; 32 at 768p"
+  },
+  {
+    provider: "minimax-h3-max-turbo-video",
+    label: "MiniMax H3 Max Turbo I2V",
+    mode: "video",
+    workflow: "Image to Video",
+    endpointId: "minimax/h3-max-turbo/image-to-video",
+    falBasis: "Promotional launch pricing through September 7: $0.00625 per output second at 480p and $0.01 at 768p.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "minimax-h3-max-turbo-video", duration: "5s", resolution: "480p", hasReferences: true }),
+    unitNote: "20 credits / 5 sec at 480p; 32 at 768p"
+  },
+  {
     provider: "minimax-h3-max-video",
     label: "MiniMax H3 Max",
     mode: "video",
     workflow: "Text to Video",
     endpointId: "minimax/h3-max/text-to-video",
-    falBasis: "fal lists the regular H3 Max rate at $0.05 per output second for 480p and $0.08 for 768p; 480p is intentionally priced at 10 credits per second as an entry experience.",
+    falBasis: "Promotional launch pricing through September 7: $0.0125 per output second at 480p and $0.02 at 768p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "minimax-h3-max-video", duration: "5s", resolution: "480p" }),
-    unitNote: "50 credits / 5 sec at 480p; ~82 at 768p"
+    unitNote: "30 credits / 5 sec at 480p; 48 at 768p"
   },
   {
     provider: "minimax-h3-max-video",
@@ -341,9 +350,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Image to Video",
     endpointId: "minimax/h3-max/image-to-video",
-    falBasis: "fal lists the regular H3 Max rate at $0.05 per output second for 480p and $0.08 for 768p; 480p is intentionally priced at 10 credits per second as an entry experience.",
+    falBasis: "Promotional launch pricing through September 7: $0.0125 per output second at 480p and $0.02 at 768p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "minimax-h3-max-video", duration: "5s", resolution: "480p", hasReferences: true }),
-    unitNote: "50 credits / 5 sec at 480p; ~82 at 768p"
+    unitNote: "30 credits / 5 sec at 480p; 48 at 768p"
   },
   {
     provider: "dreamface-io-video",

@@ -348,13 +348,13 @@ const WORKFLOW_META: Record<
   "text-to-video": {
     label: "Text to Video",
     description: "Turn a written scene into a short video.",
-    recommendedProvider: "minimax-h3-max-video",
+    recommendedProvider: "minimax-h3-max-turbo-video",
     providers: VIDEO_PROVIDERS_BY_WORKFLOW["text-to-video"]
   },
   "image-to-video": {
     label: "Image to Video",
     description: "Animate a reference image into a short video.",
-    recommendedProvider: "minimax-h3-max-video",
+    recommendedProvider: "minimax-h3-max-turbo-video",
     providers: VIDEO_PROVIDERS_BY_WORKFLOW["image-to-video"]
   },
   "text-to-audio": {
@@ -460,7 +460,7 @@ function defaultPromptForProvider(provider: string, workflow?: StudioWorkflow, l
   if (provider === "minimax-h3-max-video" && workflow === "avatar-video") {
     return MINIMAX_H3_MAX_AVATAR_PROMPT;
   }
-  if (provider === "minimax-h3-max-video" && (workflow === "text-to-video" || workflow === "image-to-video")) {
+  if ((provider === "minimax-h3-max-video" || provider === "minimax-h3-max-turbo-video") && (workflow === "text-to-video" || workflow === "image-to-video")) {
     return videoExampleFor(provider, workflow)?.prompts[0] || "";
   }
   return "";
@@ -535,6 +535,10 @@ function isAvatarProvider(provider: string) {
 
 function isH3MaxProvider(provider: string) {
   return provider === "minimax-h3-max-video";
+}
+
+function isH3VideoProvider(provider: string) {
+  return provider === "minimax-h3-max-video" || provider === "minimax-h3-max-turbo-video";
 }
 
 function stripAvatarDefaultReferences(value: string) {
@@ -1361,7 +1365,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   ];
   const selectedVideoModelConfig = videoModelConfig(provider);
   const configuredVideoWorkflow = videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
-  const selectedH3MaxExample = provider === "minimax-h3-max-video"
+  const selectedH3MaxExample = isH3VideoProvider(provider)
     ? videoExampleFor(provider, configuredVideoWorkflow)
     : null;
   const videoPromptShowcases: PromptShowcase[] = selectedH3MaxExample
@@ -1454,7 +1458,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }, [duration, isH3MaxAvatar, mode, provider, ratio, showDreamfaceTalkingVideoControls, showVideoResolutionControl, videoDurationOptions, videoRatioOptions, videoResolution, videoResolutionOptions]);
 
   useEffect(() => {
-    if (!hasCompletedCreation || provider === "minimax-h3-max-video") return;
+    if (!hasCompletedCreation || isH3VideoProvider(provider)) return;
     setPrompt((currentPrompt) => (isSamplePrompt(currentPrompt) ? "" : currentPrompt));
   }, [hasCompletedCreation, provider]);
 
@@ -1515,7 +1519,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setRatio(defaultImageRatioForProvider(nextProvider, defaultImageSizeForProvider(nextProvider)));
     }
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, nextWorkflow, st("studio.music.defaultPrompt"));
-    const shouldApplyDefaultPrompt = !hasCompletedCreation || nextProvider === "minimax-h3-max-video";
+    const shouldApplyDefaultPrompt = !hasCompletedCreation || isH3VideoProvider(nextProvider);
     setPrompt((current) =>
       nextMode === mode
         ? promptForProviderChange(current, shouldApplyDefaultPrompt ? nextDefaultPrompt : "", st("studio.music.defaultPrompt"))
@@ -1563,7 +1567,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     safeSetLocalStorage(lastModelStorageKey(activeWorkflow), nextProvider);
     setProvider(nextProvider);
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, activeWorkflow, st("studio.music.defaultPrompt"));
-    setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation || nextProvider === "minimax-h3-max-video" ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
+    setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation || isH3VideoProvider(nextProvider) ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
     if (isAvatarProvider(nextProvider)) {
       setReferenceImagesText((current) => stripAvatarDefaultReferences(current) || KLING_AVATAR_DEFAULT_IMAGE_URL);
       setReferenceImageFiles([]);
@@ -1983,7 +1987,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         resolution:
           mode === "image"
             ? editResolution
-            : (mode === "video" || isH3MaxAvatar) && (provider === "minimax-h3-max-video" || provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
+            : (mode === "video" || isH3MaxAvatar) && (isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
         generateAudio: mode === "video" ? generateAudio : undefined,
@@ -1995,7 +1999,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         enableSafetyChecker: (mode === "image" && !isPromptlessImageWorkflow) || (mode === "video" && provider === "happy-horse-video") ? enableSafetyChecker : undefined,
         acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
         limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
-        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "minimax-h3-max-video" || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
+        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
         safetyTolerance: mode === "image" && !isPromptlessImageWorkflow ? safetyTolerance : undefined,
         systemPrompt: mode === "image" && !isPromptlessImageWorkflow && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" && !isPromptlessImageWorkflow ? enableWebSearch : undefined,
@@ -3588,7 +3592,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       durationOptions={videoDurationOptions}
                       ratio={ratio}
                       ratioOptions={videoRatioOptions}
-                      ratioDisabled={(provider === "kling-video" || provider === "minimax-h3-max-video") && activeWorkflow === "image-to-video"}
+                      ratioDisabled={(provider === "kling-video" || isH3VideoProvider(provider)) && activeWorkflow === "image-to-video"}
                       showResolutionControl={showVideoResolutionControl}
                       resolution={videoResolution}
                       resolutionOptions={videoResolutionOptions}
