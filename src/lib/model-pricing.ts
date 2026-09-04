@@ -254,7 +254,7 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
   }
 
   if (input.provider === "minimax-h3-max-turbo-video") {
-    return Math.ceil(seconds * (input.resolution?.toLowerCase() === "768p" ? 6.4 : 4));
+    return Math.ceil(seconds * (input.resolution?.toLowerCase() === "768p" ? 6.4 : 2));
   }
 
   if (input.provider === "minimax-h3-max-video") {
@@ -322,7 +322,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "minimax/h3-max-turbo/text-to-video",
     falBasis: "Promotional launch pricing through September 7: $0.00625 per output second at 480p and $0.01 at 768p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "minimax-h3-max-turbo-video", duration: "5s", resolution: "480p" }),
-    unitNote: "20 credits / 5 sec at 480p; 32 at 768p"
+    unitNote: "10 credits / 5 sec at 480p; 32 at 768p"
   },
   {
     provider: "minimax-h3-max-turbo-video",
@@ -332,7 +332,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "minimax/h3-max-turbo/image-to-video",
     falBasis: "Promotional launch pricing through September 7: $0.00625 per output second at 480p and $0.01 at 768p.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "minimax-h3-max-turbo-video", duration: "5s", resolution: "480p", hasReferences: true }),
-    unitNote: "20 credits / 5 sec at 480p; 32 at 768p"
+    unitNote: "10 credits / 5 sec at 480p; 32 at 768p"
   },
   {
     provider: "minimax-h3-max-video",

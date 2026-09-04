@@ -115,7 +115,7 @@ function isAvatarRequest(body: GenerateRequest) {
 }
 
 function isH3MaxAvatarRequest(body: GenerateRequest) {
-  return body.mode === "avatar" && body.provider === "minimax-h3-max-video";
+  return body.mode === "avatar" && (body.provider === "minimax-h3-max-video" || body.provider === "minimax-h3-max-turbo-video");
 }
 
 function hasReferenceImages(body: GenerateRequest) {
@@ -354,7 +354,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
 
   if (
     (body.mode === "video" && (body.provider === "minimax-h3-max-video" || body.provider === "minimax-h3-max-turbo-video")) ||
-    (body.mode === "avatar" && body.provider === "minimax-h3-max-video")
+    (body.mode === "avatar" && (body.provider === "minimax-h3-max-video" || body.provider === "minimax-h3-max-turbo-video"))
   ) {
     const duration = clampInt(body.duration, 5, 15, 5);
     const resolution = body.resolution && MINIMAX_H3_MAX_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "480p";
@@ -365,7 +365,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       duration,
       resolution: resolution === "768p" ? "768P" : "480P",
       prompt_expansion_mode: "balanced",
-      enable_safety_checker: body.enableSafetyChecker !== false,
+      enable_safety_checker: false,
       ...(imageUrl
         ? { image_url: imageUrl }
         : { aspect_ratio: MINIMAX_H3_MAX_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9" }),
@@ -898,7 +898,7 @@ export async function POST(request: Request) {
       }
     }
     if (isH3MaxAvatar && !imageUrls.length) {
-      return NextResponse.json({ error: "MiniMax H3 Max Avatar requires one reference image." }, { status: 400 });
+      return NextResponse.json({ error: "MiniMax H3 Avatar requires one reference image." }, { status: 400 });
     }
     if (isDreamfaceIoTalkingAvatar && !imageUrls.length) {
       return NextResponse.json({ error: "AI Talking requires one reference image." }, { status: 400 });

@@ -46,7 +46,7 @@ function navigationItems(t: Translate, state: NavigationState, homeLabelKey = "s
   const inWorkbench = !state.isAppsHome && !state.isProjectsView;
   return [
     { id: "home", label: t(homeLabelKey), href: "/studio?view=home", icon: "home", visualIcon: "✦", active: state.isAppsHome },
-    { id: "avatar", label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "video", visualIcon: "💬", active: inWorkbench && state.mode === "avatar" },
+    { id: "avatar", label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=minimax-h3-max-turbo-video", icon: "video", visualIcon: "💬", active: inWorkbench && state.mode === "avatar" },
     { id: "image", label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image", visualIcon: "🖼️", active: inWorkbench && state.mode === "image" },
     { id: "video", label: t("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video", visualIcon: "🎞️", active: inWorkbench && state.mode === "video" },
     { id: "audio", label: t("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio", visualIcon: "🎵", active: inWorkbench && state.mode === "audio" },
@@ -108,7 +108,7 @@ export function StudioSidebar({ t, modern, videoStudio = false, collapsed = fals
   if (videoStudio) {
     const videoItems: Array<{ label: string; href: string; icon: string; active?: boolean }> = [
       { label: t("studio.workbench.navStudio"), href: "/studio?view=home", icon: "✦", active: state.isAppsHome },
-      { label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video", icon: "💬", active: state.mode === "avatar" && !state.isProjectsView },
+      { label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=minimax-h3-max-turbo-video", icon: "💬", active: state.mode === "avatar" && !state.isProjectsView },
       { label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "🖼️", active: state.mode === "image" && !state.isProjectsView },
       { label: t("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "🎞️", active: state.mode === "video" && !state.isAppsHome && !state.isProjectsView },
       { label: t("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "🎵", active: state.mode === "audio" && !state.isProjectsView },

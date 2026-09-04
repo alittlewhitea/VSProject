@@ -156,6 +156,7 @@ const KLING_AVATAR_DEFAULT_SCRIPT =
 const KLING_AVATAR_DEFAULT_IMAGE_URL = "https://storage.googleapis.com/falserverless/example_inputs/kling_ai_avatar_input.jpg";
 const KLING_AVATAR_PREVIEW_VIDEO_URL = "https://v3.fal.media/files/penguin/ln3x7H1p1jL0Pwo7675NI_output.mp4";
 const MINIMAX_H3_MAX_AVATAR_PROMPT = "I heard something. MiniMax H3 Max is here?.. Is that true?";
+const MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT = "H3 Max Turbo. Faster than waves.";
 
 const IMAGE_SIZE_PRESETS = [
   { value: "default_4_3", label: "Default 4:3", dimensions: "1024 x 768", width: 1024, height: 768 },
@@ -342,8 +343,8 @@ const WORKFLOW_META: Record<
   "avatar-video": {
     label: "AI Talking",
     description: "Upload one image, type what it should say, and create a talking video.",
-    recommendedProvider: "minimax-h3-max-video",
-    providers: ["minimax-h3-max-video", "dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"]
+    recommendedProvider: "minimax-h3-max-turbo-video",
+    providers: ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"]
   },
   "text-to-video": {
     label: "Text to Video",
@@ -423,6 +424,17 @@ function modelPickerSpeedKey(speed: string) {
   return "studio.modelPicker.speed.standard";
 }
 
+function h3PerformanceNote(provider: string, workflow: StudioWorkflow) {
+  const isTextToVideo = workflow === "text-to-video";
+  if (provider === "minimax-h3-max-turbo-video") {
+    return isTextToVideo ? "Just 1.55 seconds" : "Just 1.68 seconds";
+  }
+  if (provider === "minimax-h3-max-video") {
+    return isTextToVideo ? "Just 2.53 seconds" : "Just 2.77 seconds";
+  }
+  return undefined;
+}
+
 const PROMPT_IMPROVE_TEXT =
   "Optimize this prompt for a professional AI-generated image. Improve detail, lighting, composition, and overall quality while preserving intent.";
 
@@ -457,8 +469,9 @@ function defaultPromptForProvider(provider: string, workflow?: StudioWorkflow, l
   if (provider === "minimax-music-2.6") {
     return localizedMusicPrompt;
   }
-  if (provider === "minimax-h3-max-video" && workflow === "avatar-video") {
-    return MINIMAX_H3_MAX_AVATAR_PROMPT;
+  if (workflow === "avatar-video") {
+    if (provider === "minimax-h3-max-turbo-video") return MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT;
+    if (provider === "minimax-h3-max-video") return MINIMAX_H3_MAX_AVATAR_PROMPT;
   }
   if ((provider === "minimax-h3-max-video" || provider === "minimax-h3-max-turbo-video") && (workflow === "text-to-video" || workflow === "image-to-video")) {
     return videoExampleFor(provider, workflow)?.prompts[0] || "";
@@ -484,7 +497,7 @@ function isModelSampleReference(value: string) {
 }
 
 function isProviderDefaultPrompt(value: string, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
-  return isSamplePrompt(value) || value === MINIMAX_H3_MAX_AVATAR_PROMPT || value === KLING_AVATAR_DEFAULT_SCRIPT || value === MINIMAX_MUSIC_DEFAULT_PROMPT || value === localizedMusicPrompt;
+  return isSamplePrompt(value) || value === MINIMAX_H3_MAX_AVATAR_PROMPT || value === MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT || value === KLING_AVATAR_DEFAULT_SCRIPT || value === MINIMAX_MUSIC_DEFAULT_PROMPT || value === localizedMusicPrompt;
 }
 
 function promptForProviderChange(current: string, nextDefaultPrompt: string, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
@@ -534,7 +547,7 @@ function isAvatarProvider(provider: string) {
 }
 
 function isH3MaxProvider(provider: string) {
-  return provider === "minimax-h3-max-video";
+  return provider === "minimax-h3-max-video" || provider === "minimax-h3-max-turbo-video";
 }
 
 function isH3VideoProvider(provider: string) {
@@ -592,7 +605,7 @@ function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (!provider) return false;
   if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return ["minimax-music-2.6", "elevenlabs-tts"].includes(provider);
-  if (mode === "avatar") return ["minimax-h3-max-video", "dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
+  if (mode === "avatar") return ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return Boolean(videoModelConfig(provider)) || isAvatarProvider(provider);
 }
 
@@ -971,10 +984,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         setPrompt((current) => (current.trim() ? current : KLING_AVATAR_DEFAULT_SCRIPT));
         setReferenceImagesText((current) => (current.trim() ? current : KLING_AVATAR_DEFAULT_IMAGE_URL));
       } else if (isH3MaxProvider(avatarProvider || "")) {
-        setPrompt((current) => promptForProviderChange(current, MINIMAX_H3_MAX_AVATAR_PROMPT, st("studio.music.defaultPrompt")));
+        const h3Provider = avatarProvider as string;
+        const avatarDefaultPrompt = defaultPromptForProvider(h3Provider, "avatar-video", st("studio.music.defaultPrompt"));
+        setPrompt((current) => promptForProviderChange(current, avatarDefaultPrompt, st("studio.music.defaultPrompt")));
         setReferenceImagesText((current) => {
           const customReference = stripAvatarDefaultReferences(current);
-          return customReference || modelSampleReferenceForProvider("minimax-h3-max-video");
+          return customReference || modelSampleReferenceForProvider(h3Provider);
         });
       } else {
         setReferenceImagesText((current) => stripAvatarDefaultReferences(current));
@@ -982,7 +997,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       }
     } else {
       setReferenceImagesText((current) => stripAvatarDefaultReferences(current));
-      setPrompt((current) => current.trim() === KLING_AVATAR_DEFAULT_SCRIPT || current.trim() === MINIMAX_H3_MAX_AVATAR_PROMPT ? "" : current);
+      setPrompt((current) => current.trim() === KLING_AVATAR_DEFAULT_SCRIPT || current.trim() === MINIMAX_H3_MAX_AVATAR_PROMPT || current.trim() === MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT ? "" : current);
     }
   }, [mode, sp]);
 
@@ -1174,7 +1189,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   );
   useEffect(() => {
     if (provider !== "dreamface-io-video" || dreamfaceIoEnabled !== false) return;
-    setProvider(mode === "avatar" ? "kling-avatar-standard" : videoWorkflow === "image-to-video" ? "kling-video" : "grok-video");
+    setProvider(mode === "avatar" ? "minimax-h3-max-turbo-video" : videoWorkflow === "image-to-video" ? "kling-video" : "grok-video");
   }, [dreamfaceIoEnabled, imageWorkflow, mode, provider, videoWorkflow]);
   const avatarVoiceOptions = useMemo(
     () => ELEVENLABS_VOICE_META.filter((voice) => avatarVoiceGender === "all" || voice.gender === avatarVoiceGender).map((voice) => voice.name) as string[],
@@ -1198,7 +1213,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const isAvatarWorkflow = mode === "avatar" || activeWorkflow === "avatar-video";
   const isDreamfaceTalkingAvatar = isAvatarWorkflow && provider === "dreamface-io-video";
   const isH3MaxAvatar = isAvatarWorkflow && isH3MaxProvider(provider);
-  const h3MaxAvatarExample = isH3MaxAvatar ? videoExampleFor("minimax-h3-max-video", "image-to-video") : null;
+  const h3MaxAvatarExample = isH3MaxAvatar ? videoExampleFor(provider, "image-to-video") : null;
   const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
   const avatarScriptSeconds = isAvatarWorkflow ? estimateAvatarScriptSeconds(prompt) : 0;
   const avatarOutputSeconds = isAvatarWorkflow ? avatarScriptSeconds + (isDreamfaceTalkingAvatar ? 0 : AVATAR_KLING_BUFFER_SECONDS) : 0;
@@ -1300,8 +1315,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       value: option.value,
       label: meta.label,
       description: st(groupKey),
-      speed: st(modelPickerSpeedKey(meta.speed)),
+      performanceNote: h3PerformanceNote(option.value, activeWorkflow),
+      speed: isH3MaxProvider(option.value) ? meta.speed : st(modelPickerSpeedKey(meta.speed)),
       quality: meta.quality,
+      duration: mode === "video" || isAvatarWorkflow
+        ? option.value === provider
+          ? isAvatarWorkflow ? avatarDuration : duration
+          : optionDuration
+        : undefined,
       credits: optionCredits,
       badge: badgeKey ? st(badgeKey) : undefined,
       group: st(groupKey)
@@ -1567,12 +1588,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     safeSetLocalStorage(lastModelStorageKey(activeWorkflow), nextProvider);
     setProvider(nextProvider);
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, activeWorkflow, st("studio.music.defaultPrompt"));
-    setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation || isH3VideoProvider(nextProvider) ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
+    const shouldLoadAvatarH3Defaults = mode === "avatar" && isH3MaxProvider(nextProvider);
+    setPrompt((current) => shouldLoadAvatarH3Defaults
+      ? nextDefaultPrompt
+      : promptForProviderChange(current, !hasCompletedCreation || isH3VideoProvider(nextProvider) ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
     if (isAvatarProvider(nextProvider)) {
       setReferenceImagesText((current) => stripAvatarDefaultReferences(current) || KLING_AVATAR_DEFAULT_IMAGE_URL);
       setReferenceImageFiles([]);
     } else if (mode === "avatar" && isH3MaxProvider(nextProvider)) {
-      setReferenceImagesText((current) => stripAvatarDefaultReferences(current) || modelSampleReferenceForProvider(nextProvider));
+      setReferenceImagesText(modelSampleReferenceForProvider(nextProvider));
       setReferenceImageFiles([]);
       setAvatarAudioUrl("");
     } else if (mode === "avatar" && nextProvider === "dreamface-io-video") {
@@ -2760,7 +2784,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         translate={st}
                         modelSelector={avatarModelSelector}
                         avatarSamplePreviewUrl={isH3MaxAvatar ? h3MaxAvatarExample?.videoUrl : isAvatarProvider(provider) ? KLING_AVATAR_PREVIEW_VIDEO_URL : undefined}
-                        avatarSamplePreviewLabel={isH3MaxAvatar ? "MiniMax H3 Max" : isAvatarProvider(provider) ? "Kling Avatar" : undefined}
+                        avatarSamplePreviewLabel={isH3MaxAvatar ? h3MaxAvatarExample?.modelLabel : isAvatarProvider(provider) ? "Kling Avatar" : undefined}
                         editor={<AvatarWorkbench
                           canSubmit={canSubmit}
                           prompt={prompt}

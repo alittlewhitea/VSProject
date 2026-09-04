@@ -8,8 +8,10 @@ export type ModelPickerOption = {
   value: string;
   label: string;
   description: string;
+  performanceNote?: string;
   speed: string;
   quality: string;
+  duration?: string;
   credits: number;
   badge?: string;
   group: string;
@@ -85,7 +87,7 @@ export function ModelPicker({ value, options, translate, onChange }: ModelPicker
   const groupedOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     const filtered = normalizedQuery
-      ? options.filter((option) => `${option.label} ${option.description} ${option.speed} ${option.quality}`.toLowerCase().includes(normalizedQuery))
+      ? options.filter((option) => `${option.label} ${option.description} ${option.performanceNote || ""} ${option.speed} ${option.quality}`.toLowerCase().includes(normalizedQuery))
       : options;
     return Array.from(new Set(filtered.map((option) => option.group))).map((group) => ({
       group,
@@ -140,14 +142,24 @@ export function ModelPicker({ value, options, translate, onChange }: ModelPicker
                         <span className="min-w-0 flex-1">
                           <span className="flex flex-wrap items-center gap-2">
                             <strong className="text-sm font-black text-[#101828] sm:text-[15px]">{option.label}</strong>
-                            {option.badge ? <span className="rounded-full bg-[#eeeaff] px-2 py-1 text-[9px] font-black uppercase tracking-[0.06em] text-[#6a5af9]">{option.badge}</span> : null}
+                            {option.badge ? option.badge.trim().toLowerCase() === option.group.trim().toLowerCase() ? (
+                              <span role="img" aria-label={option.badge} title={option.badge} className="grid h-6 w-6 place-items-center text-[15px]">
+                                {"\u2b50"}
+                              </span>
+                            ) : <span className="rounded-full bg-[#eeeaff] px-2 py-1 text-[9px] font-black uppercase tracking-[0.06em] text-[#6a5af9]">{option.badge}</span> : null}
                             {active ? <span className="rounded-full bg-[#ecfdf3] px-2 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-[#039855]">{translate("studio.modelPicker.selected")}</span> : null}
                           </span>
-                          <span className="mt-1.5 block text-xs leading-5 text-[#667085]">{option.description}</span>
+                          {option.description.trim().toLowerCase() !== option.group.trim().toLowerCase() ? <span className="mt-1.5 block text-xs leading-5 text-[#667085]">{option.description}</span> : null}
+                          {option.performanceNote ? (
+                            <span className="mt-2 inline-flex rounded-lg bg-[#eefcf6] px-2.5 py-1 text-[11px] font-black text-[#087f5b]">
+                              {option.performanceNote}
+                            </span>
+                          ) : null}
                           <span className="mt-2.5 flex flex-wrap items-center gap-1.5">
                             <span className="rounded-lg bg-[#f7f8fa] px-2 py-1 text-[10px] font-bold text-[#667085]">{option.speed}</span>
-                            <span className="rounded-lg bg-[#f7f8fa] px-2 py-1 text-[10px] font-bold text-[#667085]">{option.group}</span>
-                            <span className="ms-auto text-[11px] font-black text-[#475467]">{translate("studio.modelPicker.estimatedCredits", { credits: option.credits })} <span className="font-bold text-[#8a7cf5]">· ≈{formatApproximateCreditValue(option.credits)}</span></span>
+                            <span className="ms-auto whitespace-nowrap text-[11px] font-black text-[#475467]">
+                              {option.duration ? `${option.duration} = ` : ""}{option.credits} {translate("studio.common.credits")} <span className="font-bold text-[#8a7cf5]">= {formatApproximateCreditValue(option.credits)}</span>
+                            </span>
                           </span>
                         </span>
                       </span>
@@ -165,6 +177,10 @@ export function ModelPicker({ value, options, translate, onChange }: ModelPicker
   ) : null;
 
   if (!selected) return null;
+
+  const selectedBadgeIsRecommendation = Boolean(
+    selected.badge && selected.badge.trim().toLowerCase() === selected.group.trim().toLowerCase()
+  );
 
   return (
     <>
@@ -187,9 +203,27 @@ export function ModelPicker({ value, options, translate, onChange }: ModelPicker
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-center gap-2">
               <strong className="truncate text-[14px] font-black text-[#101828]">{selected.label}</strong>
-              {selected.badge ? <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-[#6a5af9] shadow-[inset_0_0_0_1px_#ded9ff]">{selected.badge}</span> : null}
+              {selected.badge ? selectedBadgeIsRecommendation ? (
+                <span role="img" aria-label={selected.badge} title={selected.badge} className="grid h-6 w-6 place-items-center text-[15px]">
+                  {"\u2b50"}
+                </span>
+              ) : <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-[#6a5af9] shadow-[inset_0_0_0_1px_#ded9ff]">{selected.badge}</span> : null}
             </span>
-            <span className="mt-1 block truncate text-[11px] font-semibold text-[#7b879b]">{selected.speed} · {selected.group} · {translate("studio.modelPicker.estimatedCredits", { credits: selected.credits })} · ≈{formatApproximateCreditValue(selected.credits)}</span>
+            <span className="mt-1.5 block text-[11px] font-semibold sm:hidden">
+              <span className="block truncate text-[#087f5b]">{selected.performanceNote || selected.speed}</span>
+              <span className="mt-0.5 block whitespace-nowrap text-[#475467]">
+                {selected.duration ? `${selected.duration} = ` : ""}{selected.credits} {translate("studio.common.credits")} = <strong className="text-[#8a7cf5]">{formatApproximateCreditValue(selected.credits)}</strong>
+              </span>
+            </span>
+            <span className="mt-1.5 hidden text-[11px] font-semibold sm:block">
+              <span className="block truncate text-[#7b879b]">
+                {selected.performanceNote ? <strong className="text-[#087f5b]">{selected.performanceNote}</strong> : null}
+                {selected.performanceNote ? " · " : ""}{selected.speed}{selectedBadgeIsRecommendation ? "" : ` · ${selected.group}`}
+              </span>
+              <span className="mt-0.5 block whitespace-nowrap text-[#475467]">
+                {selected.duration ? `${selected.duration} = ` : ""}{selected.credits} {translate("studio.common.credits")} = <strong className="text-[#8a7cf5]">{formatApproximateCreditValue(selected.credits)}</strong>
+              </span>
+            </span>
           </span>
           {hasChoices ? (
             <span className="flex shrink-0 items-center gap-2 text-xs font-black text-[#6a5af9]">
