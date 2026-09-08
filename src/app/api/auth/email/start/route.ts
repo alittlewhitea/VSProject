@@ -4,6 +4,7 @@ import { mysqlExecute, toMysqlDate } from "../../../../../lib/mysql";
 import { hashAuthToken, newAuthToken } from "../../../../../lib/server-auth";
 import { getRequestIp } from "../../../../../lib/credits";
 import { consumeRateLimit, safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
+import { captureReferralAuth } from "../../../../../lib/referrals";
 
 function cleanEmail(value: unknown) {
   const email = typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = newAuthToken();
+    await captureReferralAuth(hashAuthToken(token),request.headers);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await mysqlExecute<ResultSetHeader>("insert into email_otp_codes (email, code_hash, expires_at, created_at) values (?, ?, ?, ?)", [
       email,

@@ -6,6 +6,7 @@ import { createSession, hashAuthToken, SESSION_COOKIE_NAME, upsertEmailUser } fr
 import { ensureSignupCreditAccount, getRequestCountryCode } from "../../../../lib/credits";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { safeInternalPath, trustedPublicOrigin } from "../../../../lib/request-security";
+import { completeReferralAuth } from "../../../../lib/referrals";
 
 function publicBaseUrl(request: NextRequest) {
   return trustedPublicOrigin(request.url);
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
     await ensureSignupCreditAccount(admin, user.id, request.headers);
   }
   const session = await createSession(user);
+  await completeReferralAuth(user,user.isNew,true,hash,request.headers);
   (await cookies()).set(SESSION_COOKIE_NAME, session.access_token, {
     httpOnly: true,
     sameSite: "lax",

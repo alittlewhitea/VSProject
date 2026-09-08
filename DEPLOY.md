@@ -1,5 +1,7 @@
 # Production Deploy
 
+邀请奖励需要增量迁移和定时任务，启用前请阅读 [邀请机制部署与验收](docs/referral-setup.md)。
+
 DreamFace uses a Next.js deployment ID to keep browser assets aligned with the build that served the page. The app now falls back to the current Git commit automatically, but setting the ID explicitly during production deploy is still recommended.
 
 ## RackNerd deploy

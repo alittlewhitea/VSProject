@@ -1,4 +1,42 @@
 {
+  "referrals": {
+    "title": "Invite friends",
+    "intro": "Invite a new friend: you earn {inviter} Credits and your friend earns {invitee} after email verification and a successful credit-funded generation.",
+    "signIn": "Sign in to invite",
+    "disabled": "The referral program is not open yet.",
+    "ineligible": "This account is not eligible for referral rewards. Normal use and purchases are unaffected.",
+    "verify": "Verify your email by signing in again through the email link or a verified Google account.",
+    "generate": "Complete a successful generation that uses credits to qualify.",
+    "link": "Your invitation link",
+    "copyLink": "Copy link",
+    "copyCode": "Copy code",
+    "refresh": "Refresh",
+    "copied": "Copied.",
+    "copyManually": "Copying is unavailable. Select and copy the link manually.",
+    "unavailable": "Temporarily unavailable. Please try again later.",
+    "today": "Today · reserved / limit",
+    "month": "This month · reserved / limit",
+    "earned": "Credits earned",
+    "pendingCredits": "Pending Credits",
+    "incoming": "Your welcome reward: {credits} Credits",
+    "rulesTitle": "How it works",
+    "rules": "New accounts only; bind an inviter at registration. Each account can be invited once.\nBoth emails must be verified and not disposable. Both people must complete a successful generation using credits. The invited friend must do so within 7 days of registration; failed, refunded, demo and free daily tasks do not count.\nRewards are checked again after a 10–30 minute delay. Processing can take longer during review or service delays.\nEach inviter can earn rewards for up to {daily} friends per Beijing calendar day and {monthly} per calendar month. Pending rewards reserve places; excess invitations do not carry over. Campaign budget limits also apply.\nSame-device invitations, repeated device welcome rewards and excluded users are ineligible. Devices used by more than two accounts within 24 hours trigger review.\nCredits are for generation only, not cash or subscription benefits. Only direct invitations earn rewards.",
+    "history": "Invitation history",
+    "empty": "No invitations yet.",
+    "friend": "Friend",
+    "support": "Only the latest 50 invitations are shown. If you believe a reward was declined incorrectly, contact support through the site's Help page. Do not share full email addresses or device details publicly.",
+    "status": {
+      "waiting": "Waiting for requirements",
+      "pending": "Reward processing",
+      "review": "Under review",
+      "paid": "Reward received",
+      "rejected": "Not eligible"
+    },
+    "signupAccepted": "Invitation link saved. New users who meet the program rules can earn extra Credits after verified email and their first successful generation. Limits and exclusions apply; registration alone does not earn a reward.",
+    "optionalCode": "Invitation code (optional, apply before signing in)",
+    "apply": "Apply",
+    "codeUnavailable": "This invitation is invalid, unavailable or has reached its limit. You can still register normally."
+  },
   "nav": {
     "logo": "dreamface",
     "platform": "Piattaforma",
@@ -640,6 +678,7 @@
       "failed": "Fallito"
     },
     "reason": {
+      "referral_reward": "Premio invito",
       "signup_bonus": "Bonus di iscrizione",
       "stripe_checkout": "Acquisto di credito",
       "stripe_subscription": "Crediti dell'abbonamento",

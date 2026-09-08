@@ -7,6 +7,7 @@ import Link from "next/link";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 import { AppButton } from "../../components/ui/button";
 import { trackEvent } from "../../lib/analytics";
+import { ReferralSignup } from "../../components/referral-signup";
 
 function AuthContent() {
   const t = useTranslations();
@@ -136,6 +137,7 @@ function AuthContent() {
                 <span className="h-px flex-1 bg-black/[0.08]" />
             </div>
 
+            <ReferralSignup initial={sp.get("referral")} />
             <label className="block">
                 <span className="text-sm font-bold text-[#4b5563]">{t("auth.emailLabel")}</span>
               <input

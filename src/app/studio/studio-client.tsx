@@ -36,6 +36,7 @@ import { WorkflowSwitcher } from "../../features/studio/workflow-switcher";
 import { StudioBillingModal, type GenerationBillingContext } from "../../features/studio/studio-billing-modal";
 import { StudioHome } from "../../features/studio/studio-home";
 import { StudioProjects } from "../../features/studio/studio-projects";
+import { StudioReferrals } from "../../features/studio/studio-referrals";
 import {
   clearPersistentIdempotency,
   clearStudioLoginDraft,
@@ -669,7 +670,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const sp = useSearchParams();
   const mode: StudioMode = sp.get("mode") === "image" ? "image" : sp.get("mode") === "audio" ? "audio" : sp.get("mode") === "avatar" ? "avatar" : "video";
   const view = sp.get("view");
-  const isProjectsView = view === "projects";
+  const isReferralsView = view === "referrals";
+  const isProjectsView = view === "projects" || isReferralsView;
   const isAppsHome = view === "home" || (!view && !sp.get("mode") && !sp.get("workflow"));
   const providerFromUrl = sp.get("provider");
   const initialWorkflow = workflowForMode(mode, sp.get("workflow"));
@@ -751,6 +753,22 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [taskHistoryNote, setTaskHistoryNote] = useState("");
   const [previewModal, setPreviewModal] = useState<{ url: string; type: "Image" | "Video" } | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [referralsVisible,setReferralsVisible] = useState(false);
+  useEffect(()=>{
+    let active=true;
+    setReferralsVisible(false);
+    const refresh = async () => {
+      try {
+        if(accessToken) await fetch("/api/referrals",{method:"POST",headers:{Authorization:`Bearer ${accessToken}`}});
+        const response=await fetch(accessToken?"/api/referrals":"/api/referrals/availability",{headers:accessToken?{Authorization:`Bearer ${accessToken}`}:{}});
+        const data=await response.json();
+        if(active) setReferralsVisible(response.ok && (accessToken?data.enabled===true:data.visible===true));
+      } catch {if(active)setReferralsVisible(false);}
+    };
+    void refresh();
+    const timer=setInterval(()=>void refresh(),5*60*1000);
+    return ()=>{active=false;clearInterval(timer);};
+  },[accessToken]);
   const [userId, setUserId] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
@@ -2637,6 +2655,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
           <div className={`grid min-h-screen min-w-0 transition-[grid-template-columns] duration-300 ease-out ${showModernStudioChrome ? videoSidebarCollapsed ? "lg:grid-cols-[76px_minmax(0,1fr)]" : "lg:grid-cols-[220px_minmax(0,1fr)]" : "lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]"}`}>
             <StudioSidebar
+              referralsVisible={referralsVisible}
+              referralLocale={studioI18n.locale}
+              isReferralsView={isReferralsView && referralsVisible}
               t={st}
               modern={showModernStudioChrome}
               videoStudio={showModernStudioChrome}
@@ -2652,9 +2673,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               }
             />
 
-            <StudioBottomNavigation t={st} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} />
+            <StudioBottomNavigation t={st} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} isReferralsView={isReferralsView && referralsVisible} />
             <div className={`relative min-w-0 max-w-full ${showModernStudioChrome ? "px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-[22px] lg:pb-[22px]" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
               <StudioHeader
+                referralsVisible={referralsVisible}
+                isReferralsView={isReferralsView && referralsVisible}
                 t={st}
                 modern={showModernStudioChrome}
                 videoStudio={showModernStudioChrome}
@@ -2693,7 +2716,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 <StudioHome t={st} tasks={tasks} onUpgrade={() => openBillingModal("workspace_upgrade")} />
               ) : null}
 
-              {isProjectsView ? (
+              {isReferralsView && referralsVisible ? <StudioReferrals accessToken={accessToken} locale={studioI18n.locale} /> : null}
+              {isReferralsView && !referralsVisible ? <StudioHome t={st} tasks={tasks} onUpgrade={() => openBillingModal("workspace_upgrade")} /> : null}
+              {isProjectsView && !isReferralsView ? (
                 <StudioProjects
                   t={st}
                   tasks={tasks}

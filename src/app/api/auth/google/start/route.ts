@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { newAuthToken } from "../../../../../lib/server-auth";
 import { safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
+import { captureReferralAuth } from "../../../../../lib/referrals";
 
 const STATE_COOKIE = "dreamface_google_state";
 
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
   const next = request.nextUrl.searchParams.get("next") || "/studio";
   const safeNext = safeInternalPath(next);
   const csrf = newAuthToken();
+  await captureReferralAuth(csrf,request.headers);
   const state = Buffer.from(JSON.stringify({ csrf, next: safeNext })).toString("base64url");
   (await cookies()).set(STATE_COOKIE, csrf, {
     httpOnly: true,

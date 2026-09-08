@@ -607,6 +607,7 @@ export default function AdminHomePage() {
             <div>
               <p className="text-xs uppercase tracking-[0.16em] text-[#6e6e73]">DreamFace Admin</p>
               <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-5xl">Operations Console</h1>
+              <Link href="/admin/referrals" className="mt-3 inline-block rounded-xl border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700">🎁 Referral rewards</Link>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-[#6e6e73]">
                 Users, balances, payments, credit ledger, generation tasks, failures, and manual credit adjustments.
               </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { referralTranslator } from "../../lib/referral-i18n";
 import type { Locale } from "../../i18n/routing";
 import { StudioIcon, StudioMobileMenu, type StudioNavigationMode } from "./studio-navigation";
 
@@ -8,6 +9,8 @@ type Translate = (key: string, values?: Record<string, string | number>) => stri
 type AudioWorkflow = "text-to-audio" | "text-to-music";
 
 type StudioHeaderProps = {
+  referralsVisible?: boolean;
+  isReferralsView?: boolean;
   t: Translate;
   modern: boolean;
   videoStudio?: boolean;
@@ -38,6 +41,8 @@ function headerCopy(t: Translate, mode: StudioNavigationMode, isAppsHome: boolea
 }
 
 export function StudioHeader({
+  referralsVisible = false,
+  isReferralsView = false,
   t,
   modern,
   videoStudio = false,
@@ -57,13 +62,14 @@ export function StudioHeader({
   onBillingOpen,
   onAudioWorkflowSelect
 }: StudioHeaderProps) {
-  const copy = headerCopy(t, mode, isAppsHome, isProjectsView);
+  const rt=referralTranslator(locale);
+  const copy = isReferralsView ? {title:rt("title"),description:rt("history")} : headerCopy(t, mode, isAppsHome, isProjectsView);
 
   if (videoStudio) {
     return (
       <header className="flex min-h-[84px] items-center justify-between gap-4 py-4">
         <div className="flex min-w-0 items-center gap-3">
-          <StudioMobileMenu t={t} open={mobileMenuOpen} signedIn={signedIn} signInUrl={signInUrl} locale={locale} locales={locales} localeLabels={localeLabels} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} onOpenChange={onMobileMenuOpenChange} onLocaleChange={onLocaleChange} />
+          <StudioMobileMenu referralsVisible={referralsVisible} t={t} open={mobileMenuOpen} signedIn={signedIn} signInUrl={signInUrl} locale={locale} locales={locales} localeLabels={localeLabels} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} isReferralsView={isReferralsView} onOpenChange={onMobileMenuOpenChange} onLocaleChange={onLocaleChange} />
           <span className="hidden text-2xl text-[#6a5af9] sm:block">{"\u2723"}</span>
           <h1 className="truncate text-[23px] font-black leading-none tracking-[-0.035em] text-[#101828]">{copy.title}</h1>
         </div>
@@ -88,6 +94,7 @@ export function StudioHeader({
     <div className={`gap-3 md:gap-4 ${modern ? "mb-4 flex items-start justify-between md:mb-9 md:items-center" : "flex items-start justify-between md:items-center"}`}>
       <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
         <StudioMobileMenu
+          referralsVisible={referralsVisible}
           t={t}
           open={mobileMenuOpen}
           signedIn={signedIn}

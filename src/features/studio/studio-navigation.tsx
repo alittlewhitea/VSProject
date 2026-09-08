@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { referralTranslator } from "../../lib/referral-i18n";
 import type { Locale } from "../../i18n/routing";
 
 export type StudioNavigationMode = "image" | "video" | "audio" | "avatar";
@@ -28,13 +29,15 @@ export type StudioIconName =
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 type NavigationState = {
+  referralsVisible?: boolean;
+  isReferralsView?: boolean;
   mode: StudioNavigationMode;
   isAppsHome: boolean;
   isProjectsView: boolean;
 };
 
 type NavigationItem = {
-  id: "home" | StudioNavigationMode | "projects" | "billing";
+  id: "home" | StudioNavigationMode | "projects" | "billing" | "referrals";
   label: string;
   href: string;
   icon: StudioIconName;
@@ -42,17 +45,18 @@ type NavigationItem = {
   active: boolean;
 };
 
-function navigationItems(t: Translate, state: NavigationState, homeLabelKey = "studio.nav.home"): NavigationItem[] {
+function navigationItems(t: Translate, state: NavigationState, homeLabelKey = "studio.nav.home", referralLabel="Invite friends"): NavigationItem[] {
   const inWorkbench = !state.isAppsHome && !state.isProjectsView;
-  return [
+  return ([
     { id: "home", label: t(homeLabelKey), href: "/studio?view=home", icon: "home", visualIcon: "✦", active: state.isAppsHome },
     { id: "avatar", label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=minimax-h3-max-turbo-video", icon: "video", visualIcon: "💬", active: inWorkbench && state.mode === "avatar" },
     { id: "image", label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image", visualIcon: "🖼️", active: inWorkbench && state.mode === "image" },
     { id: "video", label: t("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video", visualIcon: "🎞️", active: inWorkbench && state.mode === "video" },
     { id: "audio", label: t("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio", visualIcon: "🎵", active: inWorkbench && state.mode === "audio" },
-    { id: "projects", label: t("studio.nav.projects"), href: "/studio?view=projects", icon: "projects", visualIcon: "📁", active: state.isProjectsView },
+    { id: "projects", label: t("studio.nav.projects"), href: "/studio?view=projects", icon: "projects", visualIcon: "📁", active: state.isProjectsView && !state.isReferralsView },
+    { id: "referrals", label: referralLabel, href: "/studio?view=referrals", icon: "sparkles", visualIcon: "🎁", active: Boolean(state.isReferralsView) },
     { id: "billing", label: t("studio.billing.open"), href: "/billing", icon: "billing", visualIcon: "💳", active: false }
-  ];
+  ] as NavigationItem[]).filter(item => item.id !== "referrals" || state.referralsVisible);
 }
 
 export function StudioIcon({ name, className = "h-5 w-5" }: { name: StudioIconName; className?: string }) {
@@ -86,6 +90,7 @@ export function StudioIcon({ name, className = "h-5 w-5" }: { name: StudioIconNa
 }
 
 type StudioSidebarProps = NavigationState & {
+  referralLocale?: string;
   t: Translate;
   modern: boolean;
   videoStudio?: boolean;
@@ -96,8 +101,9 @@ type StudioSidebarProps = NavigationState & {
   onImageWorkflowSelected: (workflowLabel: string) => void;
 };
 
-export function StudioSidebar({ t, modern, videoStudio = false, collapsed = false, creditBalance = null, signedIn = false, onCollapsedChange, onImageWorkflowSelected, ...state }: StudioSidebarProps) {
-  const items = navigationItems(t, state);
+export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = false, collapsed = false, creditBalance = null, signedIn = false, onCollapsedChange, onImageWorkflowSelected, ...state }: StudioSidebarProps) {
+  const rt = referralTranslator(referralLocale);
+  const items = navigationItems(t, state,"studio.nav.home",rt("title"));
   const imageWorkflows = [
     { label: t("studio.workflow.text-to-image"), body: t("studio.home.quick.textImage"), href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image" },
     { label: t("studio.workflow.image-to-image"), body: t("studio.home.quick.imageImage"), href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image" },
@@ -112,7 +118,8 @@ export function StudioSidebar({ t, modern, videoStudio = false, collapsed = fals
       { label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "🖼️", active: state.mode === "image" && !state.isProjectsView },
       { label: t("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "🎞️", active: state.mode === "video" && !state.isAppsHome && !state.isProjectsView },
       { label: t("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "🎵", active: state.mode === "audio" && !state.isProjectsView },
-      { label: t("studio.nav.projects"), href: "/studio?view=projects", icon: "📁", active: state.isProjectsView }
+      { label: t("studio.nav.projects"), href: "/studio?view=projects", icon: "📁", active: state.isProjectsView && !state.isReferralsView },
+      ...(state.referralsVisible ? [{ label: rt("title"), href: "/studio?view=referrals", icon: "🎁", active: state.isReferralsView }] : [])
     ];
     videoItems.push({ label: t("studio.billing.open"), href: "/billing", icon: "💳", active: false });
 
@@ -209,6 +216,7 @@ type StudioMobileMenuProps = NavigationState & {
 };
 
 export function StudioMobileMenu({ t, open, signedIn, signInUrl, locale, locales, localeLabels, onOpenChange, onLocaleChange, ...state }: StudioMobileMenuProps) {
+  const rt=referralTranslator(locale);
   const close = () => onOpenChange(false);
   return (
     <div className="relative shrink-0">
@@ -224,7 +232,7 @@ export function StudioMobileMenu({ t, open, signedIn, signInUrl, locale, locales
               <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-[13px] shadow-[0_9px_22px_rgba(16,130,101,0.18)]"><img src="/icons/icon-512x512.png" alt="" width={40} height={40} className="h-full w-full object-cover" /></span>
               DreamFace
             </a>
-            {navigationItems(t, state, "studio.menu.studioHome").map((item) => (
+            {navigationItems(t, state, "studio.menu.studioHome",rt("title")).map((item) => (
               <Link key={item.id} href={item.href} onClick={close} className={`flex items-center gap-3 rounded-[1rem] px-2.5 py-2.5 text-sm font-semibold transition ${item.active ? "bg-[#f1efff] text-[#6955f6]" : "text-[#485164] hover:bg-[#f6f5ff] hover:text-[#202633]"}`}>
                 <span className={`grid h-9 w-9 place-items-center rounded-xl border text-base ${item.active ? "border-[#d8d1ff] bg-white shadow-sm" : "border-[#eceaf2] bg-[#faf9fc]"}`}>{item.visualIcon}</span>
                 {item.label}

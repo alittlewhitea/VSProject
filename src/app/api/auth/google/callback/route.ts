@@ -4,6 +4,7 @@ import { createSession, SESSION_COOKIE_NAME, upsertGoogleUser } from "../../../.
 import { ensureSignupCreditAccount, getRequestCountryCode } from "../../../../../lib/credits";
 import { createSupabaseAdminClient } from "../../../../../lib/supabase-admin";
 import { safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
+import { completeReferralAuth } from "../../../../../lib/referrals";
 
 const STATE_COOKIE = "dreamface_google_state";
 
@@ -72,12 +73,13 @@ export async function GET(request: NextRequest) {
     email?: string;
     name?: string;
     picture?: string;
+    email_verified?: boolean;
   };
   if (!profile.sub) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_user"));
 
   const user = await upsertGoogleUser({
     googleSub: profile.sub,
-    email: profile.email || null,
+    email: profile.email_verified === true ? profile.email || null : null,
     fullName: profile.name || null,
     avatarUrl: profile.picture || null,
     countryCode: getRequestCountryCode(request.headers),
@@ -88,6 +90,7 @@ export async function GET(request: NextRequest) {
     await ensureSignupCreditAccount(admin, user.id, request.headers);
   }
   const session = await createSession(user);
+  await completeReferralAuth(user,user.isNew,profile.email_verified===true,state.csrf,request.headers);
   cookieStore.set(SESSION_COOKIE_NAME, session.access_token, {
     httpOnly: true,
     sameSite: "lax",

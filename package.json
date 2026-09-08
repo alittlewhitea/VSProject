@@ -9,11 +9,13 @@
     "typecheck": "tsc --noEmit --pretty false",
     "verify:locales": "node scripts/verify-all-locales.mjs",
     "verify:security": "node scripts/verify-security-invariants.mjs",
-    "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run build"
+    "verify:referrals": "node scripts/verify-referrals.mjs",
+    "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run verify:referrals && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
     "@swc/helpers": "0.5.23",
+    "disposable-email-domains": "1.0.62",
     "mysql2": "^3.22.5",
     "next": "^15.5.15",
     "next-intl": "^4.13.0",

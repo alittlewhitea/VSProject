@@ -189,7 +189,7 @@ function CrossMark() {
 }
 
 function formatReason(reason: string, t: TranslationFunction) {
-  if (["signup_bonus", "stripe_checkout", "stripe_subscription", "generation_task", "generation_refund", "manual_top_up_dev"].includes(reason)) {
+  if (["referral_reward", "signup_bonus", "stripe_checkout", "stripe_subscription", "generation_task", "generation_refund", "manual_top_up_dev"].includes(reason)) {
     return t(`billing.reason.${reason}`);
   }
   return reason.replace(/_/g, " ");

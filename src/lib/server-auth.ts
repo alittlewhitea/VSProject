@@ -72,7 +72,7 @@ export async function upsertEmailUser(email: string, options: { countryCode?: st
         [now, now, existing.id]
       );
     }
-    return existing;
+    return { ...existing, isNew: false };
   }
 
   const id = randomUUID();
@@ -93,7 +93,7 @@ export async function upsertEmailUser(email: string, options: { countryCode?: st
     "insert into user_identities (id, user_id, provider, provider_id, identity_data, created_at, updated_at, last_sign_in_at) values (?, ?, 'email', ?, ?, ?, ?, ?)",
     [`email:${normalized}`, id, normalized, JSON.stringify({ email: normalized }), now, now, now]
   );
-  return { id, email: normalized };
+  return { id, email: normalized, isNew: true };
 }
 
 export async function upsertGoogleUser(input: {
@@ -112,11 +112,13 @@ export async function upsertGoogleUser(input: {
   const normalizedEmail = input.email?.trim().toLowerCase() || null;
   const countryCode = input.countryCode?.trim().toUpperCase() || null;
   let userId = identityRows[0]?.user_id ? String(identityRows[0].user_id) : null;
+  let isNew = false;
   if (!userId && normalizedEmail) {
     const existing = await getUserByEmail(normalizedEmail);
     userId = existing?.id || null;
   }
   if (!userId) {
+    isNew = true;
     userId = randomUUID();
     await mysqlExecute(
       "insert into users (id, email, created_at, updated_at, last_sign_in_at, provider, google_sub, avatar_url, full_name, raw_app_meta_data, raw_user_meta_data) values (?, ?, ?, ?, ?, 'google', ?, ?, ?, ?, ?)",
@@ -150,7 +152,7 @@ export async function upsertGoogleUser(input: {
     "insert into user_identities (id, user_id, provider, provider_id, identity_data, created_at, updated_at, last_sign_in_at) values (?, ?, 'google', ?, ?, ?, ?, ?) on duplicate key update user_id = values(user_id), identity_data = values(identity_data), updated_at = values(updated_at), last_sign_in_at = values(last_sign_in_at)",
     [`google:${input.googleSub}`, userId, input.googleSub, JSON.stringify(input.raw || {}), now, now, now]
   );
-  return { id: userId, email: normalizedEmail };
+  return { id: userId, email: normalizedEmail, isNew };
 }
 
 export async function createSession(user: AuthUser): Promise<AppSession> {
