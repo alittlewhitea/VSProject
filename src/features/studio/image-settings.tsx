@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isGptImageProvider, GPT_IMAGE_QUALITIES } from "../../lib/gpt-image-models";
 import { formatApproximateCreditValue } from "../../lib/billing";
 import { GenerationCostSummary } from "./generation-cost-summary";
 import { ModelPicker, type ModelPickerOption } from "./model-picker";
@@ -207,9 +208,9 @@ export function ImageSettings({
 
       {!isUtility ? <button type="button" onClick={() => setMoreSettingsOpen((value) => !value)} className="mb-2 min-h-11 w-full rounded-[10px] border border-[#eaecf0] bg-white text-xs font-semibold text-[#344054]">{"\u2637"} &nbsp; {translate(moreSettingsOpen ? "studio.workbench.lessSettings" : "studio.workbench.moreSettings")}</button> : null}
       {!isUtility && moreSettingsOpen ? <div className="grid gap-2 sm:grid-cols-2">
-        {provider === "chatgpt-image" ? (
+        {isGptImageProvider(provider) ? (
           <SettingCard label={translate("studio.field.quality")} value={translate("studio.textImage.costOptimized")}>
-            <ChoiceButtons values={["auto", "low", "medium", "high"].map((value) => ({ value }))} selected={imageQuality} columns={4} onChange={(value) => onImageQualityChange(value as ImageQuality)} />
+            <ChoiceButtons values={GPT_IMAGE_QUALITIES.map((value) => ({ value }))} selected={imageQuality} columns={3} onChange={(value) => onImageQualityChange(value as ImageQuality)} />
           </SettingCard>
         ) : null}
 
@@ -236,9 +237,9 @@ export function ImageSettings({
         <SettingCard label={translate("studio.field.count")} value={translate("studio.textImage.images")}>
           <ChoiceButtons values={[1, 2, 3, 4].map((value) => ({ value: String(value) }))} selected={String(numImages)} columns={4} onChange={(value) => onNumImagesChange(Number(value))} />
         </SettingCard>
-        <SettingCard label={translate("studio.field.seed")} value={translate("studio.textImage.optional")}>
+        {!isGptImageProvider(provider) ? <SettingCard label={translate("studio.field.seed")} value={translate("studio.textImage.optional")}>
           <input value={seed} onChange={(event) => onSeedChange(event.target.value.replace(/[^\d]/g, "").slice(0, 12))} placeholder={translate("studio.placeholder.random")} inputMode="numeric" className="h-10 w-full rounded-[0.9rem] border border-black/[0.06] bg-[#fbfcfe] px-3 text-sm font-black text-[#66758b] outline-none placeholder:text-[#8b98ad]" />
-        </SettingCard>
+        </SettingCard> : null}
 
         {isFlux ? (
           <>

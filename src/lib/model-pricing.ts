@@ -1,3 +1,4 @@
+import { isGptImageProvider, gptImageEndpoint, gptImageQuality } from "./gpt-image-models";
 export type PricingMode = "image" | "video" | "audio";
 
 export type GenerationEstimateInput = {
@@ -6,6 +7,7 @@ export type GenerationEstimateInput = {
   imageSize?: string | null;
   duration?: string | null;
   hasReferences?: boolean;
+  referenceCount?: number;
   resolution?: string | null;
   falUnitPriceUsd?: number | null;
   falUnit?: string | null;
@@ -32,45 +34,22 @@ export const CREDIT_LOW_BALANCE_THRESHOLD = 300;
 export const CREDIT_MARKUP_MULTIPLIER = 1.65;
 export const CREDIT_USD_TO_CREDITS = 150;
 
-const GPT_IMAGE_2_TEXT_HIGH_USD: Record<string, number> = {
-  default_4_3: 0.145,
-  landscape_4_3: 0.145,
-  landscape_16_9: 0.145,
-  square_hd: 0.211,
-  square: 0.053,
-  portrait_4_3: 0.145,
-  portrait_16_9: 0.145
-};
-
-const GPT_IMAGE_2_TEXT_MEDIUM_USD: Record<string, number> = {
-  default_4_3: 0.037,
-  landscape_4_3: 0.037,
-  landscape_16_9: 0.04,
-  square_hd: 0.053,
-  square: 0.006,
-  portrait_4_3: 0.037,
-  portrait_16_9: 0.037
-};
-
-const GPT_IMAGE_2_TEXT_LOW_USD: Record<string, number> = {
-  default_4_3: 0.005,
-  landscape_4_3: 0.005,
-  landscape_16_9: 0.005,
-  square_hd: 0.006,
-  square: 0.003,
-  portrait_4_3: 0.005,
-  portrait_16_9: 0.005
-};
-
-const GPT_IMAGE_2_EDIT_HIGH_USD: Record<string, number> = {
-  default_4_3: 0.151,
-  landscape_4_3: 0.151,
-  landscape_16_9: 0.151,
-  square_hd: 0.219,
-  square: 0.06,
-  portrait_4_3: 0.151,
-  portrait_16_9: 0.151
-};
+// fal published output baselines; portrait/wide variants use conservative nearby sizes.
+// Input image reserve is an application estimate, not a fixed fal per-image price.
+const GPT_IMAGE_OUTPUT_USD = {
+  low: {standard:0.005,square:0.006,wide:0.006},
+  medium: {standard:0.037,square:0.053,wide:0.053},
+  high: {standard:0.145,square:0.211,wide:0.211}
+} as const;
+export function estimateGptImageUsd(input: GenerationEstimateInput) {
+  const size = input.imageSize || "default_4_3";
+  const shape = size === "square" || size === "square_hd" ? "square" : size.includes("16_9") ? "wide" : "standard";
+  const output = GPT_IMAGE_OUTPUT_USD[gptImageQuality(input.quality)][shape];
+  const references = input.hasReferences ? Math.min(16,Math.max(1,Math.trunc(input.referenceCount || 1))) : 0;
+  // Conservative UTF-8 byte/3 token heuristic; real tokenization and image detail vary.
+  const promptTokens = Math.ceil(new TextEncoder().encode(input.promptText || "").length / 3);
+  return output + references * 0.012 + promptTokens * 5 / 1_000_000;
+}
 
 function countMultiplier(numImages?: number | null) {
   const parsed = typeof numImages === "number" ? numImages : 1;
@@ -142,15 +121,6 @@ export function creditsFromFalUsd(amountUsd: number, minimumCredits: number) {
   return Math.max(minimumCredits, Math.ceil(amountUsd * CREDIT_USD_TO_CREDITS * CREDIT_MARKUP_MULTIPLIER));
 }
 
-function creditTableFromUsd(prices: Record<string, number>, minimumCredits: number) {
-  return Object.fromEntries(Object.entries(prices).map(([size, usd]) => [size, creditsFromFalUsd(usd, minimumCredits)])) as Record<string, number>;
-}
-
-const GPT_IMAGE_2_TEXT_HIGH = creditTableFromUsd(GPT_IMAGE_2_TEXT_HIGH_USD, 9);
-const GPT_IMAGE_2_TEXT_MEDIUM = creditTableFromUsd(GPT_IMAGE_2_TEXT_MEDIUM_USD, 3);
-const GPT_IMAGE_2_TEXT_LOW = creditTableFromUsd(GPT_IMAGE_2_TEXT_LOW_USD, 2);
-const GPT_IMAGE_2_EDIT_HIGH = creditTableFromUsd(GPT_IMAGE_2_EDIT_HIGH_USD, 10);
-
 export function estimateGenerationCredits(input: GenerationEstimateInput) {
   if (input.mode === "image") {
     const imageSize = input.imageSize || "default_4_3";
@@ -158,15 +128,8 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
     const falUnit = normalizedFalUnit(input.falUnit);
     const multiplier = countMultiplier(input.numImages);
 
-    if (input.provider === "chatgpt-image") {
-      if (dynamicImagePrice && isFalUnit(falUnit, "image", "images", "generation", "generations")) {
-        return creditsFromFalUsd(dynamicImagePrice * multiplier, input.hasReferences ? 18 : 16);
-      }
-      if (input.hasReferences) {
-        return ((GPT_IMAGE_2_EDIT_HIGH[imageSize] || 24) * multiplier);
-      }
-      const table = input.quality === "low" ? GPT_IMAGE_2_TEXT_LOW : input.quality === "medium" ? GPT_IMAGE_2_TEXT_MEDIUM : GPT_IMAGE_2_TEXT_HIGH;
-      return ((table[imageSize] || 24) * multiplier);
+    if (isGptImageProvider(input.provider)) {
+      return creditsFromFalUsd(estimateGptImageUsd(input), 2) * multiplier;
     }
 
     if (input.provider === "nano-banana-image" || input.provider === "nano-banana-edit") {
@@ -384,26 +347,16 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "gemini-omni-flash-video", duration: "8s", hasReferences: true }),
     unitNote: "37 credits / sec with audio"
   },
-  {
-    provider: "chatgpt-image",
-    label: "GPT Image 2",
-    mode: "image",
-    workflow: "Text to Image",
-    endpointId: "openai/gpt-image-2",
-    falBasis: "fal GPT Image 2 high quality table: $0.145 for 1024x768, $0.211 for 1024x1024; token billing is ceiled by fal.",
-    typicalCredits: estimateGenerationCredits({ mode: "image", provider: "chatgpt-image", imageSize: "default_4_3" }),
-    unitNote: "25-36 credits"
-  },
-  {
-    provider: "chatgpt-image",
-    label: "GPT Image 2 Edit",
-    mode: "image",
-    workflow: "Image to Image",
-    endpointId: "openai/gpt-image-2/edit",
-    falBasis: "fal GPT Image 2 edit uses token/image-token billing; high quality 1024px output is roughly $0.151-$0.219.",
-    typicalCredits: estimateGenerationCredits({ mode: "image", provider: "chatgpt-image", imageSize: "default_4_3", hasReferences: true }),
-    unitNote: "26-37 credits"
-  },
+  ...["chatgpt-image","gpt-image-2.5-sunburst"].flatMap(provider => [false,true].map(edit => ({
+    provider,
+    label: (provider === "chatgpt-image" ? "GPT Image 2.5 Flare · Fast" : "GPT Image 2.5 Sunburst · Pro") + (edit ? " Edit" : ""),
+    mode: "image" as const,
+    workflow: edit ? "Image to Image" : "Text to Image",
+    endpointId: gptImageEndpoint(provider,edit),
+    falBasis: "Token billed: text input $5/M, image input $8/M, image output $30/M. Size baselines plus estimated prompt/reference allowance; not a fixed supplier quote.",
+    typicalCredits: estimateGenerationCredits({mode:"image",provider,imageSize:"default_4_3",quality:"low",hasReferences:edit,referenceCount:edit?1:0}),
+    unitNote: "Low default; varies with size, quality, prompt, references and image count"
+  }))),
   {
     provider: "nano-banana-image",
     label: "Nano Banana 2",

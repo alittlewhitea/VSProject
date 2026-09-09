@@ -1,4 +1,5 @@
 import { MODEL_PRICING_ROWS, estimateGenerationCredits } from "./model-pricing";
+import { isGptImageProvider, gptImageEndpoint } from "./gpt-image-models";
 
 type FalPricingResponse = {
   unit_price?: number;
@@ -46,7 +47,7 @@ const EXTRA_PRICING_ENDPOINT_IDS = [
 ];
 
 function endpointForProvider(provider: string, hasReferences = false) {
-  if (provider === "chatgpt-image") return hasReferences ? "openai/gpt-image-2/edit" : "openai/gpt-image-2";
+  if (isGptImageProvider(provider)) return gptImageEndpoint(provider,hasReferences);
   if (provider === "nano-banana-image") return hasReferences ? "fal-ai/nano-banana-2/edit" : "fal-ai/nano-banana-2";
   if (provider === "nano-banana-edit") return "fal-ai/nano-banana-2/edit";
   if (provider === "nano-banana-pro") return hasReferences ? "fal-ai/nano-banana-pro/edit" : "fal-ai/nano-banana-pro";
@@ -256,6 +257,7 @@ export async function estimateGenerationCreditsWithLivePricing(input: {
   imageSize?: string | null;
   duration?: string | null;
   hasReferences?: boolean;
+  referenceCount?: number;
   resolution?: string | null;
   quality?: string | null;
   numImages?: number | null;

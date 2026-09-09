@@ -1,3 +1,4 @@
+import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } from "../../../lib/gpt-image-models";
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { getUserFromBearerToken } from "../../../lib/server-auth";
@@ -136,9 +137,8 @@ function isValidAudioInput(value: unknown) {
 
 function getModelId(mode: StoredGenerateMode, provider: string, editImage = false): string | null {
   const keyByProvider: Record<string, string | undefined> = {
-    "chatgpt-image": editImage
-      ? process.env.FAL_MODEL_IMAGE_CHATGPT_EDIT || "openai/gpt-image-2/edit"
-      : process.env.FAL_MODEL_IMAGE_CHATGPT || "openai/gpt-image-2",
+    "chatgpt-image": gptImageEndpoint("chatgpt-image", editImage),
+    "gpt-image-2.5-sunburst": gptImageEndpoint("gpt-image-2.5-sunburst", editImage),
     "flux-image": process.env.FAL_MODEL_IMAGE_FLUX || "fal-ai/flux/schnell",
     "flux-dev": process.env.FAL_MODEL_IMAGE_FLUX_DEV || "fal-ai/flux/dev",
     "topaz-image": process.env.FAL_MODEL_IMAGE_TOPAZ || "fal-ai/topaz/upscale/image",
@@ -522,27 +522,15 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     return input;
   }
 
-  if (body.provider === "chatgpt-image") {
-    const seed = optionalSeed(body.seed);
-    const quality = body.quality && IMAGE_QUALITIES.has(body.quality) ? body.quality : "high";
-    if (hasReferenceImages(body)) {
-      return {
-        prompt,
-        image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 16) : [],
-        image_size: getFalImageSize(body.ratio, body.imageSize),
-        quality,
-        output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
-        num_images: clampInt(body.numImages, 1, 4, 1),
-        ...(seed !== undefined ? { seed } : {})
-      };
-    }
+  if (isGptImageProvider(body.provider)) {
     return {
       prompt,
-      image_size: getFalImageSize(body.ratio, body.imageSize),
-      quality,
+      ...(hasReferenceImages(body) ? {image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0,16) : []} : {}),
+      image_size: gptImageSize(body.imageSize),
+      quality: gptImageQuality(body.quality),
+      background: "auto",
       output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
-      num_images: clampInt(body.numImages, 1, 4, 1),
-      ...(seed !== undefined ? { seed } : {})
+      num_images: clampInt(body.numImages,1,4,1)
     };
   }
 
@@ -592,7 +580,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
 
 function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
   const imageUrls = Array.isArray(body.imageUrls)
-    ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()).slice(0, 14)
+    ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()).slice(0, isGptImageProvider(body.provider) ? 16 : 14)
     : [];
 
   return {
@@ -837,6 +825,13 @@ export async function POST(request: Request) {
     }
 
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
+    if(body.mode === "image" && isGptImageProvider(body.provider)) {
+      if(body.imageWorkflow === "image-to-image" && !imageUrls.length) return NextResponse.json({error:"Image to Image requires at least one reference image."},{status:400});
+      if(imageUrls.length > 16) return NextResponse.json({error:"GPT Image 2.5 supports at most 16 reference images."},{status:400});
+      if(body.quality && !["low","medium","high"].includes(body.quality)) return NextResponse.json({error:"Supported quality levels: low, medium, high."},{status:400});
+      body.quality=gptImageQuality(body.quality);
+      body.imageUrls=imageUrls.map(url=>url.trim());
+    }
     if (isDreamfaceIoTalkingAvatar) {
       body.videoWorkflow = "avatar-video";
       body.ratio = body.ratio === "16:9" || body.ratio === "9:16" || body.ratio === "1:1" || body.ratio === "4:3" || body.ratio === "3:4" ? body.ratio : "16:9";
@@ -864,6 +859,7 @@ export async function POST(request: Request) {
           imageSize: body.imageSize,
           duration: body.duration,
           hasReferences: imageUrls.length > 0,
+          referenceCount: imageUrls.length,
           resolution: body.resolution,
           quality: body.quality,
           numImages: body.numImages,

@@ -14,6 +14,8 @@ type UnifiedWorkbenchLayoutProps = {
   modelSelector?: ReactNode;
   tasks: TaskItem[];
   avatarSamplePreviewUrl?: string;
+  imageSamplePreviewUrl?: string;
+  imageSamplePreviewLabel?: string;
   avatarSamplePreviewLabel?: string;
   translate: (key: string, values?: Record<string, string | number | null | undefined>) => string;
 };
@@ -32,6 +34,8 @@ export function UnifiedWorkbenchLayout({
   modelSelector,
   tasks,
   avatarSamplePreviewUrl,
+  imageSamplePreviewUrl,
+  imageSamplePreviewLabel,
   avatarSamplePreviewLabel,
   translate
 }: UnifiedWorkbenchLayoutProps) {
@@ -48,6 +52,7 @@ export function UnifiedWorkbenchLayout({
         <div className="grid min-w-0 grid-cols-1 gap-[14px] xl:grid-cols-[minmax(520px,1.2fr)_minmax(360px,0.8fr)]">
           <section className="min-w-0 overflow-hidden rounded-[20px] border border-[#eaecf0] bg-white/95 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)]">
             {editor}
+            {imageSamplePreviewUrl ? <figure className="border-t border-[#eaecf0] p-4"><figcaption className="mb-3 text-xs font-bold text-[#667085]">{imageSamplePreviewLabel} · {translate("studio.workbench.example")}</figcaption><a href={imageSamplePreviewUrl} target="_blank" rel="noreferrer"><img key={imageSamplePreviewUrl} src={imageSamplePreviewUrl} alt={`${imageSamplePreviewLabel} example`} className="max-h-[480px] w-full rounded-xl object-contain" /></a></figure> : null}
           </section>
           <section className="min-w-0 self-start overflow-hidden rounded-[20px] border border-[#eaecf0] bg-white/95 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)]">
             <div className="border-b border-[#f1f3f7] px-4 py-3"><strong className="text-sm text-[#101828]">{translate("studio.workbench.settings")}</strong><span className="ms-2 text-xs text-[#667085]">{translate("studio.workbench.modelOutput")}</span></div>

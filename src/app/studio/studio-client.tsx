@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { isGptImageProvider, gptImageQuality, gptImageExample, GPT_IMAGE_EXAMPLE_PROMPTS, GPT_IMAGE_EXAMPLE_REFERENCES, GPT_IMAGE_SIZES, GPT_IMAGE_QUALITIES } from "../../lib/gpt-image-models";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -229,11 +230,18 @@ const PROVIDER_META: Record<
   }
 > = {
   "chatgpt-image": {
-    label: "GPT Image 2",
-    shortLabel: "GPT Image 2",
-    speed: "Balanced",
+    label: "GPT Image 2.5 Flare",
+    shortLabel: "GPT Image 2.5 Flare",
+    speed: "Fast",
     quality: "Highest text fidelity",
     bestFor: "Ads, infographics, product visuals, readable typography"
+  },
+  "gpt-image-2.5-sunburst": {
+    label: "GPT Image 2.5 Sunburst",
+    shortLabel: "GPT Image 2.5 Sunburst",
+    speed: "Slower",
+    quality: "Pro",
+    bestFor: "Precision editing, intricate layouts and typography"
   },
   "nano-banana-image": {
     label: "Nano Banana 2",
@@ -321,13 +329,13 @@ const WORKFLOW_META: Record<
     label: "Text to Image",
     description: "Create a new image from a prompt.",
     recommendedProvider: "chatgpt-image",
-    providers: ["chatgpt-image", "nano-banana-pro", "nano-banana-image", "nano-banana-2-lite", "nano-banana-lite", "flux-dev", "flux-image"]
+    providers: ["chatgpt-image", "gpt-image-2.5-sunburst", "nano-banana-pro", "nano-banana-image", "nano-banana-2-lite", "nano-banana-lite", "flux-dev", "flux-image"]
   },
   "image-to-image": {
     label: "Image to Image",
     description: "Upload references and edit, restyle, or extend them.",
     recommendedProvider: "nano-banana-image",
-    providers: ["nano-banana-image", "nano-banana-lite", "chatgpt-image", "nano-banana-pro"]
+    providers: ["chatgpt-image", "gpt-image-2.5-sunburst", "nano-banana-image", "nano-banana-lite", "nano-banana-pro"]
   },
   "enhance-cleanup": {
     label: "Image Enhance",
@@ -396,7 +404,7 @@ function modelPickerGroup(mode: StudioMode, workflow: StudioWorkflow, provider: 
     return "studio.modelPicker.group.fast";
   }
   if (mode === "image") {
-    if (provider === "chatgpt-image" || provider === "nano-banana-pro") return "studio.modelPicker.group.highQuality";
+    if (isGptImageProvider(provider) || provider === "nano-banana-pro") return "studio.modelPicker.group.highQuality";
     return workflow === "image-to-image" ? "studio.modelPicker.group.editing" : "studio.modelPicker.group.efficient";
   }
   if (mode === "avatar") return provider === "kling-avatar-pro" ? "studio.modelPicker.group.premiumAvatar" : "studio.modelPicker.group.avatar";
@@ -411,7 +419,7 @@ function modelPickerBadge(mode: StudioMode, provider: string, recommendedProvide
     if (badge === "pro") return "studio.modelSelect.badge.pro";
     if (badge === "premium") return "studio.modelSelect.badge.premium";
   }
-  if (provider === "kling-avatar-pro" || provider === "nano-banana-pro") return "studio.modelSelect.badge.pro";
+  if (provider === "gpt-image-2.5-sunburst" || provider === "kling-avatar-pro" || provider === "nano-banana-pro") return "studio.modelSelect.badge.pro";
   return undefined;
 }
 
@@ -464,6 +472,8 @@ function ratioFromImageSize(value: string) {
 const MINIMAX_MUSIC_DEFAULT_PROMPT = "City Pop, 80s retro, groovy synth bass, warm female vocal, 104 BPM, nostalgic urban night";
 
 function defaultPromptForProvider(provider: string, workflow?: StudioWorkflow, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
+  const imageExample = gptImageExample(provider,workflow);
+  if(imageExample) return imageExample.prompt;
   if (provider === "kling-avatar-standard" || provider === "kling-avatar-pro") {
     return KLING_AVATAR_DEFAULT_SCRIPT;
   }
@@ -498,7 +508,7 @@ function isModelSampleReference(value: string) {
 }
 
 function isProviderDefaultPrompt(value: string, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
-  return isSamplePrompt(value) || value === MINIMAX_H3_MAX_AVATAR_PROMPT || value === MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT || value === KLING_AVATAR_DEFAULT_SCRIPT || value === MINIMAX_MUSIC_DEFAULT_PROMPT || value === localizedMusicPrompt;
+  return GPT_IMAGE_EXAMPLE_PROMPTS.includes(value) || isSamplePrompt(value) || value === MINIMAX_H3_MAX_AVATAR_PROMPT || value === MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT || value === KLING_AVATAR_DEFAULT_SCRIPT || value === MINIMAX_MUSIC_DEFAULT_PROMPT || value === localizedMusicPrompt;
 }
 
 function promptForProviderChange(current: string, nextDefaultPrompt: string, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
@@ -509,6 +519,7 @@ function promptForProviderChange(current: string, nextDefaultPrompt: string, loc
 }
 
 function defaultImageSizeForProvider(provider: string) {
+  if(provider === "gpt-image-2.5-sunburst") return "landscape_16_9";
   if (provider === "flux-image" || provider === "flux-dev") return "landscape_16_9";
   if (isNanoBananaProvider(provider)) return "default_4_3";
   return "default_4_3";
@@ -604,7 +615,7 @@ function shortInputValue(value: string) {
 
 function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (!provider) return false;
-  if (mode === "image") return ["chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
+  if (mode === "image") return ["gpt-image-2.5-sunburst", "chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return ["minimax-music-2.6", "elevenlabs-tts"].includes(provider);
   if (mode === "avatar") return ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return Boolean(videoModelConfig(provider)) || isAvatarProvider(provider);
@@ -707,9 +718,26 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         ? modelSampleReferenceForProvider(initialProvider)
       : initialVideoWorkflow === "image-to-video" && modelSampleReferenceForProvider(initialProvider)
         ? modelSampleReferenceForProvider(initialProvider)
-      : ""
+      : gptImageExample(initialProvider,initialWorkflow)?.references.join("\n") || ""
   );
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
+  // Provider/workflow transitions replace built-in examples, never user-uploaded files.
+  useEffect(() => {
+    if(mode !== "image") return;
+    const example=gptImageExample(provider,imageWorkflow);
+    if(example) {
+      setPrompt(current => !current.trim() || GPT_IMAGE_EXAMPLE_PROMPTS.includes(current) ? example.prompt : current);
+      setImageQuality("low");
+    }
+    if(!sp.get("reference") && referenceImageFiles.length === 0) {
+      setReferenceImagesText(current => {
+        const urls=current.split(/[\s,]+/).filter(Boolean);
+        return !urls.length || urls.every(url=>GPT_IMAGE_EXAMPLE_REFERENCES.includes(url))
+          ? example?.references.join("\n") || "" : current;
+      });
+    }
+  },[mode,provider,imageWorkflow]);
+
   const [avatarAudioUrl, setAvatarAudioUrl] = useState(sp.get("audioUrl") || "");
   const [avatarAudioTrimSeconds, setAvatarAudioTrimSeconds] = useState<number | null>(null);
   const [editResolution, setEditResolution] = useState("1K");
@@ -1227,7 +1255,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       .filter(Boolean),
     ...referenceImageFiles
   ];
-  const referenceImageUrls = allReferenceImageUrls.slice(0, isPromptlessImageWorkflow ? 1 : 14);
+  const referenceImageUrls = allReferenceImageUrls.slice(0, isPromptlessImageWorkflow ? 1 : isGptImageProvider(provider) ? 16 : 14);
   const isAvatarWorkflow = mode === "avatar" || activeWorkflow === "avatar-video";
   const isDreamfaceTalkingAvatar = isAvatarWorkflow && provider === "dreamface-io-video";
   const isH3MaxAvatar = isAvatarWorkflow && isH3MaxProvider(provider);
@@ -1266,6 +1294,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     imageSize,
     duration: isAvatarWorkflow ? avatarDuration : duration,
     hasReferences: referenceImageUrls.length > 0,
+    referenceCount: referenceImageUrls.length,
     resolution: mode === "image" ? editResolution : videoResolution,
     generateAudio: mode === "video" ? generateAudio : false,
     quality: imageQuality,
@@ -1305,6 +1334,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       : defaultVideoResolutionForProvider(option.value);
     const optionGenerateAudio = mode === "video" && Boolean(videoModelConfig(option.value)?.showAudioControl) && generateAudio;
     const optionImageSize = mode === "image" ? defaultImageSizeForProvider(option.value) : imageSize;
+    const optionGptExample = mode === "image" ? gptImageExample(option.value,activeWorkflow) : null;
+    const hasCustomImageReferences = referenceImageFiles.length > 0 || referenceImagesText.split(/\r?\n|,/).some(url=>url.trim() && !GPT_IMAGE_EXAMPLE_REFERENCES.includes(url.trim()));
+    const optionReferenceCount = optionGptExample && !hasCustomImageReferences ? optionGptExample.references.length : referenceImageUrls.length;
     const rawOptionCredits = option.value === provider
       ? estCredits
       : estimateGenerationCredits({
@@ -1312,14 +1344,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           provider: option.value,
           imageSize: optionImageSize,
           duration: optionDuration,
-          hasReferences: referenceImageUrls.length > 0,
+          hasReferences: optionReferenceCount > 0,
+          referenceCount: optionReferenceCount,
           resolution: optionResolution,
           generateAudio: optionGenerateAudio,
-          quality: option.value === "chatgpt-image" ? "low" : "high",
+          quality: isGptImageProvider(option.value) ? "low" : "high",
           numImages: mode === "image" ? numImages : 1,
           enableWebSearch,
           thinkingLevel,
-          promptText: prompt
+          promptText: optionGptExample ? promptForProviderChange(prompt,optionGptExample.prompt) : prompt
         });
     const optionDreamfaceUnits = option.value === "dreamface-io-video"
       ? Math.max(1, Math.ceil((Number.parseInt(optionDuration, 10) || 5) / 5))
@@ -1388,7 +1421,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   ].includes(provider)
     ? provider
     : "default";
-  const providerNote = st(`studio.model.${providerNoteKey}`);
+  const providerNote = isGptImageProvider(provider) ? PROVIDER_META[provider].bestFor : st(`studio.model.${providerNoteKey}`);
   const showVideoModelSelect = mode === "video" && (activeWorkflow === "text-to-video" || activeWorkflow === "image-to-video");
   const selectedProviderMeta = PROVIDER_META[provider] || {
     label: provider,
@@ -1443,7 +1476,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const showModernStudioChrome = showModernWorkbenchRedesign || isProjectsView || isAppsHome;
   const useWideStudioShell = showModernStudioChrome || isAppsHome;
   const providerSettingsLabel =
-    provider === "chatgpt-image"
+    isGptImageProvider(provider)
       ? `${imageQuality} / ${outputFormat.toUpperCase()} / ${numImages}`
     : provider === "flux-image" || provider === "flux-dev"
         ? `${numInferenceSteps} / ${guidanceScale} / ${outputFormat.toUpperCase()}`
@@ -1524,7 +1557,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       } else if (nextWorkflow === "background-remove") {
         setReferenceImageFiles((current) => current.slice(0, 1));
       }
-      setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
+      setImageQuality(isGptImageProvider(nextProvider) ? "low" : "high");
     } else if (nextMode === "video" || nextMode === "avatar") {
       setVideoWorkflow(nextWorkflow as VideoWorkflow);
       if (nextWorkflow === "text-to-video") {
@@ -1628,7 +1661,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       }
     }
     if (mode === "image") {
-      if (nextProvider !== "topaz-image" && nextProvider !== "bria-background-remove") {
+      if (nextProvider !== "topaz-image" && nextProvider !== "bria-background-remove" && !isGptImageProvider(nextProvider)) {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
       }
@@ -1637,7 +1670,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       if (nextProvider === "nano-banana-2-lite" && activeWorkflow === "image-to-image") setImageWorkflow("text-to-image");
       const nextImageSize = defaultImageSizeForProvider(nextProvider);
       setImageSize(nextImageSize);
-      setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
+      setImageQuality(isGptImageProvider(nextProvider) ? "low" : "high");
       setRatio(defaultImageRatioForProvider(nextProvider, nextImageSize));
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "image");
@@ -1740,7 +1773,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setImageWorkflow("image-to-image");
       setProvider(nextProvider);
       setImageSize(nextImageSize);
-      setImageQuality(nextProvider === "chatgpt-image" ? "low" : "high");
+      setImageQuality(isGptImageProvider(nextProvider) ? "low" : "high");
       setRatio(defaultImageRatioForProvider(nextProvider, nextImageSize));
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "image");
@@ -1916,7 +1949,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setMusicBitrate(draft.musicBitrate || 256000);
     setMusicFormat(draft.musicFormat || "mp3");
     setOutputFormat(draft.outputFormat);
-    setImageQuality(draft.imageQuality || "high");
+    setImageQuality(isGptImageProvider(draft.provider) ? gptImageQuality(draft.imageQuality) : draft.imageQuality || "high");
     setNumImages(draft.numImages || 1);
     setGuidanceScale(draft.guidanceScale || 3.5);
     setNumInferenceSteps(draft.numInferenceSteps || 4);
@@ -2498,7 +2531,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       ratio={ratio}
       ratioOptions={provider === "nano-banana-pro" || provider === "nano-banana-2-lite" ? NANO_ASPECT_RATIO_OPTIONS.filter((item) => !["4:1", "1:4", "8:1", "1:8"].includes(item)) : NANO_ASPECT_RATIO_OPTIONS}
       imageSize={imageSize}
-      imageSizePresets={IMAGE_SIZE_PRESETS}
+      imageSizePresets={isGptImageProvider(provider) ? GPT_IMAGE_SIZES : IMAGE_SIZE_PRESETS}
       outputFormat={outputFormat}
       imageQuality={imageQuality}
       editResolution={editResolution}
@@ -2753,6 +2786,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     {showImageWorkbenchRedesign ? (
                       <UnifiedWorkbenchLayout
                         mode="image"
+                        imageSamplePreviewUrl={gptImageExample(provider,imageWorkflow)?.preview}
+                        imageSamplePreviewLabel={PROVIDER_META[provider]?.label}
                         tasks={tasks}
                         translate={st}
                         editor={<ImageWorkbench
@@ -3542,7 +3577,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           : NANO_ASPECT_RATIO_OPTIONS
                       }
                       imageSize={imageSize}
-                      imageSizePresets={IMAGE_SIZE_PRESETS}
+                      imageSizePresets={isGptImageProvider(provider) ? GPT_IMAGE_SIZES : IMAGE_SIZE_PRESETS}
                       outputFormat={outputFormat}
                       imageQuality={imageQuality}
                       editResolution={editResolution}
@@ -3706,11 +3741,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         <p className="text-xs font-medium text-[#8b95a7]">{providerSettingsLabel}</p>
                       </div>
                       <div className="grid gap-3 lg:grid-cols-4">
-                        {provider === "chatgpt-image" ? (
+                        {isGptImageProvider(provider) ? (
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                             <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.quality")}</p>
                             <div className="grid grid-cols-4 gap-1">
-                              {(["auto", "low", "medium", "high"] as const).map((quality) => (
+                              {GPT_IMAGE_QUALITIES.map((quality) => (
                                 <button
                                   key={quality}
                                   type="button"

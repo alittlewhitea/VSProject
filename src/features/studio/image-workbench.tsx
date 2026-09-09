@@ -75,11 +75,12 @@ function ReferenceImagePanel({
           <input type="file" accept="image/*" multiple={multiple} className="hidden" onChange={(event) => handleFiles(event.target.files)} />
         </label>
       </div>
-      <input
+      <textarea
+        rows={multiple ? 2 : 1}
         value={referenceImagesText}
         onChange={(event) => onReferenceImagesTextChange(event.target.value)}
         placeholder="https://.../image.jpg"
-        className="mt-3 h-10 w-full rounded-[10px] border border-[#eaecf0] bg-white px-3 text-sm font-semibold text-[#344054] outline-none placeholder:text-[#98a2b3]"
+        className="mt-3 w-full resize-y rounded-[10px] border border-[#eaecf0] bg-white px-3 py-2 text-sm font-semibold text-[#344054] outline-none placeholder:text-[#98a2b3]"
       />
       {referenceImageUrls.length ? (
         <div className="mt-4">
