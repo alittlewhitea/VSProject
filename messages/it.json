@@ -1,4 +1,27 @@
 {
+  "creditShop": {
+    "eyebrow": "PAGA IN BASE ALL’USO",
+    "title": "Crediti per la tua prossima idea",
+    "subtitle": "Acquista un pacchetto. Senza abbonamento o rinnovo automatico.",
+    "oneTime": "Pagamento unico",
+    "recommended": "Consigliato",
+    "bestValue": "Miglior prezzo",
+    "credits": "crediti",
+    "balance": "Il tuo saldo",
+    "shared": "Utilizzabili per immagini, video, avatar e audio.",
+    "example": "Ad esempio: fino a {images} immagini base O {videos} video brevi ({videoSpec}).",
+    "discount": "−{percent}% rispetto a Starter Pack (per credito)",
+    "opening": "Apertura pagamento…",
+    "buy": "Acquista crediti",
+    "note": "USD · Acquisto unico. Il consumo varia per modello e impostazioni.",
+    "howTitle": "Come funziona",
+    "step1": "Scegli il pacchetto di crediti adatto.",
+    "step2": "Paga una volta. I crediti arrivano dopo la verifica del pagamento.",
+    "step3": "Crea con il tuo saldo e ricarica quando serve.",
+    "modelNote": "Controlla il costo esatto accanto a Genera prima di iniziare.",
+    "confirming": "Conferma del pagamento e aggiunta dei crediti…",
+    "checkLater": "Pagamento non ancora confermato. Riprova più tardi o contatta l’assistenza con il riferimento dell’ordine."
+  },
   "referrals": {
     "title": "Invite friends",
     "intro": "Invite a new friend: you earn {inviter} Credits and your friend earns {invitee} after email verification and a successful credit-funded generation.",

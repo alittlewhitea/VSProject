@@ -33,6 +33,7 @@ import { studioControlMessages } from "./studio-i18n-controls";
 import { studioGeminiOmniMessages } from "./studio-i18n-gemini-omni";
 import { studioWorkbenchUiMessages } from "./studio-i18n-workbench-ui";
 import { studioCostMessages } from "./studio-i18n-cost";
+import { creditShopMessages } from "./credit-shop-messages";
 
 type StudioMessages = Record<string, string>;
 
@@ -1033,6 +1034,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
 
   function t(key: string, values?: Record<string, string | number | null | undefined>) {
     let template =
+      creditShopMessages[locale]?.[key] ||
       studioCostMessages[locale]?.[key] ||
       studioWorkbenchUiMessages[locale]?.[key] ||
       studioControlMessages[locale]?.[key] ||

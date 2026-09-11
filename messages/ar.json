@@ -1,4 +1,27 @@
 {
+  "creditShop": {
+    "eyebrow": "ادفع حسب الاستخدام",
+    "title": "رصيد لفكرتك القادمة",
+    "subtitle": "اشترِ باقة. بدون اشتراك أو تجديد تلقائي.",
+    "oneTime": "دفعة واحدة",
+    "recommended": "موصى به",
+    "bestValue": "أفضل قيمة",
+    "credits": "رصيد",
+    "balance": "رصيدك الحالي",
+    "shared": "لأدوات الصور والفيديو والأفاتار والصوت.",
+    "example": "مثال: حتى {images} صورة أساسية أو {videos} فيديو قصير ({videoSpec}).",
+    "discount": "خصم {percent}% مقارنة بـ Starter Pack (لكل رصيد)",
+    "opening": "جارٍ فتح الدفع…",
+    "buy": "شراء رصيد",
+    "note": "USD · شراء لمرة واحدة. يختلف الاستهلاك حسب النموذج والإعدادات.",
+    "howTitle": "كيف يعمل",
+    "step1": "اختر باقة الرصيد المناسبة.",
+    "step2": "ادفع مرة واحدة. يُضاف الرصيد بعد التحقق من الدفع.",
+    "step3": "أنشئ باستخدام رصيدك وأعد الشحن عند الحاجة.",
+    "modelNote": "تحقق من التكلفة الدقيقة بجانب زر الإنشاء قبل البدء.",
+    "confirming": "جارٍ تأكيد الدفع وإضافة الرصيد…",
+    "checkLater": "لم يتم تأكيد الدفع بعد. حدّث لاحقاً أو تواصل مع الدعم برقم الطلب."
+  },
   "referrals": {
     "title": "Invite friends",
     "intro": "Invite a new friend: you earn {inviter} Credits and your friend earns {invitee} after email verification and a successful credit-funded generation.",

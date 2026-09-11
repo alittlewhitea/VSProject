@@ -1,4 +1,27 @@
 {
+  "creditShop": {
+    "eyebrow": "必要な分だけ購入",
+    "title": "次のアイデアにクレジットを",
+    "subtitle": "パックを購入して自由に制作。サブスク・自動更新なし。",
+    "oneTime": "買い切り",
+    "recommended": "おすすめ",
+    "bestValue": "最もお得",
+    "credits": "クレジット",
+    "balance": "現在の残高",
+    "shared": "画像、動画、アバター、音声ツールで共通利用。",
+    "example": "例：基本画像が最大{images}枚、または短い動画が最大{videos}本 ({videoSpec}).",
+    "discount": "Starter Pack比 {percent}% OFF（1クレジットあたり）",
+    "opening": "決済画面を開いています…",
+    "buy": "クレジットを購入",
+    "note": "USD · 買い切り購入。消費量はモデルと設定によって異なります。",
+    "howTitle": "使い方",
+    "step1": "必要なクレジットパックを選びます。",
+    "step2": "一度お支払い。決済確認後にクレジットが付与されます。",
+    "step3": "残高を使って制作し、必要に応じて追加購入。",
+    "modelNote": "開始前に生成ボタンの横で正確な消費量を確認できます。",
+    "confirming": "お支払いを確認してクレジットを付与しています…",
+    "checkLater": "お支払いは未確認です。後で再読み込みするか、注文番号を添えてお問い合わせください。"
+  },
   "referrals": {
     "title": "Invite friends",
     "intro": "Invite a new friend: you earn {inviter} Credits and your friend earns {invitee} after email verification and a successful credit-funded generation.",

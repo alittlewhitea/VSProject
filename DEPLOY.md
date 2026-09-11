@@ -1,5 +1,7 @@
 # Production Deploy
 
+新购买已切换为一次性积分包和 KyrenPay，部署前请阅读 [KyrenPay 配置、SQL 和宝塔定时任务](docs/kyrenpay-setup.md)。下文 PayPal 配置仅用于历史订单与已有订阅，不再用于新订阅销售。
+
 邀请奖励需要增量迁移和定时任务，启用前请阅读 [邀请机制部署与验收](docs/referral-setup.md)。
 
 DreamFace uses a Next.js deployment ID to keep browser assets aligned with the build that served the page. The app now falls back to the current Git commit automatically, but setting the ID explicitly during production deploy is still recommended.

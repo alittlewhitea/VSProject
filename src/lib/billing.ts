@@ -50,10 +50,13 @@ export const CREDIT_USAGE_REFERENCE = {
   video: {
     credits: estimateGenerationCredits({
       mode: "video",
-      provider: "dreamface-io-video",
-      duration: "5s"
+      provider: "minimax-h3-max-turbo-video",
+      duration: "5s",
+      resolution: "480p"
     }),
-    seconds: 5
+    seconds: 5,
+    resolution: "480p",
+    model: "H3 Max Turbo"
   },
   audio: {
     credits: estimateGenerationCredits({
@@ -146,11 +149,11 @@ export const CREDIT_PACKS: CreditPack[] = [
   },
   {
     id: "pro-topup",
-    name: "Pro Top-up",
+    name: "Pro Pack",
     credits: 11000,
     amountCents: 4999,
-    description: "A larger optional top-up for teams that need extra room beyond their Premium subscription cycle.",
-    idealFor: "For occasional high-volume usage when a Premium subscription needs temporary extra capacity.",
+    description: "A larger one-time credit pack for high-volume creative work. No subscription required.",
+    idealFor: "For teams and creators producing larger batches of images, video, avatars and audio.",
     examples: [
       { label: "GPT Image 2", count: "up to 305", note: "high quality 4:3 images" },
       { label: "Nano Banana 2", count: "up to 550", note: "1K image generations or edits" },
@@ -320,11 +323,10 @@ export function formatUsd(amountCents: number) {
 
 /**
  * A stable, easy-to-understand reference value for credits shown in the studio UI.
- * It uses the Premium Lite monthly membership and is deliberately presented as an
- * approximate membership value, never as an additional per-generation charge.
+ * Uses the Studio one-time pack as a reference, not an extra generation charge.
  */
 export function approximateCreditValueUsd(credits: number) {
-  const reference = SUBSCRIPTION_PLANS.find((plan) => plan.id === "premium-lite")?.prices.monthly;
+  const reference = CREDIT_PACKS.find((pack) => pack.id === "studio");
   if (!reference || credits <= 0) return 0;
   return (credits * reference.amountCents) / reference.credits / 100;
 }

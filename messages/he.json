@@ -1,4 +1,27 @@
 {
+  "creditShop": {
+    "eyebrow": "תשלום לפי שימוש",
+    "title": "קרדיטים לרעיון הבא שלך",
+    "subtitle": "קונים חבילה. ללא מנוי או חידוש אוטומטי.",
+    "oneTime": "תשלום חד־פעמי",
+    "recommended": "מומלץ",
+    "bestValue": "הכי משתלם",
+    "credits": "קרדיטים",
+    "balance": "היתרה שלך",
+    "shared": "לשימוש בכלי תמונה, וידאו, אווטאר ואודיו.",
+    "example": "לדוגמה: עד {images} תמונות בסיסיות או {videos} סרטונים קצרים ({videoSpec}).",
+    "discount": "{percent}% הנחה לעומת Starter Pack (לקרדיט)",
+    "opening": "פתיחת התשלום…",
+    "buy": "רכישת קרדיטים",
+    "note": "USD · רכישה חד־פעמית. השימוש משתנה לפי המודל וההגדרות.",
+    "howTitle": "איך זה עובד",
+    "step1": "בוחרים חבילת קרדיטים מתאימה.",
+    "step2": "משלמים פעם אחת. הקרדיטים מתווספים לאחר אימות התשלום.",
+    "step3": "יוצרים עם היתרה ומטעינים שוב כשצריך.",
+    "modelNote": "בודקים את העלות המדויקת ליד כפתור היצירה לפני שמתחילים.",
+    "confirming": "מאמתים את התשלום ומוסיפים קרדיטים…",
+    "checkLater": "התשלום טרם אושר. רעננו בהמשך או פנו לתמיכה עם מספר ההזמנה."
+  },
   "referrals": {
     "title": "Invite friends",
     "intro": "Invite a new friend: you earn {inviter} Credits and your friend earns {invitee} after email verification and a successful credit-funded generation.",

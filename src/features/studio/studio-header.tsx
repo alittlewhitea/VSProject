@@ -75,13 +75,13 @@ export function StudioHeader({
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
           <button type="button" onClick={() => onBillingOpen("balance")} className="hidden h-11 items-center gap-2 rounded-[14px] border border-[#eaecf0] bg-white px-3.5 text-[13px] font-bold text-[#101828] shadow-sm sm:flex"><span className="text-[#f4a000]">{"\u25C9"}</span><span>{creditBalance === null ? "--" : creditBalance.toLocaleString()} {t("studio.common.credits")}</span></button>
-          <button type="button" aria-label={t("studio.workspace.upgrade")} title={t("studio.workspace.upgrade")} onClick={() => onBillingOpen("vip_badge")} className="group relative flex h-11 items-center gap-1.5 overflow-hidden rounded-[14px] border border-[#8b74ff]/35 bg-[linear-gradient(135deg,#765cff_0%,#654ff2_52%,#8e5cff_100%)] px-2.5 text-white shadow-[0_9px_24px_rgba(106,81,246,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_13px_30px_rgba(106,81,246,0.38)] sm:gap-2 sm:px-3.5">
+          <button type="button" aria-label={t("creditShop.buy")} title={t("creditShop.buy")} onClick={() => onBillingOpen("vip_badge")} className="group relative flex h-11 items-center gap-1.5 overflow-hidden rounded-[14px] border border-[#8b74ff]/35 bg-[linear-gradient(135deg,#765cff_0%,#654ff2_52%,#8e5cff_100%)] px-2.5 text-white shadow-[0_9px_24px_rgba(106,81,246,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_13px_30px_rgba(106,81,246,0.38)] sm:gap-2 sm:px-3.5">
             <span aria-hidden="true" className="absolute -end-2 -top-4 h-9 w-9 rounded-full bg-white/20 blur-sm" />
             <span aria-hidden="true" className="relative grid h-[22px] w-[22px] shrink-0 place-items-center rounded-[7px] bg-white/16 ring-1 ring-white/20">
               <svg viewBox="0 0 24 24" fill="none" className="h-[17px] w-[17px] text-[#ffe68a]" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="m4 8 3.2 3L12 5l4.8 6L20 8l-1.4 9H5.4Z" /><path d="M6 20h12" /></svg>
             </span>
-            <span className="relative text-[10px] font-black uppercase tracking-[0.08em] sm:hidden">PRO</span>
-            <span className="relative hidden text-[13px] font-bold sm:inline">{t("studio.workspace.upgrade")}</span>
+            <span className="relative text-[10px] font-black uppercase tracking-[0.08em] sm:hidden">{t("creditShop.credits")}</span>
+            <span className="relative hidden text-[13px] font-bold sm:inline">{t("creditShop.buy")}</span>
           </button>
           <label className="hidden h-10 items-center gap-2 rounded-[14px] border border-[#eaecf0] bg-white px-3.5 text-[13px] font-bold text-[#101828] md:flex"><StudioIcon name="globe" className="h-4 w-4 text-[#6a5af9]" /><select value={locale} onChange={(event) => onLocaleChange(event.target.value as Locale)} className="max-w-[96px] bg-transparent outline-none">{locales.map((itemLocale) => <option key={itemLocale} value={itemLocale}>{localeLabels[itemLocale]}</option>)}</select></label>
           {signedIn ? <Link href="/studio?view=projects" aria-label={t("studio.nav.projects")} title={t("studio.nav.projects")} className="relative grid h-10 w-10 place-items-center rounded-full bg-[linear-gradient(145deg,#312e81,#6d5dfc_58%,#9b7aff)] text-white shadow-[0_7px_22px_rgba(79,70,229,0.28)] ring-2 ring-white transition hover:-translate-y-0.5 hover:shadow-[0_10px_26px_rgba(79,70,229,0.36)]"><span className="grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-white/10"><StudioIcon name="user" className="h-[18px] w-[18px]" /></span><span aria-hidden="true" className="absolute bottom-0 end-0 h-3 w-3 rounded-full border-2 border-white bg-[#22c55e]" /></Link> : <Link href={signInUrl} className="hidden h-10 items-center rounded-[14px] bg-[#101828] px-3.5 text-xs font-bold text-white sm:flex">{t("studio.auth.signIn")}</Link>}
@@ -126,7 +126,7 @@ export function StudioHeader({
         </label>
         <button type="button" aria-label={t("studio.billing.title")} title={t("studio.billing.title")} onClick={() => onBillingOpen("vip_badge")} className="inline-flex h-10 items-center rounded-full bg-[linear-gradient(135deg,#4f46e5,#06b6d4)] px-3 text-xs font-black text-white shadow-[0_12px_28px_rgba(79,70,229,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(79,70,229,0.3)] sm:gap-2 sm:px-3.5 md:px-4 md:text-sm">
           <span className="relative hidden h-4 w-5 shrink-0 sm:block"><span className="absolute left-1/2 top-0 h-2.5 w-3.5 -translate-x-1/2 rounded-t-sm bg-[#fde68a]" /><span className="absolute left-1/2 top-1.5 h-3 w-3 -translate-x-1/2 rotate-45 bg-[#fbbf24]" /></span>
-          <span>{t("studio.workspace.upgrade")}</span>
+          <span>{t("creditShop.buy")}</span>
         </button>
         {signedIn ? (
           <Link href="/studio?view=projects" className="hidden rounded-2xl bg-[#202633] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(32,38,51,0.18)] sm:inline-flex">{t("studio.nav.projects")}</Link>

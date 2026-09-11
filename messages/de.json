@@ -1,4 +1,27 @@
 {
+  "creditShop": {
+    "eyebrow": "NACH BEDARF BEZAHLEN",
+    "title": "Credits für deine nächste Idee",
+    "subtitle": "Kaufe ein Paket. Ohne Abo oder automatische Verlängerung.",
+    "oneTime": "Einmalzahlung",
+    "recommended": "Empfohlen",
+    "bestValue": "Bester Preis",
+    "credits": "Credits",
+    "balance": "Dein Guthaben",
+    "shared": "Für Bild-, Video-, Avatar- und Audiowerkzeuge.",
+    "example": "Zum Beispiel: bis zu {images} einfache Bilder ODER {videos} kurze Videos ({videoSpec}).",
+    "discount": "{percent}% günstiger als Starter Pack (pro Credit)",
+    "opening": "Zahlung wird geöffnet…",
+    "buy": "Credits kaufen",
+    "note": "USD · Einmaliger Kauf. Verbrauch abhängig von Modell und Einstellungen.",
+    "howTitle": "So funktioniert’s",
+    "step1": "Wähle das passende Credit-Paket.",
+    "step2": "Einmal bezahlen. Credits werden nach Zahlungsprüfung gutgeschrieben.",
+    "step3": "Nutze dein Guthaben und lade bei Bedarf nach.",
+    "modelNote": "Prüfe die genauen Credit-Kosten vor dem Start neben Generieren.",
+    "confirming": "Zahlung wird geprüft und Credits werden gutgeschrieben…",
+    "checkLater": "Zahlung noch nicht bestätigt. Lade später neu oder kontaktiere den Support mit der Bestellreferenz."
+  },
   "referrals": {
     "title": "Invite friends",
     "intro": "Invite a new friend: you earn {inviter} Credits and your friend earns {invitee} after email verification and a successful credit-funded generation.",

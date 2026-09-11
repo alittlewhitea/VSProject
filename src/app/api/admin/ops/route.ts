@@ -12,6 +12,7 @@ import { DREAMFACE_IO_PROVIDER, isDreamfaceIoConfigured, refundDreamfaceIoBillin
 import { isPayPalConfigured, isPayPalWebhookConfigured } from "../../../../lib/paypal";
 import { validateConfiguredPayPalPlans } from "../../../../lib/paypal-billing";
 import { reconcilePayPalBilling } from "../../../../lib/paypal-reconciliation";
+import { kyrenConfigured, kyrenCheckoutEnabled, KYREN_PRODUCT_ENVS } from "../../../../lib/kyrenpay";
 
 const RECENT_LIMIT = 80;
 const ADMIN_DATA_LIMIT = 5000;
@@ -246,8 +247,8 @@ function buildSystemHealth(
     requiredEnvCheck("FAL_KEY", "fal.ai API key"),
     {
       key: "paypal_credentials",
-      label: "Primary payment provider: PayPal",
-      status: isPayPalConfigured() ? "ok" : "critical",
+      label: "Historical provider: PayPal",
+      status: isPayPalConfigured() ? "ok" : "warning",
       detail: isPayPalConfigured() ? "Checkout credentials configured" : "PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET is missing"
     },
     {
@@ -280,7 +281,7 @@ function buildSystemHealth(
       key: "payment_incidents",
       label: "Payment incidents requiring review",
       status: openPaymentIncidents > 0 ? "warning" : "ok",
-      detail: `${openPaymentIncidents} unresolved PayPal refund, reversal, dispute, or reconciliation finding(s)`
+      detail: `${openPaymentIncidents} unresolved payment refund, reversal, dispute, or reconciliation finding(s)`
     },
     {
       key: "app_url",
@@ -903,7 +904,10 @@ export async function GET(request: Request) {
     runtimeConfig: {
       dreamfaceIoEnabled,
       dreamfaceIoConfigured: isDreamfaceIoConfigured(),
-      paymentProvider: "paypal",
+      paymentProvider: "kyrenpay",
+      kyrenpayConfigured: kyrenConfigured(),
+      kyrenpayEnabled: kyrenCheckoutEnabled(),
+      kyrenpayProducts: Object.entries(KYREN_PRODUCT_ENVS).map(([packId, env]) => ({ packId, env, configured: Boolean(process.env[env]?.trim()) })),
       stripeConfigured: envPresent("STRIPE_SECRET_KEY") && envPresent("STRIPE_WEBHOOK_SECRET"),
       paypalConfigured: isPayPalConfigured() && isPayPalWebhookConfigured() && paypalPlans.valid,
       paypalPlansConfigured: paypalPlans.validCount,

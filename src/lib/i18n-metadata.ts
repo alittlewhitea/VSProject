@@ -45,7 +45,10 @@ export async function createLocalizedMetadata(rawLocale: string, page: Marketing
   const locale = isLocale(rawLocale) ? rawLocale : defaultLocale;
   const messages = await loadMessages(locale);
   const metadataMessages = messages.metadata as Record<MarketingPage, MetadataCopy>;
-  const copy = metadataMessages[page] || metadataMessages.home;
+  const creditShop = messages.creditShop as Record<string, string>;
+  const copy = page === "price"
+    ? { title: creditShop.title, description: creditShop.subtitle }
+    : metadataMessages[page] || metadataMessages.home;
   const baseUrl = siteUrl();
   const canonicalPath = localizedPath(locale, page);
   const languages = Object.fromEntries(locales.map((item) => [item, localizedPath(item, page)]));

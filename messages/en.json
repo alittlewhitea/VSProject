@@ -1,4 +1,27 @@
 {
+  "creditShop": {
+    "eyebrow": "PAY AS YOU GO",
+    "title": "Credits for your next idea",
+    "subtitle": "Buy a pack. Create at your pace. No subscription or automatic renewal.",
+    "oneTime": "One-time payment",
+    "recommended": "Recommended",
+    "bestValue": "Best value",
+    "credits": "credits",
+    "balance": "Your balance",
+    "shared": "Use across image, video, avatar and audio tools.",
+    "example": "For example: up to {images} basic images OR {videos} videos ({videoSpec}).",
+    "discount": "{percent}% OFF vs Starter Pack (per credit)",
+    "opening": "Opening checkout…",
+    "buy": "Buy credits",
+    "note": "USD · One-time purchase. Usage varies by model and settings.",
+    "howTitle": "How it works",
+    "step1": "Choose the credit pack that fits your needs.",
+    "step2": "Pay once. Credits arrive after payment is verified.",
+    "step3": "Use your balance to create. Top up when you need more.",
+    "modelNote": "Check the exact credit cost beside Generate before you start.",
+    "confirming": "Confirming payment and adding your credits…",
+    "checkLater": "Payment is not confirmed yet. Refresh later or contact support with your order reference."
+  },
   "referrals": {
     "title": "Invite friends",
     "intro": "Invite a new friend: you earn {inviter} Credits and your friend earns {invitee} after email verification and a successful credit-funded generation.",

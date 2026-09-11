@@ -1,4 +1,27 @@
 {
+  "creditShop": {
+    "eyebrow": "BETAAL NAAR GEBRUIK",
+    "title": "Credits voor je volgende idee",
+    "subtitle": "Koop een pakket. Geen abonnement of automatische verlenging.",
+    "oneTime": "Eenmalige betaling",
+    "recommended": "Aanbevolen",
+    "bestValue": "Beste prijs",
+    "credits": "credits",
+    "balance": "Je saldo",
+    "shared": "Voor beeld-, video-, avatar- en audiotools.",
+    "example": "Bijvoorbeeld: tot {images} basisafbeeldingen OF {videos} korte video's ({videoSpec}).",
+    "discount": "{percent}% korting t.o.v. Starter Pack (per credit)",
+    "opening": "Betaling openen…",
+    "buy": "Credits kopen",
+    "note": "USD · Eenmalige aankoop. Verbruik verschilt per model en instelling.",
+    "howTitle": "Zo werkt het",
+    "step1": "Kies het passende creditpakket.",
+    "step2": "Betaal eenmaal. Credits worden na betalingscontrole toegevoegd.",
+    "step3": "Maak creaties met je saldo en vul aan wanneer nodig.",
+    "modelNote": "Controleer de exacte kosten naast Genereren voordat je begint.",
+    "confirming": "Betaling controleren en credits toevoegen…",
+    "checkLater": "Betaling nog niet bevestigd. Vernieuw later of geef je bestelreferentie door aan support."
+  },
   "referrals": {
     "title": "Invite friends",
     "intro": "Invite a new friend: you earn {inviter} Credits and your friend earns {invitee} after email verification and a successful credit-funded generation.",

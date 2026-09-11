@@ -1,4 +1,27 @@
 {
+  "creditShop": {
+    "eyebrow": "TRẢ THEO NHU CẦU",
+    "title": "Credit cho ý tưởng tiếp theo",
+    "subtitle": "Mua gói credit. Không đăng ký hay tự động gia hạn.",
+    "oneTime": "Thanh toán một lần",
+    "recommended": "Đề xuất",
+    "bestValue": "Giá tốt nhất",
+    "credits": "credit",
+    "balance": "Số dư",
+    "shared": "Dùng cho công cụ ảnh, video, avatar và âm thanh.",
+    "example": "Ví dụ: tối đa {images} ảnh cơ bản HOẶC {videos} video ngắn ({videoSpec}).",
+    "discount": "Giảm {percent}% so với Starter Pack (mỗi credit)",
+    "opening": "Đang mở thanh toán…",
+    "buy": "Mua credit",
+    "note": "USD · Mua một lần. Mức dùng tùy model và cài đặt.",
+    "howTitle": "Cách sử dụng",
+    "step1": "Chọn gói credit phù hợp.",
+    "step2": "Thanh toán một lần. Credit được cộng sau khi xác minh.",
+    "step3": "Dùng số dư để sáng tạo, nạp thêm khi cần.",
+    "modelNote": "Xem số credit chính xác bên cạnh nút tạo trước khi bắt đầu.",
+    "confirming": "Đang xác nhận thanh toán và cộng credit…",
+    "checkLater": "Chưa xác nhận thanh toán. Hãy tải lại sau hoặc gửi mã đơn hàng cho hỗ trợ."
+  },
   "referrals": {
     "title": "Invite friends",
     "intro": "Invite a new friend: you earn {inviter} Credits and your friend earns {invitee} after email verification and a successful credit-funded generation.",

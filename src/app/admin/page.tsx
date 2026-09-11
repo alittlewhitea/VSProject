@@ -55,7 +55,7 @@ type Ledger = {
 type Purchase = {
   id: number | string;
   user_id: string;
-  payment_provider: "stripe" | "paypal";
+  payment_provider: "stripe" | "paypal" | "kyrenpay";
   provider_order_id: string | null;
   provider_transaction_id: string | null;
   provider_capture_id: string | null;
@@ -72,7 +72,7 @@ type Purchase = {
 type Subscription = {
   id: number | string;
   user_id: string;
-  payment_provider: "stripe" | "paypal";
+  payment_provider: "stripe" | "paypal" | "kyrenpay";
   provider_customer_id: string | null;
   provider_subscription_id: string | null;
   stripe_customer_id: string | null;
@@ -91,7 +91,7 @@ type Subscription = {
 
 type PaymentIncident = {
   id: number | string;
-  payment_provider: "paypal";
+  payment_provider: "paypal" | "kyrenpay";
   event_type: string;
   user_id: string | null;
   purchase_id: number | string | null;
@@ -202,7 +202,10 @@ type OpsPayload = {
   runtimeConfig?: {
     dreamfaceIoEnabled: boolean;
     dreamfaceIoConfigured: boolean;
-    paymentProvider: "stripe" | "paypal";
+    paymentProvider: "stripe" | "paypal" | "kyrenpay";
+    kyrenpayConfigured: boolean;
+    kyrenpayEnabled: boolean;
+    kyrenpayProducts: Array<{ packId: string; env: string; configured: boolean }>;
     stripeConfigured: boolean;
     paypalConfigured: boolean;
     paypalPlansConfigured: number;
@@ -709,15 +712,24 @@ export default function AdminHomePage() {
             </div>
           </div>
 
+          <div className="mt-4 rounded-2xl border border-[#d8caff] bg-[#f7f3ff] p-4">
+            <h3 className="text-sm font-bold">KyrenPay · One-time credit packs</h3>
+            <p className="mt-2 text-xs text-[#67547f]">New checkout: {payload?.runtimeConfig?.kyrenpayEnabled ? "enabled" : "disabled"} · API key + webhook secret: {payload?.runtimeConfig?.kyrenpayConfigured ? "configured" : "missing"}</p>
+            <p className="mt-1 text-xs text-[#67547f]">Controlled by KYRENPAY_CHECKOUT_ENABLED on the server. Product amounts are verified against KyrenPay before each checkout; configuration presence is not a live connectivity test.</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {(payload?.runtimeConfig?.kyrenpayProducts || []).map(item => <p key={item.packId} className="text-xs"><strong>{item.packId}</strong>: {item.configured ? "product ID configured" : `missing ${item.env}`}</p>)}
+            </div>
+          </div>
+
           <div className="mt-4 rounded-2xl border border-black/10 bg-[#fbfbfd] p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold">PayPal checkout</p>
-                  <span className="rounded-full bg-[#e8f7ef] px-2.5 py-1 text-[11px] font-semibold text-[#087443]">Primary</span>
+                  <p className="text-sm font-semibold">PayPal historical payments</p>
+                  <span className="rounded-full bg-[#e8f7ef] px-2.5 py-1 text-[11px] font-semibold text-[#087443]">Legacy</span>
                 </div>
                 <p className="mt-1 text-xs leading-5 text-[#6e6e73]">
-                  All new credit and subscription checkouts use PayPal. Stripe checkout is paused; its webhook and portal remain available only for historical Stripe subscriptions.
+                  New purchases use KyrenPay credit packs. PayPal and Stripe callbacks and subscription management remain available for historical orders only.
                 </p>
                 <p className="mt-1 text-xs text-[#86868b]">
                   PayPal {payload?.runtimeConfig?.paypalConfigured ? "ready" : `not ready (${payload?.runtimeConfig?.paypalPlansConfigured ?? 0}/${payload?.runtimeConfig?.paypalPlansTotal ?? 6} plans verified)`} · Stripe historical compatibility {payload?.runtimeConfig?.stripeConfigured ? "ready" : "not configured"}

@@ -1,4 +1,27 @@
 {
+  "creditShop": {
+    "eyebrow": "按需購買",
+    "title": "為下一個創意儲值",
+    "subtitle": "買多少，用多少。無需訂閱，不會自動續費。",
+    "oneTime": "一次性付款",
+    "recommended": "推薦",
+    "bestValue": "最划算",
+    "credits": "點數",
+    "balance": "目前餘額",
+    "shared": "圖片、影片、Avatar 和音訊工具通用。",
+    "example": "範例：最多 {images} 張基本圖片，或 {videos} 個短影片（{videoSpec}）。",
+    "discount": "{percent}% OFF · 較 Starter Pack 單點價格",
+    "opening": "正在開啟結帳…",
+    "buy": "購買點數",
+    "note": "美元計價 · 一次性付款。實際消耗依模型和設定而異。",
+    "howTitle": "如何使用",
+    "step1": "選擇適合你的點數包。",
+    "step2": "一次付款，付款驗證成功後點數入帳。",
+    "step3": "使用餘額創作，需要時再儲值。",
+    "modelNote": "開始生成前，可在生成按鈕旁查看確切的點數消耗。",
+    "confirming": "正在確認付款並發放點數…",
+    "checkLater": "付款尚未確認，請稍後重新整理，或提供訂單編號聯絡客服。"
+  },
   "referrals": {
     "title": "邀請好友",
     "intro": "邀請一位新朋友：雙方驗證信箱並完成有效生成後，你獲得 {inviter} Credits，好友獲得 {invitee} Credits。",

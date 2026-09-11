@@ -11,7 +11,8 @@
     "verify:security": "node scripts/verify-security-invariants.mjs",
     "verify:referrals": "node scripts/verify-referrals.mjs",
     "verify:gpt-image": "node scripts/verify-gpt-image.mjs",
-    "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run verify:referrals && npm run verify:gpt-image && npm run build"
+    "verify:kyrenpay": "node scripts/verify-kyrenpay.mjs",
+    "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run verify:referrals && npm run verify:gpt-image && npm run verify:kyrenpay && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

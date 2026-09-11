@@ -6,12 +6,11 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   CREDIT_PACKS,
   SUBSCRIPTION_PLANS,
-  creditUsageCapacity,
   formatUsd,
-  isSubscriptionUpgrade,
   type BillingCycle
 } from "../../lib/billing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, MODEL_PRICING_ROWS } from "../../lib/model-pricing";
+import { CreditPackGrid } from "../../components/credit-pack-grid";
 import { TopNav } from "../../components/top-nav";
 import { trackEvent, trackPurchaseEvent } from "../../lib/analytics";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
@@ -26,7 +25,7 @@ type LedgerEntry = {
 
 type PurchaseEntry = {
   id: number | string;
-  payment_provider: "stripe" | "paypal";
+  payment_provider: "stripe" | "paypal" | "kyrenpay";
   provider_order_id: string | null;
   provider_transaction_id: string | null;
   provider_capture_id: string | null;
@@ -73,15 +72,8 @@ type PricingGuideRow = {
   checkedAt?: string;
 };
 
-const billingFaqKeys = ["test", "cost", "credits", "rollover", "cancel", "extra", "upgrade", "video", "failure"];
-
-const cycleLabels: Record<BillingCycle, string> = {
-  weekly: "Weekly",
-  monthly: "Monthly",
-  yearly: "Yearly"
-};
-
 type TranslationFunction = ReturnType<typeof useTranslations>;
+const cycleLabels: Record<BillingCycle, string> = { weekly: "Weekly", monthly: "Monthly", yearly: "Yearly" };
 
 function creditPackName(packId: string) {
   return CREDIT_PACKS.find((pack) => pack.id === packId)?.name || packId;
@@ -99,93 +91,6 @@ function subscriptionFromPackId(packId: string) {
 
 function purchaseReference(purchase: PurchaseEntry) {
   return purchase.provider_transaction_id || purchase.provider_order_id || purchase.stripe_checkout_id || String(purchase.id);
-}
-
-function CreditUsageExamples({ credits, compact = false }: { credits: number; compact?: boolean }) {
-  const t = useTranslations();
-  const capacity = creditUsageCapacity(credits);
-  const examples = [
-    { key: "images", value: capacity.images, label: t("billing.usage.images"), icon: "🖼️" },
-    { key: "videos", value: capacity.videos, label: t("billing.usage.videos"), icon: "🎞️" },
-    { key: "voiceovers", value: capacity.voiceovers, label: t("billing.usage.voiceovers"), icon: "🎙️" },
-    { key: "avatars", value: capacity.avatars, label: t("billing.usage.avatars"), icon: "💬" }
-  ];
-
-  return (
-    <div className={compact ? "mt-4" : "mt-5"}>
-      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#887c99]">
-        {t("billing.usage.title")}
-      </p>
-      <div className={`mt-3 grid grid-cols-2 ${compact ? "gap-1.5" : "gap-2"}`}>
-        {examples.map((example) => (
-          <div key={example.key} className="rounded-xl border border-[#ebe8f1] bg-white/85 px-3 py-2.5">
-            <span aria-hidden="true" className="text-sm">{example.icon}</span>
-            <p className={`${compact ? "text-xl" : "text-2xl"} font-black tracking-tight text-[#17191f]`}>
-              {example.value.toLocaleString()}
-            </p>
-            <p className="mt-1 text-[11px] font-semibold leading-4 text-[#606b7c]">{example.label}</p>
-          </div>
-        ))}
-      </div>
-      <p className="mt-3 text-[10px] font-medium leading-4 text-[#80778d]">{t("billing.usage.note")}</p>
-    </div>
-  );
-}
-
-const testimonialMeta = [
-  {
-    name: "Mia Chen",
-    tone: "bg-[#e8f8e8] text-[#173d17]"
-  },
-  {
-    name: "Jordan Lee",
-    tone: "bg-[#f4e8fb] text-[#3e2557]"
-  },
-  {
-    name: "Avery Patel",
-    tone: "bg-[#daf5fb] text-[#073f4a]"
-  },
-  {
-    name: "Sam Rivera",
-    tone: "bg-[#e9f8e4] text-[#243f19]"
-  },
-  {
-    name: "Noor Ahmed",
-    tone: "bg-[#f7e8ff] text-[#402750]"
-  },
-  {
-    name: "Elena Brooks",
-    tone: "bg-[#e5f2ff] text-[#17334d]"
-  }
-];
-const testimonialKeys = ["campaigns", "simple", "iteration", "billing", "polish", "repeat"];
-
-const comparisonPlanKeys = ["free", "premiumLite", "premium"];
-const planComparisonSectionKeys = ["credits", "access", "benefits"];
-const planComparisonRows: Record<string, string[]> = {
-  credits: ["trialCredits", "monthlyCredits", "yearlyCredits", "extraCreditPacks"],
-  access: ["textToImage", "imageEditing", "voiceGeneration", "videoGeneration", "premiumModelAccess", "promptHistory"],
-  benefits: ["commercialUse", "watermark", "queue", "refunds", "bestFor"]
-};
-
-function CheckMark() {
-  return (
-    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#08bff1] text-base font-black text-[#08bff1]">
-      <svg aria-hidden="true" className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none">
-        <path d="M3.5 8.2 6.6 11.1 12.8 4.9" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </span>
-  );
-}
-
-function CrossMark() {
-  return (
-    <span className="inline-flex h-6 w-6 items-center justify-center text-[#cfd3d6]">
-      <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 16 16" fill="none">
-        <path d="M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      </svg>
-    </span>
-  );
 }
 
 function formatReason(reason: string, t: TranslationFunction) {
@@ -211,148 +116,6 @@ function formatStatus(status: string, t: TranslationFunction) {
   return status;
 }
 
-function planMessageId(planId: string) {
-  return planId === "premium-lite" ? "premiumLite" : "premium";
-}
-
-function creditPackMessageId(packId: string) {
-  return packId === "pro-topup" ? "proTopup" : packId;
-}
-
-const planFeatureKeys: Record<string, string[]> = {
-  "premium-lite": [
-    "fullImage",
-    "fullEditing",
-    "voice",
-    "basicVideo",
-    "commercial",
-    "noWatermark",
-    "refund",
-    "queue",
-    "history"
-  ],
-  premium: ["everything", "video", "queue", "models", "tests", "processing", "early"]
-};
-
-function SubscriptionPlanCard({
-  plan,
-  cycle,
-  onCycleChange,
-  onCheckout,
-  loading,
-  action,
-  workspace = false
-}: {
-  plan: (typeof SUBSCRIPTION_PLANS)[number];
-  cycle: BillingCycle;
-  onCycleChange: (cycle: BillingCycle) => void;
-  onCheckout: () => void;
-  loading: boolean;
-  action?: "subscribe" | "upgrade" | "current" | "unavailable";
-  workspace?: boolean;
-}) {
-  const t = useTranslations();
-  const price = plan.prices[cycle];
-  const featured = Boolean(plan.highlight);
-  const premium = plan.id === "premium";
-  const planKey = planMessageId(plan.id);
-  const features = planFeatureKeys[plan.id].map((key) => t(`pricing.plan.${planKey}.feature.${key}`));
-
-  return (
-    <article
-      className={`relative flex flex-col overflow-hidden border bg-white p-5 md:p-6 ${workspace ? "min-h-0 rounded-[22px] shadow-[0_14px_40px_rgba(31,20,54,0.08)]" : "min-h-[620px] rounded-[1.75rem] shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-7"} ${
-        workspace
-          ? featured
-            ? "border-[#8b74ff] ring-2 ring-[#ede9ff]"
-            : "border-[#e4e0ea]"
-          : featured
-            ? "border-[#08bff1] ring-4 ring-[#08bff1]/15"
-            : premium
-              ? "border-[#ccb4ff] bg-[linear-gradient(135deg,#ffffff_0%,#f5f1ff_55%,#eafaff_100%)]"
-              : "border-black/10"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${workspace ? featured ? "bg-[#eeeaff] text-[#6854ee]" : "bg-[#f3f1f6] text-[#746b80]" : featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#f2f2f4] text-[#555963]"}`}>
-            {t(`pricing.plan.${planKey}.badge`)}
-          </p>
-          <h3 className={`${workspace ? "mt-3 text-[28px] tracking-[-0.035em]" : "mt-5 text-4xl tracking-normal"} font-black`}>{t(`pricing.plan.${planKey}.name`)}</h3>
-        </div>
-      </div>
-
-      <div className={`${workspace ? "mt-4 rounded-[13px] border border-[#e8e4ee] bg-[#f8f7fa]" : "mt-5 rounded-full bg-[#f3f4f6]"} grid grid-cols-3 p-1`}>
-        {(Object.keys(cycleLabels) as BillingCycle[]).map((item) => (
-          <button
-            key={`${plan.id}-${item}`}
-            type="button"
-            onClick={() => onCycleChange(item)}
-            className={`${workspace ? "rounded-[9px]" : "rounded-full"} min-h-10 px-2 text-xs font-black transition ${
-              cycle === item ? workspace ? "bg-white text-[#624eef] shadow-sm" : "bg-white text-[#111318] shadow-sm" : "text-[#776f82]"
-            }`}
-          >
-            {t(`billing.cycle.${item}`)}
-          </button>
-        ))}
-      </div>
-
-      <div className={workspace ? "mt-5" : "mt-7"}>
-        <p className={`${workspace ? "text-[42px] tracking-[-0.05em]" : "text-5xl tracking-normal"} font-black`}>
-          {formatUsd(price.amountCents).replace(".00", "")}
-          <span className="text-xl font-bold text-[#5d6675]"> / {price.interval}</span>
-        </p>
-        {price.monthlyEquivalentCents ? (
-          <p className="mt-2 text-sm font-bold text-[#475569]">
-            {t("billing.onlyMonthly", { price: formatUsd(price.monthlyEquivalentCents).replace(".00", ""), savings: price.savingsText || "" })}
-          </p>
-        ) : (
-          <p className="mt-2 text-sm font-bold text-[#475569]">{t("billing.creditsPerInterval", { credits: price.credits.toLocaleString(), interval: price.interval })}</p>
-        )}
-      </div>
-
-      <div className={`mt-5 rounded-2xl border px-4 py-4 ${workspace ? "border-[#ddd7ff] bg-[linear-gradient(135deg,#f5f2ff,#fcfbff)]" : "border-[#08bff1]/25 bg-[linear-gradient(135deg,#f0fbff_0%,#ffffff_55%,#f4f1ff_100%)] shadow-[0_12px_30px_rgba(8,191,241,0.08)]"}`}>
-        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#487080]">{t("billing.includedCredits")}</p>
-        <p className="mt-1 text-4xl font-black tracking-tight text-[#101318]">
-          {price.credits.toLocaleString()}
-          <span className="ml-2 text-base font-black uppercase tracking-[0.08em] text-[#536170]">{t("pricing.credits")}</span>
-        </p>
-        <p className="mt-1 text-sm font-semibold text-[#5d6675]">{t("billing.renewsEvery", { interval: price.interval })}</p>
-        <CreditUsageExamples credits={price.credits} />
-      </div>
-
-      <p className={`${workspace ? "min-h-[48px]" : "min-h-[72px]"} mt-5 text-sm font-semibold leading-6 text-[#4f5868]`}>{t(`pricing.plan.${planKey}.bestFor`)}</p>
-
-      <button
-        type="button"
-        onClick={onCheckout}
-        disabled={loading || action === "current" || action === "unavailable"}
-        className={`mt-5 min-h-12 rounded-xl px-5 py-3 text-sm font-black transition hover:-translate-y-px active:translate-y-0 disabled:opacity-60 ${
-          workspace ? featured ? "bg-[linear-gradient(90deg,#7458ff,#6757f6_55%,#8d59f5)] text-white shadow-[0_10px_24px_rgba(106,90,249,0.24)]" : "bg-[#171321] text-white" : featured ? "bg-[#08bff1] text-[#061215]" : "bg-[#16171a] text-white"
-        }`}
-      >
-        {loading
-          ? t("billing.openingCheckout")
-          : action === "upgrade"
-            ? t("billing.subscription.upgrade")
-            : action === "current"
-              ? t("billing.subscription.currentPlan")
-              : action === "unavailable"
-                ? t("billing.subscription.changeUnavailable")
-                : t(`pricing.plan.${planKey}.cta`)}
-      </button>
-
-      <ul className={`${workspace ? "grid gap-x-4 gap-y-2 sm:grid-cols-2" : "space-y-3"} mt-5 text-xs font-semibold leading-5 text-[#4f4659]`}>
-        {features.map((feature) => (
-          <li key={feature} className="flex gap-3">
-            <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#08bff1] text-[10px] font-black text-[#061215]">✓</span>
-            <span>{feature}</span>
-          </li>
-        ))}
-      </ul>
-    </article>
-  );
-}
-
 function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }) {
   const t = useTranslations();
   const router = useRouter();
@@ -364,10 +127,6 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   const [subscriptions, setSubscriptions] = useState<SubscriptionEntry[]>([]);
   const [message, setMessage] = useState("");
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
-  const [loadingSubscription, setLoadingSubscription] = useState<string | null>(null);
-  const [selectedCycles, setSelectedCycles] = useState<Record<string, BillingCycle>>(() =>
-    Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, plan.defaultCycle]))
-  );
   const [refreshingCredits, setRefreshingCredits] = useState(false);
   const [pricingRows, setPricingRows] = useState<PricingGuideRow[]>(MODEL_PRICING_ROWS);
   const trackedLoginSuccessRef = useRef<string | null>(null);
@@ -376,6 +135,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   const capturingPayPalOrderRef = useRef<string | null>(null);
   const syncingPayPalSubscriptionRef = useRef<string | null>(null);
   const checkoutState = searchParams.get("checkout");
+  const kyrenReference = searchParams.get("reference");
   const checkoutProvider = searchParams.get("provider");
   const checkoutSessionId = searchParams.get("session_id");
   const paypalOrderId = searchParams.get("token");
@@ -400,6 +160,36 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
       setAccessToken(token);
     });
   }, [checkoutState]);
+
+  useEffect(() => {
+    if (!accessToken || checkoutState !== "kyren_return" || !kyrenReference) return;
+    let stopped = false;
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    async function check() {
+      if (stopped) return;
+      setMessage(t("creditShop.confirming"));
+      try {
+        const response = await fetch("/api/billing/kyrenpay/sync", {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ reference: kyrenReference })
+        });
+        const result = await response.json();
+        if (stopped) return;
+        if (response.ok && result.completed && result.transactionId) {
+          router.replace(`${window.location.pathname}?checkout=success&provider=kyrenpay&payment_id=${encodeURIComponent(result.transactionId)}`);
+          return;
+        }
+        if (result.review || response.status === 401 || response.status === 404) {
+          setMessage(t("creditShop.checkLater")); return;
+        }
+      } catch { /* Webhook and cron can still complete the order. */ }
+      if (!stopped && ++attempts < 24) timer = setTimeout(check, 5000);
+      else if (!stopped) setMessage(t("creditShop.checkLater"));
+    }
+    void check();
+    return () => { stopped = true; clearTimeout(timer); };
+  }, [accessToken, checkoutState, kyrenReference, router, t]);
 
   async function loadCredits(token: string) {
     setRefreshingCredits(true);
@@ -670,12 +460,8 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
     return undefined;
   }, [accessToken, checkoutPaymentId, checkoutProvider, checkoutState, paypalOrderId, paypalSubscriptionId, revisedCycle, revisedPlanId, router, t]);
 
-  const bestValuePack = useMemo(
-    () => CREDIT_PACKS.reduce((best, pack) => (pack.credits / pack.amountCents > best.credits / best.amountCents ? pack : best), CREDIT_PACKS[0]),
-    []
-  );
   const matchingCheckoutPurchase = useMemo(
-    () => purchases.find((purchase) => !checkoutPaymentId || purchaseReference(purchase) === checkoutPaymentId) || null,
+    () => purchases.find((purchase) => purchase.status === "completed" && Boolean(checkoutPaymentId) && purchaseReference(purchase) === checkoutPaymentId) || null,
     [checkoutPaymentId, purchases]
   );
   const currentSubscription = useMemo(
@@ -683,35 +469,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
     [subscriptions]
   );
 
-  function subscriptionCardAction(planId: string, cycle: BillingCycle) {
-    if (!currentSubscription || ["cancelled", "expired"].includes(currentSubscription.status.toLowerCase())) return "subscribe" as const;
-    if (!["active", "suspended"].includes(currentSubscription.status.toLowerCase())) return "unavailable" as const;
-    if (currentSubscription.plan_id === planId && currentSubscription.cycle === cycle) return "current" as const;
-    if (currentSubscription.payment_provider !== "paypal") return "unavailable" as const;
-    return isSubscriptionUpgrade(currentSubscription.plan_id, currentSubscription.cycle, planId, cycle)
-      ? "upgrade" as const
-      : "unavailable" as const;
-  }
   const lowBalance = typeof balance === "number" && balance < CREDIT_LOW_BALANCE_THRESHOLD;
-  const billingFaqs = billingFaqKeys.map((key) => ({
-    q: t(`pricing.faq.items.${key}.q`),
-    a: t(`pricing.faq.items.${key}.a`)
-  }));
-  const comparisonPlanNames = comparisonPlanKeys.map((key) => t(`pricing.comparison.plan.${key}`));
-  const planComparisonSections = planComparisonSectionKeys.map((sectionKey) => ({
-    title: t(`pricing.comparison.section.${sectionKey}.title`),
-    rows: planComparisonRows[sectionKey].map((rowKey) => ({
-      label: t(`pricing.comparison.section.${sectionKey}.row.${rowKey}.label`),
-      values: [0, 1, 2].map((index) => t(`pricing.comparison.section.${sectionKey}.row.${rowKey}.value${index + 1}`))
-    }))
-  }));
-  const testimonials = testimonialKeys.map((key, index) => ({
-    title: t(`pricing.testimonials.items.${key}.title`),
-    body: t(`pricing.testimonials.items.${key}.body`),
-    role: t(`pricing.testimonials.items.${key}.role`),
-    ...testimonialMeta[index]
-  }));
-
   async function startCheckout(packId: string) {
     if (!accessToken) {
       trackEvent("checkout_login_required", { pack_id: packId });
@@ -742,66 +500,6 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t("billing.message.unableCheckout"));
       setLoadingPack(null);
-    }
-  }
-
-  async function startSubscriptionCheckout(planId: string, cycle: BillingCycle) {
-    const plan = SUBSCRIPTION_PLANS.find((item) => item.id === planId);
-    const price = plan?.prices[cycle];
-    if (!accessToken) {
-      trackEvent("generate_login_required", { surface: "pricing", plan_id: planId, cycle });
-      const nextPath = typeof window !== "undefined" ? window.location.pathname : "/price";
-      router.push(`/auth?next=${encodeURIComponent(nextPath)}`);
-      return;
-    }
-
-    const action = subscriptionCardAction(planId, cycle);
-    if (action === "current") {
-      setMessage(t("billing.message.subscriptionPlanUnchanged"));
-      return;
-    }
-    if (action === "unavailable") {
-      setMessage(t("billing.message.subscriptionChangeUnavailable"));
-      return;
-    }
-    if (action === "upgrade" && !window.confirm(t("billing.subscription.upgradeConfirm"))) return;
-
-    setLoadingSubscription(`${planId}:${cycle}`);
-    setMessage("");
-    trackEvent(
-      "subscription_checkout_started",
-      {
-        plan_id: planId,
-        cycle,
-        credits: price?.credits || null,
-        amount_cents: price?.amountCents || null,
-        value: price ? price.amountCents / 100 : null,
-        currency: "USD"
-      },
-      accessToken
-    );
-
-    try {
-      const response = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ type: "subscription", planId, cycle })
-      });
-      const payload = (await response.json()) as { url?: string; error?: string; code?: string };
-      if (!response.ok || !payload.url) {
-        if (payload.code === "subscription_plan_unchanged") throw new Error(t("billing.message.subscriptionPlanUnchanged"));
-        if (payload.code === "subscription_downgrade_unsupported") throw new Error(t("billing.message.subscriptionChangeUnavailable"));
-        if (payload.code === "paypal_plan_product_mismatch") throw new Error(t("billing.message.subscriptionProductMismatch"));
-        if (payload.code?.startsWith("subscription_")) throw new Error(t("billing.message.subscriptionChangeUnavailable"));
-        throw new Error(payload.error || t("billing.message.unableSubscriptionCheckout"));
-      }
-      window.location.href = payload.url;
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : t("billing.message.unableSubscriptionCheckout"));
-      setLoadingSubscription(null);
     }
   }
 
@@ -865,9 +563,9 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
             <span className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:32px_32px]" />
             <div className="relative grid gap-6 lg:grid-cols-[1fr_400px] lg:items-end">
               <div>
-                <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#d6ccff]"><span>◆</span>{t("billing.eyebrow")}</p>
+                <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#d6ccff]"><span>◆</span>{t("creditShop.eyebrow")}</p>
                 <h1 className="mt-5 [overflow-wrap:anywhere] text-[clamp(2.4rem,6vw,4.6rem)] font-black leading-[0.95] tracking-[-0.055em]">{t("billing.title")}</h1>
-                <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-white/65 sm:text-base">{t("billing.subtitle")}</p>
+                <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-white/65 sm:text-base">{t("creditShop.subtitle")}</p>
                 <a href="/studio?view=home" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 text-xs font-black text-white transition hover:bg-white/15">← Studio</a>
               </div>
               <div className="rounded-[20px] border border-white/15 bg-white/10 p-4 backdrop-blur-md sm:p-5">
@@ -887,6 +585,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
             </p>
           ) : null}
 
+          {currentSubscription ? (
           <section className="mt-5 rounded-[22px] border border-[#e5e1eb] bg-white p-5 shadow-[0_12px_36px_rgba(31,20,54,0.06)] sm:p-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
@@ -921,12 +620,13 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
               </button>
             </div>
           </section>
+          ) : null}
 
           {checkoutState === "success" ? (
             <section className="mt-6 rounded-[2rem] border border-[#197a46]/20 bg-[#eefaf3] p-6 shadow-[0_18px_44px_rgba(25,122,70,0.08)]">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">{t("billing.success.title")}</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">{matchingCheckoutPurchase ? t("billing.success.title") : t("billing.message.paymentChecking")}</p>
               <h2 className="mt-2 text-3xl font-black">
-                {matchingCheckoutPurchase ? t("billing.success.creditsAdded", { credits: matchingCheckoutPurchase.credits.toLocaleString() }) : t("billing.success.paymentReceived")}
+                {matchingCheckoutPurchase ? t("billing.success.creditsAdded", { credits: matchingCheckoutPurchase.credits.toLocaleString() }) : t("creditShop.confirming")}
               </h2>
               <p className="mt-2 text-sm leading-6 text-[#3f6b52]">
               {matchingCheckoutPurchase
@@ -935,7 +635,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                     amount: formatUsd(matchingCheckoutPurchase.amount_cents),
                     status: formatStatus(matchingCheckoutPurchase.status, t)
                   })
-                : checkoutProvider === "paypal" ? t("billing.success.paymentReceived") : t("billing.success.description")}
+                : t("creditShop.checkLater")}
               </p>
             </section>
           ) : null}
@@ -957,101 +657,10 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
           ) : null}
 
           <section className="mt-8">
-            <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#8a7cf5]">{t("billing.membership.eyebrow")}</p>
-                <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">{t("billing.membership.title")}</h2>
-              </div>
-              <p className="max-w-xl text-sm font-semibold leading-6 text-[#667084]">
-                {t("billing.membership.description")}
-              </p>
-            </div>
-            <div className="grid gap-4 lg:grid-cols-3">
-              <article className="flex flex-col rounded-[22px] border border-[#e4e0ea] bg-white p-5 shadow-[0_14px_40px_rgba(31,20,54,0.06)] md:p-6">
-                <p className="inline-flex w-fit rounded-full bg-[#f3f1f6] px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#746b80]">{t("pricing.free.badge")}</p>
-                <h3 className="mt-3 text-[28px] font-black tracking-[-0.035em]">{t("pricing.free.name")}</h3>
-                <p className="mt-5 text-[42px] font-black tracking-[-0.05em]">$0<span className="text-base font-bold text-[#716879]"> / {t("pricing.free.priceInterval")}</span></p>
-                <div className="mt-5 rounded-2xl border border-[#ebe8f1] bg-[#faf9fb] px-4 py-3">
-                  <p className="text-xl font-black">{t("pricing.free.credits")}</p>
-                  <p className="mt-1 text-sm font-semibold text-[#5d6675]">{t("pricing.free.eligible")}</p>
-                  <CreditUsageExamples credits={100} />
-                </div>
-                <p className="mt-5 min-h-[48px] text-sm font-semibold leading-6 text-[#4f5868]">
-                  {t("pricing.free.description")}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => router.push(accessToken ? "/studio" : `/auth?next=${encodeURIComponent("/studio")}`)}
-                  className="mt-5 min-h-12 rounded-xl bg-[#171321] px-5 py-3 text-sm font-black text-white transition hover:-translate-y-px active:translate-y-0"
-                >
-                  {t("pricing.free.cta")}
-                </button>
-                <ul className="mt-5 grid gap-x-4 gap-y-2 text-xs font-semibold leading-5 text-[#4f4659] sm:grid-cols-2">
-                  {["image", "editing", "voice", "video", "watermark", "queue"].map((featureKey) => {
-                    const feature = t(`pricing.freeFeatures.${featureKey}`);
-                    return (
-                      <li key={feature} className="flex gap-3">
-                        <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-black text-[#111318]">✓</span>
-                        <span>{feature}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </article>
-              {SUBSCRIPTION_PLANS.map((plan) => {
-                const selectedCycle = selectedCycles[plan.id] || plan.defaultCycle;
-                return (
-                  <SubscriptionPlanCard
-                    key={plan.id}
-                    plan={plan}
-                    cycle={selectedCycle}
-                    onCycleChange={(cycle) => setSelectedCycles((prev) => ({ ...prev, [plan.id]: cycle }))}
-                    onCheckout={() => startSubscriptionCheckout(plan.id, selectedCycle)}
-                    loading={loadingSubscription === `${plan.id}:${selectedCycle}`}
-                    action={subscriptionCardAction(plan.id, selectedCycle)}
-                    workspace
-                  />
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="mt-10">
-            <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#8a7cf5]">{t("billing.extraCredits.eyebrow")}</p>
-                <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">{t("billing.extraCredits.title")}</h2>
-              </div>
-              <p className="max-w-xl text-sm font-semibold leading-6 text-[#667084]">
-                {t("billing.extraCredits.description")}
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {CREDIT_PACKS.map((pack) => (
-                <article key={pack.id} className={`rounded-[20px] border bg-white p-4 shadow-[0_12px_32px_rgba(31,20,54,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(31,20,54,0.1)] ${pack.id === bestValuePack.id ? "border-[#8b74ff] ring-2 ring-[#eeeaff]" : "border-[#e5e1eb]"}`}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-black tracking-[-0.02em]">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.name`)}</h3>
-                      <p className="mt-2 text-3xl font-black tracking-tight text-[#17191f]">
-                        {pack.credits.toLocaleString()}
-                        <span className="ml-1.5 text-xs uppercase tracking-[0.1em] text-[#667084]">{t("pricing.credits")}</span>
-                      </p>
-                    </div>
-                    <p className="rounded-lg bg-[#f1efff] px-2.5 py-1.5 text-lg font-black text-[#6854ee]">{formatUsd(pack.amountCents).replace(".00", "")}</p>
-                  </div>
-                  <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.idealFor`)}</p>
-                  <CreditUsageExamples credits={pack.credits} compact />
-                  <button
-                    type="button"
-                    onClick={() => startCheckout(pack.id)}
-                    disabled={Boolean(loadingPack)}
-                    className="mt-4 min-h-11 w-full rounded-xl border border-[#ded8ff] bg-[#f7f5ff] px-5 text-sm font-black text-[#6651ee] transition hover:bg-[#eeeaff] active:scale-[0.98] disabled:opacity-60"
-                  >
-                    {loadingPack === pack.id ? t("billing.openingCheckout") : t("billing.recharge")}
-                  </button>
-                </article>
-              ))}
-            </div>
+            <h2 className="mb-3 text-2xl font-black">{t("creditShop.title")}</h2>
+            <p className="mb-6 text-sm text-[#82748f]">{t("creditShop.subtitle")}</p>
+            <CreditPackGrid t={t} loadingPack={loadingPack} onCheckout={startCheckout} />
+            <p className="mt-5 text-xs text-[#82748f]">{t("creditShop.note")}</p>
           </section>
 
           <section className="mt-10 grid gap-5 lg:grid-cols-2">
@@ -1112,313 +721,30 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f7f5] text-[#141416]">
-      <div className="mx-auto max-w-[1540px] px-4 pt-4 md:px-8 md:pt-5">
-        <TopNav />
-      </div>
-
-      <section className="relative overflow-hidden bg-[#f8f8f6] pb-14 pt-4 md:pb-24">
-        <div className="pointer-events-none absolute -right-[19rem] top-[-14rem] hidden h-[58rem] w-[58rem] rounded-full border-[20px] border-[#20e5d3] bg-[radial-gradient(circle_at_62%_38%,#ffd4fb_0,#a4a9ff_34%,#66cdf7_56%,#28e169_74%,transparent_75%)] shadow-[0_0_0_12px_rgba(255,126,244,0.55),inset_0_0_60px_rgba(255,255,255,0.55)] lg:block" />
-        <div className="relative mx-auto max-w-[1320px] px-4 text-center md:px-8">
-          <p className="mx-auto inline-flex rounded-full border border-black/10 bg-white/65 px-5 py-2 text-sm font-semibold text-[#414145] shadow-sm">
-            {t("pricing.eyebrow")}
-          </p>
-          <h1 className="mx-auto mt-8 max-w-5xl text-[clamp(3.25rem,8vw,7.6rem)] font-black leading-[0.95] tracking-normal">
-            {t("pricing.title")}
-          </h1>
-          <p className="mx-auto mt-7 max-w-2xl text-lg font-medium leading-8 text-[#333338] md:text-xl">
-            {t("pricing.subtitle")}
-          </p>
-
-          <div className="mx-auto mt-9 flex w-fit rounded-full bg-white p-1.5 shadow-[0_12px_35px_rgba(20,20,22,0.08)]">
-            <span className="rounded-full bg-[#07bff2] px-7 py-3 text-sm font-black text-[#051216]">{t("pricing.forIndividuals")}</span>
-          </div>
-
-          {accessToken ? (
-            <div className="mt-8 flex flex-col items-center gap-3 rounded-[1.75rem] border border-black/10 bg-white/80 px-5 py-4 text-left shadow-[0_18px_48px_rgba(10,16,30,0.08)] sm:mx-auto sm:w-fit sm:flex-row">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6a6a72]">{t("pricing.currentBalance")}</p>
-              <p className="mt-1 text-3xl font-black">{balance === null ? "--" : balance.toLocaleString()} {t("pricing.credits")}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                trackEvent("balance_refreshed", { surface: "billing" }, accessToken);
-                accessToken && loadCredits(accessToken);
-              }}
-              disabled={!accessToken || refreshingCredits}
-              className="rounded-full border border-black/10 bg-[#f0f0f0] px-5 py-3 text-sm font-black text-[#171719] disabled:opacity-50"
-            >
-              {refreshingCredits ? t("pricing.refreshing") : t("pricing.refresh")}
-            </button>
-          </div>
-          ) : null}
-        </div>
-
-        <div className="relative mx-auto mt-8 grid max-w-[1360px] gap-7 px-4 md:px-8 lg:grid-cols-3 lg:items-start">
-          <article className="flex min-h-[620px] flex-col rounded-[1.75rem] border border-black/10 bg-white p-6 text-left shadow-[0_20px_60px_rgba(15,23,42,0.06)] md:p-7">
-            <p className="inline-flex w-fit rounded-full bg-[#f2f2f4] px-3 py-1 text-xs font-black text-[#555963]">{t("pricing.free.badge")}</p>
-            <h2 className="mt-5 text-4xl font-black tracking-normal">{t("pricing.free.name")}</h2>
-            <p className="mt-7 text-5xl font-black tracking-normal">$0<span className="text-xl font-bold text-[#5d6675]"> / {t("pricing.free.priceInterval")}</span></p>
-            <div className="mt-5 rounded-2xl border border-black/10 bg-[#fbfbfd] px-4 py-3">
-              <p className="text-xl font-black">{t("pricing.free.credits")}</p>
-              <p className="mt-1 text-sm font-semibold text-[#5d6675]">{t("pricing.free.eligible")}</p>
-              <CreditUsageExamples credits={100} />
-            </div>
-            <p className="mt-5 min-h-[72px] text-sm font-semibold leading-6 text-[#4f5868]">
-              {t("pricing.free.description")}
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push(accessToken ? "/studio" : `/auth?next=${encodeURIComponent("/studio")}`)}
-              className="mt-6 rounded-xl bg-[#16171a] px-5 py-3 text-base font-black text-white transition active:scale-[0.98]"
-            >
-              {t("pricing.free.cta")}
-            </button>
-            <ul className="mt-6 space-y-3 text-sm font-semibold leading-6 text-[#313946]">
-              {["image", "editing", "voice", "video", "watermark", "queue"].map((featureKey) => {
-                const feature = t(`pricing.freeFeatures.${featureKey}`);
-                return (
-                  <li key={feature} className="flex gap-3">
-                    <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-black text-[#111318]">✓</span>
-                    <span>{feature}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </article>
-          {SUBSCRIPTION_PLANS.map((plan) => {
-            const selectedCycle = selectedCycles[plan.id] || plan.defaultCycle;
-            return (
-              <SubscriptionPlanCard
-                key={plan.id}
-                plan={plan}
-                cycle={selectedCycle}
-                onCycleChange={(cycle) => setSelectedCycles((prev) => ({ ...prev, [plan.id]: cycle }))}
-                onCheckout={() => startSubscriptionCheckout(plan.id, selectedCycle)}
-                loading={loadingSubscription === `${plan.id}:${selectedCycle}`}
-                action={subscriptionCardAction(plan.id, selectedCycle)}
-              />
-            );
-          })}
+    <main className="min-h-screen bg-[#faf8ff] pb-16 text-[#20182e]">
+      <div className="mx-auto max-w-[1400px] px-4 pt-4 md:px-8"><TopNav /></div>
+      <section className="mx-auto max-w-[1240px] px-4 pb-8 pt-12 text-center sm:px-8 sm:pt-20">
+        <p className="text-xs font-black uppercase tracking-[.18em] text-[#896bbd]">{t("creditShop.eyebrow")}</p>
+        <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-6xl">{t("creditShop.title")}</h1>
+        <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-[#82748f]">{t("creditShop.subtitle")}</p>
+        {accessToken ? <p className="mt-5 text-sm font-bold text-[#7554df]">{t("creditShop.balance")}: {balance === null ? "--" : balance.toLocaleString()} {t("creditShop.credits")} · <a className="underline" href="/billing">{t("billing.title")}</a></p> : null}
+        {message ? <p role="status" className="mt-6 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">{message}</p> : null}
+        <div className="mt-10"><CreditPackGrid t={t} loadingPack={loadingPack} onCheckout={startCheckout} /></div>
+        <p className="mt-5 text-xs leading-6 text-[#8b8096]">{t("creditShop.note")}</p>
+      </section>
+      <section className="mx-auto mt-6 max-w-[1176px] rounded-3xl border border-[#e7e1f0] bg-white p-6 sm:p-8">
+        <h2 className="text-xl font-black">{t("creditShop.howTitle")}</h2>
+        <div className="mt-5 grid gap-5 text-sm leading-6 text-[#80718c] sm:grid-cols-3">
+          {["step1","step2","step3"].map((key,index) => <p key={key}><span className="me-2 font-black text-[#7655ed]">0{index+1}</span>{t(`creditShop.${key}`)}</p>)}
         </div>
       </section>
-
-      <div className="mx-auto max-w-[1360px] px-4 md:px-8">
-        {message ? (
-          <p className="mt-8 rounded-2xl border border-[#d8b85d]/30 bg-[#fff8df] px-5 py-4 text-sm font-semibold text-[#705d1d]">
-            {message}
-          </p>
-        ) : null}
-
-        {checkoutState === "success" ? (
-          <section className="mt-6 rounded-[2rem] border border-[#197a46]/20 bg-[#eefaf3] p-6 shadow-[0_18px_44px_rgba(25,122,70,0.08)]">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">{t("billing.success.title")}</p>
-            <h2 className="mt-2 text-3xl font-black">
-              {matchingCheckoutPurchase ? t("billing.success.creditsAdded", { credits: matchingCheckoutPurchase.credits.toLocaleString() }) : t("billing.success.paymentReceived")}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[#3f6b52]">
-              {matchingCheckoutPurchase
-                ? t("billing.success.purchaseSummary", {
-                    packId: matchingCheckoutPurchase.pack_id,
-                    amount: formatUsd(matchingCheckoutPurchase.amount_cents),
-                    status: formatStatus(matchingCheckoutPurchase.status, t)
-                  })
-                : checkoutProvider === "paypal" ? t("billing.success.paymentReceived") : t("billing.success.description")}
-            </p>
-          </section>
-        ) : null}
-
-        {checkoutState === "subscription_success" ? (
-          <section className="mt-6 rounded-[2rem] border border-[#197a46]/20 bg-[#eefaf3] p-6 shadow-[0_18px_44px_rgba(25,122,70,0.08)]">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#197a46]">{t("billing.subscriptionSuccess.eyebrow")}</p>
-            <h2 className="mt-2 text-3xl font-black">{t("billing.subscriptionSuccess.title")}</h2>
-            <p className="mt-2 text-sm leading-6 text-[#3f6b52]">
-              {checkoutProvider === "paypal" ? t("billing.subscriptionSuccess.title") : t("billing.subscriptionSuccess.description")}
-            </p>
-          </section>
-        ) : null}
-
-        {lowBalance ? (
-          <section className="mt-6 rounded-2xl border border-[#d8b85d]/30 bg-[#fff8df] px-5 py-4 text-sm font-semibold text-[#705d1d]">
-            {t("billing.lowBalance", { threshold: CREDIT_LOW_BALANCE_THRESHOLD })}
-          </section>
-        ) : null}
-      </div>
-
-      <section className="mx-auto max-w-[1360px] px-4 py-20 md:px-8">
-        <div className="mb-7 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">{t("pricing.extraCredits.eyebrow")}</p>
-            <h2 className="mt-2 text-4xl font-black tracking-normal">{t("pricing.extraCredits.title")}</h2>
-          </div>
-          <p className="max-w-xl text-sm font-semibold leading-6 text-[#667084]">
-            {t("pricing.extraCredits.description")}
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {CREDIT_PACKS.map((pack) => (
-            <article key={`price-extra-${pack.id}`} className={`rounded-[1.4rem] border bg-white p-5 shadow-[0_14px_36px_rgba(10,16,30,0.05)] ${pack.id === bestValuePack.id ? "border-[#08bff1]" : "border-black/10"}`}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-2xl font-black tracking-normal">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.name`)}</h3>
-                  <p className="mt-2 text-3xl font-black tracking-tight text-[#17191f]">
-                    {pack.credits.toLocaleString()}
-                    <span className="ml-1.5 text-xs uppercase tracking-[0.1em] text-[#667084]">{t("pricing.credits")}</span>
-                  </p>
-                </div>
-                <p className="text-2xl font-black">{formatUsd(pack.amountCents).replace(".00", "")}</p>
-              </div>
-              <p className="mt-4 min-h-[54px] text-sm font-medium leading-6 text-[#4f5a67]">{t(`pricing.creditPack.${creditPackMessageId(pack.id)}.idealFor`)}</p>
-              <CreditUsageExamples credits={pack.credits} compact />
-              <button
-                type="button"
-                onClick={() => startCheckout(pack.id)}
-                disabled={Boolean(loadingPack)}
-                className="mt-5 w-full rounded-xl bg-[#f0f2f5] px-5 py-3 text-sm font-black text-[#16171a] transition active:scale-[0.98] disabled:opacity-60"
-              >
-                {loadingPack === pack.id ? t("pricing.extraCredits.opening") : t("pricing.extraCredits.buy")}
-              </button>
-            </article>
-          ))}
+      <section className="mx-auto max-w-[1176px] px-4 pt-12 sm:px-0">
+        <h2 className="text-2xl font-black">{t("pricing.modelGuide.title")}</h2>
+        <p className="mt-3 text-sm leading-6 text-[#82748f]">{t("creditShop.modelNote")}</p>
+        <div className="mt-5 overflow-hidden rounded-2xl border border-[#e7e1f0] bg-white">
+          {pricingRows.slice(0,7).map(row => <div key={`${row.provider}-${row.workflow}`} className="flex flex-wrap justify-between gap-3 border-b border-[#eee9f4] p-5 last:border-0"><div><p className="font-bold">{row.label}</p><p className="text-xs text-[#82748f]">{row.workflow}</p></div><p className="text-sm font-bold text-[#7554df]">{row.unitNote}</p></div>)}
         </div>
       </section>
-
-      <section className="mx-auto grid max-w-[1360px] gap-16 px-4 py-24 md:grid-cols-[0.7fr_1.3fr] md:px-8">
-        <h2 className="text-5xl font-black tracking-normal md:sticky md:top-28 md:h-fit md:text-6xl">{t("pricing.faq.title")}</h2>
-        <div className="space-y-20">
-          {billingFaqs.map((faq) => (
-            <article key={faq.q}>
-              <h3 className="text-2xl font-black tracking-normal">{faq.q}</h3>
-              <p className="mt-7 max-w-3xl text-xl font-medium leading-9 text-[#46464b]">{faq.a}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="relative overflow-hidden bg-white py-24">
-        <div className="pointer-events-none absolute -left-[15rem] top-[-10rem] hidden h-[38rem] w-[32rem] rotate-[-24deg] rounded-[8rem] bg-[radial-gradient(circle_at_30%_20%,#55ef6d_0,#f6a3ff_34%,#7bc9ff_70%,transparent_72%)] opacity-80 blur-[1px] lg:block" />
-        <div className="relative mx-auto max-w-[1480px] px-4 md:px-8">
-          <div className="text-center">
-            <p className="inline-flex rounded-full border border-black/10 bg-white px-5 py-2 text-lg font-medium">{t("pricing.features.eyebrow")}</p>
-            <h2 className="mx-auto mt-10 max-w-5xl text-[clamp(3.5rem,7vw,6.8rem)] font-black leading-[0.95] tracking-normal">
-              {t("pricing.features.title")}
-            </h2>
-            <p className="mx-auto mt-7 max-w-3xl text-xl font-medium leading-8 text-[#46464b]">
-              {t("pricing.features.description")}
-            </p>
-          </div>
-
-          <div className="mt-14 overflow-x-auto pb-4">
-            <div className="min-w-[980px]">
-              <div className="sticky top-0 z-10 grid grid-cols-[1.15fr_repeat(3,1fr)] items-center rounded-[1.75rem] border border-[#dff7ff] bg-white/95 px-8 py-8 shadow-[0_16px_40px_rgba(10,16,30,0.05)] backdrop-blur">
-                <div />
-                {comparisonPlanNames.map((name, index) => (
-                  <div key={`header-${name}`} className="text-center">
-                    <h3 className="text-5xl font-black tracking-normal">{name}</h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (comparisonPlanKeys[index] === "free") {
-                          router.push(accessToken ? "/studio" : `/auth?next=${encodeURIComponent("/studio")}`);
-                          return;
-                        }
-                        const plan = SUBSCRIPTION_PLANS[index - 1];
-                        if (plan) startSubscriptionCheckout(plan.id, selectedCycles[plan.id] || plan.defaultCycle);
-                      }}
-                      disabled={Boolean(loadingSubscription)}
-                      className="mt-2 text-base font-medium text-[#333338] disabled:opacity-60"
-                    >
-                      {loadingSubscription ? t("pricing.extraCredits.opening") : `${t("pricing.comparison.getStarted")} ->`}
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-12 space-y-16">
-                {planComparisonSections.map((section) => (
-                  <div key={section.title}>
-                    <div className="flex items-center gap-3 border-b border-black/15 pb-4">
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#9da3a6] text-xs font-black text-[#9da3a6]">^</span>
-                      <h3 className="text-2xl font-black tracking-normal">{section.title}</h3>
-                    </div>
-                    <div className="mt-2">
-                      {section.rows.map((row, rowIndex) => (
-                        <div
-                          key={`${section.title}-${row.label}`}
-                          className={`grid grid-cols-[1.15fr_repeat(3,1fr)] items-center rounded-[1.2rem] px-6 py-4 text-xl ${
-                            rowIndex % 2 === 0 ? "bg-[#fafafa]" : "bg-white"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 font-medium">
-                            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#d4d8dc] text-[10px] font-black text-[#b5bbc0]">i</span>
-                            <span>{row.label}</span>
-                          </div>
-                          {row.values.map((value, valueIndex) => (
-                            <div key={`${row.label}-${valueIndex}`} className="px-4 text-center font-medium">
-                              {value === t("pricing.comparison.value.included") ? <CheckMark /> : value === t("pricing.comparison.value.notIncluded") ? <CrossMark /> : value}
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="overflow-hidden bg-[#f8f8f6] py-20">
-        <div className="mx-auto max-w-[1360px] px-4 md:px-8">
-          <p className="inline-flex rounded-full border border-black/10 bg-white px-5 py-2 text-lg font-medium">{t("pricing.testimonials.eyebrow")}</p>
-          <h2 className="mt-10 max-w-[760px] text-[clamp(4rem,8vw,7rem)] font-black leading-[0.95] tracking-normal">
-            {t("pricing.testimonials.title")}
-          </h2>
-          <p className="mt-10 text-xl font-medium text-[#333338]">{t("pricing.testimonials.description")}</p>
-        </div>
-
-        <div className="mt-24 overflow-x-auto pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max gap-8 px-4 md:px-8">
-            {testimonials.map((item, index) => (
-              <article
-                key={item.title}
-                className={`h-[420px] w-[380px] shrink-0 snap-center rounded-[2rem] p-12 shadow-[0_16px_45px_rgba(15,15,18,0.08)] ${item.tone}`}
-                style={{ transform: `rotate(${index % 2 === 0 ? "-3deg" : "3deg"})` }}
-              >
-                <p className="text-sm font-black">{t("pricing.testimonials.rating")}</p>
-                <h3 className="mt-3 text-4xl font-black leading-none tracking-normal">"{item.title}"</h3>
-                <p className="mt-10 text-lg font-medium leading-7">"{item.body}"</p>
-                <p className="mt-8 text-base font-black">{item.name}</p>
-                <p className="text-sm font-semibold opacity-75">{item.role}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto grid max-w-[1360px] gap-8 px-4 py-20 md:px-8 lg:grid-cols-[0.9fr_1.1fr]">
-        <article className="rounded-[2rem] border border-black/10 bg-white p-7 shadow-[0_18px_48px_rgba(10,16,30,0.06)]">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#667487]">{t("pricing.modelGuide.eyebrow")}</p>
-          <h2 className="mt-3 text-4xl font-black tracking-normal">{t("pricing.modelGuide.title")}</h2>
-          <p className="mt-4 text-base font-medium leading-7 text-[#535d6e]">
-            {t("pricing.modelGuide.description")}
-          </p>
-        </article>
-        <article className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-[0_18px_48px_rgba(10,16,30,0.06)]">
-          {pricingRows.slice(0, 7).map((row) => (
-            <div key={`${row.provider}-${row.workflow}`} className="grid grid-cols-[1fr_auto] gap-4 border-b border-black/10 px-6 py-5 last:border-b-0">
-              <div>
-                <p className="text-base font-black">{row.label}</p>
-                <p className="mt-1 text-sm font-medium text-[#667084]">{row.workflow}</p>
-              </div>
-              <p className="text-right text-base font-black">{row.unitNote}</p>
-            </div>
-          ))}
-        </article>
-      </section>
-
     </main>
   );
 }

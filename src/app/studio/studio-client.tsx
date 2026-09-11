@@ -9,9 +9,7 @@ import { createPortal } from "react-dom";
 import { trackEvent } from "../../lib/analytics";
 import {
   CREDIT_PACKS,
-  SUBSCRIPTION_PLANS,
-  formatApproximateCreditValue,
-  type BillingCycle
+  formatApproximateCreditValue
 } from "../../lib/billing";
 import { isRtlLocale, type Locale } from "../../i18n/routing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, estimateGenerationCredits } from "../../lib/model-pricing";
@@ -816,11 +814,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [toolbarModelSelectOpen, setToolbarModelSelectOpen] = useState(false);
   const [modelSelectPlacement, setModelSelectPlacement] = useState<"top" | "bottom" | "modal">("bottom");
   const [toolbarModelSelectPlacement, setToolbarModelSelectPlacement] = useState<"top" | "bottom" | "modal">("bottom");
-  const [selectedBillingCycles, setSelectedBillingCycles] = useState<Record<string, BillingCycle>>(() =>
-    Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, plan.defaultCycle]))
-  );
   const billingModalScrollRef = useRef<HTMLDivElement | null>(null);
-  const premiumLitePlanRef = useRef<HTMLElement | null>(null);
   const modelSelectRef = useRef<HTMLDivElement | null>(null);
   const modelSelectPanelRef = useRef<HTMLDivElement | null>(null);
   const toolbarModelSelectRef = useRef<HTMLDivElement | null>(null);
@@ -2399,7 +2393,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }
 
   function openBillingModal(source: string) {
-    setSelectedBillingCycles(Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, "monthly" as BillingCycle])));
     setBillingGenerationContext(null);
     setBillingModalOpen(true);
     setBillingMessage("");
@@ -2413,7 +2406,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       balance: creditBalance,
       providerLabel: selectedProviderMeta.label
     };
-    setSelectedBillingCycles(Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, "monthly" as BillingCycle])));
     setBillingGenerationContext(context);
     setBillingMessage("");
     setBillingModalOpen(true);
@@ -2469,53 +2461,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       window.location.href = payload.url;
     } catch (error) {
       setBillingMessage(error instanceof Error ? error.message : st("studio.billing.checkoutFailed"));
-      setLoadingBillingItem(null);
-    }
-  }
-
-  async function startStudioSubscriptionCheckout(planId: string, cycle: BillingCycle) {
-    const checkoutSurface = billingGenerationContext ? "generation_insufficient_modal" : "studio_modal";
-    if (!accessToken) {
-      trackEvent("checkout_login_required", { plan_id: planId, cycle, surface: checkoutSurface });
-      const nextPath = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?view=home";
-      router.push(`/auth?next=${encodeURIComponent(nextPath)}`);
-      return;
-    }
-
-    const plan = SUBSCRIPTION_PLANS.find((item) => item.id === planId);
-    const price = plan?.prices[cycle];
-    setLoadingBillingItem(`subscription:${planId}:${cycle}`);
-    setBillingMessage("");
-    trackEvent(
-      "subscription_checkout_started",
-      {
-        surface: checkoutSurface,
-        plan_id: planId,
-        cycle,
-        credits: price?.credits || null,
-        amount_cents: price?.amountCents || null,
-        value: price ? price.amountCents / 100 : null,
-        currency: "USD"
-      },
-      accessToken
-    );
-
-    try {
-      const response = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ type: "subscription", planId, cycle })
-      });
-      const payload = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !payload.url) {
-        throw new Error(response.status === 401 ? st("studio.error.sessionExpired") : st("studio.billing.subscriptionCheckoutFailed"));
-      }
-      window.location.href = payload.url;
-    } catch (error) {
-      setBillingMessage(error instanceof Error ? error.message : st("studio.billing.subscriptionCheckoutFailed"));
       setLoadingBillingItem(null);
     }
   }
@@ -2667,20 +2612,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           message={billingMessage}
           creditBalance={creditBalance}
           generationContext={billingGenerationContext}
-          selectedCycles={selectedBillingCycles}
           scrollRef={billingModalScrollRef}
-          premiumLitePlanRef={premiumLitePlanRef}
           onClose={() => {
             setBillingModalOpen(false);
             setBillingGenerationContext(null);
           }}
-          onAllCyclesChange={(cycle) =>
-            setSelectedBillingCycles(Object.fromEntries(SUBSCRIPTION_PLANS.map((plan) => [plan.id, cycle])))
-          }
-          onPlanCycleChange={(planId, cycle) =>
-            setSelectedBillingCycles((current) => ({ ...current, [planId]: cycle }))
-          }
-          onSubscriptionCheckout={startStudioSubscriptionCheckout}
           onCreditCheckout={startStudioCreditCheckout}
         />
 
