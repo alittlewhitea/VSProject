@@ -4,7 +4,9 @@
 
 - `/en/price`（及其他语言价格页）、`/billing`、工作台购买弹窗统一销售一次性积分包。
 - 新订阅下单返回 HTTP 410；不会取消已经存在的订阅。老订阅仍可能自动续费，用户仍可在账单页管理、取消。若要停止所有老订阅续费，需要单独制定迁移方案，本次没有批量取消。
-- 新购买使用 KyrenPay；PayPal 不再接受新下单，但原有回调、付款确认、对账和历史订阅管理保留。**Admin 旧按钮是 Reconcile PayPal（对账），不是关闭开关。**不要为了关闭新购买而删除旧 PayPal 密钥或 Webhook。
+- 每个积分包提供 PayPal 和 KyrenPay 两个购买按钮，金额和积分一致。原有 PayPal 回调、付款确认、对账和历史订阅管理保留。**Admin 旧按钮是 Reconcile PayPal（对账），不是关闭开关。**保留 PayPal 密钥和 Webhook。
+- PayPal 一次性购买需要 `PAYPAL_CLIENT_ID`、`PAYPAL_CLIENT_SECRET`、`PAYPAL_WEBHOOK_ID`，以及正确的 `PAYPAL_ENV`（生产使用 `live`）。无需创建订阅 Plan，支付成功仍通过原 `/api/billing/paypal/capture` 和 Webhook 确认到账。
+- `KYRENPAY_CHECKOUT_ENABLED` 仅控制 KyrenPay 新下单，不影响 PayPal。某个支付方式未配置时，仅该方式返回暂不可用，不会自动切换渠道。`checkout_success` / `purchase` 继续在返回网站并确认到账后上报，支付渠道取实际订单记录。
 - 只卖积分，不额外承诺订阅专属队列、会员身份或新版权权益。生成消耗规则不变。
 
 | 包 | 产品配置变量 | 积分 | KyrenPay 商品价格 |

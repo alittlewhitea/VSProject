@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 import { CreditPackGrid } from "../../components/credit-pack-grid";
+import type { CreditPaymentProvider } from "../../lib/billing";
 
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
 export type GenerationBillingContext = { requiredCredits: number; balance: number; providerLabel: string };
 type StudioBillingModalProps = {
   open: boolean; t: Translate; loadingItem: string | null; message: string; creditBalance: number | null;
   generationContext: GenerationBillingContext | null; scrollRef: RefObject<HTMLDivElement | null>;
-  onClose: () => void; onCreditCheckout: (packId: string) => void;
+  onClose: () => void; onCreditCheckout: (packId: string, provider: CreditPaymentProvider) => void;
 };
 
 export function StudioBillingModal({ open, t, loadingItem, message, creditBalance, generationContext, scrollRef, onClose, onCreditCheckout }: StudioBillingModalProps) {

@@ -2427,7 +2427,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     trackEvent("studio_prompt_improved", { mode, provider, workflow: activeWorkflow }, accessToken);
   }
 
-  async function startStudioCreditCheckout(packId: string) {
+  async function startStudioCreditCheckout(packId: string, paymentProvider: "paypal" | "kyrenpay") {
     const checkoutSurface = billingGenerationContext ? "generation_insufficient_modal" : "studio_modal";
     if (!accessToken) {
       trackEvent("checkout_login_required", { pack_id: packId, surface: checkoutSurface });
@@ -2437,11 +2437,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     }
 
     const pack = CREDIT_PACKS.find((item) => item.id === packId);
-    setLoadingBillingItem(`credits:${packId}`);
+    setLoadingBillingItem(`credits:${packId}:${paymentProvider}`);
     setBillingMessage("");
     trackEvent(
       "checkout_started",
-      { surface: checkoutSurface, pack_id: packId, credits: pack?.credits || null, amount_cents: pack?.amountCents || null },
+      { surface: checkoutSurface, payment_provider: paymentProvider, pack_id: packId, credits: pack?.credits || null, amount_cents: pack?.amountCents || null },
       accessToken
     );
 
@@ -2452,7 +2452,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ packId })
+        body: JSON.stringify({ type: "credits", packId, provider: paymentProvider })
       });
       const payload = (await response.json()) as { url?: string; error?: string };
       if (!response.ok || !payload.url) {

@@ -1,6 +1,6 @@
 # Production Deploy
 
-新购买已切换为一次性积分包和 KyrenPay，部署前请阅读 [KyrenPay 配置、SQL 和宝塔定时任务](docs/kyrenpay-setup.md)。下文 PayPal 配置仅用于历史订单与已有订阅，不再用于新订阅销售。
+新购买仅销售一次性积分包，用户可以选择 PayPal 或 KyrenPay。部署前请阅读 [KyrenPay 配置、SQL 和宝塔定时任务](docs/kyrenpay-setup.md)。下文 PayPal 的 API/Webhook 配置继续用于积分包购买；订阅 Plan 配置只用于历史订阅，不再用于新订阅销售。
 
 邀请奖励需要增量迁移和定时任务，启用前请阅读 [邀请机制部署与验收](docs/referral-setup.md)。
 

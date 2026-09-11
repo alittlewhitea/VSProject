@@ -205,6 +205,7 @@ type OpsPayload = {
     paymentProvider: "stripe" | "paypal" | "kyrenpay";
     kyrenpayConfigured: boolean;
     kyrenpayEnabled: boolean;
+    paypalCreditCheckoutConfigured: boolean;
     kyrenpayProducts: Array<{ packId: string; env: string; configured: boolean }>;
     stripeConfigured: boolean;
     paypalConfigured: boolean;
@@ -725,11 +726,11 @@ export default function AdminHomePage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold">PayPal historical payments</p>
-                  <span className="rounded-full bg-[#e8f7ef] px-2.5 py-1 text-[11px] font-semibold text-[#087443]">Legacy</span>
+                  <p className="text-sm font-semibold">PayPal credit pack payments</p>
+                  <span className="rounded-full bg-[#e8f7ef] px-2.5 py-1 text-[11px] font-semibold text-[#087443]">{payload?.runtimeConfig?.paypalCreditCheckoutConfigured ? "Ready" : "Not configured"}</span>
                 </div>
                 <p className="mt-1 text-xs leading-5 text-[#6e6e73]">
-                  New purchases use KyrenPay credit packs. PayPal and Stripe callbacks and subscription management remain available for historical orders only.
+                  Customers can choose PayPal or KyrenPay for one-time credit packs. PayPal requires its API credentials and webhook ID; no subscription plans are needed for credit purchases. Historical subscription management remains available.
                 </p>
                 <p className="mt-1 text-xs text-[#86868b]">
                   PayPal {payload?.runtimeConfig?.paypalConfigured ? "ready" : `not ready (${payload?.runtimeConfig?.paypalPlansConfigured ?? 0}/${payload?.runtimeConfig?.paypalPlansTotal ?? 6} plans verified)`} · Stripe historical compatibility {payload?.runtimeConfig?.stripeConfigured ? "ready" : "not configured"}

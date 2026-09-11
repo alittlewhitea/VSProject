@@ -10,6 +10,7 @@ assert.ok(tab,"Start an isolated debug browser first.");
 const socket=new WebSocket(tab.webSocketDebuggerUrl);
 await new Promise((resolve,reject)=>{socket.addEventListener("open",resolve,{once:true});socket.addEventListener("error",reject,{once:true});});
 const pending=new Map();let id=0;const errors=[];
+const checkoutRequests=[];
 const send=(method,params={})=>new Promise((resolve,reject)=>{const key=++id;pending.set(key,{resolve,reject});socket.send(JSON.stringify({id:key,method,params}));});
 socket.addEventListener("message",event=>{
   const message=JSON.parse(event.data);
@@ -24,11 +25,24 @@ socket.addEventListener("message",event=>{
     if(path==="/api/credits")body={balance:180,ledger:[],purchases:[],subscriptions:[]};
     if(path==="/api/tasks")body={tasks:[]};
     if(path==="/api/model-pricing")body={rows:[]};
-    void send("Fetch.fulfillRequest",{requestId,responseCode:200,responseHeaders:[{name:"Content-Type",value:"application/json"}],body:Buffer.from(JSON.stringify(body)).toString("base64")}).catch(e=>errors.push(e.message));
+    if(path==="/api/billing/checkout"){checkoutRequests.push(JSON.parse(request.postData));body={error:"Fixture checkout unavailable"};}
+    void send("Fetch.fulfillRequest",{requestId,responseCode:path==="/api/billing/checkout"?503:200,responseHeaders:[{name:"Content-Type",value:"application/json"}],body:Buffer.from(JSON.stringify(body)).toString("base64")}).catch(e=>errors.push(e.message));
   }
 });
 async function evaluate(expression){const data=await send("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});if(data.exceptionDetails)throw new Error(data.exceptionDetails.text);return data.result.value;}
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function exercisePaymentButtons(root) {
+  assert.equal(await evaluate(`document.querySelectorAll(${JSON.stringify(root+' [data-payment-provider]')}).length`),8);
+  for(const provider of ['paypal','kyrenpay']) {
+    const selector=JSON.stringify(root+' [data-payment-provider="'+provider+'"]');
+    const count=checkoutRequests.length;
+    await evaluate(`document.querySelector(${selector}).click()`);
+    for(let i=0;i<40;i++){if(checkoutRequests.length>count && await evaluate(`!document.querySelector(${selector}).disabled`))break;await pause(100);}
+    assert.equal(checkoutRequests.length,count+1);
+    assert.deepEqual(checkoutRequests.at(-1),{type:'credits',packId:'starter',provider});
+    assert.equal(await evaluate(`document.querySelector(${selector}).disabled`),false,'re-enabled after provider error');
+  }
+}
 
 try {
   await send("Page.enable"); await send("Runtime.enable"); await send("Network.enable");
@@ -45,19 +59,23 @@ try {
     assert.ok(copy.includes("No subscription or automatic renewal."));
     for(const expected of ["Starter Pack","Creator Pack","Studio Pack","Pro Pack","$4.99","$9.99","$24.99","$49.99"])assert.ok(copy.includes(expected),expected);
     assert.doesNotMatch(copy,/Weekly|Monthly|Yearly|Subscribe|Premium Lite/);
-    assert.doesNotMatch(copy,/KyrenPay|\/ 1,000 credits/);
+    assert.doesNotMatch(copy,/\/ 1,000 credits/);
+    assert.ok(copy.includes('PayPal') && copy.includes('More'));
+    assert.doesNotMatch(copy,/KyrenPay/);
     for(const expected of ["11% OFF", "16% OFF", "27% OFF", "H3 Max Turbo · 5s · 480p"]) assert.ok(copy.includes(expected),expected);
     const priceShot=await send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
     const pricePath=join(tmpdir(),"dreamface-credit-packs-price-"+name+".png");
     writeFileSync(pricePath,Buffer.from(priceShot.data,"base64"));console.log(pricePath);
+    await exercisePaymentButtons('[data-credit-packs]');
     await send("Page.navigate",{url:"http://127.0.0.1:3000/studio?mode=image&workflow=text-to-image"});
     for(let i=0;i<30;i++){if(await evaluate("[...document.querySelectorAll('button')].some(b=>b.getAttribute('aria-label')==='Buy credits')"))break;await pause(500);}
     await evaluate("[...document.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')==='Buy credits').click()");
     for(let i=0;i<30;i++){if(await evaluate("Boolean(document.querySelector('[aria-labelledby=credit-shop-title]'))"))break;await pause(200);}
     assert.equal(await evaluate("document.querySelectorAll('[role=dialog] [data-credit-packs] article').length"),4);
     const modal=await evaluate("document.querySelector('[aria-labelledby=credit-shop-title]').innerText");
-    assert.doesNotMatch(modal,/Weekly|Monthly|Yearly|Subscribe|Premium Lite|PayPal/);
-    assert.doesNotMatch(modal,/KyrenPay|\/ 1,000 credits/);
+    assert.doesNotMatch(modal,/Weekly|Monthly|Yearly|Subscribe|Premium Lite|\/ 1,000 credits/);
+    assert.ok(modal.includes('PayPal') && modal.includes('More'));
+    assert.doesNotMatch(modal,/KyrenPay/);
     assert.ok(modal.includes("H3 Max Turbo · 5s · 480p"));
     assert.ok(modal.includes("No subscription or automatic renewal."));
     assert.equal(await evaluate("document.documentElement.scrollWidth<=innerWidth"),true,name+" modal overflow");
@@ -65,6 +83,7 @@ try {
     await pause(300);
     const shot=await send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
     const path=join(tmpdir(),"dreamface-credit-packs-modal-"+name+".png");writeFileSync(path,Buffer.from(shot.data,"base64"));console.log(path);
+    await exercisePaymentButtons('[role=dialog] [data-credit-packs]');
     await send("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
     await pause(250);assert.equal(await evaluate("Boolean(document.querySelector('[aria-labelledby=credit-shop-title]'))"),false);
   }

@@ -905,6 +905,7 @@ export async function GET(request: Request) {
       dreamfaceIoEnabled,
       dreamfaceIoConfigured: isDreamfaceIoConfigured(),
       paymentProvider: "kyrenpay",
+      paypalCreditCheckoutConfigured: isPayPalWebhookConfigured(),
       kyrenpayConfigured: kyrenConfigured(),
       kyrenpayEnabled: kyrenCheckoutEnabled(),
       kyrenpayProducts: Object.entries(KYREN_PRODUCT_ENVS).map(([packId, env]) => ({ packId, env, configured: Boolean(process.env[env]?.trim()) })),

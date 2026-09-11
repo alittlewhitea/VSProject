@@ -470,19 +470,19 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   );
 
   const lowBalance = typeof balance === "number" && balance < CREDIT_LOW_BALANCE_THRESHOLD;
-  async function startCheckout(packId: string) {
+  async function startCheckout(packId: string, paymentProvider: "paypal" | "kyrenpay") {
     if (!accessToken) {
       trackEvent("checkout_login_required", { pack_id: packId });
       const nextPath = typeof window !== "undefined" ? window.location.pathname : "/price";
       router.push(`/auth?next=${encodeURIComponent(nextPath)}`);
       return;
     }
-    setLoadingPack(packId);
+    setLoadingPack(`${packId}:${paymentProvider}`);
     setMessage("");
     const pack = CREDIT_PACKS.find((item) => item.id === packId);
     trackEvent(
       "checkout_started",
-      { pack_id: packId, credits: pack?.credits || null, amount_cents: pack?.amountCents || null },
+      { payment_provider: paymentProvider, pack_id: packId, credits: pack?.credits || null, amount_cents: pack?.amountCents || null },
       accessToken
     );
     try {
@@ -492,7 +492,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ packId })
+        body: JSON.stringify({ type: "credits", packId, provider: paymentProvider })
       });
       const payload = (await response.json()) as { url?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || t("billing.message.unableCheckout"));

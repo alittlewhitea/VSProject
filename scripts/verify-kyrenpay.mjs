@@ -101,7 +101,13 @@ try {
   reset(); assert.equal((await web.POST(req({}))).status,401); assert.equal(state.balance,0);
   assert.equal((await web.POST(req(signed()))).status,200); assert.equal((await web.POST(req(signed()))).status,200); assert.equal(state.balance,800);
   reset(); apiOrder = {...order(),status:'PENDING'}; assert.equal((await web.POST(req(signed()))).status,500); assert.equal(state.balance,0); apiOrder=order();
+  let paypalReady = true; const paypalRequests = [];
+  const paypal = { isPayPalWebhookConfigured: () => paypalReady,
+    createPayPalOrder: async input => { paypalRequests.push(input); return { id: 'PAYPAL_TEST_ORDER' }; },
+    paypalApprovalUrl: () => 'https://www.paypal.com/checkoutnow?token=PAYPAL_TEST_ORDER' };
+  const paypalBilling = load('src/lib/paypal-credit-checkout.ts', { './billing': { getCreditPack: id => id === pack.id ? pack : null }, './mysql': mysql, './paypal': paypal });
   const checkout = load('src/app/api/billing/checkout/route.ts', {
+    '../../../../lib/paypal-credit-checkout': paypalBilling, '../../../../lib/paypal': paypal,
     'next/server':{NextResponse:Response}, '../../../../lib/billing':{getCreditPack:id=>id===pack.id?pack:null}, '../../../../lib/kyrenpay':api,
     '../../../../lib/kyrenpay-billing':billing, '../../../../lib/server-auth':{getUserFromBearerToken:async()=>authenticated?{id:'user-a'}:null},
     '../../../../lib/request-security':{consumeRateLimit:async()=>({allowed:true}),trustedPublicOrigin:()=> 'https://dreamface.invalid'}
@@ -111,6 +117,15 @@ try {
   assert.equal((await checkout.POST(checkoutReq({packId:'unknown'}))).status,400);
   authenticated=false; assert.equal((await checkout.POST(checkoutReq({packId:'starter'}))).status,401); authenticated=true;
   process.env.KYRENPAY_CHECKOUT_ENABLED='false'; assert.equal((await checkout.POST(checkoutReq({packId:'starter'}))).status,503);
+  reset();
+  const paypalResponse = await checkout.POST(checkoutReq({type:'credits',packId:'starter',provider:'paypal',amountCents:1,credits:999999}));
+  assert.equal(paypalResponse.status,200);assert.equal((await paypalResponse.json()).provider,'paypal');
+  assert.equal(paypalRequests.length,1);assert.equal(paypalRequests[0].amountCents,499);assert.equal(paypalRequests[0].currency,'usd');
+  assert.equal(paypalRequests[0].returnUrl,'https://dreamface.invalid/billing?checkout=paypal_return');
+  assert.deepEqual(state.purchases[0],['user-a','PAYPAL_TEST_ORDER','PAYPAL_TEST_ORDER','starter',800,499]);assert.equal(state.balance,0);
+  paypalReady=false;assert.equal((await checkout.POST(checkoutReq({packId:'starter',provider:'paypal'}))).status,503);
+  assert.equal((await checkout.POST(checkoutReq({packId:'starter',provider:'stripe'}))).status,400);
+  assert.equal((await checkout.POST(checkoutReq({type:'subscription',provider:'paypal'}))).status,410);
   process.env.KYRENPAY_CHECKOUT_ENABLED='true'; reset();
   let productPrice='4.99'; let created=0;
   globalThis.fetch=async(url,init)=>{

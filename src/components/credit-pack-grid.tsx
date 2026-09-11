@@ -1,10 +1,10 @@
 "use client";
 
-import { CREDIT_PACKS, CREDIT_USAGE_REFERENCE, creditUsageCapacity, formatUsd } from "../lib/billing";
+import { CREDIT_PACKS, CREDIT_USAGE_REFERENCE, creditUsageCapacity, formatUsd, type CreditPaymentProvider } from "../lib/billing";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 export function CreditPackGrid({ t, loadingPack, onCheckout, shortfall = 0 }: {
-  t: Translate; loadingPack: string | null; onCheckout: (id: string) => void; shortfall?: number;
+  t: Translate; loadingPack: string | null; onCheckout: (id: string, provider: CreditPaymentProvider) => void; shortfall?: number;
 }) {
   const recommended = shortfall > 0 ? CREDIT_PACKS.find(pack => pack.credits >= shortfall)?.id : "creator";
   const starter = CREDIT_PACKS.find(pack => pack.id === "starter")!;
@@ -30,9 +30,16 @@ export function CreditPackGrid({ t, loadingPack, onCheckout, shortfall = 0 }: {
               <p>{t("creditShop.shared")}</p>
               <p className="mt-2 text-xs">{t("creditShop.example", { images: capacity.images.toLocaleString(), videos: capacity.videos.toLocaleString(), videoSpec: `${CREDIT_USAGE_REFERENCE.video.model} · ${CREDIT_USAGE_REFERENCE.video.seconds}s · ${CREDIT_USAGE_REFERENCE.video.resolution}` })}</p>
             </div>
-            <button type="button" disabled={Boolean(loadingPack)} onClick={() => onCheckout(pack.id)} className={`mt-auto min-h-12 w-full rounded-xl px-3 py-3 text-sm font-black transition disabled:opacity-50 ${highlight ? "bg-[#7655ed] text-white hover:bg-[#6443dc]" : "bg-[#f0ebfc] text-[#6849cd] hover:bg-[#e7def9]"}`}>
-              {loadingPack === pack.id ? t("creditShop.opening") : t("creditShop.buy")}
-            </button>
+            <div className="mt-auto grid grid-cols-2 gap-2" role="group" aria-label={`${t("creditShop.buy")} — ${pack.name}`}>
+              {(["paypal", "kyrenpay"] as const).map(provider => (
+                <button key={provider} type="button" data-payment-provider={provider} disabled={Boolean(loadingPack)} onClick={() => onCheckout(pack.id, provider)}
+                  aria-label={`${t("creditShop.buy")} — ${pack.name} — ${provider === "paypal" ? "PayPal" : "More"}`}
+                  aria-busy={loadingPack === `${pack.id}:${provider}`}
+                  className={`min-h-12 min-w-0 rounded-xl px-2 py-3 text-xs font-black transition disabled:opacity-50 ${provider === "paypal" ? "bg-[#ffc439] text-[#003087] hover:bg-[#f2ba36]" : highlight ? "bg-[#7655ed] text-white hover:bg-[#6443dc]" : "bg-[#f0ebfc] text-[#6849cd] hover:bg-[#e7def9]"}`}>
+                  {loadingPack === `${pack.id}:${provider}` ? t("creditShop.opening") : provider === "paypal" ? "PayPal" : "More"}
+                </button>
+              ))}
+            </div>
           </article>
         );
       })}
