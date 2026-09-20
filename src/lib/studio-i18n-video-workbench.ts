@@ -3,6 +3,12 @@ import type { Locale } from "../i18n/routing";
 type StudioMessages = Record<string, string>;
 
 const en: StudioMessages = {
+  "studio.videoWorkbench.startFrame": "Start frame",
+  "studio.videoWorkbench.endFrame": "End frame (optional)",
+  "studio.videoWorkbench.keyframeHint": "Up to 2 images: start frame first, end frame second. Not multiple subject references.",
+  "studio.videoWorkbench.singleFrameHint": "This model accepts one image only.",
+  "studio.videoWorkbench.uploadError": "Choose up to {count} JPEG, PNG or WebP images, each no larger than 30 MB.",
+  "studio.videoWorkbench.endFrameRemoved": "This model only accepts one image. The end frame was removed.",
   "studio.videoWorkbench.textHeroDescription": "Describe the scene, camera motion, style and final use, then generate video with clear credit cost.",
   "studio.videoWorkbench.imageHeroDescription": "Upload a reference image, describe how it should move, then generate video with clear credit cost.",
   "studio.videoWorkbench.promptStudio": "Video Prompt Studio",
@@ -29,6 +35,13 @@ const en: StudioMessages = {
 };
 
 const zhCN: StudioMessages = {
+  ...en,
+  "studio.videoWorkbench.startFrame": "首帧",
+  "studio.videoWorkbench.endFrame": "尾帧（可选）",
+  "studio.videoWorkbench.keyframeHint": "最多两张：第一张为首帧，第二张为尾帧，并非多主体参考图。",
+  "studio.videoWorkbench.singleFrameHint": "当前模型仅支持一张图片。",
+  "studio.videoWorkbench.uploadError": "请选择最多 {count} 张 JPEG、PNG 或 WebP 图片，每张不超过 30 MB。",
+  "studio.videoWorkbench.endFrameRemoved": "当前模型只支持单图，已移除尾帧。",
   "studio.videoWorkbench.textHeroDescription": "描述场景、镜头运动、风格和最终用途，并在生成前清楚看到积分成本。",
   "studio.videoWorkbench.imageHeroDescription": "上传参考图，描述它应该如何运动，并在生成前清楚看到积分成本。",
   "studio.videoWorkbench.promptStudio": "视频提示词工作台",
@@ -56,9 +69,31 @@ const zhCN: StudioMessages = {
 
 export const studioVideoWorkbenchMessages: Partial<Record<Locale, StudioMessages>> = {
   en,
+  it: { ...en,
+    "studio.videoWorkbench.startFrame": "Fotogramma iniziale",
+    "studio.videoWorkbench.endFrame": "Fotogramma finale (facoltativo)",
+    "studio.videoWorkbench.keyframeHint": "Fino a 2 immagini: prima quella iniziale, poi quella finale. Non riferimenti di soggetti multipli.",
+    "studio.videoWorkbench.singleFrameHint": "Questo modello accetta una sola immagine.",
+    "studio.videoWorkbench.uploadError": "Scegli fino a {count} immagini JPEG, PNG o WebP, massimo 30 MB ciascuna.",
+    "studio.videoWorkbench.endFrameRemoved": "Questo modello accetta una sola immagine. Il fotogramma finale è stato rimosso."
+  },
+  ar: { ...en,
+    "studio.videoWorkbench.startFrame": "إطار البداية",
+    "studio.videoWorkbench.endFrame": "إطار النهاية (اختياري)",
+    "studio.videoWorkbench.keyframeHint": "صورتان كحد أقصى: إطار البداية ثم إطار النهاية، وليست مراجع متعددة للعناصر.",
+    "studio.videoWorkbench.singleFrameHint": "يدعم هذا النموذج صورة واحدة فقط.",
+    "studio.videoWorkbench.uploadError": "اختر حتى {count} صور JPEG أو PNG أو WebP بحجم لا يتجاوز 30 ميغابايت لكل صورة.",
+    "studio.videoWorkbench.endFrameRemoved": "يدعم هذا النموذج صورة واحدة فقط. تمت إزالة إطار النهاية."
+  },
   "zh-CN": zhCN,
   "zh-TW": {
     ...zhCN,
+    "studio.videoWorkbench.startFrame": "首幀",
+    "studio.videoWorkbench.endFrame": "尾幀（可選）",
+    "studio.videoWorkbench.keyframeHint": "最多兩張：第一張為首幀，第二張為尾幀，並非多主體參考圖。",
+    "studio.videoWorkbench.singleFrameHint": "目前模型僅支援一張圖片。",
+    "studio.videoWorkbench.uploadError": "請選擇最多 {count} 張 JPEG、PNG 或 WebP 圖片，每張不超過 30 MB。",
+    "studio.videoWorkbench.endFrameRemoved": "目前模型只支援單圖，已移除尾幀。",
     "studio.videoWorkbench.textHeroDescription": "描述場景、鏡頭運動、風格和最終用途，並在生成前清楚看到點數成本。",
     "studio.videoWorkbench.imageHeroDescription": "上傳參考圖，描述它應該如何運動，並在生成前清楚看到點數成本。",
     "studio.videoWorkbench.promptStudio": "影片提示詞工作台",

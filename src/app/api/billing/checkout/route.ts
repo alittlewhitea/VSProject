@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { getCreditPack } from "../../../../lib/billing";
-import { kyrenCheckoutEnabled, kyrenConfigured } from "../../../../lib/kyrenpay";
-import { createKyrenCreditCheckout } from "../../../../lib/kyrenpay-billing";
 import { createPayPalCreditCheckout } from "../../../../lib/paypal-credit-checkout";
 import { isPayPalWebhookConfigured } from "../../../../lib/paypal";
 import { consumeRateLimit, trustedPublicOrigin } from "../../../../lib/request-security";
@@ -15,16 +13,14 @@ export async function POST(request: Request) {
     if (body?.type === "subscription") return NextResponse.json({ error: "New subscriptions are no longer available. Choose a credit pack.", code: "subscriptions_closed" }, { status: 410 });
     const pack = typeof body?.packId === "string" ? getCreditPack(body.packId) : null;
     if (!pack || (body?.type && body.type !== "credits")) return NextResponse.json({ error: "Invalid credit pack." }, { status: 400 });
-    const provider = body?.provider ?? "kyrenpay";
-    if (provider !== "paypal" && provider !== "kyrenpay") return NextResponse.json({ error: "Invalid payment provider." }, { status: 400 });
-    const ready = provider === "paypal" ? isPayPalWebhookConfigured() : kyrenCheckoutEnabled() && kyrenConfigured();
-    if (!ready) return NextResponse.json({ error: "This payment method is temporarily unavailable. Please choose another method or try again later." }, { status: 503 });
+    const provider = body?.provider ?? "paypal";
+    if (provider !== "paypal") return NextResponse.json({ error: "Invalid payment provider." }, { status: 400 });
+    const ready = isPayPalWebhookConfigured();
+    if (!ready) return NextResponse.json({ error: "This payment method is temporarily unavailable. Please try again later." }, { status: 503 });
     const rate = await consumeRateLimit({ scope: "credit_checkout", subject: user.id, limit: 6, windowSeconds: 60 });
     if (!rate.allowed) return NextResponse.json({ error: "Please wait before starting another checkout." }, { status: 429 });
     const origin = trustedPublicOrigin(request.url);
-    return NextResponse.json(provider === "paypal"
-      ? await createPayPalCreditCheckout(user.id, pack.id, origin)
-      : await createKyrenCreditCheckout(user.id, pack.id, origin));
+    return NextResponse.json(await createPayPalCreditCheckout(user.id, pack.id, origin));
   } catch (error) {
     console.error("Credit checkout failed:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json({ error: "Unable to start checkout. Please try again later." }, { status: 500 });

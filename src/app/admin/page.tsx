@@ -203,10 +203,7 @@ type OpsPayload = {
     dreamfaceIoEnabled: boolean;
     dreamfaceIoConfigured: boolean;
     paymentProvider: "stripe" | "paypal" | "kyrenpay";
-    kyrenpayConfigured: boolean;
-    kyrenpayEnabled: boolean;
     paypalCreditCheckoutConfigured: boolean;
-    kyrenpayProducts: Array<{ packId: string; env: string; configured: boolean }>;
     stripeConfigured: boolean;
     paypalConfigured: boolean;
     paypalPlansConfigured: number;
@@ -713,14 +710,6 @@ export default function AdminHomePage() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-[#d8caff] bg-[#f7f3ff] p-4">
-            <h3 className="text-sm font-bold">KyrenPay · One-time credit packs</h3>
-            <p className="mt-2 text-xs text-[#67547f]">New checkout: {payload?.runtimeConfig?.kyrenpayEnabled ? "enabled" : "disabled"} · API key + webhook secret: {payload?.runtimeConfig?.kyrenpayConfigured ? "configured" : "missing"}</p>
-            <p className="mt-1 text-xs text-[#67547f]">Controlled by KYRENPAY_CHECKOUT_ENABLED on the server. Product amounts are verified against KyrenPay before each checkout; configuration presence is not a live connectivity test.</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {(payload?.runtimeConfig?.kyrenpayProducts || []).map(item => <p key={item.packId} className="text-xs"><strong>{item.packId}</strong>: {item.configured ? "product ID configured" : `missing ${item.env}`}</p>)}
-            </div>
-          </div>
 
           <div className="mt-4 rounded-2xl border border-black/10 bg-[#fbfbfd] p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -730,7 +719,7 @@ export default function AdminHomePage() {
                   <span className="rounded-full bg-[#e8f7ef] px-2.5 py-1 text-[11px] font-semibold text-[#087443]">{payload?.runtimeConfig?.paypalCreditCheckoutConfigured ? "Ready" : "Not configured"}</span>
                 </div>
                 <p className="mt-1 text-xs leading-5 text-[#6e6e73]">
-                  Customers can choose PayPal or KyrenPay for one-time credit packs. PayPal requires its API credentials and webhook ID; no subscription plans are needed for credit purchases. Historical subscription management remains available.
+                  Customers can use PayPal for one-time credit packs. PayPal requires its API credentials and webhook ID; no subscription plans are needed for credit purchases. Historical subscription management remains available.
                 </p>
                 <p className="mt-1 text-xs text-[#86868b]">
                   PayPal {payload?.runtimeConfig?.paypalConfigured ? "ready" : `not ready (${payload?.runtimeConfig?.paypalPlansConfigured ?? 0}/${payload?.runtimeConfig?.paypalPlansTotal ?? 6} plans verified)`} · Stripe historical compatibility {payload?.runtimeConfig?.stripeConfigured ? "ready" : "not configured"}

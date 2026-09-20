@@ -1,5 +1,6 @@
 
 export const DREAMFACE_IO_ENABLED_KEY = "dreamface_io_enabled";
+// Includes retired providers for historical orders; new checkout is PayPal-only.
 export type PaymentProvider = "stripe" | "paypal" | "kyrenpay";
 
 function envDefaultEnabled() {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { videoSupportsEndFrame } from "../../lib/video-keyframes";
 import { useMemo, useRef, useState } from "react";
 import { formatApproximateCreditValue } from "../../lib/billing";
 import { GenerationCostSummary } from "./generation-cost-summary";
@@ -47,7 +48,8 @@ type VideoSettingsProps = {
   translate: Translate;
   onPromptChange: (value: string) => void;
   onReferenceClear: () => void;
-  onReferenceFiles: (files: FileList | null) => Promise<void>;
+  onReferenceFiles: (files: FileList | null, frameIndex?: number) => Promise<void>;
+  onReferenceRemove: (index: number) => void;
   onFileError: () => void;
   onProviderChange: (value: string) => void;
   onDurationChange: (value: string) => void;
@@ -83,7 +85,7 @@ export function VideoSettings({
   workflow, prompt, referenceImageUrls, provider, providerOptions, duration, durationOptions, ratio, ratioOptions,
   ratioDisabled, showResolutionControl, resolution, resolutionOptions, showAudioControl, generateAudio, seed,
   estimatedCredits, creditBalance, generateDisabled, isSubmitting, isAuthenticated, promptShowcases, recentTasks, translate,
-  onPromptChange, onReferenceClear, onReferenceFiles, onFileError, onProviderChange,
+  onPromptChange, onReferenceClear, onReferenceFiles, onReferenceRemove, onFileError, onProviderChange,
   onDurationChange, onRatioChange, onResolutionChange, onGenerateAudioChange, onSeedChange,
   onUsePromptShowcase, onGenerate
 }: VideoSettingsProps) {
@@ -94,7 +96,6 @@ export function VideoSettings({
   const selectedShowcase = promptShowcases[selectedShowcaseIndex] || promptShowcases[0];
   const videoTasks = useMemo(() => recentTasks.filter((task) => task.type === "Video").slice(0, 5), [recentTasks]);
 
-  const addReferenceFiles = (files: FileList | null) => onReferenceFiles(files).catch(onFileError);
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
     setActivePreset(preset.id);
     onPromptChange(preset.prompt);
@@ -126,17 +127,28 @@ export function VideoSettings({
 
           <div className="overflow-hidden rounded-2xl border border-[#eaecf0] bg-white">
             <textarea id="video-studio-prompt" value={prompt} onChange={(event) => onPromptChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onGenerate(); } }} placeholder={translate(workflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")} className="h-[150px] w-full resize-none border-0 bg-transparent p-4 text-[15px] leading-[1.55] text-[#101828] outline-none placeholder:text-[#98a2b3]" />
-            {workflow === "image-to-video" && referenceImageUrls.length ? (
-              <div className="mx-3 mb-2 flex items-center gap-2 overflow-x-auto rounded-xl bg-[#f8f7ff] p-2">
-                {referenceImageUrls.slice(0, 4).map((url, index) => <img key={`${url}-${index}`} src={url} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />)}
-                <button type="button" onClick={onReferenceClear} className="ms-auto min-h-10 shrink-0 px-2 text-[11px] font-bold text-[#6a5af9]">{translate("studio.action.clear")}</button>
+            {workflow === "image-to-video" ? (
+              <div className="mx-3 mb-3" data-video-keyframes>
+                <p className="mb-2 text-xs text-[#667085]">{translate(videoSupportsEndFrame(provider) ? "studio.videoWorkbench.keyframeHint" : "studio.videoWorkbench.singleFrameHint")}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {Array.from({ length: videoSupportsEndFrame(provider) ? 2 : 1 }, (_, index) => (
+                    <div key={index} className="min-w-0 rounded-xl border border-[#e4dfff] bg-[#faf9ff] p-2" data-frame-index={index}>
+                      <p className="mb-2 text-xs font-bold text-[#475467]">{translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame")}</p>
+                      {referenceImageUrls[index] ? <img src={referenceImageUrls[index]} alt={translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame")} className="mb-2 h-24 w-full rounded-lg object-contain" /> : null}
+                      <label className={`block cursor-pointer rounded-lg bg-white p-2 text-center text-xs font-bold text-[#5f4de4] ${index === 1 && !referenceImageUrls[0] ? "opacity-40" : ""}`}>
+                        {translate("studio.action.chooseImage")}
+                        <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={index === 1 && !referenceImageUrls[0]} onChange={event => { void onReferenceFiles(event.target.files, index).catch(onFileError); event.target.value = ""; }} />
+                      </label>
+                      {referenceImageUrls[index] ? <button type="button" onClick={() => onReferenceRemove(index)} className="mt-1 min-h-9 w-full text-xs text-[#667085]">{translate("studio.action.clear")}</button> : null}
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : null}
             <div className="flex flex-wrap gap-2 px-3 pb-3">
               <button type="button" onClick={enhancePrompt} className="min-h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-xs font-semibold text-[#344054] transition hover:bg-[#fafafb]">{"\u2726"} {translate("studio.workbench.enhancePrompt")}</button>
               <button type="button" onClick={inspire} className="min-h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-xs font-semibold text-[#344054] transition hover:bg-[#fafafb]">{"\uD83D\uDCA1"} {translate("studio.workbench.inspire")}</button>
               <button type="button" onClick={() => onPromptChange("")} disabled={!prompt.length} className="min-h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-xs font-semibold text-[#667085] transition hover:border-[#d8d2ff] hover:bg-[#faf9ff] hover:text-[#6651ee] disabled:cursor-not-allowed disabled:opacity-45"><span aria-hidden="true">{"\u21ba"}</span> {translate("studio.action.clear")}</button>
-              {workflow === "image-to-video" ? <label className="inline-flex min-h-10 cursor-pointer items-center rounded-[10px] border border-[#d9d3ff] bg-[#faf9ff] px-3 text-xs font-semibold text-[#5f4de4] transition hover:border-[#bdb3ff] hover:bg-[#f4f1ff]">+ {translate("studio.videoWorkbench.referenceImage")}<input type="file" accept="image/*" className="hidden" onChange={(event) => addReferenceFiles(event.target.files)} /></label> : null}
             </div>
           </div>
 

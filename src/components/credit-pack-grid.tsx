@@ -30,13 +30,13 @@ export function CreditPackGrid({ t, loadingPack, onCheckout, shortfall = 0 }: {
               <p>{t("creditShop.shared")}</p>
               <p className="mt-2 text-xs">{t("creditShop.example", { images: capacity.images.toLocaleString(), videos: capacity.videos.toLocaleString(), videoSpec: `${CREDIT_USAGE_REFERENCE.video.model} · ${CREDIT_USAGE_REFERENCE.video.seconds}s · ${CREDIT_USAGE_REFERENCE.video.resolution}` })}</p>
             </div>
-            <div className="mt-auto grid grid-cols-2 gap-2" role="group" aria-label={`${t("creditShop.buy")} — ${pack.name}`}>
-              {(["paypal", "kyrenpay"] as const).map(provider => (
+            <div className="mt-auto grid gap-2" role="group" aria-label={`${t("creditShop.buy")} — ${pack.name}`}>
+              {(["paypal"] as const).map(provider => (
                 <button key={provider} type="button" data-payment-provider={provider} disabled={Boolean(loadingPack)} onClick={() => onCheckout(pack.id, provider)}
-                  aria-label={`${t("creditShop.buy")} — ${pack.name} — ${provider === "paypal" ? "PayPal" : "More"}`}
+                  aria-label={`${t("creditShop.buy")} — ${pack.name} — ${"PayPal"}`}
                   aria-busy={loadingPack === `${pack.id}:${provider}`}
-                  className={`min-h-12 min-w-0 rounded-xl px-2 py-3 text-xs font-black transition disabled:opacity-50 ${provider === "paypal" ? "bg-[#ffc439] text-[#003087] hover:bg-[#f2ba36]" : highlight ? "bg-[#7655ed] text-white hover:bg-[#6443dc]" : "bg-[#f0ebfc] text-[#6849cd] hover:bg-[#e7def9]"}`}>
-                  {loadingPack === `${pack.id}:${provider}` ? t("creditShop.opening") : provider === "paypal" ? "PayPal" : "More"}
+                  className={`min-h-12 min-w-0 rounded-xl px-2 py-3 text-xs font-black transition disabled:opacity-50 bg-[#ffc439] text-[#003087] hover:bg-[#f2ba36]`}>
+                  {loadingPack === `${pack.id}:${provider}` ? t("creditShop.opening") : "PayPal"}
                 </button>
               ))}
             </div>

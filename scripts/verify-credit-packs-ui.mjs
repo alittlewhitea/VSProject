@@ -32,8 +32,8 @@ socket.addEventListener("message",event=>{
 async function evaluate(expression){const data=await send("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});if(data.exceptionDetails)throw new Error(data.exceptionDetails.text);return data.result.value;}
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function exercisePaymentButtons(root) {
-  assert.equal(await evaluate(`document.querySelectorAll(${JSON.stringify(root+' [data-payment-provider]')}).length`),8);
-  for(const provider of ['paypal','kyrenpay']) {
+  assert.equal(await evaluate(`document.querySelectorAll(${JSON.stringify(root+' [data-payment-provider]')}).length`),4);
+  for(const provider of ['paypal']) {
     const selector=JSON.stringify(root+' [data-payment-provider="'+provider+'"]');
     const count=checkoutRequests.length;
     await evaluate(`document.querySelector(${selector}).click()`);
@@ -60,7 +60,7 @@ try {
     for(const expected of ["Starter Pack","Creator Pack","Studio Pack","Pro Pack","$4.99","$9.99","$24.99","$49.99"])assert.ok(copy.includes(expected),expected);
     assert.doesNotMatch(copy,/Weekly|Monthly|Yearly|Subscribe|Premium Lite/);
     assert.doesNotMatch(copy,/\/ 1,000 credits/);
-    assert.ok(copy.includes('PayPal') && copy.includes('More'));
+    assert.ok(copy.includes('PayPal') && !copy.includes('More'));
     assert.doesNotMatch(copy,/KyrenPay/);
     for(const expected of ["11% OFF", "16% OFF", "27% OFF", "H3 Max Turbo · 5s · 480p"]) assert.ok(copy.includes(expected),expected);
     const priceShot=await send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
@@ -74,7 +74,7 @@ try {
     assert.equal(await evaluate("document.querySelectorAll('[role=dialog] [data-credit-packs] article').length"),4);
     const modal=await evaluate("document.querySelector('[aria-labelledby=credit-shop-title]').innerText");
     assert.doesNotMatch(modal,/Weekly|Monthly|Yearly|Subscribe|Premium Lite|\/ 1,000 credits/);
-    assert.ok(modal.includes('PayPal') && modal.includes('More'));
+    assert.ok(modal.includes('PayPal') && !modal.includes('More'));
     assert.doesNotMatch(modal,/KyrenPay/);
     assert.ok(modal.includes("H3 Max Turbo · 5s · 480p"));
     assert.ok(modal.includes("No subscription or automatic renewal."));

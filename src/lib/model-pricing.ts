@@ -342,8 +342,8 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     label: "Gemini Omni Flash I2V",
     mode: "video",
     workflow: "Image to Video",
-    endpointId: "google/gemini-omni-flash/image-to-video",
-    falBasis: "fal lists Gemini Omni Flash image-to-video at approximately $0.13 per second for 720p video with audio.",
+    endpointId: "google/gemini-omni-flash/v1.1/image-to-video",
+    falBasis: "The supplied Gemini Omni Flash 1.1 documentation lists 720p image-to-video with audio at $0.10 per second.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "gemini-omni-flash-video", duration: "8s", hasReferences: true }),
     unitNote: "37 credits / sec with audio"
   },

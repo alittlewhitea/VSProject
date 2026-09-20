@@ -135,7 +135,6 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   const capturingPayPalOrderRef = useRef<string | null>(null);
   const syncingPayPalSubscriptionRef = useRef<string | null>(null);
   const checkoutState = searchParams.get("checkout");
-  const kyrenReference = searchParams.get("reference");
   const checkoutProvider = searchParams.get("provider");
   const checkoutSessionId = searchParams.get("session_id");
   const paypalOrderId = searchParams.get("token");
@@ -161,35 +160,6 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
     });
   }, [checkoutState]);
 
-  useEffect(() => {
-    if (!accessToken || checkoutState !== "kyren_return" || !kyrenReference) return;
-    let stopped = false;
-    let attempts = 0;
-    let timer: ReturnType<typeof setTimeout>;
-    async function check() {
-      if (stopped) return;
-      setMessage(t("creditShop.confirming"));
-      try {
-        const response = await fetch("/api/billing/kyrenpay/sync", {
-          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify({ reference: kyrenReference })
-        });
-        const result = await response.json();
-        if (stopped) return;
-        if (response.ok && result.completed && result.transactionId) {
-          router.replace(`${window.location.pathname}?checkout=success&provider=kyrenpay&payment_id=${encodeURIComponent(result.transactionId)}`);
-          return;
-        }
-        if (result.review || response.status === 401 || response.status === 404) {
-          setMessage(t("creditShop.checkLater")); return;
-        }
-      } catch { /* Webhook and cron can still complete the order. */ }
-      if (!stopped && ++attempts < 24) timer = setTimeout(check, 5000);
-      else if (!stopped) setMessage(t("creditShop.checkLater"));
-    }
-    void check();
-    return () => { stopped = true; clearTimeout(timer); };
-  }, [accessToken, checkoutState, kyrenReference, router, t]);
 
   async function loadCredits(token: string) {
     setRefreshingCredits(true);
@@ -470,7 +440,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   );
 
   const lowBalance = typeof balance === "number" && balance < CREDIT_LOW_BALANCE_THRESHOLD;
-  async function startCheckout(packId: string, paymentProvider: "paypal" | "kyrenpay") {
+  async function startCheckout(packId: string, paymentProvider: "paypal") {
     if (!accessToken) {
       trackEvent("checkout_login_required", { pack_id: packId });
       const nextPath = typeof window !== "undefined" ? window.location.pathname : "/price";

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { videoSupportsEndFrame } from "../../lib/video-keyframes";
 import { isGptImageProvider, gptImageQuality, gptImageExample, GPT_IMAGE_EXAMPLE_PROMPTS, GPT_IMAGE_EXAMPLE_REFERENCES, GPT_IMAGE_SIZES, GPT_IMAGE_QUALITIES } from "../../lib/gpt-image-models";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -1629,6 +1630,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }
 
   function applyProvider(nextProvider: string, videoOverrides?: { duration?: string; ratio?: string; resolution?: string }) {
+    if (mode === "video" && !videoSupportsEndFrame(nextProvider) && referenceImageUrls.length > 1) {
+      setReferenceImagesText("");
+      setReferenceImageFiles(referenceImageUrls.slice(0, 1));
+      setStatusTone("idle");
+      setStatusText(st("studio.videoWorkbench.endFrameRemoved"));
+    }
     trackEvent("studio_model_selected", { mode, provider: nextProvider, workflow: activeWorkflow }, accessToken);
     safeSetLocalStorage(lastModelStorageKey(activeWorkflow), nextProvider);
     setProvider(nextProvider);
@@ -1738,8 +1745,29 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setPrompt("Hi, welcome to DreamFace. I am your AI avatar presenter, ready to introduce your product, tell your story, or deliver a polished social video message.");
   }
 
-  async function handleReferenceFiles(files: FileList | null) {
+  async function handleReferenceFiles(files: FileList | null, frameIndex?: number) {
     if (!files?.length) return;
+    if (mode === "video" && videoWorkflow === "image-to-video") {
+      const limit = videoSupportsEndFrame(provider) ? 2 : 1;
+      const selected = Array.from(files);
+      if (selected.length > (frameIndex === undefined ? limit : 1) || selected.some(file => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 30 * 1024 * 1024)) {
+        setStatusTone("error");
+        setStatusText(st("studio.videoWorkbench.uploadError", { count: frameIndex === undefined ? limit : 1 }));
+        return;
+      }
+      if (frameIndex !== undefined && (frameIndex >= limit || (frameIndex === 1 && !referenceImageUrls[0]))) return;
+      const uploaded = await Promise.all(selected.map(file => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Image file could not be read."));
+        reader.readAsDataURL(file);
+      })));
+      const next = frameIndex === undefined ? uploaded : referenceImageUrls.slice(0, limit);
+      if (frameIndex !== undefined) next[frameIndex] = uploaded[0];
+      setReferenceImagesText("");
+      setReferenceImageFiles(next);
+      return;
+    }
     const singleReferenceWorkflow = isPromptlessImageWorkflow || mode === "video" || mode === "avatar";
     const maxFiles = singleReferenceWorkflow ? 1 : 4;
     const nextFiles = await Promise.all(
@@ -2427,7 +2455,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     trackEvent("studio_prompt_improved", { mode, provider, workflow: activeWorkflow }, accessToken);
   }
 
-  async function startStudioCreditCheckout(packId: string, paymentProvider: "paypal" | "kyrenpay") {
+  async function startStudioCreditCheckout(packId: string, paymentProvider: "paypal") {
     const checkoutSurface = billingGenerationContext ? "generation_insufficient_modal" : "studio_modal";
     if (!accessToken) {
       trackEvent("checkout_login_required", { pack_id: packId, surface: checkoutSurface });
@@ -3633,6 +3661,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         setReferenceImageFiles([]);
                       }}
                       onReferenceFiles={handleReferenceFiles}
+                      onReferenceRemove={(index) => {
+                        setReferenceImagesText("");
+                        setReferenceImageFiles(index === 0 ? [] : referenceImageUrls.slice(0, 1));
+                      }}
                       onFileError={() => setStatusText(st("studio.status.fileReadFailed"))}
                       onProviderChange={applyProvider}
                       onDurationChange={setDuration}

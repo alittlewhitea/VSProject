@@ -1,3 +1,4 @@
+import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyframes";
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } from "../../../lib/gpt-image-models";
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
@@ -180,7 +181,7 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
       ? process.env.FAL_MODEL_VIDEO_HAPPY_HORSE_I2V || "alibaba/happy-horse/v1.1/image-to-video"
       : process.env.FAL_MODEL_VIDEO_HAPPY_HORSE || "alibaba/happy-horse/v1.1/text-to-video",
     "gemini-omni-flash-video": editImage
-      ? process.env.FAL_MODEL_VIDEO_GEMINI_OMNI_I2V || "google/gemini-omni-flash/image-to-video"
+      ? process.env.FAL_MODEL_VIDEO_GEMINI_OMNI_I2V || "google/gemini-omni-flash/v1.1/image-to-video"
       : process.env.FAL_MODEL_VIDEO_GEMINI_OMNI || "google/gemini-omni-flash",
     "elevenlabs-tts": process.env.FAL_MODEL_AUDIO_ELEVENLABS || "fal-ai/elevenlabs/tts/eleven-v3",
     "minimax-music-2.6": process.env.FAL_MODEL_AUDIO_MINIMAX_26 || "fal-ai/minimax-music/v2.6"
@@ -367,7 +368,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       prompt_expansion_mode: "balanced",
       enable_safety_checker: false,
       ...(imageUrl
-        ? { image_url: imageUrl }
+        ? { image_url: imageUrl, ...(body.mode === "video" ? videoEndFrameInput(body.provider, body.imageUrls) : {}) }
         : { aspect_ratio: MINIMAX_H3_MAX_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9" }),
       ...(seed !== undefined ? { seed } : {})
     };
@@ -379,7 +380,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       prompt,
       aspect_ratio: GEMINI_OMNI_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
       duration,
-      ...(hasInputImages(body) ? { image_url: firstInputImage(body) } : {})
+      ...(hasInputImages(body) ? { image_url: firstInputImage(body), resolution: "720p", ...videoEndFrameInput(body.provider, body.imageUrls) } : {})
     };
   }
 
@@ -389,6 +390,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     return {
       prompt,
       image_url: firstInputImage(body),
+      ...videoEndFrameInput(body.provider, body.imageUrls),
       duration: String(Number.isInteger(duration) && duration >= 4 && duration <= 15 ? duration : 5),
       resolution: body.resolution && resolutionOptions.has(body.resolution) ? body.resolution : "480p",
       aspect_ratio: SEEDANCE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
@@ -824,6 +826,11 @@ export async function POST(request: Request) {
       body.ratio = "source";
     }
 
+    if (body.mode === "video") {
+      const imageError = validateVideoImages(body.provider, body.imageUrls);
+      if (imageError) return NextResponse.json({ error: imageError }, { status: 400 });
+      if (body.videoWorkflow === "text-to-video" && hasInputImages(body)) return NextResponse.json({ error: "Select Image to Video to use images." }, { status: 400 });
+    }
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
     if(body.mode === "image" && isGptImageProvider(body.provider)) {
       if(body.imageWorkflow === "image-to-image" && !imageUrls.length) return NextResponse.json({error:"Image to Image requires at least one reference image."},{status:400});
