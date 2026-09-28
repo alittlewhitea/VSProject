@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { StudioIcon } from "./studio-navigation";
+import { ViewportVideo } from "../../components/viewport-video";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 type HomeTask = {
@@ -45,10 +46,11 @@ function showcaseHref(prompt: string) {
 
 function ShowcaseVideo({ file, desktopRatio = "16x9", mobileRatio = "1x1", className = "" }: { file: string; desktopRatio?: "16x9" | "1x1"; mobileRatio?: "16x9" | "1x1"; className?: string }) {
   return (
-    <video autoPlay muted loop playsInline preload="metadata" className={className}>
-      <source media="(max-width: 639px)" src={`${VIDEO_BASE_URL}/${mobileRatio}/${file}-${mobileRatio}.mp4`} type="video/mp4" />
-      <source src={`${VIDEO_BASE_URL}/${desktopRatio}/${file}-${desktopRatio}.mp4`} type="video/mp4" />
-    </video>
+    <ViewportVideo
+      muted loop playsInline className={className}
+      mobileSrc={`${VIDEO_BASE_URL}/${mobileRatio}/${file}-${mobileRatio}.mp4`}
+      src={`${VIDEO_BASE_URL}/${desktopRatio}/${file}-${desktopRatio}.mp4`}
+    />
   );
 }
 

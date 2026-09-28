@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { HomeHeroCarousel } from "../components/home-hero-carousel";
+import { ViewportVideo } from "../components/viewport-video";
 import { PageAnalytics } from "../components/page-analytics";
 import { Reveal } from "../components/reveal";
 import { SiteFooter } from "../components/site-footer";
@@ -242,14 +243,12 @@ export default async function HomePage() {
 
               <div className="relative">
                 <div className="overflow-hidden rounded-[1.4rem] bg-white shadow-[0_22px_55px_rgba(16,27,48,0.14)] sm:rounded-[2rem] sm:shadow-[0_28px_80px_rgba(16,27,48,0.16)]">
-                  <video
+                  <ViewportVideo
                     src="https://media.dreamface.io/videos/Text_to_Video.webm"
                     className="aspect-[16/9] w-full object-contain"
-                    autoPlay
                     muted
                     loop
                     playsInline
-                    preload="metadata"
                   />
                 </div>
               </div>
@@ -284,14 +283,12 @@ export default async function HomePage() {
 
               <div className="relative">
                 <div className="overflow-hidden rounded-[1.4rem] bg-white shadow-[0_22px_55px_rgba(16,27,48,0.14)] sm:rounded-[2rem] sm:shadow-[0_28px_80px_rgba(16,27,48,0.16)]">
-                  <video
+                  <ViewportVideo
                     src="https://media.dreamface.io/videos/Image_to_Video.mp4"
                     className="aspect-[16/9] w-full object-cover"
-                    autoPlay
                     muted
                     loop
                     playsInline
-                    preload="metadata"
                   />
                 </div>
               </div>

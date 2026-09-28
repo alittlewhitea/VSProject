@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { defaultLocale, getLocaleFromPathname, localizeMarketingHref } from "../i18n/routing";
 import { trackEvent } from "../lib/analytics";
+import { ViewportVideo } from "./viewport-video";
 
 type HomeHeroCarouselProps = {
   images?: string[];
@@ -67,28 +68,24 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
           <div className="absolute left-[8%] top-[9%] h-[330px] w-[330px] rotate-[-16deg] overflow-hidden rounded-[4.5rem] border border-white/70 bg-white/30 shadow-[0_32px_70px_rgba(15,23,42,0.16)] backdrop-blur sm:top-[11%] sm:h-[520px] sm:w-[520px] sm:rounded-[7.2rem] lg:h-[560px] lg:w-[560px]">
             <div className="absolute inset-0 rounded-[inherit] bg-[linear-gradient(135deg,rgba(134,239,172,0.42),rgba(125,211,252,0.22),rgba(255,200,221,0.32))]" />
             <div className="absolute inset-[12px] overflow-hidden rounded-[3.95rem] border border-white/70 bg-[#eaf8ff] shadow-[inset_0_0_46px_rgba(255,255,255,0.85)] sm:inset-[18px] sm:rounded-[6.3rem]">
-              <video
+              <ViewportVideo
                 src={HERO_VIDEO_SRC}
                 className="h-full w-full rotate-[16deg] scale-[1.32] object-cover"
-                autoPlay
                 muted
                 loop
                 playsInline
-                preload="metadata"
               />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(255,255,255,0.45),transparent_28%),linear-gradient(180deg,transparent_54%,rgba(255,255,255,0.18))]" />
             </div>
           </div>
 
           <div className="absolute right-[1%] top-[26%] h-[250px] w-[88px] rotate-[12deg] overflow-hidden rounded-[2rem] border border-white/70 bg-white/40 shadow-[0_24px_52px_rgba(15,23,42,0.14)] backdrop-blur sm:h-[390px] sm:w-[136px] sm:rounded-[3rem] lg:h-[430px] lg:w-[150px]">
-            <video
+            <ViewportVideo
               src={HERO_VIDEO_SRC}
               className="h-full w-full scale-[1.55] object-cover"
-              autoPlay
               muted
               loop
               playsInline
-              preload="metadata"
             />
           </div>
         </div>
