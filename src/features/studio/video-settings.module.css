@@ -1,0 +1,216 @@
+/* Existing mobile/tablet layout is unchanged. These wrappers have no layout box. */
+.editorScroll,
+.parameters {
+  display: contents;
+}
+
+.shortcut {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .workbench .columns {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+    align-items: start;
+    gap: 16px;
+  }
+
+  .workbench .editor {
+    min-height: 0;
+    height: calc(100dvh - 176px);
+    /* Short windows scroll within the panel, without pushing its CTA off screen. */
+    max-height: 900px;
+    overflow: hidden;
+    border-color: #e3dcfa;
+  }
+
+  .editor .editorScroll {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #d7d1ea transparent;
+    padding-bottom: 12px;
+  }
+
+  .editorScroll > [aria-haspopup="dialog"] {
+    padding: 8px;
+  }
+
+  .editorScroll > [aria-haspopup="dialog"] > span:first-child {
+    margin-bottom: 2px;
+  }
+
+  .promptActions > button {
+    min-height: 32px;
+  }
+
+  .editorScroll [data-video-keyframes] {
+    margin-bottom: 8px;
+  }
+
+  .editorScroll [data-frame-index] {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    grid-template-rows: 16px 30px;
+    column-gap: 6px;
+    height: 70px;
+    align-content: center;
+    align-items: center;
+  }
+
+  .editorScroll [data-frame-index] > p {
+    grid-column: 2 / -1;
+    grid-row: 1;
+    margin: 0;
+  }
+
+  .editorScroll [data-frame-index] > img {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    height: 44px;
+    margin: 0;
+  }
+
+  .editorScroll [data-frame-index] > label {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 6px;
+    font-size: 11px;
+  }
+
+  .editorScroll [data-frame-index] > button {
+    grid-column: 3;
+    grid-row: 2;
+    min-height: 30px;
+    margin: 0;
+  }
+
+  .editorScroll [data-frame-index]:not(:has(img)) > p,
+  .editorScroll [data-frame-index]:not(:has(img)) > label {
+    grid-column: 1 / -1;
+  }
+
+  .editor .parameters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.35fr);
+    gap: 8px;
+    margin-top: 12px;
+    align-items: stretch;
+  }
+
+  .parameters .parameterGroup {
+    display: contents;
+  }
+
+  .parameterGroup > label {
+    height: 56px;
+    min-width: 0;
+    margin: 0;
+    padding: 6px 10px;
+    border: 1px solid #eaecf0;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .parameterGroup > label > span:first-child {
+    margin-bottom: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .parameterGroup > label > select,
+  .parameterGroup > label > span:last-child:not(:first-child) {
+    height: 30px;
+    min-height: 30px;
+    max-width: 100%;
+  }
+
+  .parameterGroup > div {
+    padding: 0;
+  }
+
+  .parameterGroup [data-video-advanced-trigger] {
+    height: 56px;
+    min-height: 56px;
+    padding: 0 6px;
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  .editor .actionBar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    flex: 0 0 auto;
+    margin-top: 0;
+    padding-top: 12px;
+    border-top: 1px solid #eee9f8;
+    background: #fff;
+  }
+
+  .actionBar > button {
+    height: 60px;
+    min-height: 60px;
+    padding: 0 14px;
+    gap: 10px;
+    justify-content: flex-start;
+    font-size: 14px;
+  }
+
+  .actionBar > button > span {
+    flex-shrink: 0;
+  }
+
+  .actionBar > button > span:nth-child(2) {
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .actionBar .shortcut {
+    display: block;
+    margin-inline-start: auto;
+    white-space: nowrap;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 500;
+    color: #eee9ff;
+  }
+
+  .shortcut > span {
+    display: none;
+  }
+
+  .actionBar .legacyShortcut {
+    display: none;
+  }
+
+  .workbench .preview {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .preview [data-video-showcases] > div {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .preview [data-video-showcases] > div > button {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1600px) {
+  .actionBar .shortcut > span {
+    display: inline;
+  }
+}

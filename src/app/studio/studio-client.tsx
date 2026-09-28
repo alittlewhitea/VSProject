@@ -1432,20 +1432,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   ];
   const selectedVideoModelConfig = videoModelConfig(provider);
   const configuredVideoWorkflow = videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
-  const selectedH3MaxExample = isH3VideoProvider(provider)
-    ? videoExampleFor(provider, configuredVideoWorkflow)
-    : null;
-  const videoPromptShowcases: PromptShowcase[] = selectedH3MaxExample
-    ? [{
-        videoUrl: selectedH3MaxExample.videoUrl,
-        posterUrl: selectedH3MaxExample.posterUrl,
-        prompt: selectedH3MaxExample.prompts[0] || "",
-        duration: selectedH3MaxExample.settings.duration,
-        provider: selectedH3MaxExample.provider,
-        ratio: selectedH3MaxExample.settings.ratio,
-        resolution: selectedH3MaxExample.settings.resolution
-      }]
-    : [
+  // Shared showcase library: selecting a generation model must not replace preview media.
+  const videoPromptShowcases: PromptShowcase[] = [
         { videoUrl: YOUNG_KOREAN_WOMAN_VIDEO_URL, posterUrl: "/images/video-examples/young-korean-neighborhood.png", prompt: YOUNG_KOREAN_WOMAN_PROMPT, duration: "15s", provider: "seedance-video", ratio: "16:9" },
         { videoUrl: EASTBOURNE_KOREAN_WOMAN_VIDEO_URL, posterUrl: "/images/video-examples/eastbourne-tennis.png", prompt: EASTBOURNE_KOREAN_WOMAN_PROMPT, duration: "10s", provider: "seedance-video", ratio: "16:9" },
         { videoUrl: SPORTS_BROADCAST_VIDEO_URL, posterUrl: "/images/video-examples/sports-broadcast.png", prompt: SPORTS_BROADCAST_PROMPT, duration: "15s", provider: "seedance-video", ratio: "16:9" }
