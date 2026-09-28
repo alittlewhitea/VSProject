@@ -66,6 +66,20 @@ try {
      const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
      writeFileSync(join(tmpdir(),'dreamface-shared-previews-'+width+'-'+workflow+'.png'),Buffer.from(shot.data,'base64'));
     }
+    if(width===1440) {
+     for(const [index, seconds] of [[0,'15s'],[1,'10s'],[2,'15s']]) {
+      await evaluate(`document.querySelectorAll('[data-video-showcases] button[aria-pressed]')[${index}].click()`);
+      await waitFor(`new URLSearchParams(location.search).get('provider')==='minimax-h3-max-turbo-video' && new URLSearchParams(location.search).get('duration')==='${seconds}' && new URLSearchParams(location.search).get('resolution')==='480p'`);
+      await pause(150);
+      const selected=await evaluate(`(() => {
+       const panel=document.querySelector('#video-studio-prompt').closest('section');
+       return {values:[...panel.querySelectorAll('select')].map(s=>s.value),prompt:panel.querySelector('textarea').value,model:panel.querySelector('[aria-haspopup=dialog]').innerText};
+      })()`);
+      assert.deepEqual(selected.values,[seconds,workflow==='image-to-video'?'source':'16:9','480p']);
+      assert.ok(selected.model.includes('H3 Max Turbo'));
+      assert.ok(selected.prompt.startsWith(['Main subject: young Korean woman','Main Character:','Ultra-realistic sports broadcast still'][index]),'Sample prompt must survive model/URL updates');
+     }
+    }
     console.log(width,workflow,provider,'passed');
    }
   }

@@ -3661,7 +3661,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       onGenerateAudioChange={setGenerateAudio}
                       onSeedChange={setSeed}
                       onUsePromptShowcase={(showcase) => {
-                        applyProvider(showcase.provider || "seedance-video", { duration: showcase.duration, ratio: showcase.ratio || "16:9", resolution: showcase.resolution });
+                        // Examples use the lowest-cost Turbo resolution, not their source model.
+                        applyProvider("minimax-h3-max-turbo-video", { duration: showcase.duration, ratio: showcase.ratio || "16:9", resolution: "480p" });
                         setPrompt(showcase.prompt);
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
