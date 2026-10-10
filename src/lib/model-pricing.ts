@@ -133,11 +133,13 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
     }
 
     if (input.provider === "nano-banana-image" || input.provider === "nano-banana-edit") {
-      if (dynamicImagePrice && isFalUnit(falUnit, "image", "images")) {
-        const costUsd = dynamicImagePrice * nanoResolutionMultiplier(input.resolution) * multiplier;
-        return creditsFromFalUsd(costUsd, 10 * multiplier) + nanoFeatureCredits(input) * multiplier;
-      }
-      return (nanoBananaCredits(input.resolution) + nanoFeatureCredits(input)) * multiplier;
+      // Output-token reserves by resolution; not fixed supplier image prices.
+      const outputTokens = input.resolution === "4K" ? 2520 : input.resolution === "2K" ? 1680 : 1120;
+      const promptTokens = Math.ceil(new TextEncoder().encode(input.promptText || "").length / 3);
+      const references = input.hasReferences ? Math.min(14, Math.max(1, input.referenceCount || 1)) : 0;
+      const thinkingTokens = input.thinkingLevel === "high" ? 1024 : input.thinkingLevel === "minimal" ? 0 : 256;
+      const costUsd = (outputTokens * 35.294 + promptTokens * 1.764 + references * 1120 * 1.764 + thinkingTokens * 8.823) / 1_000_000;
+      return creditsFromFalUsd(costUsd, 4) * multiplier + (input.enableWebSearch ? creditsFromFalUsd(0.015, 3) * multiplier : 0);
     }
 
     if (input.provider === "nano-banana-pro" || input.provider === "nano-banana-pro-edit") {
@@ -204,7 +206,7 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
       const unitPrice =
         typeof input.falUnitPriceUsd === "number" && isFalUnit(falUnit, "1000 characters")
           ? input.falUnitPriceUsd
-          : 0.1;
+          : 0.04;
       return creditsFromFalUsd((characters / 1000) * unitPrice, 4);
     }
     return 8;
@@ -359,13 +361,13 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
   }))),
   {
     provider: "nano-banana-image",
-    label: "Nano Banana 2",
+    label: "Nano Banana 2.1",
     mode: "image",
     workflow: "Text / Image edit",
-    endpointId: "fal-ai/nano-banana-2",
-    falBasis: "fal lists Nano Banana 2 at $0.08 per image; 0.5K is 0.75x, 2K is 1.5x, and 4K is 2x.",
+    endpointId: "google/nano-banana-2.1",
+    falBasis: "Token billed: text/image input $1.764/M, text/thinking output $8.823/M, image output $35.294/M. Credits are estimates and vary with resolution, prompt, references and reasoning.",
     typicalCredits: estimateGenerationCredits({ mode: "image", provider: "nano-banana-image", resolution: "1K" }),
-    unitNote: "15-40 credits / image"
+    unitNote: "Estimated credits vary with tokens and resolution"
   },
   {
     provider: "nano-banana-pro",
@@ -579,13 +581,13 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
   },
   {
     provider: "elevenlabs-tts",
-    label: "ElevenLabs Eleven v3",
+    label: "ElevenLabs Eleven v4 Turbo",
     mode: "audio",
     workflow: "Text to Audio",
-    endpointId: "fal-ai/elevenlabs/tts/eleven-v3",
-    falBasis: "fal lists ElevenLabs Eleven v3 text-to-speech at $0.10 per 1000 characters.",
-    typicalCredits: estimateGenerationCredits({ mode: "audio", provider: "elevenlabs-tts", promptText: "A 1000 character voiceover script." }),
-    unitNote: "25 credits / 1000 chars"
+    endpointId: "elevenlabs/tts/eleven-v4-turbo",
+    falBasis: "fal lists ElevenLabs Eleven v4 Turbo text-to-speech at $0.04 per 1000 characters.",
+    typicalCredits: estimateGenerationCredits({ mode: "audio", provider: "elevenlabs-tts", promptText: "x".repeat(1000) }),
+    unitNote: "10 credits / 1000 chars"
   },
   {
     provider: "veo-video",

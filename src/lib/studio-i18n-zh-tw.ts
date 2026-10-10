@@ -431,7 +431,7 @@ export const studioTraditionalChineseMessages: Messages = {
     "studio.model.happy-horse-video": "Happy Horse 1.1 支援文字和圖片輸入，可生成 3-15 秒影片，支援 720p/1080p、原生同步音訊和多語言口型同步。",
   "studio.model.kling-video": "Kling v3 Pro 可根據文字或圖片生成 3-15 秒電影感影片，並支援可選原生音訊。",
   "studio.model.veo-video": "Veo 3.1 可生成 4、6 或 8 秒提示詞影片，最高支援 4K，並可選生成音訊。",
-  "studio.model.elevenlabs-tts": "ElevenLabs Eleven v3 可將文稿轉成 MP3 配音，積分消耗隨字元數變化。",
+  "studio.model.elevenlabs-tts": "ElevenLabs Eleven v4 Turbo 可將文稿轉成 MP3 配音，積分消耗隨字元數變化。",
   "studio.model.default": "請清楚描述主體、風格、構圖、運動和限制條件，以獲得更準確的結果。",
   "studio.music.defaultPrompt": "城市流行，80 年代復古風，律動感合成器貝斯，溫暖女聲，104 BPM，懷舊都市夜景",
   "studio.workflow.text-to-music": "AI 音樂生成",

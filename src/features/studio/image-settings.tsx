@@ -214,9 +214,9 @@ export function ImageSettings({
           </SettingCard>
         ) : null}
 
-        {isImageToImage && (provider === "nano-banana-image" || provider === "nano-banana-pro") ? (
+        {(provider === "nano-banana-image" || provider === "nano-banana-edit" || provider === "nano-banana-pro") ? (
           <SettingCard label={translate("studio.field.resolution")} value={editResolution}>
-            <ChoiceButtons values={(provider === "nano-banana-pro" ? ["1K", "2K", "4K"] : ["0.5K", "1K", "2K", "4K"]).map((value) => ({ value }))} selected={editResolution} columns={4} onChange={onEditResolutionChange} />
+            <ChoiceButtons values={["1K", "2K", "4K"].map((value) => ({ value }))} selected={editResolution} columns={4} onChange={onEditResolutionChange} />
           </SettingCard>
         ) : null}
 
@@ -263,15 +263,15 @@ export function ImageSettings({
           </>
         ) : null}
 
-        {isImageToImage && (provider === "nano-banana-image" || provider === "nano-banana-pro") ? (
+        {(provider === "nano-banana-image" || provider === "nano-banana-edit" || provider === "nano-banana-pro") ? (
           <SettingCard label={translate("studio.field.webSearch")} value={translate(enableWebSearch ? "studio.state.enabled" : "studio.state.disabled")}>
             <button type="button" onClick={() => onEnableWebSearchChange(!enableWebSearch)} className={`h-10 w-full rounded-[0.9rem] text-xs font-black transition ${enableWebSearch ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>{translate(enableWebSearch ? "studio.state.enabled" : "studio.state.disabled")}</button>
           </SettingCard>
         ) : null}
 
-        {isImageToImage && (provider === "nano-banana-image" || isNanoBananaLite) ? (
-          <SettingCard label={translate("studio.field.thinking")} value={thinkingLevel || translate("studio.state.off")}>
-            <ChoiceButtons values={[{ value: "", label: translate("studio.state.off") }, { value: "minimal", label: translate("studio.state.minimal") }, { value: "high", label: translate("studio.state.high") }]} selected={thinkingLevel} columns={3} onChange={onThinkingLevelChange} />
+        {(provider === "nano-banana-image" || provider === "nano-banana-edit" || isNanoBananaLite) ? (
+          <SettingCard label={translate("studio.field.thinking")} value={thinkingLevel || (provider === "nano-banana-image" || provider === "nano-banana-edit" ? "medium" : translate("studio.state.off"))}>
+            <ChoiceButtons values={[{ value: "", label: provider === "nano-banana-image" || provider === "nano-banana-edit" ? "medium" : translate("studio.state.off") }, { value: "minimal", label: translate("studio.state.minimal") }, { value: "high", label: translate("studio.state.high") }]} selected={thinkingLevel} columns={3} onChange={onThinkingLevelChange} />
           </SettingCard>
         ) : null}
 

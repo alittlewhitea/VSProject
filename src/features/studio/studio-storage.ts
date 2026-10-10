@@ -1,3 +1,5 @@
+import type { AcceptedPrompt } from "./use-video-prompt-enhancement";
+
 export type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
 
 export type TaskItem = {
@@ -72,6 +74,8 @@ export type StudioLoginDraft<
   systemPrompt?: string;
   enableWebSearch?: boolean;
   thinkingLevel?: string;
+  aiPromptEnhancementEnabled?: boolean;
+  videoPromptEnhancement?: AcceptedPrompt | null;
 };
 
 const SESSION_TASKS_KEY = "nova_session_tasks";

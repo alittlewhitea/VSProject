@@ -295,7 +295,7 @@
     "studio.model.happy-horse-video": "Happy Horse 1.1 prend en charge le texte et les images, les clips de 3 à 15 secondes, la sortie 720p ou 1080p, l’audio natif synchronisé et le lip-sync multilingue.",
   "studio.model.kling-video": "Kling v3 Pro crée 3-15 secondes vidéos cinématographiques à partir de texte ou d'images, avec audio natif optionnel.",
   "studio.model.veo-video": "Veo 3.1 crée 4, 6 ou 8 secondes de vidéos à portée de main jusqu'à 4K, avec audio en option.",
-  "studio.model.elevenlabs-tts": "ElevenLabs Eleven v3 transforme les scripts en voix off MP3. Le coût en crédits dépend du nombre de caractères.",
+  "studio.model.elevenlabs-tts": "ElevenLabs Eleven v4 Turbo transforme les scripts en voix off MP3. Le coût en crédits dépend du nombre de caractères.",
   "studio.model.default": "Décrivez clairement le sujet, le style, la composition, le mouvement et les contraintes pour de meilleurs résultats.",
   "studio.heading.createToday": "Que souhaitez-vous créer aujourd'hui ?",
   "studio.workflow.text-to-image": "Texte vers image",

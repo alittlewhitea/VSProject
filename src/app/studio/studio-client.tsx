@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useVideoPromptEnhancement } from "../../features/studio/use-video-prompt-enhancement";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
 import { isGptImageProvider, gptImageQuality, gptImageExample, GPT_IMAGE_EXAMPLE_PROMPTS, GPT_IMAGE_EXAMPLE_REFERENCES, GPT_IMAGE_SIZES, GPT_IMAGE_QUALITIES } from "../../lib/gpt-image-models";
 import { useRouter } from "next/navigation";
@@ -90,7 +91,7 @@ type StudioWorkflow = ImageWorkflow | VideoWorkflow | AudioWorkflow;
 const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
 const LAST_MODEL_STORAGE_PREFIX = "dreamface_studio_last_model_v1";
 const TEXT_IMAGE_PAGE_INNER_CLASS = "mx-auto w-full max-w-[1220px]";
-const STUDIO_SIGN_IN_URL = "https://dreamface.io/en/auth?next=%2Fstudio%3Fview%3Dhome";
+const STUDIO_SIGN_IN_URL = "/en/auth?next=%2Fstudio%3Fview%3Dhome";
 
 const WORKSPACE_VIDEO_BASE_URL = "https://media.dreamface.io/ai_video";
 const YOUNG_KOREAN_WOMAN_VIDEO_URL = `${WORKSPACE_VIDEO_BASE_URL}/16x9/young_Korean_woman.mp4`;
@@ -243,8 +244,8 @@ const PROVIDER_META: Record<
     bestFor: "Precision editing, intricate layouts and typography"
   },
   "nano-banana-image": {
-    label: "Nano Banana 2",
-    shortLabel: "Nano Banana 2",
+    label: "Nano Banana 2.1",
+    shortLabel: "Nano Banana 2.1",
     speed: "Fast",
     quality: "Strong editing",
     bestFor: "Reference edits, character/product continuity, image remixing"
@@ -300,8 +301,8 @@ const PROVIDER_META: Record<
   },
   ...VIDEO_PROVIDER_META,
   "elevenlabs-tts": {
-    label: "ElevenLabs Eleven v3",
-    shortLabel: "Eleven v3",
+    label: "ElevenLabs Eleven v4 Turbo",
+    shortLabel: "Eleven v4 Turbo",
     speed: "Fast",
     quality: "Voiceover",
     bestFor: "Text-to-speech voiceovers from scripts with ElevenLabs voices"
@@ -980,7 +981,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setNumInferenceSteps(28);
       setOutputFormat((current) => (current === "webp" ? "jpeg" : current));
     }
-    if (provider === "nano-banana-pro" || provider === "nano-banana-2-lite") {
+    if (provider === "nano-banana-image" || provider === "nano-banana-edit" || provider === "nano-banana-pro" || provider === "nano-banana-2-lite") {
       setEditResolution((current) => (current === "0.5K" ? "1K" : current));
     }
   }, [mode, provider]);
@@ -1387,7 +1388,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
   const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
   const canSubmit = isPromptValid && hasRequiredReference;
-  const generateDisabled = accessToken ? !canSubmit || isSubmitting : false;
+  const videoPromptAI = useVideoPromptEnhancement({
+    mode: videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video",
+    prompt, model: provider, duration, aspectRatio: ratio,
+    resolution: videoModelConfig(provider)?.showResolutionControl ? videoResolution : undefined,
+    generateAudio,
+    imageUrls: videoWorkflow === "image-to-video" ? referenceImageUrls : undefined
+  }, setPrompt, Boolean(accessToken));
+  const generationSubmitLock = useRef<symbol | null>(null);
+  const generateDisabled = (accessToken ? !canSubmit || isSubmitting : false) || (mode === "video" && videoPromptAI.busy);
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const hasCompletedCreation = completedTasks.length > 0;
@@ -1923,7 +1932,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       safetyTolerance,
       systemPrompt,
       enableWebSearch,
-      thinkingLevel
+      thinkingLevel,
+      aiPromptEnhancementEnabled: videoPromptAI.enabled,
+      videoPromptEnhancement: mode === "video" ? videoPromptAI.current : null
     });
   }
 
@@ -1973,6 +1984,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setThinkingLevel(draft.thinkingLevel || "");
     setDuration(draft.duration);
     setPrompt(draft.prompt);
+    videoPromptAI.setEnabled(draft.aiPromptEnhancementEnabled !== false);
+    videoPromptAI.restoreDraft(draft.videoPromptEnhancement || null);
     setStatusTone("idle");
     setStatusText(draft.autoSubmit ? st("studio.status.restoredContinue") : st("studio.status.restored"));
 
@@ -1980,7 +1993,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }, [accessToken, authReady]);
 
   async function handleGenerate() {
-    if (!canSubmit || isSubmitting) {
+    if (!canSubmit || isSubmitting || generationSubmitLock.current || (mode === "video" && videoPromptAI.busy)) {
       return;
     }
     if (accessToken && !hasEnoughCredits) {
@@ -2000,6 +2013,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       },
       accessToken
     );
+    const submissionToken = Symbol("generation");
+    generationSubmitLock.current = submissionToken;
     setIsSubmitting(true);
     setStatusTone("idle");
     setStatusText(st("studio.status.submitting"));
@@ -2052,6 +2067,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         return;
       }
 
+      let finalPrompt = prompt;
+      let promptEnhancement;
+      if (mode === "video" && (videoWorkflow === "text-to-video" || videoWorkflow === "image-to-video")) {
+        if (videoPromptAI.enabled && !videoPromptAI.current) setStatusText(st("studio.promptAI.optimizing"));
+        const optimized = await videoPromptAI.optimize(liveToken, true, videoPromptAI.context);
+        finalPrompt = optimized.prompt;
+        promptEnhancement = optimized.metadata;
+      }
       const parsedSeed = seed.trim() ? Number.parseInt(seed.trim(), 10) : undefined;
       const requestDuration = isAvatarWorkflow ? avatarDuration : duration;
       const requestPayload = {
@@ -2062,7 +2085,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         provider,
         ratio: isAvatarWorkflow ? isDreamfaceTalkingAvatar ? ratio : "source" : ratio,
         duration: requestDuration,
-        prompt: isPromptlessImageWorkflow ? "" : prompt,
+        prompt: isPromptlessImageWorkflow ? "" : finalPrompt,
+        promptEnhancement,
         imageSize: mode === "image" ? imageSize : undefined,
         imageUrls:
           (mode === "image" && referenceImageUrls.length > 0) || (mode === "avatar" || (mode === "video" && videoWorkflow === "image-to-video"))
@@ -2103,7 +2127,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       };
       const fingerprint = createIdempotencyFingerprint({
         ...requestPayload,
-        prompt: prompt.trim(),
+        prompt: finalPrompt.trim(),
         imageUrls: referenceImageUrls,
         audioUrl: avatarAudioUrl.trim()
       });
@@ -2168,7 +2192,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 : "Queued",
         cost: typeof payload.estimatedCredits === "number" ? payload.estimatedCredits : estCredits,
         provider,
-        prompt: prompt.trim(),
+        prompt: finalPrompt.trim(),
         ratio,
         transport: payload.transport,
         createdAt: new Date().toISOString(),
@@ -2200,6 +2224,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       }
       // The task is accepted by the backend now. Release the button so users can queue
       // another generation while this task continues updating in the background.
+      if (generationSubmitLock.current === submissionToken) generationSubmitLock.current = null;
       setIsSubmitting(false);
       if (payload.status === "failed") {
         trackEvent(
@@ -2360,7 +2385,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           : st("studio.status.submitFailed")
       );
     } finally {
-      setIsSubmitting(false);
+      if (generationSubmitLock.current === submissionToken) {
+        generationSubmitLock.current = null;
+        setIsSubmitting(false);
+      }
     }
   }
 
@@ -3643,7 +3671,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       recentTasks={tasks}
                       promptShowcases={videoPromptShowcases}
                       translate={st}
-                      onPromptChange={setPrompt}
+                      onPromptChange={videoPromptAI.edit}
+                      promptAI={videoPromptAI}
                       onReferenceClear={() => {
                         setReferenceImagesText("");
                         setReferenceImageFiles([]);
@@ -3755,7 +3784,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
                             <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.resolution")}</p>
                             <div className="grid grid-cols-4 gap-1">
-                              {(provider === "nano-banana-pro" ? ["1K", "2K", "4K"] : ["0.5K", "1K", "2K", "4K"]).map((resolution) => (
+                              {["1K", "2K", "4K"].map((resolution) => (
                                 <button
                                   key={resolution}
                                   type="button"
@@ -3889,7 +3918,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.thinking")}</p>
                             <div className="grid grid-cols-3 gap-1">
                               {[
-                                { value: "", label: st("studio.state.off") },
+                                { value: "", label: provider === "nano-banana-image" ? "medium" : st("studio.state.off") },
                                 { value: "minimal", label: st("studio.state.minimal") },
                                 { value: "high", label: st("studio.state.high") }
                               ].map((item) => (

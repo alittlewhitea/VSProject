@@ -40,7 +40,7 @@ let pricingMapCache: FalPricingMapCache | null = null;
 let modelEndpointCache: FalModelEndpointCache | null = null;
 
 const EXTRA_PRICING_ENDPOINT_IDS = [
-  "fal-ai/nano-banana-2/edit",
+  "google/nano-banana-2.1/edit",
   "fal-ai/nano-banana-pro/edit",
   "fal-ai/nano-banana/edit",
   "google/nano-banana-lite/edit"
@@ -48,8 +48,8 @@ const EXTRA_PRICING_ENDPOINT_IDS = [
 
 function endpointForProvider(provider: string, hasReferences = false) {
   if (isGptImageProvider(provider)) return gptImageEndpoint(provider,hasReferences);
-  if (provider === "nano-banana-image") return hasReferences ? "fal-ai/nano-banana-2/edit" : "fal-ai/nano-banana-2";
-  if (provider === "nano-banana-edit") return "fal-ai/nano-banana-2/edit";
+  if (provider === "nano-banana-image") return hasReferences ? "google/nano-banana-2.1/edit" : "google/nano-banana-2.1";
+  if (provider === "nano-banana-edit") return "google/nano-banana-2.1/edit";
   if (provider === "nano-banana-pro") return hasReferences ? "fal-ai/nano-banana-pro/edit" : "fal-ai/nano-banana-pro";
   if (provider === "nano-banana-pro-edit") return "fal-ai/nano-banana-pro/edit";
   if (provider === "nano-banana-lite") return hasReferences ? "google/nano-banana-lite/edit" : "google/nano-banana-lite";
@@ -70,7 +70,7 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "minimax-h3-max-video") return hasReferences ? "minimax/h3-max/image-to-video" : "minimax/h3-max/text-to-video";
   if (provider === "minimax-h3-max-turbo-video") return hasReferences ? "minimax/h3-max-turbo/image-to-video" : "minimax/h3-max-turbo/text-to-video";
   if (provider === "minimax-music-2.6") return "fal-ai/minimax-music/v2.6";
-  if (provider === "elevenlabs-tts") return "fal-ai/elevenlabs/tts/eleven-v3";
+  if (provider === "elevenlabs-tts") return "elevenlabs/tts/eleven-v4-turbo";
   return null;
 }
 
@@ -287,7 +287,7 @@ export async function getLiveModelPricingRows(): Promise<LiveModelPricingRow[]> 
         resolution: row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "480p" : undefined,
         imageSize: row.provider === "flux-image" ? "landscape_16_9" : "default_4_3",
         hasReferences: row.workflow.toLowerCase().includes("image to image") || row.workflow.toLowerCase().includes("image to video"),
-        promptText: row.mode === "audio" ? "A 1000 character voiceover script." : undefined,
+        promptText: row.mode === "audio" ? "x".repeat(1000) : undefined,
         falUnitPriceUsd: live?.unit_price ?? null,
         falUnit: live?.unit ?? null
       });

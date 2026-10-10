@@ -17,16 +17,16 @@
 
   .workbench .editor {
     min-height: 0;
-    height: calc(100dvh - 176px);
+    height: auto;
     /* Short windows scroll within the panel, without pushing its CTA off screen. */
-    max-height: 900px;
+    max-height: min(900px, calc(100dvh - 176px));
     overflow: hidden;
     border-color: #e3dcfa;
   }
 
   .editor .editorScroll {
     display: block;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;

@@ -77,6 +77,7 @@ type GenerateRequest = {
   musicSampleRate?: number;
   musicBitrate?: number;
   musicFormat?: "mp3" | "wav" | "pcm";
+  promptEnhancement?: { originalPrompt?: string; finalPrompt?: string; status?: string; model?: string };
   idempotencyKey?: string;
 };
 
@@ -145,8 +146,8 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "topaz-image": process.env.FAL_MODEL_IMAGE_TOPAZ || "fal-ai/topaz/upscale/image",
     "bria-background-remove": process.env.FAL_MODEL_IMAGE_BRIA_BACKGROUND_REMOVE || "fal-ai/bria/background/remove",
     "nano-banana-image": editImage
-      ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit"
-      : process.env.FAL_MODEL_IMAGE_NANO_BANANA || "fal-ai/nano-banana-2",
+      ? "google/nano-banana-2.1/edit"
+      : "google/nano-banana-2.1",
     "nano-banana-pro": editImage
       ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_PRO_EDIT || "fal-ai/nano-banana-pro/edit"
       : process.env.FAL_MODEL_IMAGE_NANO_BANANA_PRO || "fal-ai/nano-banana-pro",
@@ -154,7 +155,7 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
       ? process.env.FAL_MODEL_IMAGE_NANO_BANANA_LITE_EDIT || "google/nano-banana-lite/edit"
       : process.env.FAL_MODEL_IMAGE_NANO_BANANA_LITE || "google/nano-banana-lite",
     "nano-banana-2-lite": process.env.FAL_MODEL_IMAGE_NANO_BANANA_2_LITE || "google/nano-banana-2-lite",
-    "nano-banana-edit": process.env.FAL_MODEL_IMAGE_NANO_BANANA_EDIT || "fal-ai/nano-banana-2/edit",
+    "nano-banana-edit": "google/nano-banana-2.1/edit",
     "recraft-image": process.env.FAL_MODEL_IMAGE_RECRAFT,
     "seedance-video": editImage
       ? process.env.FAL_MODEL_VIDEO_SEEDANCE_I2V || "bytedance/seedance-2.0/image-to-video"
@@ -183,7 +184,7 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "gemini-omni-flash-video": editImage
       ? process.env.FAL_MODEL_VIDEO_GEMINI_OMNI_I2V || "google/gemini-omni-flash/v1.1/image-to-video"
       : process.env.FAL_MODEL_VIDEO_GEMINI_OMNI || "google/gemini-omni-flash",
-    "elevenlabs-tts": process.env.FAL_MODEL_AUDIO_ELEVENLABS || "fal-ai/elevenlabs/tts/eleven-v3",
+    "elevenlabs-tts": "elevenlabs/tts/eleven-v4-turbo",
     "minimax-music-2.6": process.env.FAL_MODEL_AUDIO_MINIMAX_26 || "fal-ai/minimax-music/v2.6"
   };
 
@@ -208,13 +209,14 @@ const IMAGE_SIZE_PRESETS = new Set([
   "landscape_16_9"
 ]);
 const EDIT_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"]);
-const EDIT_RESOLUTIONS = new Set(["0.5K", "1K", "2K", "4K"]);
+const EDIT_RESOLUTIONS = new Set(["1K", "2K", "4K"]);
 const OUTPUT_FORMATS = new Set(["jpeg", "png", "webp"]);
 const FLUX_OUTPUT_FORMATS = new Set(["jpeg", "png"]);
 const IMAGE_QUALITIES = new Set(["auto", "low", "medium", "high"]);
 const ACCELERATION_OPTIONS = new Set(["none", "regular", "high"]);
 const SAFETY_TOLERANCES = new Set(["1", "2", "3", "4", "5", "6"]);
 const THINKING_LEVELS = new Set(["minimal", "high"]);
+const NANO_21_THINKING_LEVELS = new Set(["minimal", "medium", "high"]);
 const TTS_TEXT_NORMALIZATION_OPTIONS = new Set(["auto", "on", "off"]);
 const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
 const GROK_IMAGE_VIDEO_ASPECT_RATIOS = new Set(["auto", "16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
@@ -261,6 +263,8 @@ function buildTtsInput(body: GenerateRequest, prompt: string) {
     text: prompt,
     voice: typeof body.voice === "string" && body.voice.trim() ? body.voice.trim().slice(0, 80) : "Rachel",
     stability: clampNumber(body.stability, 0, 1, 0.5),
+    similarity_boost: 0.75,
+    output_format: "mp3_44100_128",
     timestamps: false,
     ...(languageCode ? { language_code: languageCode } : {}),
     apply_text_normalization: body.textNormalization && TTS_TEXT_NORMALIZATION_OPTIONS.has(body.textNormalization) ? body.textNormalization : "auto"
@@ -511,15 +515,15 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     const systemPrompt = cleanSystemPrompt(body.systemPrompt);
     if (seed !== undefined) input.seed = seed;
     if (systemPrompt) input.system_prompt = systemPrompt;
-    if (body.provider === "nano-banana-image" || body.provider === "nano-banana-pro") {
+    if (body.provider === "nano-banana-image" || body.provider === "nano-banana-edit" || body.provider === "nano-banana-pro") {
       input.resolution = body.resolution && EDIT_RESOLUTIONS.has(body.resolution) ? body.resolution : "1K";
       input.enable_web_search = Boolean(body.enableWebSearch);
     }
     if ((body.provider === "nano-banana-image" || body.provider === "nano-banana-lite") && body.thinkingLevel && THINKING_LEVELS.has(body.thinkingLevel)) {
       input.thinking_level = body.thinkingLevel;
     }
-    if (body.provider === "nano-banana-pro" && input.resolution === "0.5K") {
-      input.resolution = "1K";
+    if (body.provider === "nano-banana-image" || body.provider === "nano-banana-edit") {
+      input.thinking_level = body.thinkingLevel && NANO_21_THINKING_LEVELS.has(body.thinkingLevel) ? body.thinkingLevel : "medium";
     }
     return input;
   }
@@ -556,8 +560,8 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     if ((body.provider === "nano-banana-image" || body.provider === "nano-banana-lite" || body.provider === "nano-banana-2-lite") && body.thinkingLevel && THINKING_LEVELS.has(body.thinkingLevel)) {
       input.thinking_level = body.thinkingLevel;
     }
-    if (body.provider === "nano-banana-pro" && input.resolution === "0.5K") {
-      input.resolution = "1K";
+    if (body.provider === "nano-banana-image") {
+      input.thinking_level = body.thinkingLevel && NANO_21_THINKING_LEVELS.has(body.thinkingLevel) ? body.thinkingLevel : "medium";
     }
     return input;
   }
@@ -797,6 +801,9 @@ export async function POST(request: Request) {
     if (!isPromptlessImageTool && !prompt.trim()) {
       return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
     }
+    if ((body.provider === "elevenlabs-tts" || (isAvatarProvider && !body.audioUrl)) && prompt.length > 5000) {
+      return NextResponse.json({ error: "Eleven v4 Turbo supports up to 5000 characters per request." }, { status: 400 });
+    }
     if (body.mode === "audio" && body.provider === "minimax-music-2.6" && (prompt.length < 10 || prompt.length > 2000)) {
       return NextResponse.json({ error: "MiniMax Music prompt must contain 10 to 2000 characters." }, { status: 400 });
     }
@@ -971,6 +978,14 @@ export async function POST(request: Request) {
     const transport = isDreamfaceIo ? "real" : !falKey || !modelId ? "mock" : "real";
     const requestSettings = {
       ...buildRequestSettings(body, modelId),
+      ...(body.mode === "video" && body.promptEnhancement && typeof body.promptEnhancement === "object" ? {
+        prompt_enhancement: {
+          original_prompt: typeof body.promptEnhancement.originalPrompt === "string" ? body.promptEnhancement.originalPrompt.slice(0, 5000) : prompt,
+          final_prompt: prompt,
+          status: ["enhanced", "fallback", "disabled", "off"].includes(body.promptEnhancement.status || "") ? body.promptEnhancement.status : "off",
+          model: typeof body.promptEnhancement.model === "string" ? body.promptEnhancement.model.slice(0, 120) : null
+        }
+      } : {}),
       ...(isDreamfaceIo ? { submitted_prompt: submittedPrompt } : {}),
       billing_source: billingSource,
       free_units_used: freeUnitsUsed
@@ -1087,7 +1102,7 @@ export async function POST(request: Request) {
           status_url: dreamfaceSubmit.statusUrl
         };
       } else if (isAvatarProvider && !body.audioUrl) {
-        const ttsModelId = getModelId("audio", "elevenlabs-tts") || "fal-ai/elevenlabs/tts/eleven-v3";
+        const ttsModelId = getModelId("audio", "elevenlabs-tts") || "elevenlabs/tts/eleven-v4-turbo";
         const ttsInput = buildTtsInput(body, prompt);
         const ttsSubmitPayload = await submitFalQueue(falKey as string, ttsModelId, ttsInput);
         const ttsResult = await waitForFalResponse(falKey as string, ttsSubmitPayload, 90000);

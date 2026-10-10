@@ -1,0 +1,55 @@
+{
+  "model": "google/gemini-3.8-flash",
+  "transport": "project fetchFal",
+  "testedAt": "2026-10-10T10:22:26.560Z",
+  "results": [
+    {
+      "mode": "text-to-video",
+      "input": "一只橘猫在咖啡馆喝咖啡",
+      "httpStatus": 200,
+      "output": "A charming ginger tabby cat sits upright at a rustic wooden cafe table, delicately leaning in to lap frothy milk foam from an artisanal ceramic coffee cup. Soft golden afternoon sunlight streams through an adjacent window, illuminating the cat's detailed orange-and-white fur, twitching whiskers, and focused amber eyes. The cozy, warm-toned cafe interior softly blurs in the background, adorned with hanging indoor plants and ambient pendant lighting. The camera performs a gentle, slow push-in shot toward the cat's face, capturing the subtle motion of its tongue against the foam and faint wisps of steam rising into the air. Cinematic lighting, photorealistic textures, and a tranquil, heartwarming atmosphere.",
+      "usage": {
+        "prompt_tokens": 290,
+        "completion_tokens": 650,
+        "total_tokens": 940,
+        "cost": 0.002655
+      }
+    },
+    {
+      "mode": "text-to-video",
+      "input": "An orange tabby sits in a quiet café, slowly raises a ceramic cup and takes a small sip. Hold a medium close-up with a subtle five-second push-in, warm natural window light, shallow depth of field, realistic fur and physically plausible paw motion. Keep the subject and background consistent, with no cuts, new characters or text.",
+      "httpStatus": 200,
+      "output": "A medium close-up shot of an orange tabby cat sitting peacefully at a rustic wooden table inside a quiet, sunlit café. Soft, warm natural light streams through a nearby window, illuminating the fine texture of the cat's fur and casting a gentle glow across the scene with a shallow depth of field. With fluid, physically plausible motion, the cat carefully raises a small ceramic cup with its front paws toward its mouth and takes a delicate, slow sip. The camera performs a smooth, continuous five-second push-in, maintaining steady focus, photorealistic details, and seamless temporal coherence without any cuts or perspective shifts.",
+      "usage": {
+        "prompt_tokens": 352,
+        "completion_tokens": 644,
+        "total_tokens": 996,
+        "cost": 0.002679
+      }
+    },
+    {
+      "mode": "text-to-video",
+      "input": "一只橘猫 drinks coffee, slow camera push-in",
+      "httpStatus": 200,
+      "output": "A charming, fluffy orange tabby cat sits calmly at a rustic wooden table in a cozy, sunlit breakfast nook. In front of the feline rests a small white ceramic mug with delicate wisps of steam curling upward. The ginger cat leans forward with curious amber eyes, gently and rhythmically lapping at the warm coffee froth with its pink tongue, its delicate whiskers twitching naturally. Golden morning sunlight filters through a nearby window, casting a warm glow and highlighting the soft fur texture and subtle dust motes in the air. The camera performs a smooth, continuous push-in toward the cat and the cup, maintaining tight focus and cinematic depth of field throughout the intimate, tranquil moment.",
+      "usage": {
+        "prompt_tokens": 293,
+        "completion_tokens": 693,
+        "total_tokens": 986,
+        "cost": 0.0028185
+      }
+    },
+    {
+      "mode": "image-to-video",
+      "input": "让她转身微笑",
+      "httpStatus": 200,
+      "output": "The elderly woman gently turns her head and shoulders toward the camera, her expression settling into a warm, genuine smile. Natural sunlight softly shifts across her face and black headscarf. Beside the window, the olive leaves sway subtly. The camera maintains a smooth, gentle push-in, keeping clear focus and realistic continuity.",
+      "usage": {
+        "prompt_tokens": 1413,
+        "completion_tokens": 470,
+        "total_tokens": 1883,
+        "cost": 0.00282225
+      }
+    }
+  ]
+}

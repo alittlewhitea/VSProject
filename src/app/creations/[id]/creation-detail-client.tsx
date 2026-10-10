@@ -89,8 +89,8 @@ function pickMediaUrl(result: unknown): string | null {
 function providerLabel(provider?: string) {
   const labels: Record<string, string> = {
     "chatgpt-image": "OpenAI GPT-Image-2",
-    "nano-banana-image": "Nano Banana 2",
-    "nano-banana-edit": "Nano Banana 2 Edit",
+    "nano-banana-image": "Nano Banana 2.1",
+    "nano-banana-edit": "Nano Banana 2.1 Edit",
     "flux-image": "FLUX Schnell",
     "flux-dev": "FLUX Dev",
     "topaz-image": "Topaz Upscale",
@@ -101,7 +101,7 @@ function providerLabel(provider?: string) {
     "kling-video": "Kling",
     "veo-video": "Veo",
     "grok-video": "Grok Imagine Video",
-    "elevenlabs-tts": "ElevenLabs Eleven v3",
+    "elevenlabs-tts": "ElevenLabs Eleven v4 Turbo",
     "minimax-music-2.6": "MiniMax Music 2.6"
   };
   return provider ? labels[provider] || provider : "Unknown provider";

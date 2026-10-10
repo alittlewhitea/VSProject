@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 type FalFetchOptions = RequestInit & {
   attempts?: number;
   timeoutMs?: number;
+  fallback?: boolean;
 };
 
 const execFileAsync = promisify(execFile);
@@ -28,7 +29,7 @@ function getHeaderEntries(headers: HeadersInit | undefined) {
   return Object.entries(headers);
 }
 
-async function fetchFalWithCurl(url: string, options: Omit<FalFetchOptions, "attempts" | "timeoutMs">, timeoutMs: number) {
+async function fetchFalWithCurl(url: string, options: Omit<FalFetchOptions, "attempts" | "timeoutMs" | "fallback">, timeoutMs: number) {
   const method = options.method || "GET";
   const args = [
     "-sS",
@@ -73,7 +74,7 @@ async function fetchFalWithCurl(url: string, options: Omit<FalFetchOptions, "att
 export async function fetchFal(url: string, options: FalFetchOptions = {}) {
   const attempts = options.attempts ?? 3;
   const timeoutMs = options.timeoutMs ?? 20000;
-  const { attempts: _attempts, timeoutMs: _timeoutMs, ...requestInit } = options;
+  const { attempts: _attempts, timeoutMs: _timeoutMs, fallback: allowFallback = true, ...requestInit } = options;
   let lastError = "request failed";
   const startedAt = Date.now();
 
@@ -84,6 +85,7 @@ export async function fetchFal(url: string, options: FalFetchOptions = {}) {
       return response;
     } catch (error) {
       lastError = `curl: ${describeError(error)}`;
+      if (!allowFallback) throw new Error("fal.ai request failed.");
     }
   }
 
@@ -109,7 +111,7 @@ export async function fetchFal(url: string, options: FalFetchOptions = {}) {
     }
   }
 
-  if (process.platform === "win32") {
+  if (process.platform === "win32" && allowFallback) {
     try {
       const response = await fetchFalWithCurl(url, requestInit, timeoutMs);
       console.info(`[fal] ${requestInit.method || "GET"} ${url} via curl fallback in ${Date.now() - startedAt}ms`);

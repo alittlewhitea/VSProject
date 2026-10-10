@@ -10,3 +10,4 @@ coverage/
 scripts/.translation-cache/
 migration/.env.local
 migration/supabase-csv/
+/.data/prompt-ai-probe/

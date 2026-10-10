@@ -16,7 +16,7 @@ export const studioModelMessages: Partial<Record<Locale, Messages>> = {
     "studio.model.happy-horse-video": "Happy Horse 1.1 supports text and image input, 3-15 second clips, 720p or 1080p output, native synchronized audio, and multilingual lip-sync.",
     "studio.model.kling-video": "Kling v3 Pro creates 3-15 second cinematic videos from text or images, with optional native audio.",
     "studio.model.veo-video": "Veo 3.1 creates 4, 6, or 8 second prompt-led videos up to 4K, with optional audio.",
-    "studio.model.elevenlabs-tts": "ElevenLabs Eleven v3 turns scripts into MP3 voiceovers. Credit use scales with character count.",
+    "studio.model.elevenlabs-tts": "ElevenLabs Eleven v4 Turbo turns scripts into MP3 voiceovers. Credit use scales with character count.",
     "studio.model.default": "Describe the subject, style, composition, movement, and constraints clearly for better results."
   },
   "zh-CN": {
@@ -32,7 +32,7 @@ export const studioModelMessages: Partial<Record<Locale, Messages>> = {
     "studio.model.happy-horse-video": "Happy Horse 1.1 支持文字和图片输入，可生成 3-15 秒视频，支持 720p/1080p、原生同步音频和多语言口型同步。",
     "studio.model.kling-video": "Kling v3 Pro 可根据文字或图片生成 3-15 秒电影感视频，并支持可选原生音频。",
     "studio.model.veo-video": "Veo 3.1 可生成 4、6 或 8 秒提示词视频，最高支持 4K，并可选生成音频。",
-    "studio.model.elevenlabs-tts": "ElevenLabs Eleven v3 可将文稿转成 MP3 配音，积分消耗随字符数变化。",
+    "studio.model.elevenlabs-tts": "ElevenLabs Eleven v4 Turbo 可将文稿转成 MP3 配音，积分消耗随字符数变化。",
     "studio.model.default": "请清楚描述主体、风格、构图、运动和限制条件，以获得更准确的结果。"
   },
   "pt-BR": {
@@ -48,7 +48,7 @@ export const studioModelMessages: Partial<Record<Locale, Messages>> = {
     "studio.model.happy-horse-video": "Happy Horse 1.1 aceita texto e imagem, clipes de 3 a 15 segundos, saída em 720p ou 1080p, áudio nativo sincronizado e lip-sync multilíngue.",
     "studio.model.kling-video": "O Kling v3 Pro cria vídeos cinematográficos de 3 a 15 segundos a partir de texto ou imagem, com áudio nativo opcional.",
     "studio.model.veo-video": "O Veo 3.1 cria vídeos de 4, 6 ou 8 segundos orientados por prompt, em até 4K e com áudio opcional.",
-    "studio.model.elevenlabs-tts": "O ElevenLabs Eleven v3 transforma roteiros em locuções MP3. O uso de créditos varia conforme o número de caracteres.",
+    "studio.model.elevenlabs-tts": "O ElevenLabs Eleven v4 Turbo transforma roteiros em locuções MP3. O uso de créditos varia conforme o número de caracteres.",
     "studio.model.default": "Descreva com clareza o assunto, o estilo, a composição, o movimento e as restrições para obter resultados melhores."
   },
   ru: {
@@ -64,7 +64,7 @@ export const studioModelMessages: Partial<Record<Locale, Messages>> = {
     "studio.model.happy-horse-video": "Happy Horse 1.1 принимает текст и изображения, создает ролики 3-15 секунд в 720p или 1080p, с нативным синхронным звуком и многоязычной синхронизацией губ.",
     "studio.model.kling-video": "Kling v3 Pro создаёт кинематографичные ролики длительностью 3–15 секунд из текста или изображения, с дополнительным нативным звуком.",
     "studio.model.veo-video": "Veo 3.1 создаёт ролики длительностью 4, 6 или 8 секунд по описанию, вплоть до 4K и с дополнительным звуком.",
-    "studio.model.elevenlabs-tts": "ElevenLabs Eleven v3 превращает сценарий в MP3-озвучку. Расход кредитов зависит от количества символов.",
+    "studio.model.elevenlabs-tts": "ElevenLabs Eleven v4 Turbo превращает сценарий в MP3-озвучку. Расход кредитов зависит от количества символов.",
     "studio.model.default": "Чётко опишите объект, стиль, композицию, движение и ограничения, чтобы получить более точный результат."
   },
   vi: {
@@ -80,7 +80,7 @@ export const studioModelMessages: Partial<Record<Locale, Messages>> = {
     "studio.model.happy-horse-video": "Happy Horse 1.1 hỗ trợ văn bản và hình ảnh, video 3-15 giây, đầu ra 720p hoặc 1080p, âm thanh đồng bộ gốc và lip-sync đa ngôn ngữ.",
     "studio.model.kling-video": "Kling v3 Pro tạo video điện ảnh 3-15 giây từ văn bản hoặc hình ảnh, kèm âm thanh gốc tùy chọn.",
     "studio.model.veo-video": "Veo 3.1 tạo video 4, 6 hoặc 8 giây theo prompt, hỗ trợ đến 4K và âm thanh tùy chọn.",
-    "studio.model.elevenlabs-tts": "ElevenLabs Eleven v3 chuyển kịch bản thành giọng đọc MP3. Số credit sử dụng thay đổi theo số ký tự.",
+    "studio.model.elevenlabs-tts": "ElevenLabs Eleven v4 Turbo chuyển kịch bản thành giọng đọc MP3. Số credit sử dụng thay đổi theo số ký tự.",
     "studio.model.default": "Hãy mô tả rõ chủ thể, phong cách, bố cục, chuyển động và giới hạn để có kết quả tốt hơn."
   }
 };

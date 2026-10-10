@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     "AI image editing",
     "prompt gallery",
     "GPT Image 2",
-    "Nano Banana 2",
+    "Nano Banana 2.1",
     "FLUX Schnell"
   ],
   openGraph: {
