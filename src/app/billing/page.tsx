@@ -315,7 +315,6 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                 cycle,
                 credits: matchingPurchase.credits,
                 amount_cents: matchingPurchase.amount_cents,
-                value,
                 currency
               },
               accessToken
@@ -380,7 +379,6 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
                 pack_id: matchingPurchase.pack_id,
                 credits: matchingPurchase.credits,
                 amount_cents: matchingPurchase.amount_cents,
-                value: matchingPurchase.amount_cents / 100,
                 currency: (matchingPurchase.currency || "usd").toUpperCase()
               },
               accessToken

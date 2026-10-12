@@ -105,6 +105,12 @@ export function trackEvent(eventName: string, properties: AnalyticsProperties = 
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({
     event: eventName,
+    // GTM's data model persists across pushes. Clear prior purchase fields so
+    // generic event tags cannot reuse a previous transaction's monetary value.
+    value: null,
+    currency: null,
+    transaction_id: null,
+    ecommerce: null,
     anonymous_id: payload.anonymousId,
     session_id: payload.sessionId,
     page_path: payload.pagePath,

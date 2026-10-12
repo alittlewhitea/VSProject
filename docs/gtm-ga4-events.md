@@ -67,10 +67,12 @@ Common parameters pushed to `dataLayer`:
 - `item_name`
 - `item_category`
 
-`checkout_success` is sent after the Stripe purchase is confirmed in DreamFace, and includes `value` in major currency units plus `currency` for GA4 conversion value reporting.
+`checkout_success` is sent after the payment is confirmed in DreamFace. It records the funnel step with `amount_cents` and `currency`, but does not carry a GA4 `value`.
 
-`subscription_checkout_success` is also sent after DreamFace sees Stripe confirmation, and includes `plan_id`, `cycle`, `credits`, `amount_cents`, `value`, and `currency`.
+`subscription_checkout_success` records the historical subscription funnel step with `plan_id`, `cycle`, `credits`, `amount_cents`, and `currency`, without a GA4 `value`.
 
 For GA4 ecommerce reporting, DreamFace also pushes the standard `purchase` event to `dataLayer` for both one-time credit packs and subscription checkouts. The event includes `transaction_id`, `value`, `currency`, and an `ecommerce.items` array. In GTM, create a GA4 Event tag named `purchase` and map the ecommerce object from the data layer.
 
 The same events are mirrored into `public.analytics_events` through `/api/analytics/track` and displayed in the admin funnel panel.
+
+Only `purchase` carries the completed payment's monetary `value`. Otherwise one $4.99 payment contributes $4.99 from `checkout_success` plus $4.99 from `purchase` to GA4's **Event value** total, even with only one purchase event. Generic events clear `value`, `currency`, `transaction_id`, and `ecommerce` in the GTM data model before applying their own parameters, preventing a previous purchase's fields from leaking into later events. `amount_cents` remains available for operational reporting; do not map it to GA4 `value` on checkout-success tags. Ensure GTM does not assign default monetary values to those events or recreate `purchase` from them. This change affects future events; historical GA4 event values are not rewritten. For revenue reports, use Purchase revenue or filter Event value to `purchase`.
