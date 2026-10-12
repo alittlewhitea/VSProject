@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCreditPack } from "../../../../lib/billing";
 import { createPayPalCreditCheckout } from "../../../../lib/paypal-credit-checkout";
+import { createDodoCreditCheckout } from "../../../../lib/dodo-credit-checkout";
+import { isDodoConfigured } from "../../../../lib/dodo";
 import { isPayPalWebhookConfigured } from "../../../../lib/paypal";
 import { consumeRateLimit, trustedPublicOrigin } from "../../../../lib/request-security";
 import { getUserFromBearerToken } from "../../../../lib/server-auth";
@@ -14,13 +16,15 @@ export async function POST(request: Request) {
     const pack = typeof body?.packId === "string" ? getCreditPack(body.packId) : null;
     if (!pack || (body?.type && body.type !== "credits")) return NextResponse.json({ error: "Invalid credit pack." }, { status: 400 });
     const provider = body?.provider ?? "paypal";
-    if (provider !== "paypal") return NextResponse.json({ error: "Invalid payment provider." }, { status: 400 });
-    const ready = isPayPalWebhookConfigured();
+    if (provider !== "paypal" && provider !== "dodo") return NextResponse.json({ error: "Invalid payment provider." }, { status: 400 });
+    const ready = provider === "dodo" ? isDodoConfigured(pack.id) : isPayPalWebhookConfigured();
     if (!ready) return NextResponse.json({ error: "This payment method is temporarily unavailable. Please try again later." }, { status: 503 });
     const rate = await consumeRateLimit({ scope: "credit_checkout", subject: user.id, limit: 6, windowSeconds: 60 });
     if (!rate.allowed) return NextResponse.json({ error: "Please wait before starting another checkout." }, { status: 429 });
     const origin = trustedPublicOrigin(request.url);
-    return NextResponse.json(await createPayPalCreditCheckout(user.id, pack.id, origin));
+    return NextResponse.json(provider === "dodo"
+      ? await createDodoCreditCheckout(user, pack.id, origin)
+      : await createPayPalCreditCheckout(user.id, pack.id, origin));
   } catch (error) {
     console.error("Credit checkout failed:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json({ error: "Unable to start checkout. Please try again later." }, { status: 500 });

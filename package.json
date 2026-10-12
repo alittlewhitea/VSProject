@@ -13,16 +13,18 @@
     "verify:gpt-image": "node scripts/verify-gpt-image.mjs",
     "verify:payments": "node scripts/verify-paypal-checkout.mjs",
     "verify:analytics": "node scripts/verify-analytics-value.mjs",
+    "verify:dodo": "node scripts/verify-dodo-payments.mjs",
     "verify:video-prompt-ai": "node scripts/verify-video-prompt-ai.mjs",
     "verify:studio-performance": "node scripts/verify-studio-performance.mjs",
     "verify:studio-inputs": "node scripts/verify-studio-inputs.mjs",
     "verify:video-keyframes": "node scripts/verify-video-keyframes.mjs",
-    "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run verify:referrals && npm run verify:gpt-image && npm run verify:payments && npm run verify:analytics && npm run verify:video-keyframes && npm run verify:video-prompt-ai && npm run verify:studio-performance && npm run verify:studio-inputs && npm run build"
+    "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run verify:referrals && npm run verify:gpt-image && npm run verify:payments && npm run verify:analytics && npm run verify:dodo && npm run verify:video-keyframes && npm run verify:video-prompt-ai && npm run verify:studio-performance && npm run verify:studio-inputs && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
     "@swc/helpers": "0.5.23",
     "disposable-email-domains": "1.0.62",
+    "dodopayments": "^2.54.2",
     "mysql2": "^3.22.5",
     "next": "^15.5.15",
     "next-intl": "^4.13.0",

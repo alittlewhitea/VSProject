@@ -55,7 +55,7 @@ type Ledger = {
 type Purchase = {
   id: number | string;
   user_id: string;
-  payment_provider: "stripe" | "paypal" | "kyrenpay";
+  payment_provider: "stripe" | "paypal" | "kyrenpay" | "dodo";
   provider_order_id: string | null;
   provider_transaction_id: string | null;
   provider_capture_id: string | null;
@@ -91,7 +91,7 @@ type Subscription = {
 
 type PaymentIncident = {
   id: number | string;
-  payment_provider: "paypal" | "kyrenpay";
+  payment_provider: "paypal" | "kyrenpay" | "dodo";
   event_type: string;
   user_id: string | null;
   purchase_id: number | string | null;
@@ -202,8 +202,10 @@ type OpsPayload = {
   runtimeConfig?: {
     dreamfaceIoEnabled: boolean;
     dreamfaceIoConfigured: boolean;
-    paymentProvider: "stripe" | "paypal" | "kyrenpay";
+    paymentProvider: "stripe" | "paypal" | "kyrenpay" | "dodo";
     paypalCreditCheckoutConfigured: boolean;
+    dodoCreditCheckoutConfigured: boolean;
+    dodoEnvironment: "test_mode" | "live_mode" | null;
     stripeConfigured: boolean;
     paypalConfigured: boolean;
     paypalPlansConfigured: number;
@@ -715,9 +717,12 @@ export default function AdminHomePage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold">PayPal credit pack payments</p>
+                  <p className="text-sm font-semibold">Credit pack payments</p>
                   <span className="rounded-full bg-[#e8f7ef] px-2.5 py-1 text-[11px] font-semibold text-[#087443]">{payload?.runtimeConfig?.paypalCreditCheckoutConfigured ? "Ready" : "Not configured"}</span>
                 </div>
+                <p className="mt-1 text-xs leading-5 text-[#6e6e73]">
+                  Dodo Payments: {payload?.runtimeConfig?.dodoCreditCheckoutConfigured ? `configured (${payload.runtimeConfig.dodoEnvironment})` : "not configured"}. One-time credit packs use hosted checkout and verified payment confirmation.
+                </p>
                 <p className="mt-1 text-xs leading-5 text-[#6e6e73]">
                   Customers can use PayPal for one-time credit packs. PayPal requires its API credentials and webhook ID; no subscription plans are needed for credit purchases. Historical subscription management remains available.
                 </p>

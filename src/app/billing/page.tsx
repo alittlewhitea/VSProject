@@ -25,7 +25,7 @@ type LedgerEntry = {
 
 type PurchaseEntry = {
   id: number | string;
-  payment_provider: "stripe" | "paypal" | "kyrenpay";
+  payment_provider: "stripe" | "paypal" | "kyrenpay" | "dodo";
   provider_order_id: string | null;
   provider_transaction_id: string | null;
   provider_capture_id: string | null;
@@ -138,6 +138,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   const checkoutProvider = searchParams.get("provider");
   const checkoutSessionId = searchParams.get("session_id");
   const paypalOrderId = searchParams.get("token");
+  const dodoCheckoutId = searchParams.get("checkout_id");
   const checkoutPaymentId = searchParams.get("payment_id") || checkoutSessionId;
   const paypalSubscriptionId = searchParams.get("subscription_id");
   const revisedPlanId = searchParams.get("plan_id");
@@ -284,6 +285,35 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
       return undefined;
     }
 
+    if (checkoutState === "dodo_return" && dodoCheckoutId) {
+      setMessage(t("billing.message.paymentChecking"));
+      let cancelled = false, attempts = 0;
+      let timer: ReturnType<typeof setTimeout>;
+      const check = async () => {
+        attempts++;
+        try {
+          const response = await fetch("/api/billing/dodo/sync", {
+            method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({ checkoutId: dodoCheckoutId })
+          });
+          const result = await response.json();
+          if (cancelled) return;
+          if (response.ok && result.completed) {
+            router.replace(`${window.location.pathname}?checkout=success&provider=dodo&payment_id=${encodeURIComponent(dodoCheckoutId)}`);
+            return;
+          }
+          if (response.status === 404 || result.status === "failed" || result.status === "cancelled" || result.status === "review_required") {
+            setMessage(t("billing.message.paymentProcessing")); return;
+          }
+        } catch { /* Webhook can still fulfill while the confirmation API retries. */ }
+        if (cancelled) return;
+        if (attempts < 12) timer = setTimeout(check, 2200);
+        else setMessage(t("billing.message.paymentProcessing"));
+      };
+      void check();
+      return () => { cancelled = true; clearTimeout(timer); };
+    }
+
     if (checkoutState === "subscription_success") {
       setMessage(checkoutProvider === "paypal" ? t("billing.subscriptionSuccess.title") : t("billing.message.subscriptionChecking"));
       let attempts = 0;
@@ -365,7 +395,9 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
         attempts += 1;
         const payload = await loadCredits(accessToken);
         const matchingPurchase = payload?.purchases?.find(
-          (purchase) => !checkoutPaymentId || purchaseReference(purchase) === checkoutPaymentId
+          (purchase) => Boolean(checkoutPaymentId) &&
+            (!checkoutProvider || purchase.payment_provider === checkoutProvider) &&
+            (purchaseReference(purchase) === checkoutPaymentId || purchase.provider_order_id === checkoutPaymentId)
         );
         if (matchingPurchase?.status === "completed") {
           const trackingKey = purchaseReference(matchingPurchase);
@@ -426,11 +458,13 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
       setMessage(t("billing.message.checkoutCancelled"));
     }
     return undefined;
-  }, [accessToken, checkoutPaymentId, checkoutProvider, checkoutState, paypalOrderId, paypalSubscriptionId, revisedCycle, revisedPlanId, router, t]);
+  }, [accessToken, checkoutPaymentId, checkoutProvider, checkoutState, dodoCheckoutId, paypalOrderId, paypalSubscriptionId, revisedCycle, revisedPlanId, router, t]);
 
   const matchingCheckoutPurchase = useMemo(
-    () => purchases.find((purchase) => purchase.status === "completed" && Boolean(checkoutPaymentId) && purchaseReference(purchase) === checkoutPaymentId) || null,
-    [checkoutPaymentId, purchases]
+    () => purchases.find((purchase) => purchase.status === "completed" && Boolean(checkoutPaymentId) &&
+      (!checkoutProvider || purchase.payment_provider === checkoutProvider) &&
+      (purchaseReference(purchase) === checkoutPaymentId || purchase.provider_order_id === checkoutPaymentId)) || null,
+    [checkoutPaymentId, checkoutProvider, purchases]
   );
   const currentSubscription = useMemo(
     () => subscriptions.find((subscription) => ["active", "trialing", "past_due", "approved", "approval_pending", "suspended"].includes(subscription.status.toLowerCase())) || subscriptions[0] || null,
@@ -438,7 +472,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   );
 
   const lowBalance = typeof balance === "number" && balance < CREDIT_LOW_BALANCE_THRESHOLD;
-  async function startCheckout(packId: string, paymentProvider: "paypal") {
+  async function startCheckout(packId: string, paymentProvider: "paypal" | "dodo") {
     if (!accessToken) {
       trackEvent("checkout_login_required", { pack_id: packId });
       const nextPath = typeof window !== "undefined" ? window.location.pathname : "/price";

@@ -31,6 +31,8 @@ const checkout = load('src/app/api/billing/checkout/route.ts', {
   '../../../../lib/billing': catalog,
   '../../../../lib/paypal': paypal,
   '../../../../lib/paypal-credit-checkout': helper,
+  '../../../../lib/dodo': { isDodoConfigured: () => false },
+  '../../../../lib/dodo-credit-checkout': { createDodoCreditCheckout: async () => { throw new Error('Dodo is disabled in the PayPal regression fixture'); } },
   '../../../../lib/server-auth': { getUserFromBearerToken: async () => authenticated ? { id: 'user-test' } : null },
   '../../../../lib/request-security': { consumeRateLimit: async () => ({ allowed }), trustedPublicOrigin: () => 'https://dreamface.invalid' }
 });

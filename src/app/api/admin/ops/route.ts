@@ -10,6 +10,7 @@ import {
 } from "../../../../lib/runtime-config";
 import { DREAMFACE_IO_PROVIDER, isDreamfaceIoConfigured, refundDreamfaceIoBilling } from "../../../../lib/dreamface-io";
 import { isPayPalConfigured, isPayPalWebhookConfigured } from "../../../../lib/paypal";
+import { isDodoConfigured, dodoEnvironment } from "../../../../lib/dodo";
 import { validateConfiguredPayPalPlans } from "../../../../lib/paypal-billing";
 import { reconcilePayPalBilling } from "../../../../lib/paypal-reconciliation";
 
@@ -124,7 +125,7 @@ type AdjustmentPayload = {
 
 type PaymentIncidentRow = {
   id: number | string;
-  payment_provider: "paypal";
+  payment_provider: "paypal" | "dodo";
   event_type: string;
   user_id: string | null;
   purchase_id: number | string | null;
@@ -903,7 +904,9 @@ export async function GET(request: Request) {
     runtimeConfig: {
       dreamfaceIoEnabled,
       dreamfaceIoConfigured: isDreamfaceIoConfigured(),
-      paymentProvider: "paypal",
+      paymentProvider: isDodoConfigured() ? "dodo" : "paypal",
+      dodoCreditCheckoutConfigured: isDodoConfigured(),
+      dodoEnvironment: isDodoConfigured() ? dodoEnvironment() : null,
       paypalCreditCheckoutConfigured: isPayPalWebhookConfigured(),
       stripeConfigured: envPresent("STRIPE_SECRET_KEY") && envPresent("STRIPE_WEBHOOK_SECRET"),
       paypalConfigured: isPayPalConfigured() && isPayPalWebhookConfigured() && paypalPlans.valid,

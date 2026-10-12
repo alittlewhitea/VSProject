@@ -15,7 +15,7 @@ export type CreditPack = {
 };
 
 export type BillingCycle = "weekly" | "monthly" | "yearly";
-export type CreditPaymentProvider = "paypal";
+export type CreditPaymentProvider = "paypal" | "dodo";
 
 export type SubscriptionPlanPrice = {
   amountCents: number;

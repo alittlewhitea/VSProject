@@ -1,11 +1,23 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { CREDIT_PACKS, CREDIT_USAGE_REFERENCE, creditUsageCapacity, formatUsd, type CreditPaymentProvider } from "../lib/billing";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 export function CreditPackGrid({ t, loadingPack, onCheckout, shortfall = 0 }: {
   t: Translate; loadingPack: string | null; onCheckout: (id: string, provider: CreditPaymentProvider) => void; shortfall?: number;
 }) {
+  const [providers, setProviders] = useState<CreditPaymentProvider[]>(["paypal"]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/billing/payment-methods", { signal: controller.signal })
+      .then(response => response.ok ? response.json() : null)
+      .then(payload => {
+        if (controller.signal.aborted || !Array.isArray(payload?.providers)) return;
+        setProviders(payload.providers.includes("dodo") ? ["dodo", "paypal"] : ["paypal"]);
+      }).catch(() => undefined);
+    return () => controller.abort();
+  }, []);
   const recommended = shortfall > 0 ? CREDIT_PACKS.find(pack => pack.credits >= shortfall)?.id : "creator";
   const starter = CREDIT_PACKS.find(pack => pack.id === "starter")!;
   return (
@@ -31,12 +43,19 @@ export function CreditPackGrid({ t, loadingPack, onCheckout, shortfall = 0 }: {
               <p className="mt-2 text-xs">{t("creditShop.example", { images: capacity.images.toLocaleString(), videos: capacity.videos.toLocaleString(), videoSpec: `${CREDIT_USAGE_REFERENCE.video.model} · ${CREDIT_USAGE_REFERENCE.video.seconds}s · ${CREDIT_USAGE_REFERENCE.video.resolution}` })}</p>
             </div>
             <div className="mt-auto grid gap-2" role="group" aria-label={`${t("creditShop.buy")} — ${pack.name}`}>
-              {(["paypal"] as const).map(provider => (
+              {providers.map(provider => (
                 <button key={provider} type="button" data-payment-provider={provider} disabled={Boolean(loadingPack)} onClick={() => onCheckout(pack.id, provider)}
-                  aria-label={`${t("creditShop.buy")} — ${pack.name} — ${"PayPal"}`}
+                  aria-label={`${t("creditShop.buy")} — ${pack.name} — ${provider === "dodo" ? "Credit Card" : "PayPal"}`}
                   aria-busy={loadingPack === `${pack.id}:${provider}`}
-                  className={`min-h-12 min-w-0 rounded-xl px-2 py-3 text-xs font-black transition disabled:opacity-50 bg-[#ffc439] text-[#003087] hover:bg-[#f2ba36]`}>
-                  {loadingPack === `${pack.id}:${provider}` ? t("creditShop.opening") : "PayPal"}
+                  className={`min-h-12 min-w-0 rounded-xl px-2 py-3 text-xs font-black transition disabled:opacity-50 ${provider === "dodo" ? "bg-[#7554e8] text-white hover:bg-[#6544d8]" : "bg-[#ffc439] text-[#003087] hover:bg-[#f2ba36]"}`}>
+                  {loadingPack === `${pack.id}:${provider}` ? t("creditShop.opening") : provider === "dodo" ? (
+                    <span className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5">
+                      <span className="inline-flex items-center gap-1.5">
+                        <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M3 10h18M7 15h3" /></svg>
+                        Credit Card
+                      </span>
+                    </span>
+                  ) : "PayPal"}
                 </button>
               ))}
             </div>

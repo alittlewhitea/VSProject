@@ -2480,7 +2480,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     trackEvent("studio_prompt_improved", { mode, provider, workflow: activeWorkflow }, accessToken);
   }
 
-  async function startStudioCreditCheckout(packId: string, paymentProvider: "paypal") {
+  async function startStudioCreditCheckout(packId: string, paymentProvider: "paypal" | "dodo") {
     const checkoutSurface = billingGenerationContext ? "generation_insufficient_modal" : "studio_modal";
     if (!accessToken) {
       trackEvent("checkout_login_required", { pack_id: packId, surface: checkoutSurface });
