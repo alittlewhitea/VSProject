@@ -70,7 +70,7 @@ export async function enhanceVideoPrompt(context: VideoPromptContext, userId: st
       if (!response.ok) throw new Error("Provider unavailable");
       const payload = await response.json();
       usage = enhancementUsage(payload);
-      const parsed = parseEnhancementOutput(payload);
+      const parsed = parseEnhancementOutput(payload, context.prompt);
       result = { ...fallback, enhancedPrompt: parsed.output, status: "enhanced", usage: parsed.usage };
       return result;
     } catch {

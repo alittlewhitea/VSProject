@@ -16,7 +16,7 @@ LLM 读取当前模型能力和参数，返回纯文本；现有生成请求仅�
 - 视觉：`https://fal.run/openrouter/router/vision`，通过 `image_urls` 传入原首帧和可选尾帧。
 - 模型：`google/gemini-3.8-flash`，继续使用服务端 `FAL_KEY`。
 - 新环境变量：`AI_PROMPT_ENHANCEMENT_ENABLED=true`、`AI_PROMPT_MODEL=google/gemini-3.8-flash`，省略时也是这两个默认值。关闭总开关后直接回退原文。
-- Temperature 0.7，禁用 Web Search。**真实接口拒绝 reasoning=false；必须设为 true。650 tokens 的试验中出现句中截断，因此最终上限为 1200 tokens。**仅使用 `output`，忽略 reasoning。输出必须非空、长度合规、句子完整且不含标题、解释、Markdown、JSON 或控制字符；不合格则回退。
+- Temperature 0.7，禁用 Web Search。真实接口要求 reasoning=true；仅使用 `output`，忽略 reasoning。短输入上限 1200 tokens；超过 1200 字符的详细脚本上限 3000 tokens，输出最多 5000 字符。详细脚本要求保留分段时序、首尾帧、品牌、引用文案及限制，不得摘要化。格式校验之外还检查时间区间、英文数字秒数、引用文字和显式英文 No/Avoid 限制；长脚本输出不足原文 75% 也回退原文。这是保守文本校验，不是语义等价判定，无法识别的改写会保留原文。允许纯文本分段时序，不允许 Markdown、解释、JSON 或控制字符。
 - 日志只记录哈希请求标识、模型、工作区、状态、耗时和实际 usage/cost，不记录完整提示词、图片 URL、账户 ID 或密钥。收到 usage 的无效输出也会记录已发生的成本。
 - 现有上传为 data URL，无需新增 R2 签名逻辑。接受 JPEG/PNG/WebP 并检查文件头和大小；远程图仅接受公共 HTTPS URL，不接受内网、凭证 URL 或永久访问密钥。私有对象应使用现有上传机制；本次未引入私有 R2 存储。
 

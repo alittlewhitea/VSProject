@@ -34,8 +34,24 @@ for (const patch of [{ prompt: '' }, { prompt: 'x'.repeat(5001) }, { model: 'unk
 const good = 'An orange cat sits at a café table, gently lifts a coffee cup and takes a sip. Warm window light and a slow push-in maintain a coherent continuous shot.';
 assert.equal(core.parseEnhancementOutput({ data: { output: good, usage: { cost: .0001, secret: 'no' } } }).usage.cost, .0001);
 assert.equal(core.parseEnhancementOutput({ output: '```text\n' + good + '\n```' }).output, good);
-for (const output of ['', 'short', '# Enhanced Prompt\n'+good, 'Here is your prompt: '+good, '{"prompt":"test"}', '- '+good, 'I cannot help with that request.', 'x'.repeat(3001), 'A cat drinks coffee as the camera slowly']) assert.throws(() => core.parseEnhancementOutput({ output }));
+for (const output of ['', 'short', '# Enhanced Prompt\n'+good, 'Here is your prompt: '+good, '{"prompt":"test"}', '- '+good, 'I cannot help with that request.', 'x'.repeat(5001), 'A cat drinks coffee as the camera slowly']) assert.throws(() => core.parseEnhancementOutput({ output }));
 assert.throws(() => core.parseEnhancementOutput({ output: good, partial: true }));
+const detailed = `Create a 10-second Ozelle Minilab commercial. Exact first and last reference frames.
+0–1 SECOND: Blue energy pulse; crash zoom within 0.5 seconds.
+1–3 SECONDS: Hematology blood cells, Biochemistry molecules and Immunoassay particles converge on the same analyzer.
+3–7 SECONDS: Pull back; transform into the clinical environment while preserving product geometry.
+7–10 SECONDS: Reach the MEDICA poster by 8 seconds and hold for the last 2 seconds.
+Preserve "Broader Testing. One Compact System." and "Explore More at MEDICA" from the reference. No voiceover. No product morphing. Avoid new readable text.
+` + 'Preserve the original analyzer identity, screen position, proportions, branding and physical features throughout the controlled blue-white cinematic lighting. '.repeat(8);
+assert.equal(core.buildEnhancementInput({ ...base, prompt: detailed }, 'test').max_tokens, 3000);
+const preserved = detailed.trim();
+assert.equal(core.parseEnhancementOutput({ output: preserved }, detailed).output, preserved);
+assert.throws(() => core.parseEnhancementOutput({ output: good }, detailed));
+assert.throws(() => core.parseEnhancementOutput({ output: preserved.replace('7–10 SECONDS', 'Later') }, detailed));
+assert.throws(() => core.parseEnhancementOutput({ output: preserved.replace('Explore More at MEDICA', 'Visit us') }, detailed));
+assert.throws(() => core.parseEnhancementOutput({ output: preserved.replace('No voiceover.', '') }, detailed));
+assert.throws(() => core.parseEnhancementOutput({ output: preserved.replace('0.5 seconds', 'quickly') }, detailed));
+assert.doesNotThrow(() => core.validateEnhancementFidelity(detailed, preserved.replaceAll('–', '-')));
 assert.equal(core.enhancementUsage({ output: 'truncated', usage: { cost: .001 } }).cost, .001);
 
 // Execute the React hook with a small deterministic hook runner; no browser or paid calls.
@@ -79,6 +95,8 @@ const service = loader({ './fal-fetch': { fetchFal: async () => { serviceCalls++
 const results = await Promise.all([service.enhanceVideoPrompt(base, 'test-user'), service.enhanceVideoPrompt(base, 'test-user')]);
 assert.equal(serviceCalls, 1); assert.equal(rates, 1); assert.equal(results[0].status, 'enhanced');
 await service.enhanceVideoPrompt(base, 'test-user'); assert.equal(serviceCalls, 1);
+const summarized = await service.enhanceVideoPrompt({ ...base, prompt: detailed }, 'detailed-test-user');
+assert.equal(summarized.status, 'fallback'); assert.equal(summarized.enhancedPrompt, detailed);
 rejectProvider = true; assert.equal((await service.enhanceVideoPrompt({ ...base, prompt: 'new prompt' }, 'test-user')).status, 'fallback');
 allowed = false; const before = serviceCalls; await service.enhanceVideoPrompt({ ...base, prompt: 'limited prompt' }, 'test-user'); assert.equal(serviceCalls, before);
 process.env.AI_PROMPT_ENHANCEMENT_ENABLED = 'false'; assert.equal((await service.enhanceVideoPrompt(base, 'test-user')).status, 'disabled'); delete process.env.AI_PROMPT_ENHANCEMENT_ENABLED;
