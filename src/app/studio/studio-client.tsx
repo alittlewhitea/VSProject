@@ -1,6 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import Link from "../../features/studio/studio-link";
+import { navigateStudio } from "../../lib/studio-navigation";
+import { referenceTextWithoutExamples, shouldApplyUrlInput, type AppliedUrlInput } from "../../lib/studio-workspace-inputs";
 import { useVideoPromptEnhancement } from "../../features/studio/use-video-prompt-enhancement";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
 import { isGptImageProvider, gptImageQuality, gptImageExample, GPT_IMAGE_EXAMPLE_PROMPTS, GPT_IMAGE_EXAMPLE_REFERENCES, GPT_IMAGE_SIZES, GPT_IMAGE_QUALITIES } from "../../lib/gpt-image-models";
@@ -485,7 +487,7 @@ function defaultPromptForProvider(provider: string, workflow?: StudioWorkflow, l
     if (provider === "minimax-h3-max-video") return MINIMAX_H3_MAX_AVATAR_PROMPT;
   }
   if ((provider === "minimax-h3-max-video" || provider === "minimax-h3-max-turbo-video") && (workflow === "text-to-video" || workflow === "image-to-video")) {
-    return videoExampleFor(provider, workflow)?.prompts[0] || "";
+    return "";
   }
   return "";
 }
@@ -721,6 +723,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       : gptImageExample(initialProvider,initialWorkflow)?.references.join("\n") || ""
   );
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
+  const lastAppliedPromptUrlRef = useRef<AppliedUrlInput | null>(null);
+  const lastAppliedReferenceUrlRef = useRef<AppliedUrlInput | null>(null);
   // Provider/workflow transitions replace built-in examples, never user-uploaded files.
   useEffect(() => {
     if(mode !== "image") return;
@@ -988,7 +992,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   useEffect(() => {
     const promptParam = sp.get("prompt");
-    if (promptParam) {
+    const applyPromptParam = shouldApplyUrlInput(lastAppliedPromptUrlRef.current, mode, promptParam);
+    lastAppliedPromptUrlRef.current = { mode, value: promptParam };
+    if (promptParam && applyPromptParam) {
       setPrompt(promptParam);
     }
 
@@ -1016,10 +1022,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     }
 
     const referenceParam = sp.get("reference");
+    const applyReferenceParam = shouldApplyUrlInput(lastAppliedReferenceUrlRef.current, mode, referenceParam);
+    lastAppliedReferenceUrlRef.current = { mode, value: referenceParam };
     if (mode === "image" && referenceParam) {
       const referenceWorkflow = workflowForMode(mode, sp.get("workflow"));
       setImageWorkflow(referenceWorkflow === "enhance-cleanup" || referenceWorkflow === "background-remove" ? referenceWorkflow : "image-to-image");
-      setReferenceImagesText(referenceParam);
+      if (applyReferenceParam) setReferenceImagesText(referenceParam);
+    } else if (mode === "video" && referenceParam) {
+      if (applyReferenceParam) setReferenceImagesText(referenceParam);
     } else if (mode === "avatar") {
       const avatarProvider = isProviderAllowedForMode(providerParam, mode) ? providerParam : providerForWorkflow(workflowForMode(mode, sp.get("workflow")), null);
       if (isAvatarProvider(avatarProvider || "")) {
@@ -1623,7 +1633,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       params.delete("imageSize");
       params.set("ratio", "16:9");
     }
-    router.replace(`/studio?${params.toString()}`, { scroll: false });
+    navigateStudio(`/studio?${params.toString()}`, { replace: true, scroll: false });
   }
 
   function applyProvider(nextProvider: string, videoOverrides?: { duration?: string; ratio?: string; resolution?: string }) {
@@ -1659,10 +1669,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       }
     }
     if (mode === "image") {
-      if (nextProvider !== "topaz-image" && nextProvider !== "bria-background-remove" && !isGptImageProvider(nextProvider)) {
-        setReferenceImagesText("");
-        setReferenceImageFiles([]);
-      }
+      if (referenceImageFiles.length) setReferenceImagesText(current => referenceTextWithoutExamples(current));
       if (nextProvider === "topaz-image") setImageWorkflow("enhance-cleanup");
       if (nextProvider === "bria-background-remove") setImageWorkflow("background-remove");
       if (nextProvider === "nano-banana-2-lite" && activeWorkflow === "image-to-image") setImageWorkflow("text-to-image");
@@ -1676,7 +1683,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       params.set("provider", nextProvider);
       params.set("imageSize", nextImageSize);
       params.set("ratio", defaultImageRatioForProvider(nextProvider, nextImageSize));
-      router.replace(`/studio?${params.toString()}`, { scroll: false });
+      navigateStudio(`/studio?${params.toString()}`, { replace: true, scroll: false });
     } else if (mode === "audio") {
       setReferenceImagesText("");
       setReferenceImageFiles([]);
@@ -1686,7 +1693,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       params.set("workflow", audioWorkflow);
       params.set("provider", nextProvider);
       params.delete("imageSize");
-      router.replace(`/studio?${params.toString()}`, { scroll: false });
+      navigateStudio(`/studio?${params.toString()}`, { replace: true, scroll: false });
     } else {
       const nextConfiguredWorkflow = activeWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
       const nextRatioOptions = videoModelRatios(nextProvider, nextConfiguredWorkflow);
@@ -1728,7 +1735,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       } else {
         params.delete("resolution");
       }
-      router.replace(`/studio?${params.toString()}`, { scroll: false });
+      navigateStudio(`/studio?${params.toString()}`, { replace: true, scroll: false });
     }
   }
 
@@ -1783,6 +1790,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     );
     if (mode === "video" || mode === "avatar") {
       setReferenceImagesText("");
+    } else if (mode === "image" && nextFiles.length) {
+      setReferenceImagesText(current => referenceTextWithoutExamples(current));
     }
     setReferenceImageFiles((prev) => (singleReferenceWorkflow ? nextFiles.slice(0, 1) : [...prev, ...nextFiles].slice(0, 4)));
     if (mode === "image" && imageWorkflow === "text-to-image") {
@@ -1800,7 +1809,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       params.set("provider", nextProvider);
       params.set("imageSize", nextImageSize);
       params.set("ratio", defaultImageRatioForProvider(nextProvider, nextImageSize));
-      router.replace(`/studio?${params.toString()}`, { scroll: false });
+      navigateStudio(`/studio?${params.toString()}`, { replace: true, scroll: false });
     }
     if (mode === "avatar") {
       setVideoWorkflow("avatar-video");
@@ -1828,7 +1837,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       params.set("ratio", nextRatio);
       if (videoModelConfig(nextProvider)?.showResolutionControl) params.set("resolution", nextResolution);
       else params.delete("resolution");
-      router.replace(`/studio?${params.toString()}`, { scroll: false });
+      navigateStudio(`/studio?${params.toString()}`, { replace: true, scroll: false });
     }
     trackEvent(
       "studio_reference_uploaded",
@@ -2202,7 +2211,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         failureReason: payload.failureReason || null
       };
       setTasks((prev) => [queuedTask, ...prev.filter((task) => task.id !== queuedTask.id)]);
-      router.push(studioProjectHref(payload.taskId));
+      navigateStudio(studioProjectHref(payload.taskId));
       trackEvent(
         "generation_queued",
         {
@@ -3690,9 +3699,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       onGenerateAudioChange={setGenerateAudio}
                       onSeedChange={setSeed}
                       onUsePromptShowcase={(showcase) => {
-                        // Examples use the lowest-cost Turbo resolution, not their source model.
-                        applyProvider("minimax-h3-max-turbo-video", { duration: showcase.duration, ratio: showcase.ratio || "16:9", resolution: "480p" });
-                        setPrompt(showcase.prompt);
+                        videoPromptAI.reset(showcase.prompt);
+                        if (videoModelDurations(provider).includes(showcase.duration)) setDuration(showcase.duration);
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
                       onGenerate={handleGenerateClick}

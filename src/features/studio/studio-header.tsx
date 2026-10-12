@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "./studio-link";
 import { referralTranslator } from "../../lib/referral-i18n";
 import type { Locale } from "../../i18n/routing";
 import { StudioIcon, StudioMobileMenu, type StudioNavigationMode } from "./studio-navigation";

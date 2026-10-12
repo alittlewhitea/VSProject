@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "./studio-link";
 import { PromptEnhancementHistory } from "./prompt-enhancement-history";
 import { useState } from "react";
 
