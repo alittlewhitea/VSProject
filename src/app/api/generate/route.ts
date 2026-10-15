@@ -1,4 +1,5 @@
 import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyframes";
+import { DREAMFACE_IO_SUSPENDED } from "../../../lib/model-release";
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } from "../../../lib/gpt-image-models";
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
@@ -226,7 +227,7 @@ const KLING_TEXT_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1"]);
 const VEO_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const GEMINI_OMNI_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const MINIMAX_H3_MAX_VIDEO_ASPECT_RATIOS = new Set(["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
-const MINIMAX_H3_MAX_VIDEO_RESOLUTIONS = new Set(["480p", "768p"]);
+const MINIMAX_H3_MAX_VIDEO_RESOLUTIONS = new Set(["480p", "768p", "1080p"]);
 const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p", "4k"]);
 const SEEDANCE_MINI_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
@@ -368,7 +369,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     return {
       prompt,
       duration,
-      resolution: resolution === "768p" ? "768P" : "480P",
+      resolution: resolution.toUpperCase(),
       prompt_expansion_mode: "balanced",
       enable_safety_checker: false,
       ...(imageUrl
@@ -794,6 +795,9 @@ export async function POST(request: Request) {
     const isAvatarProvider = isAvatarRequest(body);
     const isH3MaxAvatar = isH3MaxAvatarRequest(body);
     const isDreamfaceIo = body.provider === DREAMFACE_IO_PROVIDER;
+    if (isDreamfaceIo && DREAMFACE_IO_SUSPENDED) {
+      return NextResponse.json({ error: "DreamFace IO is temporarily unavailable. Please choose another model." }, { status: 503 });
+    }
     const isDreamfaceIoTalkingAvatar = isDreamfaceIo && body.mode === "avatar";
     const storageMode = storedModeForRequest(body);
     const isPromptlessImageTool = body.mode === "image" && (body.provider === "topaz-image" || body.provider === "bria-background-remove");

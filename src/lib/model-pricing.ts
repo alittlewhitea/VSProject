@@ -219,11 +219,18 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
   }
 
   if (input.provider === "minimax-h3-max-turbo-video") {
-    return Math.ceil(seconds * (input.resolution?.toLowerCase() === "768p" ? 6.4 : 2));
+    // Fixed customer pricing at 480p; other tiers use the documented promotional rates.
+    const resolution = input.resolution?.toLowerCase();
+    if (resolution !== "768p" && resolution !== "1080p") return Math.ceil(seconds * 3);
+    const secondPrice = resolution === "1080p" ? 0.048 : resolution === "768p" ? 0.024 : 0.015;
+    return creditsFromFalUsd(seconds * secondPrice, 1);
   }
 
   if (input.provider === "minimax-h3-max-video") {
-    return Math.ceil(seconds * (input.resolution?.toLowerCase() === "768p" ? 9.6 : 6));
+    const resolution = input.resolution?.toLowerCase();
+    if (resolution === "1080p") return Math.ceil(seconds * 20);
+    if (resolution !== "768p") return Math.ceil(seconds * 6);
+    return creditsFromFalUsd(seconds * 0.048, 1);
   }
 
   if (input.provider === "gemini-omni-flash-video") {
@@ -285,9 +292,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Text to Video",
     endpointId: "minimax/h3-max-turbo/text-to-video",
-    falBasis: "Promotional launch pricing through September 7: $0.00625 per output second at 480p and $0.01 at 768p.",
+    falBasis: "Fixed promotional pricing (40% off): $0.015 per output second at 480p, $0.024 at 768p and $0.048 at 1080p. No automatic date-based increase.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "minimax-h3-max-turbo-video", duration: "5s", resolution: "480p" }),
-    unitNote: "10 credits / 5 sec at 480p; 32 at 768p"
+    unitNote: "15 credits / 5 sec at 480p; 30 at 768p; 60 at 1080p"
   },
   {
     provider: "minimax-h3-max-turbo-video",
@@ -295,9 +302,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Image to Video",
     endpointId: "minimax/h3-max-turbo/image-to-video",
-    falBasis: "Promotional launch pricing through September 7: $0.00625 per output second at 480p and $0.01 at 768p.",
+    falBasis: "Fixed promotional pricing (40% off): $0.015 per output second at 480p, $0.024 at 768p and $0.048 at 1080p. No automatic date-based increase.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "minimax-h3-max-turbo-video", duration: "5s", resolution: "480p", hasReferences: true }),
-    unitNote: "10 credits / 5 sec at 480p; 32 at 768p"
+    unitNote: "15 credits / 5 sec at 480p; 30 at 768p; 60 at 1080p"
   },
   {
     provider: "minimax-h3-max-video",
@@ -305,9 +312,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Text to Video",
     endpointId: "minimax/h3-max/text-to-video",
-    falBasis: "Promotional launch pricing through September 7: $0.0125 per output second at 480p and $0.02 at 768p.",
+    falBasis: "Fixed promotional pricing (40% off): $0.03 per output second at 480p, $0.048 at 768p and $0.096 at 1080p. No automatic date-based increase.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "minimax-h3-max-video", duration: "5s", resolution: "480p" }),
-    unitNote: "30 credits / 5 sec at 480p; 48 at 768p"
+    unitNote: "30 credits / 5 sec at 480p; 60 at 768p; 100 at 1080p"
   },
   {
     provider: "minimax-h3-max-video",
@@ -315,19 +322,9 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     mode: "video",
     workflow: "Image to Video",
     endpointId: "minimax/h3-max/image-to-video",
-    falBasis: "Promotional launch pricing through September 7: $0.0125 per output second at 480p and $0.02 at 768p.",
+    falBasis: "Fixed promotional pricing (40% off): $0.03 per output second at 480p, $0.048 at 768p and $0.096 at 1080p. No automatic date-based increase.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "minimax-h3-max-video", duration: "5s", resolution: "480p", hasReferences: true }),
-    unitNote: "30 credits / 5 sec at 480p; 48 at 768p"
-  },
-  {
-    provider: "dreamface-io-video",
-    label: "DreamFace IO",
-    mode: "video",
-    workflow: "Text / Image to Video",
-    endpointId: "dreamface-io",
-    falBasis: "DreamFace IO uses a private server-side video provider integration.",
-    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "dreamface-io-video", duration: "5s" }),
-    unitNote: "10 credits / 5 sec after daily free allowance"
+    unitNote: "30 credits / 5 sec at 480p; 60 at 768p; 100 at 1080p"
   },
   {
     provider: "gemini-omni-flash-video",

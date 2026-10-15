@@ -18,7 +18,9 @@
     "verify:studio-performance": "node scripts/verify-studio-performance.mjs",
     "verify:studio-inputs": "node scripts/verify-studio-inputs.mjs",
     "verify:video-keyframes": "node scripts/verify-video-keyframes.mjs",
-    "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run verify:referrals && npm run verify:gpt-image && npm run verify:payments && npm run verify:analytics && npm run verify:dodo && npm run verify:video-keyframes && npm run verify:video-prompt-ai && npm run verify:studio-performance && npm run verify:studio-inputs && npm run build"
+    "verify:model-upgrades": "node scripts/verify-model-upgrades.mjs",
+    "verify:model-suspension": "node scripts/verify-model-suspension.mjs",
+    "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run verify:referrals && npm run verify:gpt-image && npm run verify:payments && npm run verify:analytics && npm run verify:dodo && npm run verify:video-keyframes && npm run verify:model-upgrades && npm run verify:model-suspension && npm run verify:video-prompt-ai && npm run verify:studio-performance && npm run verify:studio-inputs && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

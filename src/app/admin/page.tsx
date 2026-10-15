@@ -7,6 +7,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { TopNav } from "../../components/top-nav";
 import { AppButton } from "../../components/ui/button";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
+import { DREAMFACE_IO_SUSPENDED } from "../../lib/model-release";
 
 type AdminUser = {
   id: string;
@@ -689,7 +690,7 @@ export default function AdminHomePage() {
               <div>
                 <p className="text-sm font-semibold">DreamFace IO</p>
                 <p className="mt-1 text-xs text-[#6e6e73]">
-                  Master switch for the text-to-video and image-to-video model.
+                  {DREAMFACE_IO_SUSPENDED ? "Temporarily suspended while the provider resolves queue issues." : "Master switch for the text-to-video and image-to-video model."}
                   {payload?.runtimeConfig?.dreamfaceIoConfigured ? "" : " API key is not configured."}
                 </p>
               </div>
@@ -697,7 +698,7 @@ export default function AdminHomePage() {
                 type="button"
                 role="switch"
                 aria-checked={Boolean(payload?.runtimeConfig?.dreamfaceIoEnabled)}
-                disabled={savingModelSwitch}
+                disabled={savingModelSwitch || DREAMFACE_IO_SUSPENDED}
                 onClick={() => setDreamfaceIoEnabled(!payload?.runtimeConfig?.dreamfaceIoEnabled)}
                 className={`relative h-8 w-14 rounded-full transition ${
                   payload?.runtimeConfig?.dreamfaceIoEnabled ? "bg-emerald-500" : "bg-[#d1d5db]"

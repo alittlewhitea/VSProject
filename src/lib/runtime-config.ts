@@ -1,4 +1,4 @@
-
+import { DREAMFACE_IO_SUSPENDED } from "./model-release";
 export const DREAMFACE_IO_ENABLED_KEY = "dreamface_io_enabled";
 // Includes retired providers for historical orders.
 export type PaymentProvider = "stripe" | "paypal" | "kyrenpay" | "dodo";
@@ -8,6 +8,7 @@ function envDefaultEnabled() {
 }
 
 export async function isDreamfaceIoEnabled(admin: any | null) {
+  if (DREAMFACE_IO_SUSPENDED) return false;
   if (!admin) return false;
 
   const { data, error } = await admin

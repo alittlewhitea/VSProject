@@ -10,6 +10,18 @@ const route = readFileSync('src/app/api/generate/route.ts', 'utf8');
 const source = route.slice(route.indexOf('function isValidBody'), route.indexOf('function buildRequestSettings'));
 const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused');
 const start = 'https://example.invalid/start.png', end = 'https://example.invalid/end.png';
+for (const provider of ['minimax-h3-max-video','minimax-h3-max-turbo-video']) {
+  for (const resolution of ['480p','768p','1080p']) for (const imageUrls of [[],[start],[start,end]]) {
+    const body={mode:'video',provider,imageUrls,duration:'15s',ratio:'9:16',resolution};
+    const input=builders.buildFalInput(body,'Preserve keyframes');
+    assert.equal(input.resolution,resolution.toUpperCase());
+    assert.equal(input.duration,15);
+    assert.equal(input.image_url,imageUrls[0]);
+    assert.equal(input.end_image_url,imageUrls[1]);
+    assert.equal(builders.getModelId('video',provider,Boolean(imageUrls.length)),
+      `minimax/${provider==='minimax-h3-max-video'?'h3-max':'h3-max-turbo'}/${imageUrls.length?'image-to-video':'text-to-video'}`);
+  }
+}
 for (const provider of ['minimax-h3-max-video', 'minimax-h3-max-turbo-video', 'seedance-video', 'gemini-omni-flash-video']) {
   assert.equal(frames.videoSupportsEndFrame(provider), true);
   for (const imageUrls of [[], [start], [start, end]]) {

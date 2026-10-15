@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { DREAMFACE_IO_SUSPENDED } from "../../../../lib/model-release";
 import { randomUUID } from "node:crypto";
 import { getAdminUserFromRequest } from "../../../../lib/admin-auth";
 import { addCredits, refundCredits, spendCredits } from "../../../../lib/credits";
@@ -971,6 +972,9 @@ export async function POST(request: Request) {
   }
 
   if (action === "set_dreamface_io_enabled") {
+    if (body?.enabled === true && DREAMFACE_IO_SUSPENDED) {
+      return NextResponse.json({ error: "DreamFace IO is temporarily suspended in this release." }, { status: 409 });
+    }
     if (typeof body?.enabled !== "boolean") {
       return NextResponse.json({ error: "Enabled must be a boolean." }, { status: 400 });
     }

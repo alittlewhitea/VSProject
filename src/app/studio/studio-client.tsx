@@ -355,7 +355,7 @@ const WORKFLOW_META: Record<
     label: "AI Talking",
     description: "Upload one image, type what it should say, and create a talking video.",
     recommendedProvider: "minimax-h3-max-turbo-video",
-    providers: ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"]
+    providers: ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "kling-avatar-standard", "kling-avatar-pro"]
   },
   "text-to-video": {
     label: "Text to Video",
@@ -617,9 +617,10 @@ function shortInputValue(value: string) {
 
 function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (!provider) return false;
+  if (provider === "dreamface-io-video") return false;
   if (mode === "image") return ["gpt-image-2.5-sunburst", "chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return ["minimax-music-2.6", "elevenlabs-tts"].includes(provider);
-  if (mode === "avatar") return ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "dreamface-io-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
+  if (mode === "avatar") return ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return Boolean(videoModelConfig(provider)) || isAvatarProvider(provider);
 }
 

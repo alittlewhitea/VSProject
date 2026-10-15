@@ -109,7 +109,7 @@ const relatedTools = [
   ["AI Video Generator", "/studio?mode=video&workflow=text-to-video"],
   ["Image to Video", "/studio?mode=video&workflow=image-to-video"],
   ["Text to Video", "/studio?mode=video&workflow=text-to-video"],
-  ["AI Avatar", "/studio?mode=avatar&workflow=avatar-video&provider=dreamface-io-video"]
+  ["AI Avatar", "/studio?mode=avatar&workflow=avatar-video&provider=minimax-h3-max-turbo-video"]
 ] as const;
 
 function SectionHeading({ eyebrow, title, description }: { eyebrow?: string; title: string; description?: string }) {

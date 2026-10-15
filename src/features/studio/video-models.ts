@@ -136,7 +136,7 @@ export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
       "image-to-video": { ratios: ["source"] }
     },
     durations: VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 5),
-    resolutions: ["480p", "768p"],
+    resolutions: ["480p", "768p", "1080p"],
     defaultDuration: "5s",
     defaultResolution: "480p",
     showResolutionControl: true,
@@ -154,7 +154,7 @@ export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
       "image-to-video": { ratios: ["source"] }
     },
     durations: VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 5),
-    resolutions: ["480p", "768p"],
+    resolutions: ["480p", "768p", "1080p"],
     defaultDuration: "5s",
     defaultResolution: "480p",
     showResolutionControl: true,
@@ -305,8 +305,8 @@ export const VIDEO_PROVIDER_META: Record<string, VideoProviderMeta> = {
 };
 
 export const VIDEO_PROVIDERS_BY_WORKFLOW: Record<StudioVideoWorkflow, string[]> = {
-  "text-to-video": ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "dreamface-io-video", "grok-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
-  "image-to-video": ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "dreamface-io-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "grok-video"]
+  "text-to-video": ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "grok-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
+  "image-to-video": ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "grok-video"]
 };
 
 export const VIDEO_EXAMPLE_PROMPTS = Object.values(VIDEO_MODEL_CONFIGS)

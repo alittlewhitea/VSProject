@@ -14,6 +14,22 @@ function load(path) {
 
 const pricing=load('src/lib/model-pricing.ts');
 const estimate=pricing.estimateGenerationCredits;
+const videos=load('src/features/studio/video-models.ts');
+// All four H3 endpoints share the same resolution-dependent estimate. Use fixed promotional rates even if live pricing changes.
+for (const [provider,expected] of [
+ ['minimax-h3-max-video',{'480p':[30,60,90],'768p':[60,119,179],'1080p':[100,200,300]}],
+ ['minimax-h3-max-turbo-video',{'480p':[15,30,45],'768p':[30,60,90],'1080p':[60,119,179]}]
+]) {
+ assert.deepEqual(videos.VIDEO_MODEL_CONFIGS[provider].resolutions,['480p','768p','1080p']);
+ for (const [resolution,costs] of Object.entries(expected)) for (const hasReferences of [false,true]) {
+  for (const [index,seconds] of [5,10,15].entries()) {
+   const input={mode:'video',provider,resolution,duration:seconds+'s',hasReferences};
+   assert.equal(estimate(input),costs[index]);
+   assert.equal(estimate({...input,falUnitPriceUsd:0.001,falUnit:'second'}),costs[index]);
+  }
+ }
+ assert.equal(estimate({mode:'video',provider,duration:'5s'}),expected['480p'][0]);
+}
 assert.equal(estimate({mode:'audio',provider:'elevenlabs-tts',promptText:'x'.repeat(1000)}),10);
 assert.equal(estimate({mode:'audio',provider:'elevenlabs-tts',promptText:'x'.repeat(5000)}),50);
 for(const provider of ['nano-banana-image','nano-banana-edit']) {

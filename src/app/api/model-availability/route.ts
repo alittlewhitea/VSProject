@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { DREAMFACE_IO_SUSPENDED } from "../../../lib/model-release";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { isDreamfaceIoConfigured } from "../../../lib/dreamface-io";
 import { isDreamfaceIoEnabled } from "../../../lib/runtime-config";
@@ -6,6 +7,9 @@ import { isDreamfaceIoEnabled } from "../../../lib/runtime-config";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (DREAMFACE_IO_SUSPENDED) {
+    return NextResponse.json({ models: { dreamfaceIo: false } });
+  }
   if (process.env.NODE_ENV !== "production") {
     return NextResponse.json({
       models: {
