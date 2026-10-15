@@ -476,17 +476,11 @@ function ratioFromImageSize(value: string) {
 const MINIMAX_MUSIC_DEFAULT_PROMPT = "City Pop, 80s retro, groovy synth bass, warm female vocal, 104 BPM, nostalgic urban night";
 
 function defaultPromptForProvider(provider: string, workflow?: StudioWorkflow, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
+  if (workflow === "avatar-video" || isAvatarProvider(provider)) return "";
   const imageExample = gptImageExample(provider,workflow);
   if(imageExample) return imageExample.prompt;
-  if (provider === "kling-avatar-standard" || provider === "kling-avatar-pro") {
-    return KLING_AVATAR_DEFAULT_SCRIPT;
-  }
   if (provider === "minimax-music-2.6") {
     return localizedMusicPrompt;
-  }
-  if (workflow === "avatar-video") {
-    if (provider === "minimax-h3-max-turbo-video") return MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT;
-    if (provider === "minimax-h3-max-video") return MINIMAX_H3_MAX_AVATAR_PROMPT;
   }
   if ((provider === "minimax-h3-max-video" || provider === "minimax-h3-max-turbo-video") && (workflow === "text-to-video" || workflow === "image-to-video")) {
     return "";
@@ -717,10 +711,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     (mode === "image" || mode === "video" || mode === "avatar") &&
     initialReferenceUrl
       ? initialReferenceUrl
-      : isAvatarProvider(initialProvider)
-        ? KLING_AVATAR_DEFAULT_IMAGE_URL
-      : initialWorkflow === "avatar-video" && isH3MaxProvider(initialProvider)
-        ? modelSampleReferenceForProvider(initialProvider)
+      : initialWorkflow === "avatar-video"
+        ? ""
       : initialVideoWorkflow === "image-to-video" && modelSampleReferenceForProvider(initialProvider)
         ? modelSampleReferenceForProvider(initialProvider)
       : gptImageExample(initialProvider,initialWorkflow)?.references.join("\n") || ""
@@ -957,7 +949,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     );
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
     if (!sp.get("prompt") && (modeChanged || nextProvider !== initialProvider)) {
-      setPrompt(defaultPromptForProvider(nextProvider, workflowParam, st("studio.music.defaultPrompt")));
+      setPrompt(current => mode === "avatar" && !modeChanged
+        ? promptForProviderChange(current, "", st("studio.music.defaultPrompt"))
+        : defaultPromptForProvider(nextProvider, workflowParam, st("studio.music.defaultPrompt")));
     }
     if (modeChanged && mode === "image" && !sp.get("reference")) {
       setReferenceImagesText("");
@@ -1035,22 +1029,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     } else if (mode === "video" && referenceParam) {
       if (applyReferenceParam) setReferenceImagesText(referenceParam);
     } else if (mode === "avatar") {
-      const avatarProvider = isProviderAllowedForMode(providerParam, mode) ? providerParam : providerForWorkflow(workflowForMode(mode, sp.get("workflow")), null);
-      if (isAvatarProvider(avatarProvider || "")) {
-        setPrompt((current) => (current.trim() ? current : KLING_AVATAR_DEFAULT_SCRIPT));
-        setReferenceImagesText((current) => (current.trim() ? current : KLING_AVATAR_DEFAULT_IMAGE_URL));
-      } else if (isH3MaxProvider(avatarProvider || "")) {
-        const h3Provider = avatarProvider as string;
-        const avatarDefaultPrompt = defaultPromptForProvider(h3Provider, "avatar-video", st("studio.music.defaultPrompt"));
-        setPrompt((current) => promptForProviderChange(current, avatarDefaultPrompt, st("studio.music.defaultPrompt")));
-        setReferenceImagesText((current) => {
-          const customReference = stripAvatarDefaultReferences(current);
-          return customReference || modelSampleReferenceForProvider(h3Provider);
-        });
-      } else {
-        setReferenceImagesText((current) => stripAvatarDefaultReferences(current));
-        setPrompt((current) => isProviderDefaultPrompt(current, st("studio.music.defaultPrompt")) ? "" : current);
-      }
+      if (applyReferenceParam && referenceParam) setReferenceImagesText(referenceParam);
+      setReferenceImagesText((current) => stripAvatarDefaultReferences(current));
+      setPrompt((current) => isProviderDefaultPrompt(current, st("studio.music.defaultPrompt")) ? "" : current);
     } else {
       setReferenceImagesText((current) => stripAvatarDefaultReferences(current));
       setPrompt((current) => current.trim() === KLING_AVATAR_DEFAULT_SCRIPT || current.trim() === MINIMAX_H3_MAX_AVATAR_PROMPT || current.trim() === MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT ? "" : current);
@@ -1578,14 +1559,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         setReferenceImageFiles([]);
         setAvatarAudioUrl("");
       } else if (nextWorkflow === "avatar-video") {
-        setReferenceImagesText((current) => {
-          const customReference = stripAvatarDefaultReferences(current);
-          if (customReference || referenceImageFiles.length) return customReference;
-          if (isAvatarProvider(nextProvider)) return KLING_AVATAR_DEFAULT_IMAGE_URL;
-          if (isH3MaxProvider(nextProvider)) return modelSampleReferenceForProvider(nextProvider);
-          return "";
-        });
-        setReferenceImageFiles([]);
+        setReferenceImagesText((current) => stripAvatarDefaultReferences(current));
+        setReferenceImageFiles((current) => current.slice(0, 1));
       } else if (nextWorkflow === "image-to-video") {
         const shouldUseModelSample = isModelSampleReference(referenceImagesText) || (!referenceImagesText.trim() && referenceImageFiles.length === 0);
         if (shouldUseModelSample) {
@@ -1658,20 +1633,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     safeSetLocalStorage(lastModelStorageKey(activeWorkflow), nextProvider);
     setProvider(nextProvider);
     const nextDefaultPrompt = defaultPromptForProvider(nextProvider, activeWorkflow, st("studio.music.defaultPrompt"));
-    const shouldLoadAvatarH3Defaults = mode === "avatar" && isH3MaxProvider(nextProvider);
-    setPrompt((current) => shouldLoadAvatarH3Defaults
-      ? nextDefaultPrompt
-      : promptForProviderChange(current, !hasCompletedCreation || isH3VideoProvider(nextProvider) ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
-    if (isAvatarProvider(nextProvider)) {
-      setReferenceImagesText((current) => stripAvatarDefaultReferences(current) || KLING_AVATAR_DEFAULT_IMAGE_URL);
-      setReferenceImageFiles([]);
-    } else if (mode === "avatar" && isH3MaxProvider(nextProvider)) {
-      setReferenceImagesText(modelSampleReferenceForProvider(nextProvider));
-      setReferenceImageFiles([]);
-      setAvatarAudioUrl("");
-    } else if (mode === "avatar" && nextProvider === "dreamface-io-video") {
+    setPrompt((current) => promptForProviderChange(current, !hasCompletedCreation || isH3VideoProvider(nextProvider) ? nextDefaultPrompt : "", st("studio.music.defaultPrompt")));
+    if (isAvatarProvider(nextProvider) || mode === "avatar") {
       setReferenceImagesText((current) => stripAvatarDefaultReferences(current));
-      setAvatarAudioUrl("");
+      setReferenceImageFiles((current) => current.slice(0, 1));
+      if (!isAvatarProvider(nextProvider)) setAvatarAudioUrl("");
     } else if (mode === "video" && activeWorkflow === "image-to-video") {
       const shouldUseModelSample = isModelSampleReference(referenceImagesText) || (!referenceImagesText.trim() && referenceImageFiles.length === 0);
       if (shouldUseModelSample) {
@@ -1971,7 +1937,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setAudioWorkflow(draft.audioWorkflow || "text-to-audio");
     setRatio(draft.ratio);
     setImageSize(draft.imageSize);
-    setReferenceImagesText(draft.referenceImagesText);
+    setReferenceImagesText(draft.mode === "avatar" ? stripAvatarDefaultReferences(draft.referenceImagesText) : draft.referenceImagesText);
     setReferenceImageFiles(Array.isArray(draft.referenceImageFiles) ? draft.referenceImageFiles : []);
     setAvatarAudioUrl(draft.avatarAudioUrl || "");
     setEditResolution(draft.editResolution);
@@ -2003,7 +1969,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setEnableWebSearch(Boolean(draft.enableWebSearch));
     setThinkingLevel(draft.thinkingLevel || "");
     setDuration(draft.duration);
-    setPrompt(draft.prompt);
+    setPrompt(draft.mode === "avatar" ? promptForProviderChange(draft.prompt, "", st("studio.music.defaultPrompt")) : draft.prompt);
     videoPromptAI.setEnabled(draft.aiPromptEnhancementEnabled !== false);
     videoPromptAI.restoreDraft(draft.videoPromptEnhancement || null);
     setStatusTone("idle");

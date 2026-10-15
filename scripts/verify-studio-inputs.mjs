@@ -69,11 +69,34 @@ for(const provider of ['minimax-h3-max-video','minimax-h3-max-turbo-video']) for
   video.prompt=models.videoExampleFor(provider,workflow).prompts[0];video.applyProvider(provider);assert.equal(video.prompt,'');
   video.prompt='Keep my custom motion instructions.';video.applyProvider(provider);assert.equal(video.prompt,'Keep my custom motion instructions.');
 }
-assert.equal(video.defaultPromptForProvider('minimax-h3-max-video','avatar-video'),'avatar-max');
+for(const provider of ['minimax-h3-max-video','minimax-h3-max-turbo-video','kling-avatar-standard','kling-avatar-pro']) {
+  assert.equal(video.defaultPromptForProvider(provider,'avatar-video'),'');
+  const avatar=context('avatar','avatar-video');
+  avatar.applyProvider(provider);
+  assert.equal(avatar.prompt,'');assert.equal(avatar.referenceImagesText,'');assert.deepEqual(avatar.referenceImageFiles,[]);
+  avatar.prompt='My own speaking script';avatar.referenceImageFiles=[file.dataUrl];
+  avatar.applyProvider(provider);
+  assert.equal(avatar.prompt,'My own speaking script');assert.deepEqual(avatar.referenceImageFiles,[file.dataUrl]);
+  avatar.referenceImagesText='https://user.test/avatar.png';avatar.referenceImageFiles=[];avatar.applyProvider(provider);
+  assert.equal(avatar.referenceImagesText,'https://user.test/avatar.png');
+}
 
 // Execute the URL-input effect: model-only URL changes cannot overwrite uploads/edits.
 const effect=findNode(node=>ts.isCallExpression(node)&&node.expression.getText(ast)==='useEffect'&&node.arguments[0]?.getText(ast).includes('const promptParam = sp.get("prompt")'));
 const effectCode=ts.transpileModule('const apply = '+effect.arguments[0].getText(ast)+';', {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+const initialReferences=findNode(node=>ts.isVariableDeclaration(node)&&node.name.getText(ast)==='[referenceImagesText, setReferenceImagesText]').initializer.arguments[0].getText(ast);
+for(const provider of ['minimax-h3-max-video','minimax-h3-max-turbo-video','kling-avatar-standard','kling-avatar-pro']) {
+  const avatar=context('avatar','avatar-video');
+  Object.assign(avatar,{initialProvider:provider,initialWorkflow:'avatar-video',initialVideoWorkflow:'avatar-video',initialReferenceUrl:null});
+  assert.equal(new Function('context',`with(context){return (${initialReferences})();}`)(avatar),'');
+  avatar.sp=new URLSearchParams({mode:'avatar',workflow:'avatar-video',provider});
+  const apply=new Function('context',`with(context){${effectCode};return apply;}`)(avatar);
+  apply();assert.equal(avatar.prompt,'');assert.equal(avatar.referenceImagesText,'');
+  avatar.prompt='User script';avatar.referenceImageFiles=[file.dataUrl];
+  avatar.sp.set('provider','minimax-h3-max-video');apply();
+  assert.equal(avatar.prompt,'User script');assert.deepEqual(avatar.referenceImageFiles,[file.dataUrl]);
+  avatar.sp.set('reference','https://user.test/avatar-new.png');apply();assert.equal(avatar.referenceImagesText,'https://user.test/avatar-new.png');
+}
 const url=context('video','image-to-video');url.sp=new URLSearchParams({mode:'video',workflow:'image-to-video',provider:url.provider,prompt:'Shared URL prompt',reference:'https://user.test/original.png'});
 const applyUrl=new Function('context',`with(context){${effectCode};return apply;}`)(url);
 applyUrl();await url.upload([file],0);url.prompt='Edited after upload.';url.sp.set('provider','minimax-h3-max-video');applyUrl();
