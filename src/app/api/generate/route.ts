@@ -1,5 +1,7 @@
 import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyframes";
 import { DREAMFACE_IO_SUSPENDED } from "../../../lib/model-release";
+import { createH3DailyFreeTask, h3FreeContext } from "../../../lib/h3-daily-free";
+import { isH3DailyFreeRequest, H3_DAILY_FREE_PROGRAM } from "../../../lib/h3-daily-free-policy";
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } from "../../../lib/gpt-image-models";
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
@@ -41,6 +43,7 @@ type GenerateMode = "image" | "video" | "audio" | "avatar";
 type StoredGenerateMode = "image" | "video" | "audio";
 
 type GenerateRequest = {
+  dailyFree?: boolean;
   mode: GenerateMode;
   imageWorkflow?: "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
   videoWorkflow?: "avatar-video" | "text-to-video" | "image-to-video";
@@ -972,7 +975,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (creditAccount.balance < estimatedCredits) {
+    if (creditAccount.balance < estimatedCredits && body.dailyFree !== true) {
       return NextResponse.json(
         { error: `Not enough credits. This task needs ${estimatedCredits} credits, but your balance is ${creditAccount.balance}.` },
         { status: 402 }
@@ -992,26 +995,57 @@ export async function POST(request: Request) {
       } : {}),
       ...(isDreamfaceIo ? { submitted_prompt: submittedPrompt } : {}),
       billing_source: billingSource,
-      free_units_used: freeUnitsUsed
+      free_units_used: freeUnitsUsed,
+      ...(body.dailyFree === true ? { free_program: H3_DAILY_FREE_PROGRAM } : {})
     };
-    try {
-      const { error: insertError } = await admin.from("generation_tasks").insert({
-        id: taskId,
-        user_id: user.id,
-        mode: storageMode,
-        provider: body.provider,
-        prompt,
-        status: "queued",
-        estimated_credits: estimatedCredits,
-        transport,
-        request_settings: requestSettings
-      });
-      if (insertError) {
-        const existingAfterConflict = await findExistingTask(admin, user.id, taskId);
-        if (existingAfterConflict) {
-          return returnExistingTask(admin, user.id, existingAfterConflict);
+    let h3FreeTaskCreated = false;
+    if (body.dailyFree === true) {
+      if (!isH3DailyFreeRequest(body)) {
+        return NextResponse.json({ error: "Daily free generation requires H3 Max Turbo, 480p and 5 seconds." }, { status: 400 });
+      }
+      try {
+        const reservation = await createH3DailyFreeTask({
+          id: taskId, userId: user.id, prompt, mode: "video", transport, settings: requestSettings
+        }, await h3FreeContext(request.headers));
+        if (!reservation.allowed) {
+          const existing = await findExistingTask(admin, user.id, taskId);
+          if (existing) return returnExistingTask(admin, user.id, existing);
+          return NextResponse.json({ error: "Today's free generation is unavailable. Please review the credit cost before trying again.", code: "daily_free_unavailable" }, { status: 409 });
         }
-        throw insertError;
+        h3FreeTaskCreated = true;
+        estimatedCredits = 0;
+        billingSource = "daily_free";
+        freeUnitsUsed = 1;
+        dailyUnitsRemaining = 0;
+        requestSettings.billing_source = billingSource;
+        requestSettings.free_units_used = freeUnitsUsed;
+      } catch (error) {
+        const existing = await findExistingTask(admin, user.id, taskId);
+        if (existing) return returnExistingTask(admin, user.id, existing);
+        console.error("H3 daily free reservation failed; no paid fallback was attempted.");
+        return NextResponse.json({ error: "Daily free generation is temporarily unavailable. No credits were charged.", code: "daily_free_unavailable" }, { status: 503 });
+      }
+    }
+    try {
+      if (!h3FreeTaskCreated) {
+        const { error: insertError } = await admin.from("generation_tasks").insert({
+          id: taskId,
+          user_id: user.id,
+          mode: storageMode,
+          provider: body.provider,
+          prompt,
+          status: "queued",
+          estimated_credits: estimatedCredits,
+          transport,
+          request_settings: requestSettings
+        });
+        if (insertError) {
+          const existingAfterConflict = await findExistingTask(admin, user.id, taskId);
+          if (existingAfterConflict) {
+            return returnExistingTask(admin, user.id, existingAfterConflict);
+          }
+          throw insertError;
+        }
       }
     } catch (insertError) {
       const existingAfterConflict = await findExistingTask(admin, user.id, taskId);
@@ -1247,7 +1281,9 @@ export async function POST(request: Request) {
       }
       const balance = isDreamfaceIo
         ? spendResult.balance
-        : await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId);
+        : estimatedCredits > 0
+          ? await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId)
+          : spendResult.balance;
       try {
         await admin
           .from("generation_tasks")

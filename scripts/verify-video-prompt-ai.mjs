@@ -122,13 +122,18 @@ const generation = studio.slice(studio.indexOf('  async function handleGenerate(
 const cleanupStart = generation.lastIndexOf('} finally {') + '} finally {'.length;
 const cleanupEnd = generation.indexOf('\n    }\n  }', cleanupStart);
 assert.ok(cleanupEnd > cleanupStart);
-const cleanup = new Function('generationSubmitLock', 'submissionToken', 'setIsSubmitting', generation.slice(cleanupStart, cleanupEnd));
+const cleanup = new Function('generationSubmitLock', 'submissionToken', 'setIsSubmitting', 'usesH3FreeAllowance', 'h3DailyFree', generation.slice(cleanupStart, cleanupEnd));
 const older = Symbol('older'), newer = Symbol('newer'), submitLock = { current: newer };
 let cleared = 0;
 cleanup(submitLock, older, () => cleared++);
 assert.equal(submitLock.current, newer); assert.equal(cleared, 0);
 cleanup(submitLock, newer, () => cleared++);
 assert.equal(submitLock.current, null); assert.equal(cleared, 1);
+let freeRefreshes=0;submitLock.current=newer;
+cleanup(submitLock,older,()=>cleared++,true,{refresh(){freeRefreshes++;}});
+assert.equal(freeRefreshes,0);
+cleanup(submitLock,newer,()=>cleared++,true,{refresh(){freeRefreshes++;}});
+assert.equal(freeRefreshes,1);
 assert.doesNotMatch(readFileSync('src/lib/video-prompt-enhancer.ts', 'utf8'), /deduct|chargeCredits|credit_ledger|generation_tasks/);
 console.log('Video Prompt AI tests passed: all video model contexts, distinct strategies, output validation, OFF bypass, edited-result reuse, restore, context changes, timeout fallback, request coalescing/cache, rate limits, disable switch, unsafe images, metadata and no extra credit charging.');
 

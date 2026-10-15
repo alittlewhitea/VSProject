@@ -4,6 +4,8 @@ import Link from "../../features/studio/studio-link";
 import { navigateStudio } from "../../lib/studio-navigation";
 import { referenceTextWithoutExamples, shouldApplyUrlInput, type AppliedUrlInput } from "../../lib/studio-workspace-inputs";
 import { useVideoPromptEnhancement } from "../../features/studio/use-video-prompt-enhancement";
+import { useH3DailyFree } from "../../features/studio/use-h3-daily-free";
+import { isH3DailyFreeRequest } from "../../lib/h3-daily-free-policy";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
 import { isGptImageProvider, gptImageQuality, gptImageExample, GPT_IMAGE_EXAMPLE_PROMPTS, GPT_IMAGE_EXAMPLE_REFERENCES, GPT_IMAGE_SIZES, GPT_IMAGE_QUALITIES } from "../../lib/gpt-image-models";
 import { useRouter } from "next/navigation";
@@ -803,6 +805,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     return ()=>{active=false;clearInterval(timer);};
   },[accessToken]);
   const [userId, setUserId] = useState<string | null>(null);
+  const h3DailyFree = useH3DailyFree(accessToken, userId);
   const [authReady, setAuthReady] = useState(false);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [dreamfaceIoEnabled, setDreamfaceIoEnabled] = useState<boolean | null>(null);
@@ -1180,6 +1183,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         if (!response.ok) {
           throw new Error(localizeStudioError(payload.error || st("studio.status.balanceUnavailable"), response.status));
         }
+        void h3DailyFree.refresh();
         if (typeof payload.balance === "number") {
           setCreditBalance(payload.balance);
           if (typeof window !== "undefined") {
@@ -1317,7 +1321,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     provider === "dreamface-io-video" &&
     dreamfaceIoEligible &&
     dreamfaceIoRemainingUnits >= dreamfaceIoUnits;
-  const estCredits = usesDreamfaceIoFreeAllowance ? 0 : baseEstCredits;
+  const isH3FreeTier = isH3DailyFreeRequest({ mode, provider, resolution: videoResolution, duration: isAvatarWorkflow ? avatarDuration : duration });
+  const usesH3FreeAllowance = isH3FreeTier && h3DailyFree.available;
+  const h3FreeLoading = isH3FreeTier && (h3DailyFree.loading || creditBalance === null);
+  const h3FreeLabel = isH3FreeTier && h3DailyFree.eligible
+    ? st(usesH3FreeAllowance ? "studio.h3Free.available" : "studio.h3Free.used") : undefined;
+  const estCredits = usesDreamfaceIoFreeAllowance || usesH3FreeAllowance ? 0 : baseEstCredits;
   const recommendedProvider = WORKFLOW_META[activeWorkflow].recommendedProvider;
   const modelPickerOptions = options.map((option) => {
     const meta = PROVIDER_META[option.value] || {
@@ -1364,7 +1373,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     const optionDreamfaceUnits = option.value === "dreamface-io-video"
       ? Math.max(1, Math.ceil((Number.parseInt(optionDuration, 10) || 5) / 5))
       : 0;
-    const optionCredits = option.value === "dreamface-io-video" && dreamfaceIoEligible && dreamfaceIoRemainingUnits >= optionDreamfaceUnits
+    const optionCredits = (option.value === "dreamface-io-video" && dreamfaceIoEligible && dreamfaceIoRemainingUnits >= optionDreamfaceUnits) ||
+      (h3DailyFree.available && isH3DailyFreeRequest({mode,provider:option.value,duration:optionDuration,resolution:option.value===provider?videoResolution:videoModelDefaultResolution(option.value)}))
       ? 0
       : rawOptionCredits;
     const groupKey = modelPickerGroup(mode, activeWorkflow, option.value, recommendedProvider);
@@ -1407,7 +1417,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     imageUrls: videoWorkflow === "image-to-video" ? referenceImageUrls : undefined
   }, setPrompt, Boolean(accessToken));
   const generationSubmitLock = useRef<symbol | null>(null);
-  const generateDisabled = (accessToken ? !canSubmit || isSubmitting : false) || (mode === "video" && videoPromptAI.busy);
+  const generateDisabled = (accessToken ? !canSubmit || isSubmitting || h3FreeLoading : false) || (mode === "video" && videoPromptAI.busy);
   const activeTasks = tasks.filter((task) => task.status === "Queued" || task.status === "Running");
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const hasCompletedCreation = completedTasks.length > 0;
@@ -2003,7 +2013,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }, [accessToken, authReady]);
 
   async function handleGenerate() {
-    if (!canSubmit || isSubmitting || generationSubmitLock.current || (mode === "video" && videoPromptAI.busy)) {
+    if (!canSubmit || isSubmitting || generationSubmitLock.current || (accessToken && h3FreeLoading) || (mode === "video" && videoPromptAI.busy)) {
       return;
     }
     if (accessToken && !hasEnoughCredits) {
@@ -2093,6 +2103,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         videoWorkflow: isAvatarWorkflow ? "avatar-video" : videoWorkflow,
         audioWorkflow: mode === "audio" ? audioWorkflow : undefined,
         provider,
+        dailyFree: usesH3FreeAllowance,
         ratio: isAvatarWorkflow ? isDreamfaceTalkingAvatar ? ratio : "source" : ratio,
         duration: requestDuration,
         prompt: isPromptlessImageWorkflow ? "" : finalPrompt,
@@ -2157,8 +2168,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       });
 
       if (!response.ok) {
-        const errorPayload = (await response.json().catch(() => null)) as { error?: string } | null;
+        const errorPayload = (await response.json().catch(() => null)) as { error?: string; code?: string } | null;
         clearPersistentIdempotency(idempotencyStorageKey);
+        if (errorPayload?.code === "daily_free_unavailable") {
+          h3DailyFree.invalidate();
+          throw new Error(st("studio.h3Free.unavailable"));
+        }
         throw new Error(localizeStudioError(errorPayload?.error || st("studio.status.requestFailed"), response.status));
       }
 
@@ -2187,6 +2202,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       }
       if (provider === "dreamface-io-video" && typeof payload.dailyUnitsRemaining === "number") {
         setDreamfaceIoRemainingUnits(payload.dailyUnitsRemaining);
+      }
+      if (usesH3FreeAllowance) {
+        h3DailyFree.invalidate();
       }
 
       const queuedTask: TaskItem = {
@@ -2396,6 +2414,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       );
     } finally {
       if (generationSubmitLock.current === submissionToken) {
+        if (usesH3FreeAllowance) void h3DailyFree.refresh();
         generationSubmitLock.current = null;
         setIsSubmitting(false);
       }
@@ -2414,14 +2433,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }
 
   useEffect(() => {
-    if (!authReady || !accessToken || !autoSubmitLoginDraftRef.current || isSubmitting || !isPromptValid) return;
+    if (!authReady || !accessToken || !autoSubmitLoginDraftRef.current || isSubmitting || !isPromptValid || h3FreeLoading) return;
     autoSubmitLoginDraftRef.current = false;
     const timer = window.setTimeout(() => {
       handleGenerate();
     }, 150);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken, authReady, isPromptValid, isSubmitting, loginDraftNonce]);
+  }, [accessToken, authReady, isPromptValid, isSubmitting, loginDraftNonce, h3FreeLoading]);
 
   async function handleTopUp(amount: number) {
     if (!accessToken) return;
@@ -2619,6 +2638,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   const avatarSettingsPanel = showAvatarWorkbenchRedesign ? (
     <AvatarSettings
+      dailyFreeLabel={h3FreeLabel}
       isDreamfaceTalkingAvatar={isDreamfaceTalkingAvatar}
       isH3MaxAvatar={isH3MaxAvatar}
       duration={duration}
@@ -3657,6 +3677,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     />
                   ) : showVideoWorkbenchRedesign ? (
                     <VideoSettings
+                      dailyFreeLabel={h3FreeLabel}
                       workflow={configuredVideoWorkflow}
                       prompt={prompt}
                       referenceImageUrls={referenceImageUrls}
@@ -3708,6 +3729,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     />
                   ) : showAvatarWorkbenchRedesign ? (
                     <AvatarSettings
+                      dailyFreeLabel={h3FreeLabel}
                       isDreamfaceTalkingAvatar={isDreamfaceTalkingAvatar}
                       isH3MaxAvatar={isH3MaxAvatar}
                       duration={duration}

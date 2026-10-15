@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 
 export const SIGNUP_BONUS_CREDITS = 100;
-export const LIMITED_REGION_SIGNUP_BONUS_CREDITS = 10;
+export const LIMITED_REGION_SIGNUP_BONUS_CREDITS = 15;
 const LIMITED_SIGNUP_BONUS_COUNTRIES = new Set([
   "IN",
   "ID",
@@ -143,7 +143,7 @@ function signupIpSecret() {
   return process.env.SIGNUP_IP_SECRET || process.env.AUTH_SESSION_SECRET || process.env.MYSQL_PASSWORD || "local-signup-ip-secret";
 }
 
-function hashSignupIp(ip: string) {
+export function hashSignupIp(ip: string) {
   return createHmac("sha256", signupIpSecret()).update(ip.trim().toLowerCase()).digest("hex");
 }
 

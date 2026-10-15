@@ -7,6 +7,7 @@ type Translate = (
 ) => string;
 
 type AvatarSettingsProps = {
+  dailyFreeLabel?: string;
   isDreamfaceTalkingAvatar: boolean;
   isH3MaxAvatar: boolean;
   duration: string;
@@ -32,6 +33,7 @@ type AvatarSettingsProps = {
 const controlClass = "h-10 min-w-0 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054] outline-none";
 
 export function AvatarSettings({
+  dailyFreeLabel,
   isDreamfaceTalkingAvatar,
   isH3MaxAvatar,
   duration,
@@ -112,6 +114,7 @@ export function AvatarSettings({
           {isAuthenticated ? <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">{estimatedCredits} {translate("studio.common.credits")} · ≈{formatApproximateCreditValue(estimatedCredits)}</span> : null}
           <span className="grid h-7 w-7 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
         </button>
+        {dailyFreeLabel ? <p role="status" className="mt-2 text-xs font-semibold text-emerald-700">{dailyFreeLabel}</p> : null}
         <GenerationCostSummary estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate} />
       </div>
 

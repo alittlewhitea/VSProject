@@ -98,4 +98,6 @@ let media=elements(tree).find(node=>node.type==='video'&&node.props.controls);me
 applied=[];props.prompt='';media.props.onPlay();assert.deepEqual(applied,[showcases[0].prompt]);
 applied=[];const second=elements(tree).find(node=>node.type==='button'&&node.props['aria-label']==='studio.workbench.sampleVideo 2');second.props.onClick();assert.deepEqual(applied,[showcases[1].prompt]);
 tree=render();assert.equal(elements(tree).find(node=>node.type==='video'&&node.props.controls).props.src,showcases[1].videoUrl);
+props.dailyFreeLabel='Free today: 480p / 5s';props.estimatedCredits=0;tree=render();
+assert.equal(elements(tree).find(node=>node.props.role==='status'&&node.props.children===props.dailyFreeLabel)?.props.children,props.dailyFreeLabel);
 console.log('Studio input tests passed: uploaded images survive all image-edit/video model switches, start frame retained when removing unsupported end frame, H3 defaults empty, custom prompts preserved, URL inputs do not overwrite edits/uploads on model change, explicit preview click/play/selection supplies matching prompt. No database or paid calls.');

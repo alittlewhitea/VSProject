@@ -24,6 +24,7 @@ export type PromptShowcase = {
 };
 
 type VideoSettingsProps = {
+  dailyFreeLabel?: string;
   promptAI: ReturnType<typeof useVideoPromptEnhancement>;
   workflow: StudioVideoWorkflow;
   prompt: string;
@@ -85,6 +86,7 @@ function taskDuration(task: TaskItem, fallback: string) {
 }
 
 export function VideoSettings({
+  dailyFreeLabel,
   promptAI, workflow, prompt, referenceImageUrls, provider, providerOptions, duration, durationOptions, ratio, ratioOptions,
   ratioDisabled, showResolutionControl, resolution, resolutionOptions, showAudioControl, generateAudio, seed,
   estimatedCredits, creditBalance, generateDisabled, isSubmitting, isAuthenticated, promptShowcases, recentTasks, translate,
@@ -199,7 +201,7 @@ export function VideoSettings({
           </div> : null}
 
           </fieldset>
-          <div className={`${styles.actionBar} relative mt-auto pt-4`} data-video-action-bar><button type="button" onClick={onGenerate} disabled={generateDisabled} className="flex min-h-[48px] w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(90deg,#744bfb,#6757f6_55%,#7d53ff)] text-[15px] font-extrabold text-white shadow-[0_10px_24px_rgba(106,90,249,0.2)] transition hover:-translate-y-px hover:brightness-[1.02] disabled:cursor-not-allowed disabled:opacity-55"><span>{"\u2723"}</span><span>{isSubmitting ? translate("studio.generate.creating") : isAuthenticated ? translate("studio.generate.button") : translate("studio.auth.signInToGenerate")}</span><span className="inline-flex h-6 items-center rounded-full bg-white/20 px-2.5 text-[11px] font-bold">{estimatedCredits} {translate("studio.common.credits")} · ≈{formatApproximateCreditValue(estimatedCredits)}</span><kbd className={styles.shortcut}>Ctrl + Enter <span> / ⌘ Enter</span></kbd></button><span className={`${styles.legacyShortcut} pointer-events-none absolute end-3 top-[29px] hidden text-[11px] font-semibold text-white/70 sm:block`}>Enter {"\u21B5"}</span><GenerationCostSummary estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate} /></div>
+          <div className={`${styles.actionBar} relative mt-auto pt-4`} data-video-action-bar>{dailyFreeLabel ? <p role="status" className="mb-2 text-xs font-semibold text-emerald-700">{dailyFreeLabel}</p> : null}<button type="button" onClick={onGenerate} disabled={generateDisabled} className="flex min-h-[48px] w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(90deg,#744bfb,#6757f6_55%,#7d53ff)] text-[15px] font-extrabold text-white shadow-[0_10px_24px_rgba(106,90,249,0.2)] transition hover:-translate-y-px hover:brightness-[1.02] disabled:cursor-not-allowed disabled:opacity-55"><span>{"\u2723"}</span><span>{isSubmitting ? translate("studio.generate.creating") : isAuthenticated ? translate("studio.generate.button") : translate("studio.auth.signInToGenerate")}</span><span className="inline-flex h-6 items-center rounded-full bg-white/20 px-2.5 text-[11px] font-bold">{estimatedCredits} {translate("studio.common.credits")} · ≈{formatApproximateCreditValue(estimatedCredits)}</span><kbd className={styles.shortcut}>Ctrl + Enter <span> / ⌘ Enter</span></kbd></button><span className={`${styles.legacyShortcut} pointer-events-none absolute end-3 top-[29px] hidden text-[11px] font-semibold text-white/70 sm:block`}>Enter {"\u21B5"}</span><GenerationCostSummary estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate} /></div>
         </section>
 
         <section className={`${styles.preview} min-h-[550px] min-w-0 overflow-hidden rounded-[20px] border border-[#eaecf0] bg-white/95 p-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)]`}>
