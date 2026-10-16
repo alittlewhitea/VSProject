@@ -99,7 +99,7 @@ function verify(label, reference, localized) {
   }
   for (const key of referenceKeys) {
     if (typeof localized[key] !== "string" || !localized[key].trim()) throw new Error(`${label}: empty ${key}`);
-    if (/DFTOKEN|DFSEP|\uFFFD/.test(localized[key])) throw new Error(`${label}: corrupt token in ${key}`);
+    if (/DFTOKEN|DFSEP|\uFFFD|\?{2,}/.test(localized[key])) throw new Error(`${label}: corrupt token in ${key}`);
     if (JSON.stringify(placeholders(reference[key])) !== JSON.stringify(placeholders(localized[key]))) {
       throw new Error(`${label}: placeholder mismatch in ${key}`);
     }
