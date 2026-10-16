@@ -180,8 +180,8 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "kling-avatar-pro": process.env.FAL_MODEL_VIDEO_KLING_AVATAR_PRO || "fal-ai/kling-video/ai-avatar/v2/pro",
     "veo-video": process.env.FAL_MODEL_VIDEO_VEO || "fal-ai/veo3.1",
     "grok-video": editImage
-      ? process.env.FAL_MODEL_VIDEO_GROK_I2V || "xai/grok-imagine-video/image-to-video"
-      : process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/text-to-video",
+      ? process.env.FAL_MODEL_VIDEO_GROK_I2V || "xai/grok-imagine-video/v1.5/lite/image-to-video"
+      : process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/v1.5/lite/text-to-video",
     "happy-horse-video": editImage
       ? process.env.FAL_MODEL_VIDEO_HAPPY_HORSE_I2V || "alibaba/happy-horse/v1.1/image-to-video"
       : process.env.FAL_MODEL_VIDEO_HAPPY_HORSE || "alibaba/happy-horse/v1.1/text-to-video",
@@ -223,7 +223,6 @@ const THINKING_LEVELS = new Set(["minimal", "high"]);
 const NANO_21_THINKING_LEVELS = new Set(["minimal", "medium", "high"]);
 const TTS_TEXT_NORMALIZATION_OPTIONS = new Set(["auto", "on", "off"]);
 const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
-const GROK_IMAGE_VIDEO_ASPECT_RATIOS = new Set(["auto", "16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"]);
 const SEEDANCE_VIDEO_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
 const HAPPY_HORSE_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21", "5:4", "4:5"]);
 const KLING_TEXT_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1"]);
@@ -231,7 +230,7 @@ const VEO_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const GEMINI_OMNI_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const MINIMAX_H3_MAX_VIDEO_ASPECT_RATIOS = new Set(["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
 const MINIMAX_H3_MAX_VIDEO_RESOLUTIONS = new Set(["480p", "768p", "1080p"]);
-const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
+const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p"]);
 const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p", "4k"]);
 const SEEDANCE_MINI_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
 const HAPPY_HORSE_VIDEO_RESOLUTIONS = new Set(["720p", "1080p"]);
@@ -466,7 +465,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       prompt: prompt || "Bring the scene in the image to life.",
       resolution: body.resolution && HAPPY_HORSE_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
       duration: Number.isInteger(duration) && duration >= 3 && duration <= 15 ? duration : 5,
-      enable_safety_checker: body.enableSafetyChecker !== false,
+      enable_safety_checker: body.enableSafetyChecker === true,
       ...(seed !== undefined ? { seed } : {})
     };
   }
@@ -479,7 +478,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       aspect_ratio: HAPPY_HORSE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
       resolution: body.resolution && HAPPY_HORSE_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
       duration: Number.isInteger(duration) && duration >= 3 && duration <= 15 ? duration : 5,
-      enable_safety_checker: body.enableSafetyChecker !== false,
+      enable_safety_checker: body.enableSafetyChecker === true,
       ...(seed !== undefined ? { seed } : {})
     };
   }
@@ -490,8 +489,8 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       prompt,
       image_url: firstInputImage(body),
       duration: Number.isInteger(duration) && duration > 0 && duration <= 15 ? duration : 5,
-      aspect_ratio: GROK_IMAGE_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "auto",
-      resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "480p"
+      resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "480p",
+      enable_safety_checker: body.enableSafetyChecker === true
     };
   }
 
@@ -501,7 +500,8 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       prompt,
       duration: Number.isInteger(duration) && duration > 0 && duration <= 15 ? duration : 5,
       aspect_ratio: VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
-      resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "480p"
+      resolution: body.resolution && GROK_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "480p",
+      enable_safety_checker: body.enableSafetyChecker === true
     };
   }
 
@@ -578,7 +578,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       guidance_scale: clampNumber(body.guidanceScale, 0, 20, 3.5),
       num_inference_steps: clampInt(body.numInferenceSteps, 1, body.provider === "flux-dev" ? 50 : 12, body.provider === "flux-dev" ? 28 : 4),
       num_images: clampInt(body.numImages, 1, 4, 1),
-      enable_safety_checker: body.enableSafetyChecker !== false,
+      enable_safety_checker: body.enableSafetyChecker === true,
       output_format: body.outputFormat && FLUX_OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "jpeg",
       acceleration: body.acceleration && ACCELERATION_OPTIONS.has(body.acceleration) ? body.acceleration : "none",
       ...(seed !== undefined ? { seed } : {})

@@ -266,8 +266,12 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
   }
 
   if (input.provider === "grok-video") {
-    const imageInputPrice = input.hasReferences ? 0.002 : 0;
-    return creditsFromFalUsd((input.resolution === "480p" ? 0.05 : 0.07) * seconds + imageInputPrice, seconds * 8);
+    // Grok 1.5 Lite: supplier cost only, without the usual markup.
+    // Use cents to avoid floating-point overcharging on exact credit boundaries.
+    const billableSeconds = seconds <= 15 ? seconds : 5;
+    const centsPerSecond = input.resolution === "1080p" ? 14 : input.resolution === "720p" ? 3 : 2;
+    const inputCents = input.hasReferences ? 1 : 0;
+    return Math.ceil((centsPerSecond * billableSeconds + inputCents) * CREDIT_USD_TO_CREDITS / 100);
   }
 
   if (input.provider === "veo-video") {
@@ -548,23 +552,23 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
   },
   {
     provider: "grok-video",
-    label: "Grok Imagine Video",
+    label: "Grok Imagine Video 1.5 Lite",
     mode: "video",
     workflow: "Text to Video",
-    endpointId: "xai/grok-imagine-video/text-to-video",
-    falBasis: "fal lists Grok Imagine Video at $0.05/s for 480p and $0.07/s for 720p.",
+    endpointId: "xai/grok-imagine-video/v1.5/lite/text-to-video",
+    falBasis: "Grok 1.5 Lite costs $0.02/s at 480p, $0.03/s at 720p and $0.14/s at 1080p; no markup.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "grok-video", duration: "6s" }),
-    unitNote: "13-18 credits / sec"
+    unitNote: "480p: 3 / sec; 720p: 4.5 / sec; 1080p: 21 / sec; total rounded up"
   },
   {
     provider: "grok-video",
-    label: "Grok Imagine Video I2V",
+    label: "Grok Imagine Video 1.5 Lite I2V",
     mode: "video",
     workflow: "Image to Video",
-    endpointId: "xai/grok-imagine-video/image-to-video",
-    falBasis: "fal lists Grok Imagine image-to-video at $0.05/s for 480p, $0.07/s for 720p, plus $0.002 for image input.",
+    endpointId: "xai/grok-imagine-video/v1.5/lite/image-to-video",
+    falBasis: "Grok 1.5 Lite costs $0.02/s at 480p, $0.03/s at 720p and $0.14/s at 1080p, plus $0.01 per input image; no markup.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "grok-video", duration: "6s", hasReferences: true }),
-    unitNote: "13-18 credits / sec"
+    unitNote: "480p: 3 / sec; 720p: 4.5 / sec; 1080p: 21 / sec; +1.5 per image; total rounded up"
   },
   {
     provider: "minimax-music-2.6",

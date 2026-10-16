@@ -41,6 +41,8 @@ type VideoSettingsProps = {
   resolutionOptions: string[];
   showAudioControl: boolean;
   generateAudio: boolean;
+  enableSafetyChecker: boolean;
+  onEnableSafetyCheckerChange: (value: boolean) => void;
   seed: string;
   estimatedCredits: number;
   creditBalance: number | null;
@@ -89,6 +91,7 @@ export function VideoSettings({
   dailyFreeLabel,
   promptAI, workflow, prompt, referenceImageUrls, provider, providerOptions, duration, durationOptions, ratio, ratioOptions,
   ratioDisabled, showResolutionControl, resolution, resolutionOptions, showAudioControl, generateAudio, seed,
+  enableSafetyChecker, onEnableSafetyCheckerChange,
   estimatedCredits, creditBalance, generateDisabled, isSubmitting, isAuthenticated, promptShowcases, recentTasks, translate,
   onPromptChange, onReferenceClear, onReferenceFiles, onReferenceRemove, onFileError, onProviderChange,
   onDurationChange, onRatioChange, onResolutionChange, onGenerateAudioChange, onSeedChange,
@@ -193,6 +196,7 @@ export function VideoSettings({
           </div>
 
           {moreSettingsOpen ? <div className={`mt-3 grid gap-3 rounded-xl border border-[#eaecf0] bg-[#fcfcfe] p-3 ${showAudioControl ? "sm:grid-cols-2" : ""}`}>
+            {provider === "grok-video" || provider === "happy-horse-video" ? <button type="button" role="switch" data-video-safety-checker aria-checked={enableSafetyChecker} onClick={() => onEnableSafetyCheckerChange(!enableSafetyChecker)} className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-[10px] border px-3 text-xs font-semibold ${enableSafetyChecker ? "border-[#cfc9ff] bg-[#f3f0ff] text-[#6a5af9]" : "border-[#eaecf0] bg-white text-[#475467]"}`}><span>{translate("studio.field.safety")}</span><span>{translate(enableSafetyChecker ? "studio.state.on" : "studio.state.off")}</span></button> : null}
             <label className="min-w-0 rounded-[10px] border border-[#eaecf0] bg-white px-3 py-2">
               <span className="mb-1 block text-[10px] text-[#667085]">{translate("studio.field.seed")}</span>
               <input value={seed} onChange={(event) => onSeedChange(event.target.value.replace(/[^\d]/g, "").slice(0, 12))} placeholder={translate("studio.placeholder.random")} inputMode="numeric" className="min-h-8 w-full border-0 bg-transparent text-[13px] font-bold text-[#101828] outline-none placeholder:text-[#98a2b3]" />

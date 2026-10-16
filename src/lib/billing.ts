@@ -102,7 +102,7 @@ export const CREDIT_PACKS: CreditPack[] = [
       { label: "FLUX Schnell", count: "up to 100", note: "fast image drafts" },
       { label: "Topaz Upscale", count: "up to 40", note: "image enhance jobs" },
       { label: "Eleven v4 Turbo", count: "up to 80", note: "1,000-character voiceovers" },
-      { label: "Grok Imagine", count: "up to 7", note: "6-second 720p video clips" },
+      { label: "Grok Imagine 1.5 Lite", count: "up to 29", note: "6-second 720p video clips" },
       { label: "Kling v3 Pro", count: "up to 4", note: "6-second video clips" },
       { label: "Seedance 2.0", count: "up to 1", note: "6-second 720p video clip" },
       { label: "Veo 3.1", count: "up to 4", note: "4-second 720p video drafts" }
@@ -122,7 +122,7 @@ export const CREDIT_PACKS: CreditPack[] = [
       { label: "FLUX Schnell", count: "up to 225", note: "fast image drafts" },
       { label: "Topaz Upscale", count: "up to 90", note: "image enhance jobs" },
       { label: "Eleven v4 Turbo", count: "up to 180", note: "1,000-character voiceovers" },
-      { label: "Grok Imagine", count: "up to 17", note: "6-second 720p video clips" },
+      { label: "Grok Imagine 1.5 Lite", count: "up to 66", note: "6-second 720p video clips" },
       { label: "Kling v3 Pro", count: "up to 10", note: "6-second video clips" },
       { label: "Seedance 2.0", count: "up to 4", note: "6-second 720p video clips" },
       { label: "Veo 3.1", count: "up to 8", note: "4-second 720p video drafts" }
@@ -142,7 +142,7 @@ export const CREDIT_PACKS: CreditPack[] = [
       { label: "FLUX Schnell", count: "up to 600", note: "fast image drafts" },
       { label: "Topaz Upscale", count: "up to 240", note: "image enhance jobs" },
       { label: "Eleven v4 Turbo", count: "up to 480", note: "1,000-character voiceovers" },
-      { label: "Grok Imagine", count: "up to 46", note: "6-second 720p video clips" },
+      { label: "Grok Imagine 1.5 Lite", count: "up to 177", note: "6-second 720p video clips" },
       { label: "Kling v3 Pro", count: "up to 28", note: "6-second video clips" },
       { label: "Seedance 2.0", count: "up to 10", note: "6-second 720p video clips" },
       { label: "Veo 3.1", count: "up to 24", note: "4-second 720p video drafts" }
@@ -162,7 +162,7 @@ export const CREDIT_PACKS: CreditPack[] = [
       { label: "FLUX Schnell", count: "up to 1,375", note: "fast image drafts" },
       { label: "Topaz Upscale", count: "up to 550", note: "image enhance jobs" },
       { label: "Eleven v4 Turbo", count: "up to 1100", note: "1,000-character voiceovers" },
-      { label: "Grok Imagine", count: "up to 105", note: "6-second 720p video clips" },
+      { label: "Grok Imagine 1.5 Lite", count: "up to 407", note: "6-second 720p video clips" },
       { label: "Kling v3 Pro", count: "up to 64", note: "6-second video clips" },
       { label: "Seedance 2.0", count: "up to 22", note: "6-second 720p video clips" },
       { label: "Veo 3.1", count: "up to 55", note: "4-second video drafts" }

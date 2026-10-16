@@ -59,7 +59,6 @@ const DREAMFACE_IO_RATIOS = ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] as con
 const SEEDANCE_RATIOS = ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] as const;
 const HAPPY_HORSE_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21", "5:4", "4:5"] as const;
 const GROK_TEXT_RATIOS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"] as const;
-const GROK_IMAGE_RATIOS = ["auto", ...GROK_TEXT_RATIOS] as const;
 
 const GEMINI_TEXT_PROMPT = `A high-fashion model stands in a stark concrete gallery space, wearing a sculptural avant-garde garment with exaggerated architectural shoulders, asymmetric matte-black and oxblood draping, and structured folds that catch the light like origami. She moves through slow, deliberate poses while the camera circles her in a slow orbital dolly, then cuts to a locked-off low-angle hero shot. Hard directional light creates deep shadows and sharp highlights, with a single rim light separating her from a void-black background. High-contrast, desaturated editorial fashion-film aesthetic with one deep-red accent. Include subtle fabric movement and synchronized gallery ambience.`;
 const GEMINI_IMAGE_PROMPT = `The old woman laughs warmly, looks toward the camera, and says, "I love my grandchildren." Preserve her identity and the natural window light. Add subtle head and shoulder movement, realistic facial motion, and synchronized room ambience.`;
@@ -177,17 +176,17 @@ export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
   },
   "grok-video": {
     id: "grok-video",
-    meta: { label: "Grok Imagine Video", shortLabel: "Grok", speed: "Fast", quality: "Expressive", bestFor: "Fast text-to-video and image-to-video ideas with 480p/720p output" },
-    group: "betterQuality",
-    workflows: { "text-to-video": { ratios: GROK_TEXT_RATIOS }, "image-to-video": { ratios: GROK_IMAGE_RATIOS } },
+    meta: { label: "Grok Imagine Video 1.5 Lite", shortLabel: "Grok 1.5 Lite", speed: "Fast", quality: "Expressive", bestFor: "Fast text-to-video and image-to-video ideas with 480p/720p/1080p output" },
+    group: "freeDraft",
+    workflows: { "text-to-video": { ratios: GROK_TEXT_RATIOS }, "image-to-video": { ratios: ["source"] } },
     durations: ["1s", "2s", ...VIDEO_DURATION_OPTIONS],
-    resolutions: ["480p", "720p"],
+    resolutions: ["480p", "720p", "1080p"],
     defaultDuration: "5s",
     defaultResolution: "480p",
     showResolutionControl: true,
     examples: {
-      "text-to-video": { provider: "grok-video", workflow: "text-to-video", modelLabel: "Grok Imagine Video", prompts: [GROK_TEXT_PROMPT], videoUrl: "https://v3b.fal.media/files/b/0a8b90e4/RUAbFYlssdqnbjNLmE8qP_IX7BNYGP.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0a8b90e4%2FRUAbFYlssdqnbjNLmE8qP_IX7BNYGP.mp4/tr:so-0,w-1024,q-80/RUAbFYlssdqnbjNLmE8qP_IX7BNYGP.webp", badgeParts: ["720p"], badgeHasAudio: true, settings: { duration: "6s", ratio: "16:9", resolution: "720p" } },
-      "image-to-video": { provider: "grok-video", workflow: "image-to-video", modelLabel: "Grok Imagine Video", prompts: [GROK_IMAGE_PROMPT], videoUrl: "https://v3b.fal.media/files/b/0a8b90e0/0Ci1dviuSnEyUZzBUq-_5_nu7MrAAa.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0a8b90e0%2F0Ci1dviuSnEyUZzBUq-_5_nu7MrAAa.mp4/tr:so-0,w-1024,q-80/0Ci1dviuSnEyUZzBUq-_5_nu7MrAAa.webp", sourceImageUrl: GROK_IMAGE_URL, sourceImageShape: "landscape", videoFit: "contain", badgeParts: ["6s", "720p"], badgeHasAudio: true, settings: { duration: "6s", ratio: "auto", resolution: "720p" } }
+      "text-to-video": { provider: "grok-video", workflow: "text-to-video", modelLabel: "Grok Imagine Video 1.5 Lite", prompts: [GROK_TEXT_PROMPT], videoUrl: "https://v3b.fal.media/files/b/0a8b90e4/RUAbFYlssdqnbjNLmE8qP_IX7BNYGP.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0a8b90e4%2FRUAbFYlssdqnbjNLmE8qP_IX7BNYGP.mp4/tr:so-0,w-1024,q-80/RUAbFYlssdqnbjNLmE8qP_IX7BNYGP.webp", badgeParts: ["720p"], badgeHasAudio: true, settings: { duration: "6s", ratio: "16:9", resolution: "720p" } },
+      "image-to-video": { provider: "grok-video", workflow: "image-to-video", modelLabel: "Grok Imagine Video 1.5 Lite", prompts: [GROK_IMAGE_PROMPT], videoUrl: "https://v3b.fal.media/files/b/0a8b90e0/0Ci1dviuSnEyUZzBUq-_5_nu7MrAAa.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0a8b90e0%2F0Ci1dviuSnEyUZzBUq-_5_nu7MrAAa.mp4/tr:so-0,w-1024,q-80/0Ci1dviuSnEyUZzBUq-_5_nu7MrAAa.webp", sourceImageUrl: GROK_IMAGE_URL, sourceImageShape: "landscape", videoFit: "contain", badgeParts: ["6s", "720p"], badgeHasAudio: true, settings: { duration: "6s", ratio: "source", resolution: "720p" } }
     }
   },
   "gemini-omni-flash-video": {
@@ -305,8 +304,8 @@ export const VIDEO_PROVIDER_META: Record<string, VideoProviderMeta> = {
 };
 
 export const VIDEO_PROVIDERS_BY_WORKFLOW: Record<StudioVideoWorkflow, string[]> = {
-  "text-to-video": ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "grok-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
-  "image-to-video": ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "grok-video"]
+  "text-to-video": ["minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
+  "image-to-video": ["minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video"]
 };
 
 export const VIDEO_EXAMPLE_PROMPTS = Object.values(VIDEO_MODEL_CONFIGS)

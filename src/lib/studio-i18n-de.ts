@@ -254,7 +254,7 @@
   "studio.model.topaz-image": "Topaz verbessert hochgeladene Bilder durch Skalierung, mehr Klarheit und Gesichtsoptimierung.",
   "studio.model.kling-avatar-standard": "Kling Avatar Standard erstellt aus einem Avatarbild und einem ElevenLabs-Skript ein sprechendes Video.",
   "studio.model.kling-avatar-pro": "Kling Avatar Pro ist das Premium-Avatar-Modell. DreamFace erstellt zuerst die ElevenLabs-Stimme.",
-  "studio.model.grok-video": "Grok Imagine Video unterstützt Text und Bilder, Clips von 1 bis 15 Sekunden sowie 480p oder 720p.",
+  "studio.model.grok-video": "Grok Imagine Video 1.5 Lite unterstützt Text und Bilder, Clips von 1 bis 15 Sekunden sowie 480p oder 720p/1080p.",
   "studio.model.seedance-video": "Seedance 2 unterstützt Text und Bilder, 480p bis 1080p, Clips von 4 bis 15 Sekunden und optional synchrones Audio.",
   "studio.model.seedance-mini-video": "Seedance 2 Mini is a faster, lower-cost Seedance model for text or image input, 480p/720p output, 4-15 second clips, and optional synchronized audio.",
     "studio.model.happy-horse-video": "Happy Horse 1.1 unterstützt Text- und Bildeingaben, Clips von 3 bis 15 Sekunden, 720p oder 1080p, natives synchronisiertes Audio und mehrsprachige Lippensynchronisation.",

@@ -10,6 +10,18 @@ const route = readFileSync('src/app/api/generate/route.ts', 'utf8');
 const source = route.slice(route.indexOf('function isValidBody'), route.indexOf('function buildRequestSettings'));
 const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused');
 const start = 'https://example.invalid/start.png', end = 'https://example.invalid/end.png';
+for(const resolution of ['480p','720p','1080p']) for(const hasReferences of [false,true]) {
+ for(const enableSafetyChecker of [undefined,false,true]) {
+  const body={mode:'video',provider:'grok-video',duration:'15s',ratio:'9:16',resolution,imageUrls:hasReferences?[start]:[],enableSafetyChecker};
+  const input=builders.buildFalInput(body,'Test Grok Lite');
+  assert.equal(builders.getModelId('video','grok-video',hasReferences),`xai/grok-imagine-video/v1.5/lite/${hasReferences?'image-to-video':'text-to-video'}`);
+  assert.equal(input.resolution,resolution);assert.equal(input.duration,15);
+  assert.equal(input.enable_safety_checker,enableSafetyChecker===true);
+  assert.equal(input.image_url,hasReferences?start:undefined);
+  assert.equal(input.aspect_ratio,hasReferences?undefined:'9:16');
+  assert.equal('seed' in input,false);assert.equal('end_image_url' in input,false);
+ }
+}
 for (const provider of ['minimax-h3-max-video','minimax-h3-max-turbo-video']) {
   for (const resolution of ['480p','768p','1080p']) for (const imageUrls of [[],[start],[start,end]]) {
     const body={mode:'video',provider,imageUrls,duration:'15s',ratio:'9:16',resolution};

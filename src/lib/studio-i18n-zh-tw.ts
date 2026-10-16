@@ -425,7 +425,7 @@ export const studioTraditionalChineseMessages: Messages = {
   "studio.model.topaz-image": "Topaz 可對上傳圖片進行放大、清晰度增強和人臉最佳化。",
   "studio.model.kling-avatar-standard": "Kling Avatar Standard 使用一張頭像圖片和 ElevenLabs 文稿生成口播影片。",
   "studio.model.kling-avatar-pro": "Kling Avatar Pro 是高階頭像模型，DreamFace 會先生成 ElevenLabs 配音。",
-  "studio.model.grok-video": "Grok Imagine Video 支援文字和圖片輸入，可生成 1-15 秒影片，並控制畫面比例和 480p/720p 解析度。",
+  "studio.model.grok-video": "Grok Imagine Video 1.5 Lite 支援文字和圖片輸入，可生成 1-15 秒影片，並控制畫面比例和 480p/720p/1080p 解析度。",
   "studio.model.seedance-video": "Seedance 2 支援文字和圖片輸入、480p-1080p、4-15 秒影片及可選同步音訊。",
   "studio.model.seedance-mini-video": "Seedance 2 Mini 是更快、成本更低的 Seedance 模型，支援文字或圖片輸入、480p/720p、4-15 秒影片及可選同步音訊。",
     "studio.model.happy-horse-video": "Happy Horse 1.1 支援文字和圖片輸入，可生成 3-15 秒影片，支援 720p/1080p、原生同步音訊和多語言口型同步。",

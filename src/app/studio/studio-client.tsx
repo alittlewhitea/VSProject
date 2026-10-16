@@ -761,7 +761,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [numImages, setNumImages] = useState(1);
   const [guidanceScale, setGuidanceScale] = useState(3.5);
   const [numInferenceSteps, setNumInferenceSteps] = useState(4);
-  const [enableSafetyChecker, setEnableSafetyChecker] = useState(true);
+  const [enableSafetyChecker, setEnableSafetyChecker] = useState(false);
   const [acceleration, setAcceleration] = useState("none");
   const [limitGenerations, setLimitGenerations] = useState(true);
   const [seed, setSeed] = useState("");
@@ -1977,7 +1977,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setNumImages(draft.numImages || 1);
     setGuidanceScale(draft.guidanceScale || 3.5);
     setNumInferenceSteps(draft.numInferenceSteps || 4);
-    setEnableSafetyChecker(draft.enableSafetyChecker !== false);
+    setEnableSafetyChecker(draft.enableSafetyChecker === true);
     setAcceleration(draft.acceleration || "none");
     setLimitGenerations(draft.limitGenerations !== false);
     setSeed(draft.seed || "");
@@ -2109,7 +2109,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         numImages: mode === "image" && !isPromptlessImageWorkflow ? numImages : undefined,
         guidanceScale: mode === "image" && !isPromptlessImageWorkflow ? guidanceScale : undefined,
         numInferenceSteps: mode === "image" && !isPromptlessImageWorkflow ? numInferenceSteps : undefined,
-        enableSafetyChecker: (mode === "image" && !isPromptlessImageWorkflow) || (mode === "video" && provider === "happy-horse-video") ? enableSafetyChecker : undefined,
+        enableSafetyChecker: (mode === "image" && !isPromptlessImageWorkflow) || (mode === "video" && (provider === "happy-horse-video" || provider === "grok-video")) ? enableSafetyChecker : undefined,
         acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
         limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
         seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
@@ -3330,7 +3330,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             <option key={item} value={item}>{item}</option>
                           ))}
                         </select>
-                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={(provider === "kling-video" && activeWorkflow === "image-to-video") || isAvatarWorkflow} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none disabled:opacity-70 sm:w-auto">
+                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={((provider === "kling-video" || provider === "grok-video" || isH3VideoProvider(provider)) && activeWorkflow === "image-to-video") || isAvatarWorkflow} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none disabled:opacity-70 sm:w-auto">
                           {videoRatioOptions.map((item) => (
                             <option key={item} value={item}>{item === "source" ? st("studio.option.sourceImage") : item}</option>
                           ))}
@@ -3671,12 +3671,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       durationOptions={videoDurationOptions}
                       ratio={ratio}
                       ratioOptions={videoRatioOptions}
-                      ratioDisabled={(provider === "kling-video" || isH3VideoProvider(provider)) && activeWorkflow === "image-to-video"}
+                      ratioDisabled={(provider === "kling-video" || provider === "grok-video" || isH3VideoProvider(provider)) && activeWorkflow === "image-to-video"}
                       showResolutionControl={showVideoResolutionControl}
                       resolution={videoResolution}
                       resolutionOptions={videoResolutionOptions}
                       showAudioControl={showVideoAudioControl}
                       generateAudio={generateAudio}
+                      enableSafetyChecker={enableSafetyChecker}
+                      onEnableSafetyCheckerChange={setEnableSafetyChecker}
                       seed={seed}
                       estimatedCredits={estCredits}
                       creditBalance={creditBalance}

@@ -15,6 +15,19 @@ function load(path) {
 const pricing=load('src/lib/model-pricing.ts');
 const estimate=pricing.estimateGenerationCredits;
 const videos=load('src/features/studio/video-models.ts');
+// Grok Lite quotes must match documented supplier cost at every supported duration.
+for (const [resolution,centsPerSecond] of [['480p',2],['720p',3],['1080p',14]]) {
+ for(let seconds=1;seconds<=15;seconds++) for(const hasReferences of [false,true]) {
+  const input={mode:'video',provider:'grok-video',duration:seconds+'s',resolution,hasReferences};
+  const expected=Math.ceil((seconds*centsPerSecond+(hasReferences?1:0))*1.5);
+  assert.equal(estimate(input),expected);
+  assert.equal(estimate({...input,falUnitPriceUsd:99,falUnit:'second'}),expected);
+ }
+}
+assert.deepEqual(videos.VIDEO_MODEL_CONFIGS['grok-video'].resolutions,['480p','720p','1080p']);
+assert.equal(videos.VIDEO_MODEL_CONFIGS['grok-video'].group,'freeDraft');
+for(const workflow of ['text-to-video','image-to-video'])assert.equal(videos.VIDEO_PROVIDERS_BY_WORKFLOW[workflow][1],'grok-video');
+assert.deepEqual(videos.VIDEO_MODEL_CONFIGS['grok-video'].workflows['image-to-video'].ratios,['source']);
 // All four H3 endpoints share the same resolution-dependent estimate. Use fixed promotional rates even if live pricing changes.
 for (const [provider,expected] of [
  ['minimax-h3-max-video',{'480p':[30,60,90],'768p':[60,119,179],'1080p':[100,200,300]}],
