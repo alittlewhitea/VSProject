@@ -26,7 +26,7 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(self)" },
+  { key: "Permissions-Policy", value: 'camera=(), microphone=(), geolocation=(), payment=(self "https://www.paypal.com" "https://www.sandbox.paypal.com" "https://pay.google.com")' },
   {
     key: "Content-Security-Policy",
     value: [
@@ -35,13 +35,13 @@ const securityHeaders = [
       "object-src 'none'",
       "frame-ancestors 'none'",
       "form-action 'self'",
-      `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} https://www.googletagmanager.com`,
+      `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} https://www.googletagmanager.com https://www.paypal.com https://www.sandbox.paypal.com https://*.paypalobjects.com https://pay.google.com https://applepay.cdn-apple.com`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "media-src 'self' blob: https:",
       "font-src 'self' data:",
       `connect-src 'self' https: wss:${isProduction ? "" : " ws:"}`,
-      "frame-src https://www.googletagmanager.com",
+      "frame-src https://www.googletagmanager.com https://*.paypal.com https://pay.google.com https://applepay.cdn-apple.com",
       "worker-src 'self' blob:"
     ].join("; ")
   },

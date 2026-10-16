@@ -7,12 +7,13 @@ import type { CreditPaymentProvider } from "../../lib/billing";
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
 export type GenerationBillingContext = { requiredCredits: number; balance: number; providerLabel: string };
 type StudioBillingModalProps = {
+  accessToken?: string | null;
   open: boolean; t: Translate; loadingItem: string | null; message: string; creditBalance: number | null;
   generationContext: GenerationBillingContext | null; scrollRef: RefObject<HTMLDivElement | null>;
   onClose: () => void; onCreditCheckout: (packId: string, provider: CreditPaymentProvider) => void;
 };
 
-export function StudioBillingModal({ open, t, loadingItem, message, creditBalance, generationContext, scrollRef, onClose, onCreditCheckout }: StudioBillingModalProps) {
+export function StudioBillingModal({ open, t, loadingItem, message, creditBalance, generationContext, scrollRef, onClose, onCreditCheckout, accessToken }: StudioBillingModalProps) {
   const dialogRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open) return;
@@ -21,6 +22,7 @@ export function StudioBillingModal({ open, t, loadingItem, message, creditBalanc
     document.body.style.overflow = "hidden";
     dialogRef.current?.focus();
     const keydown = (event: KeyboardEvent) => {
+      if (document.querySelector("[data-credit-payment-dialog]")) return;
       if (event.key === "Escape" && !loadingItem) onClose();
       if (event.key !== "Tab") return;
       const items = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], [tabindex="0"]');
@@ -52,7 +54,7 @@ export function StudioBillingModal({ open, t, loadingItem, message, creditBalanc
               <p className="font-black">{t("studio.cost.insufficientTitle", { credits: shortfall.toLocaleString() })}</p>
               <p className="mt-1">{generationContext.providerLabel} · {t("studio.cost.insufficientBody", { required: generationContext.requiredCredits.toLocaleString(), balance: generationContext.balance.toLocaleString() })}</p>
             </div> : null}
-            <CreditPackGrid t={t} loadingPack={loadingItem?.replace(/^credits:/, "") || null} onCheckout={onCreditCheckout} shortfall={shortfall} />
+            <CreditPackGrid t={t} loadingPack={loadingItem?.replace(/^credits:/, "") || null} onCheckout={onCreditCheckout} shortfall={shortfall} accessToken={accessToken} message={message} />
             <p className="mt-5 text-center text-xs leading-5 text-[#82758f]">{t("creditShop.note")}</p>
           </div>
         </div>

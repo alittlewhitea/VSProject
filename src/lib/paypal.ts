@@ -12,6 +12,9 @@ type PayPalMoney = {
 export type PayPalOrder = {
   id: string;
   status: string;
+  payment_source?: { google_pay?: { card?: { authentication_result?: {
+    liability_shift?: string; three_d_secure?: { enrollment_status?: string };
+  } } } };
   links?: PayPalLink[];
   purchase_units?: Array<{
     custom_id?: string;
@@ -91,6 +94,17 @@ export function isPayPalWebhookConfigured() {
   return isPayPalConfigured() && Boolean(process.env.PAYPAL_WEBHOOK_ID?.trim());
 }
 
+export function paypalWalletConfiguration() {
+  // Confirmed merchant registration country; can be overridden for a different account.
+  const country = process.env.PAYPAL_MERCHANT_COUNTRY?.trim().toUpperCase() || "GB";
+  return {
+    enabled: isPayPalWebhookConfigured(),
+    clientId: isPayPalWebhookConfigured() ? process.env.PAYPAL_CLIENT_ID!.trim() : null,
+    environment: process.env.PAYPAL_ENV?.trim().toLowerCase() === "live" ? "PRODUCTION" : "TEST",
+    merchantCountry: country && /^[A-Z]{2}$/.test(country) ? country : null
+  };
+}
+
 async function paypalAccessToken() {
   if (cachedAccessToken && cachedAccessToken.expiresAt > Date.now() + 60_000) return cachedAccessToken.value;
 
@@ -113,6 +127,7 @@ async function requestPayPalAccessToken() {
       "Content-Type": "application/x-www-form-urlencoded"
     },
     body: "grant_type=client_credentials",
+    signal: AbortSignal.timeout(15000),
     cache: "no-store"
   });
   const payload = (await response.json().catch(() => null)) as PayPalAccessTokenResponse | { message?: string } | null;
@@ -137,6 +152,7 @@ async function paypalRequest<T>(path: string, init: RequestInit & { requestId?: 
 
   const response = await fetch(`${paypalBaseUrl()}${path}`, {
     ...init,
+    signal: init.signal || AbortSignal.timeout(20000),
     headers,
     cache: "no-store"
   });
@@ -155,6 +171,7 @@ export async function createPayPalOrder(input: {
   currency: string;
   returnUrl: string;
   cancelUrl: string;
+  wallet?: "applepay" | "googlepay";
 }) {
   return paypalRequest<PayPalOrder>("/v2/checkout/orders", {
     method: "POST",
@@ -169,7 +186,7 @@ export async function createPayPalOrder(input: {
           value: (input.amountCents / 100).toFixed(2)
         }
       }],
-      payment_source: {
+      ...(input.wallet ? {} : { payment_source: {
         paypal: {
           experience_context: {
             user_action: "PAY_NOW",
@@ -177,7 +194,7 @@ export async function createPayPalOrder(input: {
             cancel_url: input.cancelUrl
           }
         }
-      }
+      } })
     })
   });
 }

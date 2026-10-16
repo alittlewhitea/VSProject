@@ -1,8 +1,24 @@
 import type { Locale } from "../i18n/routing";
 
+const paymentMessages = {
+  "creditShop.paymentTitle": "Complete your purchase",
+  "creditShop.total": "Total",
+  "creditShop.chooseMethod": "Choose a payment method",
+  "creditShop.close": "Close",
+  "creditShop.walletLoading": "Checking available wallets…",
+  "creditShop.paying": "Confirming payment…",
+  "creditShop.paid": "Payment confirmed. Your credits have been added.",
+  "creditShop.paymentFailed": "Payment could not be confirmed. Try another method or check your payment status below.",
+  "creditShop.pending": "Your previous payment needs confirmation. Check its status before starting another payment.",
+  "creditShop.retry": "Check payment status",
+  "creditShop.viewBilling": "View billing",
+  "creditShop.secure": "One-time purchase. Credits are added after payment is verified."
+};
+
 // Keep purchase copy shared between the marketing page and studio locale system.
 export const creditShopMessages: Record<Locale, Record<string, string>> = {
   "en": {
+    ...paymentMessages,
     "creditShop.eyebrow": "PAY AS YOU GO",
     "creditShop.title": "Credits for your next idea",
     "creditShop.subtitle": "Buy a pack. Create at your pace. No subscription or automatic renewal.",
@@ -26,6 +42,19 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Payment is not confirmed yet. Refresh later or contact support with your order reference."
   },
   "zh-CN": {
+    ...paymentMessages,
+    "creditShop.paymentTitle": "????",
+    "creditShop.total": "??",
+    "creditShop.chooseMethod": "??????",
+    "creditShop.close": "??",
+    "creditShop.walletLoading": "?????????",
+    "creditShop.paying": "???????",
+    "creditShop.paid": "???????????",
+    "creditShop.paymentFailed": "??????????????????????????",
+    "creditShop.pending": "?????????????????????????",
+    "creditShop.retry": "??????",
+    "creditShop.viewBilling": "????",
+    "creditShop.secure": "??????????????????",
     "creditShop.eyebrow": "按需购买",
     "creditShop.title": "为下一个创意充值",
     "creditShop.subtitle": "买多少，用多少。无需订阅，不会自动续费。",
@@ -49,6 +78,19 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "付款尚未确认，请稍后刷新，或提供订单编号联系客服。"
   },
   "zh-TW": {
+    ...paymentMessages,
+    "creditShop.paymentTitle": "????",
+    "creditShop.total": "??",
+    "creditShop.chooseMethod": "??????",
+    "creditShop.close": "??",
+    "creditShop.walletLoading": "?????????",
+    "creditShop.paying": "???????",
+    "creditShop.paid": "???????????",
+    "creditShop.paymentFailed": "??????????????????????????",
+    "creditShop.pending": "?????????????????????????",
+    "creditShop.retry": "??????",
+    "creditShop.viewBilling": "????",
+    "creditShop.secure": "??????????????????",
     "creditShop.eyebrow": "按需購買",
     "creditShop.title": "為下一個創意儲值",
     "creditShop.subtitle": "買多少，用多少。無需訂閱，不會自動續費。",
@@ -72,6 +114,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "付款尚未確認，請稍後重新整理，或提供訂單編號聯絡客服。"
   },
   "pt-BR": {
+    ...paymentMessages,
     "creditShop.eyebrow": "PAGUE CONFORME O USO",
     "creditShop.title": "Créditos para sua próxima ideia",
     "creditShop.subtitle": "Compre um pacote. Sem assinatura ou renovação automática.",
@@ -95,6 +138,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Pagamento ainda não confirmado. Atualize mais tarde ou contate o suporte com a referência do pedido."
   },
   "ru": {
+    ...paymentMessages,
     "creditShop.eyebrow": "ОПЛАТА ПО МЕРЕ ИСПОЛЬЗОВАНИЯ",
     "creditShop.title": "Кредиты для вашей следующей идеи",
     "creditShop.subtitle": "Купите пакет. Без подписки и автопродления.",
@@ -118,6 +162,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Платёж пока не подтверждён. Обновите страницу позже или сообщите номер заказа поддержке."
   },
   "vi": {
+    ...paymentMessages,
     "creditShop.eyebrow": "TRẢ THEO NHU CẦU",
     "creditShop.title": "Credit cho ý tưởng tiếp theo",
     "creditShop.subtitle": "Mua gói credit. Không đăng ký hay tự động gia hạn.",
@@ -141,6 +186,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Chưa xác nhận thanh toán. Hãy tải lại sau hoặc gửi mã đơn hàng cho hỗ trợ."
   },
   "de": {
+    ...paymentMessages,
     "creditShop.eyebrow": "NACH BEDARF BEZAHLEN",
     "creditShop.title": "Credits für deine nächste Idee",
     "creditShop.subtitle": "Kaufe ein Paket. Ohne Abo oder automatische Verlängerung.",
@@ -164,6 +210,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Zahlung noch nicht bestätigt. Lade später neu oder kontaktiere den Support mit der Bestellreferenz."
   },
   "fr": {
+    ...paymentMessages,
     "creditShop.eyebrow": "PAYEZ À L’USAGE",
     "creditShop.title": "Des crédits pour votre prochaine idée",
     "creditShop.subtitle": "Achetez un pack. Sans abonnement ni renouvellement automatique.",
@@ -187,6 +234,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Paiement non confirmé. Actualisez plus tard ou contactez le support avec la référence de commande."
   },
   "ja": {
+    ...paymentMessages,
     "creditShop.eyebrow": "必要な分だけ購入",
     "creditShop.title": "次のアイデアにクレジットを",
     "creditShop.subtitle": "パックを購入して自由に制作。サブスク・自動更新なし。",
@@ -210,6 +258,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "お支払いは未確認です。後で再読み込みするか、注文番号を添えてお問い合わせください。"
   },
   "th": {
+    ...paymentMessages,
     "creditShop.eyebrow": "จ่ายตามการใช้งาน",
     "creditShop.title": "เครดิตสำหรับไอเดียถัดไป",
     "creditShop.subtitle": "ซื้อเป็นแพ็ก ไม่มีค่าสมาชิกหรือต่ออายุอัตโนมัติ",
@@ -233,6 +282,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "ยังไม่ยืนยันการชำระเงิน โปรดรีเฟรชภายหลังหรือติดต่อฝ่ายสนับสนุนพร้อมหมายเลขคำสั่งซื้อ"
   },
   "nl": {
+    ...paymentMessages,
     "creditShop.eyebrow": "BETAAL NAAR GEBRUIK",
     "creditShop.title": "Credits voor je volgende idee",
     "creditShop.subtitle": "Koop een pakket. Geen abonnement of automatische verlenging.",
@@ -256,6 +306,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Betaling nog niet bevestigd. Vernieuw later of geef je bestelreferentie door aan support."
   },
   "he": {
+    ...paymentMessages,
     "creditShop.eyebrow": "תשלום לפי שימוש",
     "creditShop.title": "קרדיטים לרעיון הבא שלך",
     "creditShop.subtitle": "קונים חבילה. ללא מנוי או חידוש אוטומטי.",
@@ -279,6 +330,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "התשלום טרם אושר. רעננו בהמשך או פנו לתמיכה עם מספר ההזמנה."
   },
   "ko": {
+    ...paymentMessages,
     "creditShop.eyebrow": "필요한 만큼 구매",
     "creditShop.title": "다음 아이디어를 위한 크레딧",
     "creditShop.subtitle": "팩을 구매하고 자유롭게 창작하세요. 구독과 자동 갱신이 없습니다.",
@@ -302,6 +354,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "결제가 아직 확인되지 않았습니다. 나중에 새로고침하거나 주문 번호로 문의하세요."
   },
   "es": {
+    ...paymentMessages,
     "creditShop.eyebrow": "PAGA POR USO",
     "creditShop.title": "Créditos para tu próxima idea",
     "creditShop.subtitle": "Compra un paquete. Sin suscripción ni renovación automática.",
@@ -325,6 +378,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Pago aún no confirmado. Actualiza más tarde o contacta con soporte con la referencia del pedido."
   },
   "it": {
+    ...paymentMessages,
     "creditShop.eyebrow": "PAGA IN BASE ALL’USO",
     "creditShop.title": "Crediti per la tua prossima idea",
     "creditShop.subtitle": "Acquista un pacchetto. Senza abbonamento o rinnovo automatico.",
@@ -348,6 +402,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Pagamento non ancora confermato. Riprova più tardi o contatta l’assistenza con il riferimento dell’ordine."
   },
   "ar": {
+    ...paymentMessages,
     "creditShop.eyebrow": "ادفع حسب الاستخدام",
     "creditShop.title": "رصيد لفكرتك القادمة",
     "creditShop.subtitle": "اشترِ باقة. بدون اشتراك أو تجديد تلقائي.",

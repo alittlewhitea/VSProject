@@ -202,6 +202,13 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
   }, [accessToken, checkoutState]);
 
   useEffect(() => {
+    if (!accessToken) return;
+    const refresh = () => { void loadCredits(accessToken); };
+    window.addEventListener("dreamface:credits-updated", refresh);
+    return () => window.removeEventListener("dreamface:credits-updated", refresh);
+  }, [accessToken]);
+
+  useEffect(() => {
     let cancelled = false;
     fetch("/api/model-pricing")
       .then((response) => (response.ok ? response.json() : null))
@@ -661,7 +668,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
           <section className="mt-8">
             <h2 className="mb-3 text-2xl font-black">{t("creditShop.title")}</h2>
             <p className="mb-6 text-sm text-[#82748f]">{t("creditShop.subtitle")}</p>
-            <CreditPackGrid t={t} loadingPack={loadingPack} onCheckout={startCheckout} />
+            <CreditPackGrid t={t} loadingPack={loadingPack} onCheckout={startCheckout} accessToken={accessToken} message={message} />
             <p className="mt-5 text-xs text-[#82748f]">{t("creditShop.note")}</p>
           </section>
 
@@ -731,7 +738,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
         <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-[#82748f]">{t("creditShop.subtitle")}</p>
         {accessToken ? <p className="mt-5 text-sm font-bold text-[#7554df]">{t("creditShop.balance")}: {balance === null ? "--" : balance.toLocaleString()} {t("creditShop.credits")} · <a className="underline" href="/billing">{t("billing.title")}</a></p> : null}
         {message ? <p role="status" className="mt-6 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">{message}</p> : null}
-        <div className="mt-10"><CreditPackGrid t={t} loadingPack={loadingPack} onCheckout={startCheckout} /></div>
+        <div className="mt-10"><CreditPackGrid t={t} loadingPack={loadingPack} onCheckout={startCheckout} accessToken={accessToken} message={message} /></div>
         <p className="mt-5 text-xs leading-6 text-[#8b8096]">{t("creditShop.note")}</p>
       </section>
       <section className="mx-auto mt-6 max-w-[1176px] rounded-3xl border border-[#e7e1f0] bg-white p-6 sm:p-8">

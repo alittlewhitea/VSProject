@@ -798,6 +798,23 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   },[accessToken]);
   const [userId, setUserId] = useState<string | null>(null);
   const h3DailyFree = useH3DailyFree(accessToken, userId);
+  useEffect(() => {
+    if (!accessToken || !userId) return;
+    const controller = new AbortController();
+    const refresh = async () => {
+      try {
+        const response = await fetch("/api/credits", { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal });
+        const data = await response.json();
+        if (!controller.signal.aborted && response.ok && typeof data.balance === "number") {
+          setCreditBalance(data.balance);
+          const key = scopedSessionKey(SESSION_CREDIT_BALANCE_KEY, userId);
+          if (key) safeSetLocalStorage(key, String(data.balance));
+        }
+      } catch { /* A confirmed payment can still be viewed on Billing if refresh fails. */ }
+    };
+    window.addEventListener("dreamface:credits-updated", refresh);
+    return () => { controller.abort(); window.removeEventListener("dreamface:credits-updated", refresh); };
+  }, [accessToken, userId]);
   const [authReady, setAuthReady] = useState(false);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [dreamfaceIoEnabled, setDreamfaceIoEnabled] = useState<boolean | null>(null);
@@ -2646,6 +2663,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         ) : null}
 
         <StudioBillingModal
+          accessToken={accessToken}
           open={billingModalOpen}
           t={st}
           loadingItem={loadingBillingItem}

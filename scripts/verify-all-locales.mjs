@@ -5,6 +5,7 @@ import ts from "typescript";
 const root = process.cwd();
 const locales = ["en", "zh-CN", "zh-TW", "pt-BR", "ru", "vi", "de", "fr", "ja", "th", "nl", "he", "ko", "es", "it", "ar"];
 const studioSources = [
+  ["credit-shop-messages.ts", "creditShopMessages"],
   ["studio-i18n-h3-free.ts", "studioH3FreeMessages"],
   ["studio-i18n-prompt-ai.ts", "studioPromptAiMessages"],
   ["studio-i18n-gemini-omni.ts", "studioGeminiOmniMessages"],

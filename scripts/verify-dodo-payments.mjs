@@ -155,42 +155,25 @@ allowed = false; assert.equal((await checkoutRoute.POST(request(body))).status, 
 assert.equal((await checkoutRoute.POST(request({ ...body, type: 'subscription' }))).status, 410);
 assert.equal((await checkoutRoute.POST(request({ ...body, packId: 'unknown' }))).status, 400);
 
-// Execute the shared billing/Studio credit grid with a small React hook runner.
+// Shared pack selection opens one payment dialog; Dodo remains its Credit Card action.
 let cells = [], cursor = 0, selected;
-const react = {
-  useState(initialValue) { const i = cursor++; if (!(i in cells)) cells[i] = initialValue; return [cells[i], value => { cells[i] = value; }]; },
-  useEffect(effect) { const i = cursor++; if (!(i in cells)) { cells[i] = true; effect(); } }
-};
-globalThis.fetch = async () => Response.json({ providers: ['dodo', 'paypal'] });
-const grid = load('src/components/credit-pack-grid.tsx', {
-  react, '../lib/billing': {
-    CREDIT_PACKS: [pack], CREDIT_USAGE_REFERENCE: { video: { model: 'Test', seconds: 5, resolution: '480p' } },
-    creditUsageCapacity: () => ({ images: 1, videos: 1 }), formatUsd: amount => '$' + (amount / 100).toFixed(2)
-  }
-});
-const renderGrid = loadingPack => { cursor = 0; return grid.CreditPackGrid({ t: key => key, loadingPack, onCheckout: (id, provider) => { selected = [id, provider]; } }); };
-renderGrid(null); await new Promise(resolve => setTimeout(resolve, 0));
-const buttons = [];
-function collect(node) {
-  if (!node || typeof node !== 'object') return;
-  if (Array.isArray(node)) return node.forEach(collect);
-  if (node.props?.['data-payment-provider']) buttons.push(node);
-  collect(node.props?.children);
-}
-collect(renderGrid('starter:dodo'));
-assert.deepEqual(buttons.map(button => button.props['data-payment-provider']), ['dodo', 'paypal']);
-assert.equal(buttons[0].props['aria-busy'], true); assert.equal(buttons[1].props.disabled, true);
-buttons[0].props.onClick(); assert.deepEqual(selected, ['starter', 'dodo']);
-buttons.length = 0; collect(renderGrid(null));
-function visibleText(node) {
-  if (typeof node === 'string' || typeof node === 'number') return String(node);
-  if (Array.isArray(node)) return node.map(visibleText).join(' ');
-  return node?.props ? visibleText(node.props.children) : '';
-}
-assert.match(visibleText(buttons[0]), /Credit Card/);
-assert.doesNotMatch(visibleText(buttons[0]), /VISA|Mastercard/);
-assert.doesNotMatch(visibleText(buttons[0]), /Dodo Payments/);
-assert.match(buttons[0].props['aria-label'], /Credit Card/);
+const react = {useState(initialValue){const i=cursor++;if(!(i in cells))cells[i]=initialValue;return[cells[i],value=>cells[i]=value];}};
+const PaymentDialog=()=>null;
+const grid=load('src/components/credit-pack-grid.tsx',{
+ react,'next/dynamic':{default:()=>PaymentDialog},'../lib/billing':{
+ CREDIT_PACKS:[pack],CREDIT_USAGE_REFERENCE:{video:{model:'Test',seconds:5,resolution:'480p'}},
+ creditUsageCapacity:()=>({images:1,videos:1}),formatUsd:amount=>'$'+(amount/100).toFixed(2)
+ }});
+const renderGrid=loadingPack=>{cursor=0;return grid.CreditPackGrid({t:key=>key,loadingPack,accessToken:'fixture-token',onCheckout:(id,provider)=>selected=[id,provider]});};
+function elements(node,result=[]){if(Array.isArray(node))node.forEach(child=>elements(child,result));else if(node?.props){result.push(node);elements(node.props.children,result);}return result;}
+let nodes=elements(renderGrid('starter:dodo'));
+assert.equal(nodes.find(node=>node.props['data-credit-pack-select']).props.disabled,true);
+nodes=elements(renderGrid(null));nodes.find(node=>node.props['data-credit-pack-select']).props.onClick();
+const dialog=elements(renderGrid(null)).find(node=>node.type===PaymentDialog);
+assert.equal(dialog.props.pack.id,'starter');
+dialog.props.onCheckout('starter','dodo');assert.deepEqual(selected,['starter','dodo']);
+const dialogSource=readFileSync('src/components/credit-payment-dialog.tsx','utf8');
+assert.match(dialogSource,/Credit Card/);assert.doesNotMatch(dialogSource,/VISA|Mastercard|Dodo Payments/);
 
 const syncRoute = load('src/app/api/billing/dodo/sync/route.ts', {
   '../../../../../lib/server-auth': { getUserFromBearerToken: async () => authenticated ? { id: 'user-test' } : null },

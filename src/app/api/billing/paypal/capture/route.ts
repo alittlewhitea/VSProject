@@ -3,6 +3,7 @@ import { capturePayPalOrder, getPayPalOrder } from "../../../../../lib/paypal";
 import { addCredits } from "../../../../../lib/credits";
 import { getUserFromBearerToken } from "../../../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../../../lib/supabase-admin";
+import { consumeRateLimit } from "../../../../../lib/request-security";
 
 function moneyToCents(value: string | undefined) {
   const parsed = Number(value);
@@ -40,6 +41,11 @@ export async function POST(request: Request) {
     if (error) throw error;
     if (!purchase) return NextResponse.json({ error: "PayPal order not found." }, { status: 404 });
     const purchaseRow = purchase as PurchaseRow;
+    if (!["created", "processing", "completed"].includes(purchaseRow.status)) {
+      return NextResponse.json({ error: "This order cannot be captured." }, { status: 409 });
+    }
+    const receipt = (captureId: string) => ({ completed: true, orderId, transactionId: captureId,
+      packId: purchaseRow.pack_id, credits: Number(purchaseRow.credits), amountCents: Number(purchaseRow.amount_cents), currency: String(purchaseRow.currency).toUpperCase() });
 
     if (purchaseRow.status === "completed" && purchaseRow.provider_capture_id) {
       await addCredits(
@@ -49,19 +55,34 @@ export async function POST(request: Request) {
         "payment_purchase",
         `paypal:capture:${purchaseRow.provider_capture_id}`
       );
-      return NextResponse.json({ completed: true, duplicate: true });
+      return NextResponse.json({ ...receipt(purchaseRow.provider_capture_id), duplicate: true });
     }
+
+    const rate = await consumeRateLimit({ scope: "paypal_capture", subject: user.id, limit: 20, windowSeconds: 60 });
+    if (!rate.allowed) return NextResponse.json({ error: "Please wait before confirming payment again." }, { status: 429 });
 
     let order;
     try {
-      order = await capturePayPalOrder(orderId);
+      const approved = await getPayPalOrder(orderId);
+      const unit = approved.purchase_units?.[0];
+      if (approved.purchase_units?.length !== 1 || moneyToCents(unit?.amount?.value) !== Number(purchaseRow.amount_cents) ||
+          unit?.amount?.currency_code?.toLowerCase() !== String(purchaseRow.currency).toLowerCase()) {
+        return NextResponse.json({ error: "PayPal order amount does not match the purchase." }, { status: 400 });
+      }
+      if (!["APPROVED", "COMPLETED"].includes(approved.status)) return NextResponse.json({ error: "Payment authorization is not complete." }, { status: 409 });
+      const authentication = approved.payment_source?.google_pay?.card?.authentication_result;
+      if (authentication?.liability_shift === "UNKNOWN" ||
+          (authentication?.three_d_secure?.enrollment_status === "Y" && !["POSSIBLE", "YES"].includes(authentication.liability_shift || ""))) {
+        return NextResponse.json({ error: "Payment authentication was not successful." }, { status: 409 });
+      }
+      order = approved.status === "COMPLETED" ? approved : await capturePayPalOrder(orderId);
     } catch (captureError) {
       const existingOrder = await getPayPalOrder(orderId);
       if (existingOrder.status !== "COMPLETED") throw captureError;
       order = existingOrder;
     }
     const capture = order.purchase_units?.flatMap((unit) => unit.payments?.captures || [])[0];
-    if (order.status !== "COMPLETED" || capture?.status !== "COMPLETED") {
+    if (order.status !== "COMPLETED" || capture?.status !== "COMPLETED" || !capture.id) {
       return NextResponse.json({ error: "PayPal payment has not completed." }, { status: 409 });
     }
     if (
@@ -77,7 +98,7 @@ export async function POST(request: Request) {
       status: "completed",
       updated_at: new Date().toISOString()
     }).eq("id", purchaseRow.id).throwOnError();
-    return NextResponse.json({ completed: true });
+    return NextResponse.json(receipt(capture.id));
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to capture PayPal order." }, { status: 500 });
   }
