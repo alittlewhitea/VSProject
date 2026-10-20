@@ -1,0 +1,173 @@
+{
+  "checkedAt": "2026-10-20",
+  "models": [
+    {
+      "provider": "flux-3-max-video",
+      "lab": "Fal",
+      "slug": "fal",
+      "sourcePage": "https://fal.ai/models/blackforestlabs/flux-3-max/text-to-video",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aaeff15/jmZBWvvHCTQ4y1H0O5Oua_ProviderLogo.png"
+    },
+    {
+      "provider": "minimax-h3-max-turbo-video",
+      "lab": "Fal",
+      "slug": "fal",
+      "sourcePage": "https://fal.ai/models/minimax/h3-max-turbo/text-to-video",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aaeff15/jmZBWvvHCTQ4y1H0O5Oua_ProviderLogo.png"
+    },
+    {
+      "provider": "minimax-h3-max-video",
+      "lab": "Fal",
+      "slug": "fal",
+      "sourcePage": "https://fal.ai/models/minimax/h3-max/text-to-video",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aaeff15/jmZBWvvHCTQ4y1H0O5Oua_ProviderLogo.png"
+    },
+    {
+      "provider": "gemini-omni-flash-video",
+      "lab": "Google",
+      "slug": "google",
+      "sourcePage": "https://fal.ai/models/google/gemini-omni-flash",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191df/jq47AGk_IiRc89viDsG_p_Logo%3DGoogle%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "chatgpt-image",
+      "lab": "OpenAI",
+      "slug": "openai",
+      "sourcePage": "https://fal.ai/models/openai/gpt-image-2.5/flare/text-to-image",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191af/2My0orUXqFgwmv6sZirQG_Logo%3DOpenAI%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "gpt-image-2.5-sunburst",
+      "lab": "OpenAI",
+      "slug": "openai",
+      "sourcePage": "https://fal.ai/models/openai/gpt-image-2.5/sunburst/text-to-image",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191af/2My0orUXqFgwmv6sZirQG_Logo%3DOpenAI%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "nano-banana-image",
+      "lab": "Google",
+      "slug": "google",
+      "sourcePage": "https://fal.ai/models/google/nano-banana-2.1",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191df/jq47AGk_IiRc89viDsG_p_Logo%3DGoogle%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "nano-banana-pro",
+      "lab": "Google",
+      "slug": "google",
+      "sourcePage": "https://fal.ai/models/fal-ai/nano-banana-pro",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191df/jq47AGk_IiRc89viDsG_p_Logo%3DGoogle%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "nano-banana-lite",
+      "lab": "Google",
+      "slug": "google",
+      "sourcePage": "https://fal.ai/models/google/nano-banana-lite",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191df/jq47AGk_IiRc89viDsG_p_Logo%3DGoogle%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "nano-banana-2-lite",
+      "lab": "Google",
+      "slug": "google",
+      "sourcePage": "https://fal.ai/models/google/nano-banana-2-lite",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191df/jq47AGk_IiRc89viDsG_p_Logo%3DGoogle%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "flux-image",
+      "lab": "Black Forest Labs",
+      "slug": "black-forest-labs",
+      "sourcePage": "https://fal.ai/models/fal-ai/flux/schnell",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa19209/jHj0mC2kMcG0BIp6Vn-Ua_Logo%3DBFL%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "flux-dev",
+      "lab": "Black Forest Labs",
+      "slug": "black-forest-labs",
+      "sourcePage": "https://fal.ai/models/fal-ai/flux/dev",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa19209/jHj0mC2kMcG0BIp6Vn-Ua_Logo%3DBFL%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "topaz-image",
+      "lab": "Topaz Labs",
+      "slug": "topaz-labs",
+      "sourcePage": "https://fal.ai/models/fal-ai/topaz/upscale/image",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa6dcce/WKKl-js-lcL__1qNGUumq_Logo%3DTopaz%2C%20Style%3DLight.svg"
+    },
+    {
+      "provider": "bria-background-remove",
+      "lab": "Bria AI",
+      "slug": "bria-ai",
+      "sourcePage": "https://fal.ai/models/fal-ai/bria/background/remove",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa19202/Au8d_Lpbt6WlYIpqinLTX_Logo%3DBria%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "seedance-video",
+      "lab": "Bytedance",
+      "slug": "bytedance",
+      "sourcePage": "https://fal.ai/models/bytedance/seedance-2.0/text-to-video",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191bf/qbHs2V4mnQX4xIErwpQfs_Logo%3DBytedance%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "seedance-mini-video",
+      "lab": "Bytedance",
+      "slug": "bytedance",
+      "sourcePage": "https://fal.ai/models/bytedance/seedance-2.0/mini/text-to-video",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191bf/qbHs2V4mnQX4xIErwpQfs_Logo%3DBytedance%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "happy-horse-video",
+      "lab": "Alibaba",
+      "slug": "alibaba",
+      "sourcePage": "https://fal.ai/models/alibaba/happy-horse/v1.1/text-to-video",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191d9/nrBxz0LmO4zyxeYyy3qAV_Logo%3DQwen%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "kling-video",
+      "lab": "Kling",
+      "slug": "kling",
+      "sourcePage": "https://fal.ai/models/fal-ai/kling-video/v3/pro/text-to-video",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa1b4ac/h0C0J-NmUvd17aOtl1gJs_Logo%3DKling%2C%20Style%3DOriginal.png"
+    },
+    {
+      "provider": "kling-avatar-standard",
+      "lab": "Kling",
+      "slug": "kling",
+      "sourcePage": "https://fal.ai/models/fal-ai/kling-video/ai-avatar/v2/standard",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa1b4ac/h0C0J-NmUvd17aOtl1gJs_Logo%3DKling%2C%20Style%3DOriginal.png"
+    },
+    {
+      "provider": "kling-avatar-pro",
+      "lab": "Kling",
+      "slug": "kling",
+      "sourcePage": "https://fal.ai/models/fal-ai/kling-video/ai-avatar/v2/pro",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa1b4ac/h0C0J-NmUvd17aOtl1gJs_Logo%3DKling%2C%20Style%3DOriginal.png"
+    },
+    {
+      "provider": "grok-video",
+      "lab": "xAI",
+      "slug": "xai",
+      "sourcePage": "https://fal.ai/models/xai/grok-imagine-video/v1.5/lite/text-to-video",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa1b4d6/GW_HHbJjJC284EudK84lJ_Logo%3DxAI%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "minimax-music-2.6",
+      "lab": "Minimax",
+      "slug": "minimax",
+      "sourcePage": "https://fal.ai/models/fal-ai/minimax-music/v2.6",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa5c53b/XU9fgY4irNwfGCVM4ux-R_Logo%3DMinimax%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "elevenlabs-tts",
+      "lab": "ElevenLabs",
+      "slug": "elevenlabs",
+      "sourcePage": "https://fal.ai/models/elevenlabs/tts/eleven-v4-turbo",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa1b4e9/0L-LAR-_iC1yHC1rH9wbj_Logo%3DElevenLabs%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "veo-video",
+      "lab": "Google",
+      "slug": "google",
+      "sourcePage": "https://fal.ai/models/fal-ai/veo3.1",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa191df/jq47AGk_IiRc89viDsG_p_Logo%3DGoogle%2C%20Style%3DLight.png"
+    }
+  ]
+}

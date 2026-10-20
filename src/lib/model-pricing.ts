@@ -1,4 +1,5 @@
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality } from "./gpt-image-models";
+import { flux3MaxDuration, flux3MaxSecondPrice } from "./flux3-max";
 export type PricingMode = "image" | "video" | "audio";
 
 export type GenerationEstimateInput = {
@@ -17,6 +18,7 @@ export type GenerationEstimateInput = {
   thinkingLevel?: string | null;
   generateAudio?: boolean | null;
   promptText?: string | null;
+  pricingTime?: number;
 };
 
 export type ModelPricingRow = {
@@ -214,6 +216,10 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 
   const seconds = secondsFromDuration(input.duration);
 
+  if (input.provider === "flux-3-max-video") {
+    return creditsFromFalUsd(flux3MaxSecondPrice(input.resolution, input.pricingTime) * flux3MaxDuration(input.duration), 1);
+  }
+
   if (input.provider === "dreamface-io-video") {
     return Math.ceil(seconds / 5) * 10;
   }
@@ -290,6 +296,14 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 }
 
 export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
+  ...["text-to-video", "image-to-video"].map((workflow): ModelPricingRow => ({
+    provider: "flux-3-max-video", label: workflow === "text-to-video" ? "FLUX 3 Max" : "FLUX 3 Max I2V",
+    mode: "video", workflow: workflow === "text-to-video" ? "Text to Video" : "Image to Video",
+    endpointId: `blackforestlabs/flux-3-max/${workflow}`,
+    falBasis: "720p: $0.0425/s; 1080p: $0.0725/s during the 75% OFF promotion. Full rates: $0.17/s and $0.29/s.",
+    typicalCredits: estimateGenerationCredits({mode:"video",provider:"flux-3-max-video",duration:"5s",resolution:"720p"}),
+    unitNote: "5–20 seconds; promotion ends 2026-11-08 00:00 Asia/Shanghai; standard credit conversion"
+  })),
   {
     provider: "minimax-h3-max-turbo-video",
     label: "MiniMax H3 Max Turbo",

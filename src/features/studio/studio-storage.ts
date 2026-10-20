@@ -47,6 +47,7 @@ export type StudioLoginDraft<
   editResolution: string;
   videoResolution: string;
   generateAudio?: boolean;
+  reasoningLevel?: "low" | "high";
   voice?: string;
   stability?: number;
   timestamps?: boolean;

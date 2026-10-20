@@ -51,6 +51,18 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  images: {
+    formats: ["image/webp"],
+    minimumCacheTTL: 30 * 24 * 60 * 60,
+    maximumDiskCacheSize: 256 * 1024 * 1024,
+    maximumResponseBody: 12 * 1024 * 1024,
+    localPatterns: [{ pathname: "/images/**", search: "" }],
+    remotePatterns: [
+      { protocol: "https", hostname: "pbs.twimg.com", pathname: "/media/**" },
+      { protocol: "https", hostname: "v3b.fal.media", pathname: "/files/**" },
+      { protocol: "https", hostname: "refinery.fal.media", pathname: "/url/**" }
+    ]
+  },
   ...(deploymentId ? { deploymentId } : {}),
   devIndicators: false,
   env: {
@@ -74,6 +86,10 @@ const nextConfig = {
             value: deploymentId || "local"
           }
         ]
+      },
+      {
+        source: "/brand/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }]
       },
       {
         source: "/api/:path*",

@@ -9,7 +9,6 @@ type ImageWorkbenchWorkflow = "text-to-image" | "image-to-image" | "enhance-clea
 
 type ImageWorkbenchProps = {
   workflow: ImageWorkbenchWorkflow;
-  canSubmit: boolean;
   prompt: string;
   referenceImagesText: string;
   referenceImageUrls: string[];
@@ -103,36 +102,13 @@ function ReferenceImagePanel({
             ))}
           </div>
         </div>
-      ) : (
-        <div className="mt-3 grid min-h-[96px] place-items-center rounded-xl border border-[#eaecf0] bg-white px-4 text-center">
-          <p className="max-w-xs text-sm font-bold leading-6 text-[#8290a7]">{translate("studio.imageImage.emptyReference")}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function WorkbenchHeader({ icon, title, description, status }: { icon: string; title: string; description: string; status: string }) {
-  return (
-    <div className="flex min-h-[58px] flex-wrap items-center justify-between gap-3 border-b border-[#f1f3f7] px-4 py-3">
-      <div className="flex items-center gap-3">
-        <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-[#f1efff] text-sm font-black text-[#6a5af9]">{icon}</span>
-        <div>
-          <strong className="block text-[15px] font-black tracking-[-0.01em] text-[#283249]">{title}</strong>
-          <span className="mt-0.5 block text-xs font-bold text-[#91a0b6]">{description}</span>
-        </div>
-      </div>
-      <div className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-[#ecfdf3] px-3 text-xs font-bold text-[#039855]">
-        <span className="h-2 w-2 rounded-full bg-[#20c997] shadow-[0_0_0_5px_rgba(32,201,151,0.12)]" />
-        {status}
-      </div>
+      ) : null}
     </div>
   );
 }
 
 export function ImageWorkbench({
   workflow,
-  canSubmit,
   prompt,
   referenceImagesText,
   referenceImageUrls,
@@ -150,12 +126,6 @@ export function ImageWorkbench({
   if (workflow === "text-to-image") {
     return (
       <div>
-        <WorkbenchHeader
-          icon={"\u2726"}
-          title={translate("studio.textImage.promptStudio")}
-          description={translate("studio.textImage.promptStudioDescription")}
-          status={translate(canSubmit ? "studio.textImage.ready" : "studio.textImage.waiting")}
-        />
         <div className="px-4 pb-4 pt-3">
           <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
             <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{translate("studio.textImage.yourPrompt")}</div>
@@ -194,25 +164,6 @@ export function ImageWorkbench({
 
   return (
     <div>
-      <WorkbenchHeader
-        icon={isImageToImage ? "+" : "\u2726"}
-        title={translate(
-          isImageToImage
-            ? "studio.imageImage.referenceStudio"
-            : isEnhance
-              ? "studio.utilityImage.enhanceStudio"
-              : "studio.utilityImage.backgroundStudio"
-        )}
-        description={translate(
-          isImageToImage
-            ? "studio.imageImage.referenceStudioDescription"
-            : isEnhance
-              ? "studio.utilityImage.enhanceStudioDescription"
-              : "studio.utilityImage.backgroundStudioDescription"
-        )}
-        status={translate(referenceImageUrls.length ? (isImageToImage ? "studio.imageImage.ready" : "studio.utilityImage.ready") : "studio.imageImage.addReference")}
-      />
-
       <div className="grid gap-4 px-4 pb-4 pt-3">
         <ReferenceImagePanel
           referenceImagesText={referenceImagesText}

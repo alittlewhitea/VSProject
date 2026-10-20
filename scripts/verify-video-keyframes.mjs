@@ -10,6 +10,16 @@ const route = readFileSync('src/app/api/generate/route.ts', 'utf8');
 const source = route.slice(route.indexOf('function isValidBody'), route.indexOf('function buildRequestSettings'));
 const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused');
 const start = 'https://example.invalid/start.png', end = 'https://example.invalid/end.png';
+for(const resolution of ['720p','1080p']) for(const imageUrls of [[],[start],[start,end]]) {
+ for(const reasoningLevel of [undefined,'low','high']) for(const generateAudio of [undefined,false,true]) {
+  const input=builders.buildFalInput({mode:'video',provider:'flux-3-max-video',duration:'20s',ratio:'2:1',resolution,imageUrls,reasoningLevel,generateAudio,seed:42},'Flux motion');
+  assert.equal(builders.getModelId('video','flux-3-max-video',Boolean(imageUrls.length)),`blackforestlabs/flux-3-max/${imageUrls.length?'image-to-video':'text-to-video'}`);
+  assert.equal(input.duration,20);assert.equal(input.resolution,resolution);assert.equal(input.aspect_ratio,'2:1');
+  assert.equal(input.reasoning_level,reasoningLevel==='low'?'low':'high');assert.equal(input.generate_audio,generateAudio!==false);
+  assert.equal(input.image_url,imageUrls[0]);assert.equal(input.end_image_url,imageUrls[1]);assert.equal(input.seed,42);
+  assert.equal('enable_safety_checker' in input,false);
+ }
+}
 for(const resolution of ['480p','720p','1080p']) for(const hasReferences of [false,true]) {
  for(const enableSafetyChecker of [undefined,false,true]) {
   const body={mode:'video',provider:'grok-video',duration:'15s',ratio:'9:16',resolution,imageUrls:hasReferences?[start]:[],enableSafetyChecker};
@@ -34,7 +44,7 @@ for (const provider of ['minimax-h3-max-video','minimax-h3-max-turbo-video']) {
       `minimax/${provider==='minimax-h3-max-video'?'h3-max':'h3-max-turbo'}/${imageUrls.length?'image-to-video':'text-to-video'}`);
   }
 }
-for (const provider of ['minimax-h3-max-video', 'minimax-h3-max-turbo-video', 'seedance-video', 'gemini-omni-flash-video']) {
+for (const provider of ['flux-3-max-video', 'minimax-h3-max-video', 'minimax-h3-max-turbo-video', 'seedance-video', 'gemini-omni-flash-video']) {
   assert.equal(frames.videoSupportsEndFrame(provider), true);
   for (const imageUrls of [[], [start], [start, end]]) {
     assert.equal(frames.validateVideoImages(provider, imageUrls), null);

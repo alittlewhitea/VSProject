@@ -85,6 +85,19 @@ for(const provider of ['minimax-h3-max-video','minimax-h3-max-turbo-video','klin
 const effect=findNode(node=>ts.isCallExpression(node)&&node.expression.getText(ast)==='useEffect'&&node.arguments[0]?.getText(ast).includes('const promptParam = sp.get("prompt")'));
 const effectCode=ts.transpileModule('const apply = '+effect.arguments[0].getText(ast)+';', {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
 const initialReferences=findNode(node=>ts.isVariableDeclaration(node)&&node.name.getText(ast)==='[referenceImagesText, setReferenceImagesText]').initializer.arguments[0].getText(ast);
+for(const workflow of ['text-to-image','image-to-image']) for(const provider of ['chatgpt-image','gpt-image-2.5-sunburst','nano-banana-image','nano-banana-pro','nano-banana-lite','flux-image','flux-dev']) {
+  const image=context('image',workflow);
+  Object.assign(image,{initialProvider:provider,initialWorkflow:workflow,initialVideoWorkflow:'text-to-video',initialReferenceUrl:null});
+  assert.equal(image.defaultPromptForProvider(provider,workflow),'');
+  assert.equal(new Function('context',`with(context){return (${initialReferences})();}`)(image),'');
+  image.applyProvider(provider);assert.equal(image.prompt,'');assert.equal(image.referenceImagesText,'');assert.deepEqual(image.referenceImageFiles,[]);
+  image.prompt='Preserve my own image instructions.';image.referenceImageFiles=[file.dataUrl];image.applyProvider(provider);
+  assert.equal(image.prompt,'Preserve my own image instructions.');assert.deepEqual(image.referenceImageFiles,[file.dataUrl]);
+  image.initialReferenceUrl='https://user.test/explicit-image.png';
+  assert.equal(new Function('context',`with(context){return (${initialReferences})();}`)(image),'https://user.test/explicit-image.png');
+}
+assert.doesNotMatch(source,/gptImageExample\(|imageSamplePreviewUrl/);
+assert.doesNotMatch(readFileSync('src/features/studio/unified-workbench-layout.tsx','utf8'),/imageSamplePreview/);
 for(const provider of ['minimax-h3-max-video','minimax-h3-max-turbo-video','kling-avatar-standard','kling-avatar-pro']) {
   const avatar=context('avatar','avatar-video');
   Object.assign(avatar,{initialProvider:provider,initialWorkflow:'avatar-video',initialVideoWorkflow:'avatar-video',initialReferenceUrl:null});

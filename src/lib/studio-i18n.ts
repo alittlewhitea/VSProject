@@ -1,6 +1,7 @@
 "use client";
 
 import { studioPromptAiMessages } from "./studio-i18n-prompt-ai";
+import { studioFlux3Messages } from "./studio-i18n-flux3";
 import { studioH3FreeMessages } from "./studio-i18n-h3-free";
 
 import { useEffect, useState } from "react";
@@ -1037,6 +1038,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
 
   function t(key: string, values?: Record<string, string | number | null | undefined>) {
     let template =
+      studioFlux3Messages[locale]?.[key] ||
       studioH3FreeMessages[locale]?.[key] ||
       studioPromptAiMessages[locale]?.[key] ||
       creditShopMessages[locale]?.[key] ||

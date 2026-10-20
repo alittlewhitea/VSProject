@@ -7,7 +7,8 @@ import { useVideoPromptEnhancement } from "../../features/studio/use-video-promp
 import { useH3DailyFree } from "../../features/studio/use-h3-daily-free";
 import { isH3DailyFreeRequest } from "../../lib/h3-daily-free-policy";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
-import { isGptImageProvider, gptImageQuality, gptImageExample, GPT_IMAGE_EXAMPLE_PROMPTS, GPT_IMAGE_EXAMPLE_REFERENCES, GPT_IMAGE_SIZES, GPT_IMAGE_QUALITIES } from "../../lib/gpt-image-models";
+import { isFlux3MaxPromotion, FLUX3_MAX_PROMO_END } from "../../lib/flux3-max";
+import { isGptImageProvider, gptImageQuality, GPT_IMAGE_EXAMPLE_PROMPTS, GPT_IMAGE_SIZES, GPT_IMAGE_QUALITIES } from "../../lib/gpt-image-models";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -75,7 +76,6 @@ import {
   isKnownVideoDuration,
   isKnownVideoRatio,
   isKnownVideoResolution,
-  videoExampleFor,
   videoExampleSourceFor,
   videoModelBadge,
   videoModelConfig,
@@ -477,8 +477,6 @@ const MINIMAX_MUSIC_DEFAULT_PROMPT = "City Pop, 80s retro, groovy synth bass, wa
 
 function defaultPromptForProvider(provider: string, workflow?: StudioWorkflow, localizedMusicPrompt = MINIMAX_MUSIC_DEFAULT_PROMPT) {
   if (workflow === "avatar-video" || isAvatarProvider(provider)) return "";
-  const imageExample = gptImageExample(provider,workflow);
-  if(imageExample) return imageExample.prompt;
   if (provider === "minimax-music-2.6") {
     return localizedMusicPrompt;
   }
@@ -715,33 +713,33 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         ? ""
       : initialVideoWorkflow === "image-to-video" && modelSampleReferenceForProvider(initialProvider)
         ? modelSampleReferenceForProvider(initialProvider)
-      : gptImageExample(initialProvider,initialWorkflow)?.references.join("\n") || ""
+      : ""
   );
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
   const lastAppliedPromptUrlRef = useRef<AppliedUrlInput | null>(null);
   const lastAppliedReferenceUrlRef = useRef<AppliedUrlInput | null>(null);
-  // Provider/workflow transitions replace built-in examples, never user-uploaded files.
+  // Image workspaces start empty; switching models only sets the supported quality default.
   useEffect(() => {
     if(mode !== "image") return;
-    const example=gptImageExample(provider,imageWorkflow);
-    if(example) {
-      setPrompt(current => !current.trim() || GPT_IMAGE_EXAMPLE_PROMPTS.includes(current) ? example.prompt : current);
-      setImageQuality("low");
-    }
-    if(!sp.get("reference") && referenceImageFiles.length === 0) {
-      setReferenceImagesText(current => {
-        const urls=current.split(/[\s,]+/).filter(Boolean);
-        return !urls.length || urls.every(url=>GPT_IMAGE_EXAMPLE_REFERENCES.includes(url))
-          ? example?.references.join("\n") || "" : current;
-      });
-    }
+    if(isGptImageProvider(provider)) setImageQuality("low");
   },[mode,provider,imageWorkflow]);
 
   const [avatarAudioUrl, setAvatarAudioUrl] = useState(sp.get("audioUrl") || "");
   const [avatarAudioTrimSeconds, setAvatarAudioTrimSeconds] = useState<number | null>(null);
   const [editResolution, setEditResolution] = useState("1K");
   const [videoResolution, setVideoResolution] = useState(() => defaultVideoResolutionForProvider(initialProvider));
-  const [generateAudio, setGenerateAudio] = useState(false);
+  const [generateAudio, setGenerateAudio] = useState(initialProvider === "flux-3-max-video");
+  const [reasoningLevel, setReasoningLevel] = useState<"low"|"high">("high");
+  const [pricingTime, setPricingTime] = useState(()=>Date.now());
+  useEffect(()=>{
+    if(mode !== "video") return;
+    const refresh=()=>setPricingTime(Date.now());
+    const interval=window.setInterval(refresh,60000);
+    const remaining=FLUX3_MAX_PROMO_END-Date.now();
+    const timeout=remaining>0&&remaining<2147483647?window.setTimeout(refresh,remaining+20):null;
+    window.addEventListener("focus",refresh);
+    return ()=>{window.clearInterval(interval);if(timeout!==null)window.clearTimeout(timeout);window.removeEventListener("focus",refresh);};
+  },[mode]);
   const [ttsVoice, setTtsVoice] = useState("Rachel");
   const [avatarVoiceGender, setAvatarVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
   const [audioVoiceGender, setAudioVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
@@ -1268,7 +1266,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const isAvatarWorkflow = mode === "avatar" || activeWorkflow === "avatar-video";
   const isDreamfaceTalkingAvatar = isAvatarWorkflow && provider === "dreamface-io-video";
   const isH3MaxAvatar = isAvatarWorkflow && isH3MaxProvider(provider);
-  const h3MaxAvatarExample = isH3MaxAvatar ? videoExampleFor(provider, "image-to-video") : null;
   const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
   const avatarScriptSeconds = isAvatarWorkflow ? estimateAvatarScriptSeconds(prompt) : 0;
   const avatarOutputSeconds = isAvatarWorkflow ? avatarScriptSeconds + (isDreamfaceTalkingAvatar ? 0 : AVATAR_KLING_BUFFER_SECONDS) : 0;
@@ -1298,6 +1295,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const avatarSelectedSeconds = Math.max(1, Number.parseInt(avatarDuration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
 
   const baseEstCredits = estimateGenerationCredits({
+    pricingTime,
     mode: modeForPricing(mode),
     provider,
     imageSize,
@@ -1348,12 +1346,11 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       : defaultVideoResolutionForProvider(option.value);
     const optionGenerateAudio = mode === "video" && Boolean(videoModelConfig(option.value)?.showAudioControl) && generateAudio;
     const optionImageSize = mode === "image" ? defaultImageSizeForProvider(option.value) : imageSize;
-    const optionGptExample = mode === "image" ? gptImageExample(option.value,activeWorkflow) : null;
-    const hasCustomImageReferences = referenceImageFiles.length > 0 || referenceImagesText.split(/\r?\n|,/).some(url=>url.trim() && !GPT_IMAGE_EXAMPLE_REFERENCES.includes(url.trim()));
-    const optionReferenceCount = optionGptExample && !hasCustomImageReferences ? optionGptExample.references.length : referenceImageUrls.length;
+    const optionReferenceCount = referenceImageUrls.length;
     const rawOptionCredits = option.value === provider
       ? estCredits
       : estimateGenerationCredits({
+          pricingTime,
           mode: modeForPricing(mode),
           provider: option.value,
           imageSize: optionImageSize,
@@ -1366,7 +1363,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           numImages: mode === "image" ? numImages : 1,
           enableWebSearch,
           thinkingLevel,
-          promptText: optionGptExample ? promptForProviderChange(prompt,optionGptExample.prompt) : prompt
+          promptText: prompt
         });
     const optionDreamfaceUnits = option.value === "dreamface-io-video"
       ? Math.max(1, Math.ceil((Number.parseInt(optionDuration, 10) || 5) / 5))
@@ -1390,7 +1387,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           : optionDuration
         : undefined,
       credits: optionCredits,
-      badge: badgeKey ? st(badgeKey) : undefined,
+      badge: option.value === "flux-3-max-video" && isFlux3MaxPromotion(pricingTime) ? st("studio.flux3.promotion") : badgeKey ? st(badgeKey) : undefined,
       group: st(groupKey)
     };
   });
@@ -1431,6 +1428,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     "topaz-image",
     "kling-avatar-standard",
     "kling-avatar-pro",
+    "flux-3-max-video",
     "grok-video",
     "dreamface-io-video",
     "seedance-video",
@@ -1715,6 +1713,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         ? videoOverrides.resolution
         : defaultVideoResolutionForProvider(nextProvider);
       setVideoResolution(nextResolution);
+      if(nextProvider === "flux-3-max-video" && provider !== nextProvider){setGenerateAudio(true);setReasoningLevel("high");}
       setRatio(nextRatio);
       const params = new URLSearchParams(sp.toString());
       params.set("mode", mode === "avatar" ? "avatar" : "video");
@@ -1909,6 +1908,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       editResolution,
       videoResolution,
       generateAudio,
+      reasoningLevel,
       voice: ttsVoice,
       stability: ttsStability,
       timestamps: ttsTimestamps,
@@ -1960,6 +1960,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setEditResolution(draft.editResolution);
     setVideoResolution(draft.videoResolution);
     setGenerateAudio(Boolean(draft.generateAudio));
+    setReasoningLevel(draft.reasoningLevel === "low" ? "low" : "high");
     setTtsVoice(draft.voice || "Rachel");
     setTtsStability(typeof draft.stability === "number" ? draft.stability : 0.5);
     setTtsTimestamps(Boolean(draft.timestamps));
@@ -2100,10 +2101,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         resolution:
           mode === "image"
             ? editResolution
-            : (mode === "video" || isH3MaxAvatar) && (isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
+            : (mode === "video" || isH3MaxAvatar) && (provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
         generateAudio: mode === "video" ? generateAudio : undefined,
+        reasoningLevel: provider === "flux-3-max-video" ? reasoningLevel : undefined,
+        expectedCredits: provider === "flux-3-max-video" ? estCredits : undefined,
         outputFormat: mode === "image" && provider !== "bria-background-remove" ? outputFormat : undefined,
         quality: mode === "image" && !isPromptlessImageWorkflow ? imageQuality : undefined,
         numImages: mode === "image" && !isPromptlessImageWorkflow ? numImages : undefined,
@@ -2112,7 +2115,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         enableSafetyChecker: (mode === "image" && !isPromptlessImageWorkflow) || (mode === "video" && (provider === "happy-horse-video" || provider === "grok-video")) ? enableSafetyChecker : undefined,
         acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
         limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
-        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
+        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
         safetyTolerance: mode === "image" && !isPromptlessImageWorkflow ? safetyTolerance : undefined,
         systemPrompt: mode === "image" && !isPromptlessImageWorkflow && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" && !isPromptlessImageWorkflow ? enableWebSearch : undefined,
@@ -2151,8 +2154,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       });
 
       if (!response.ok) {
-        const errorPayload = (await response.json().catch(() => null)) as { error?: string; code?: string } | null;
+        const errorPayload = (await response.json().catch(() => null)) as { error?: string; code?: string; pricingTime?:number } | null;
         clearPersistentIdempotency(idempotencyStorageKey);
+        if(errorPayload?.code === "video_price_changed") {
+          setPricingTime(errorPayload.pricingTime || Date.now());
+          throw new Error(st("studio.flux3.priceChanged"));
+        }
         if (errorPayload?.code === "daily_free_unavailable") {
           h3DailyFree.invalidate();
           throw new Error(st("studio.h3Free.unavailable"));
@@ -2633,7 +2640,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       automaticDuration={avatarDuration}
       scriptTooLong={avatarScriptTooLong}
       estimatedCredits={estCredits}
-      creditBalance={creditBalance}
       generateDisabled={generateDisabled}
       isSubmitting={isSubmitting}
       isAuthenticated={Boolean(accessToken)}
@@ -2780,13 +2786,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     {showImageWorkbenchRedesign ? (
                       <UnifiedWorkbenchLayout
                         mode="image"
-                        imageSamplePreviewUrl={gptImageExample(provider,imageWorkflow)?.preview}
-                        imageSamplePreviewLabel={PROVIDER_META[provider]?.label}
                         tasks={tasks}
                         translate={st}
                         editor={<ImageWorkbench
                           workflow={imageWorkflow}
-                          canSubmit={canSubmit}
                           prompt={prompt}
                           referenceImagesText={referenceImagesText}
                           referenceImageUrls={referenceImageUrls}
@@ -2837,10 +2840,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         tasks={tasks}
                         translate={st}
                         modelSelector={avatarModelSelector}
-                        avatarSamplePreviewUrl={isH3MaxAvatar ? h3MaxAvatarExample?.videoUrl : isAvatarProvider(provider) ? KLING_AVATAR_PREVIEW_VIDEO_URL : undefined}
-                        avatarSamplePreviewLabel={isH3MaxAvatar ? h3MaxAvatarExample?.modelLabel : isAvatarProvider(provider) ? "Kling Avatar" : undefined}
                         editor={<AvatarWorkbench
-                          canSubmit={canSubmit}
                           prompt={prompt}
                           referenceImagesText={referenceImagesText}
                           referenceImageUrls={referenceImageUrls}
@@ -3677,6 +3677,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       resolutionOptions={videoResolutionOptions}
                       showAudioControl={showVideoAudioControl}
                       generateAudio={generateAudio}
+                      reasoningLevel={reasoningLevel}
+                      onReasoningLevelChange={setReasoningLevel}
                       enableSafetyChecker={enableSafetyChecker}
                       onEnableSafetyCheckerChange={setEnableSafetyChecker}
                       seed={seed}
@@ -3727,7 +3729,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       automaticDuration={avatarDuration}
                       scriptTooLong={avatarScriptTooLong}
                       estimatedCredits={estCredits}
-                      creditBalance={creditBalance}
                       generateDisabled={generateDisabled}
                       isSubmitting={isSubmitting}
                       isAuthenticated={Boolean(accessToken)}

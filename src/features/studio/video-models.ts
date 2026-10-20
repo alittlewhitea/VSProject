@@ -125,6 +125,22 @@ const SEEDANCE_IMAGE_PROMPT = "Ultra high-end commercial product shot, photoreal
 const SEEDANCE_IMAGE_URL = "https://v3b.fal.media/files/b/0a95971b/bFYVNRi647e2hEFdbeU2Z_jMhj1ueK.jpg";
 
 export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
+  "flux-3-max-video": {
+    id: "flux-3-max-video",
+    meta: {label:"FLUX 3 Max",shortLabel:"FLUX 3 Max",speed:"Fast",quality:"Native audio",bestFor:"5–20 second text-to-video and start/end-frame image-to-video with 720p/1080p output, native audio and low/high prompt reasoning"},
+    group: "betterQuality",
+    workflows: {
+      "text-to-video": {ratios:["auto","21:9","2:1","16:9","4:3","1:1","3:4","9:16"]},
+      "image-to-video": {ratios:["auto","21:9","2:1","16:9","4:3","1:1","3:4","9:16"]}
+    },
+    durations: Array.from({length:16},(_,index)=>`${index+5}s`),
+    resolutions:["720p","1080p"], defaultDuration:"5s", defaultResolution:"720p",
+    showResolutionControl:true, showAudioControl:true,
+    examples: {
+      "text-to-video": {provider:"flux-3-max-video",workflow:"text-to-video",modelLabel:"FLUX 3 Max",prompts:["A red panda walks along a mossy log in a sunlit forest, pausing to sniff the air before climbing over a fallen branch. Soft morning light filters through the canopy. Ambient birdsong and rustling leaves."],videoUrl:"https://v3b.fal.media/files/b/0aad95e5/Yk8T8_MXiLBhuphmPfeqR_alligator.mp4",posterUrl:"https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aad95e5%2FYk8T8_MXiLBhuphmPfeqR_alligator.mp4/tr:so-0,w-1024,q-80/Yk8T8_MXiLBhuphmPfeqR_alligator.webp",badgeParts:["5s","720p"],badgeHasAudio:true,settings:{duration:"5s",ratio:"auto",resolution:"720p",generateAudio:true}},
+      "image-to-video": {provider:"flux-3-max-video",workflow:"image-to-video",modelLabel:"FLUX 3 Max",prompts:['The monkey leans into his microphone and says, "Welcome back to the show!" The polar bear laughs and nods along, tapping the desk. Jungle birdsong on the left, a cold wind on the right.'],videoUrl:"https://v3b.fal.media/files/b/0aad95e6/ESYZjWfb88A3PeyaAqCbD_alligator.mp4",posterUrl:"https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aad95e6%2FESYZjWfb88A3PeyaAqCbD_alligator.mp4/tr:so-0,w-1024,q-80/ESYZjWfb88A3PeyaAqCbD_alligator.webp",sourceImageUrl:"https://storage.googleapis.com/falserverless/example_inputs/veo31_i2v_input.jpg",sourceImageShape:"landscape",badgeParts:["5s","720p"],badgeHasAudio:true,settings:{duration:"5s",ratio:"auto",resolution:"720p",generateAudio:true}}
+    }
+  },
   "minimax-h3-max-turbo-video": {
     id: "minimax-h3-max-turbo-video",
     meta: { label: "MiniMax H3 Max Turbo", shortLabel: "H3 Turbo", speed: "Fastest", quality: "Frontier value", bestFor: "Faster-than-real-time text-to-video and image-to-video with strong prompt adherence and native audio" },
@@ -304,8 +320,8 @@ export const VIDEO_PROVIDER_META: Record<string, VideoProviderMeta> = {
 };
 
 export const VIDEO_PROVIDERS_BY_WORKFLOW: Record<StudioVideoWorkflow, string[]> = {
-  "text-to-video": ["minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
-  "image-to-video": ["minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video"]
+  "text-to-video": ["minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
+  "image-to-video": ["minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video"]
 };
 
 export const VIDEO_EXAMPLE_PROMPTS = Object.values(VIDEO_MODEL_CONFIGS)

@@ -6,7 +6,6 @@ type Translate = (
 type VoiceGender = "all" | "female" | "male";
 
 type AvatarWorkbenchProps = {
-  canSubmit: boolean;
   prompt: string;
   referenceImagesText: string;
   referenceImageUrls: string[];
@@ -35,7 +34,6 @@ type AvatarWorkbenchProps = {
 };
 
 export function AvatarWorkbench({
-  canSubmit,
   prompt,
   referenceImagesText,
   referenceImageUrls,
@@ -68,22 +66,6 @@ export function AvatarWorkbench({
 
   return (
     <div>
-      <div className="flex min-h-[58px] flex-wrap items-center justify-between gap-3 border-b border-[#f1f3f7] px-4 py-3">
-        <div className="flex items-center gap-3">
-          <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-[#f1efff] text-sm font-black text-[#6a5af9]">
-            {"\u25b6"}
-          </span>
-          <div>
-            <strong className="block text-[15px] font-black tracking-[-0.01em] text-[#283249]">{translate("studio.avatarWorkbench.studio")}</strong>
-            <span className="mt-0.5 block text-xs font-bold text-[#91a0b6]">{translate("studio.avatarWorkbench.studioDescription")}</span>
-          </div>
-        </div>
-        <div className={`inline-flex h-8 items-center gap-2 rounded-[10px] px-3 text-xs font-bold ${canSubmit ? "bg-[#ecfdf3] text-[#039855]" : "bg-[#fff7ed] text-[#c2410c]"}`}>
-          <span className={`h-2 w-2 rounded-full shadow-[0_0_0_5px_rgba(32,201,151,0.12)] ${canSubmit ? "bg-[#20c997]" : "bg-[#fb923c]"}`} />
-          {canSubmit ? translate("studio.avatarWorkbench.ready") : translate("studio.avatarWorkbench.waiting")}
-        </div>
-      </div>
-
       <div className="grid gap-4 px-4 pb-4 pt-3">
         <div
           className="rounded-2xl border border-dashed border-[#cfc9ff] bg-[#faf9ff] p-3"

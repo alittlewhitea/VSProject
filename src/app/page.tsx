@@ -1,4 +1,5 @@
 import Link from "next/link";
+import {GalleryImage} from "../components/gallery-image";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { HomeHeroCarousel } from "../components/home-hero-carousel";
@@ -151,12 +152,13 @@ export default async function HomePage() {
                     href={galleryItemPath(item)}
                     className="card group overflow-hidden rounded-2xl bg-white"
                   >
-                    <div className="aspect-[4/3] overflow-hidden bg-[#eef2f7]">
-                      <img
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[#eef2f7]">
+                      <GalleryImage
                         src={item.thumbnailUrl || item.imageUrl}
                         alt={item.title}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
-                        loading="lazy"
+                        fill
+                        sizes="(min-width: 1540px) 350px, (min-width: 1024px) 25vw, 50vw"
                       />
                     </div>
                     <div className="p-3 sm:p-4">

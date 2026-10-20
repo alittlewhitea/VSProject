@@ -65,6 +65,7 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "kling-avatar-standard") return "fal-ai/kling-video/ai-avatar/v2/standard";
   if (provider === "kling-avatar-pro") return "fal-ai/kling-video/ai-avatar/v2/pro";
   if (provider === "veo-video") return "fal-ai/veo3.1";
+  if (provider === "flux-3-max-video") return hasReferences ? "blackforestlabs/flux-3-max/image-to-video" : "blackforestlabs/flux-3-max/text-to-video";
   if (provider === "grok-video") return hasReferences ? "xai/grok-imagine-video/v1.5/lite/image-to-video" : "xai/grok-imagine-video/v1.5/lite/text-to-video";
   if (provider === "gemini-omni-flash-video") return hasReferences ? "google/gemini-omni-flash/v1.1/image-to-video" : "google/gemini-omni-flash";
   if (provider === "minimax-h3-max-video") return hasReferences ? "minimax/h3-max/image-to-video" : "minimax/h3-max/text-to-video";
@@ -283,7 +284,7 @@ export async function getLiveModelPricingRows(): Promise<LiveModelPricingRow[]> 
       const typicalCredits = estimateGenerationCredits({
         mode: row.mode,
         provider: row.provider,
-        duration: row.provider === "dreamface-io-video" || row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "5s" : row.mode === "video" ? "6s" : undefined,
+        duration: row.provider === "flux-3-max-video" || row.provider === "dreamface-io-video" || row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "5s" : row.mode === "video" ? "6s" : undefined,
         resolution: row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "480p" : undefined,
         imageSize: row.provider === "flux-image" ? "landscape_16_9" : "default_4_3",
         hasReferences: row.workflow.toLowerCase().includes("image to image") || row.workflow.toLowerCase().includes("image to video"),
@@ -294,7 +295,7 @@ export async function getLiveModelPricingRows(): Promise<LiveModelPricingRow[]> 
 
       return {
         ...row,
-        fallbackCredits: row.typicalCredits,
+        fallbackCredits: row.provider === "flux-3-max-video" ? typicalCredits : row.typicalCredits,
         typicalCredits,
         liveUnitPriceUsd: live?.unit_price ?? null,
         unit: live?.unit || null,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import {BrandMark} from "./brand-mark";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { defaultLocale, isLocale } from "../i18n/routing";
@@ -13,8 +14,8 @@ export async function SiteFooter() {
     <footer className="mt-16 rounded-3xl bg-gradient-to-br from-[#dff3fa] via-[#e8f8ff] to-[#efeefe] px-7 py-9">
       <div className="grid gap-7 border-b border-black/10 pb-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.25fr_0.75fr_1.2fr_0.8fr_1.1fr]">
         <div>
-          <img
-            src="/icons/icon-512x512.png"
+          <BrandMark
+            loading="lazy"
             alt={t("footer.brand")}
             width={56}
             height={56}

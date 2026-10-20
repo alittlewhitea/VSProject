@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { formatApproximateCreditValue } from "../../lib/billing";
+import { modelLogoForProvider } from "../../lib/model-logos";
 
 export type ModelPickerOption = {
   value: string;
@@ -24,10 +25,12 @@ type ModelPickerProps = {
   onChange: (value: string) => void;
 };
 
-function ModelMark() {
+function ModelMark({provider,compact=false}:{provider?:string;compact?:boolean}) {
+  const logo=modelLogoForProvider(provider);
+  const [failedLogo,setFailedLogo]=useState<string|null>(null);
   return (
-    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,#eeeaff,#f8f7ff)] text-lg font-black text-[#6a5af9] shadow-[inset_0_0_0_1px_#ddd7ff]">
-      {"\u2723"}
+    <span aria-hidden="true" className={`grid shrink-0 place-items-center rounded-xl bg-white text-lg font-black text-[#6a5af9] shadow-[inset_0_0_0_1px_#e4e7ec] ${compact ? "mt-0.5 h-9 w-9" : "h-10 w-10"}`}>
+      {logo && failedLogo !== logo ? <img src={logo} alt="" width={28} height={28} loading="lazy" decoding="async" onError={()=>setFailedLogo(logo)} className="h-7 w-7 object-contain" /> : "\u2723"}
     </span>
   );
 }
@@ -138,7 +141,7 @@ export function ModelPicker({ value, options, translate, onChange }: ModelPicker
                       className={`w-full rounded-2xl border p-3.5 text-start transition sm:p-4 ${active ? "border-[#8f80ff] bg-[linear-gradient(135deg,#f5f2ff,#fff)] shadow-[0_0_0_2px_#eeeaff]" : "border-[#eaecf0] bg-white hover:border-[#cec7ff] hover:bg-[#fbfaff]"}`}
                     >
                       <span className="flex items-start gap-3">
-                        <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-[11px] text-sm font-black ${active ? "bg-[#6f59f7] text-white" : "bg-[#f3f1ff] text-[#6a5af9]"}`}>{active ? "\u2713" : "\u2723"}</span>
+                        <ModelMark provider={option.value} compact />
                         <span className="min-w-0 flex-1">
                           <span className="flex flex-wrap items-center gap-2">
                             <strong className="text-sm font-black text-[#101828] sm:text-[15px]">{option.label}</strong>
@@ -199,7 +202,7 @@ export function ModelPicker({ value, options, translate, onChange }: ModelPicker
           </span>
         </span>
         <span className="flex items-center gap-3">
-          <ModelMark />
+          <ModelMark provider={selected.value} />
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-center gap-2">
               <strong className="truncate text-[14px] font-black text-[#101828]">{selected.label}</strong>

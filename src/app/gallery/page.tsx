@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {GalleryImage} from "../../components/gallery-image";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { FormEvent, MouseEvent } from "react";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -248,11 +249,13 @@ function GalleryContent() {
                 href={item.id.startsWith("sample-") ? `/studio?mode=image&workflow=text-to-image&prompt=${encodeURIComponent(item.prompt)}` : galleryItemPath(item)}
                 className="group mb-4 block break-inside-avoid overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_14px_36px_rgba(13,18,35,0.07)] transition hover:-translate-y-1 hover:shadow-[0_22px_48px_rgba(13,18,35,0.11)]"
               >
-                <img
+                <GalleryImage
                   src={item.thumbnailUrl || item.imageUrl}
                   alt={item.title}
                   className="max-h-[560px] w-full bg-[#eef2f7] object-cover"
-                  loading="lazy"
+                  width={item.width || 800}
+                  height={item.height || 1000}
+                  sizes="(min-width: 1540px) 350px, (min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                 />
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-2">

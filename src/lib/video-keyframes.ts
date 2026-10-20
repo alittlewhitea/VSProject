@@ -1,6 +1,6 @@
 /** Only enable documented start/end-frame endpoints; other models stay single-image. */
 export function videoSupportsEndFrame(provider: string): boolean {
-  return ["minimax-h3-max-video", "minimax-h3-max-turbo-video", "seedance-video", "gemini-omni-flash-video"].includes(provider);
+  return ["flux-3-max-video", "minimax-h3-max-video", "minimax-h3-max-turbo-video", "seedance-video", "gemini-omni-flash-video"].includes(provider);
 }
 
 export function validateVideoImages(provider: string, images: unknown): string | null {

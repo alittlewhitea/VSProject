@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
+import {BrandMark} from "./brand-mark";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -102,8 +103,8 @@ export function TopNav() {
             onClick={() => trackEvent("nav_clicked", { item: "logo", target: "/" })}
             className="flex shrink-0 items-center gap-2 text-xl font-black leading-none tracking-tight sm:gap-2.5 sm:text-3xl"
           >
-            <img
-              src="/icons/icon-512x512.png"
+            <BrandMark
+              sizes="(min-width: 640px) 40px, 32px"
               alt=""
               width={40}
               height={40}

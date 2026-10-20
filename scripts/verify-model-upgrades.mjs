@@ -15,6 +15,28 @@ function load(path) {
 const pricing=load('src/lib/model-pricing.ts');
 const estimate=pricing.estimateGenerationCredits;
 const videos=load('src/features/studio/video-models.ts');
+const flux3=load('src/lib/flux3-max.ts');
+assert.equal(flux3.isFlux3MaxPromotion(Date.parse('2026-11-07T00:00:00+08:00')),true);
+assert.equal(flux3.isFlux3MaxPromotion(Date.parse('2026-11-07T23:59:59.999+08:00')),true);
+assert.equal(flux3.isFlux3MaxPromotion(Date.parse('2026-11-08T00:00:00+08:00')),false);
+assert.equal(flux3.isFlux3MaxPromotion(flux3.FLUX3_MAX_PROMO_START-1),false);
+assert.equal(flux3.isFlux3MaxPromotion(flux3.FLUX3_MAX_PROMO_START),true);
+assert.equal(flux3.isFlux3MaxPromotion(flux3.FLUX3_MAX_PROMO_END-1),true);
+assert.equal(flux3.isFlux3MaxPromotion(flux3.FLUX3_MAX_PROMO_END),false);
+for(const [resolution,promoRate,fullRate] of [['720p',0.0425,0.17],['1080p',0.0725,0.29]]) {
+ for(let seconds=5;seconds<=20;seconds++) for(const hasReferences of [false,true]) {
+  const input={mode:'video',provider:'flux-3-max-video',duration:seconds+'s',resolution,hasReferences,pricingTime:flux3.FLUX3_MAX_PROMO_END-1};
+  assert.equal(estimate(input),Math.ceil(seconds*promoRate*150*1.65));
+  assert.equal(estimate({...input,falUnitPriceUsd:promoRate,falUnit:'second'}),estimate(input),'Do not discount the already promotional fal rate twice');
+  assert.equal(estimate({...input,pricingTime:flux3.FLUX3_MAX_PROMO_END}),Math.ceil(seconds*fullRate*150*1.65));
+ }
+}
+for(const workflow of ['text-to-video','image-to-video']) {
+ assert.ok(videos.VIDEO_PROVIDERS_BY_WORKFLOW[workflow].includes('flux-3-max-video'));
+ assert.ok(videos.videoModelRatios('flux-3-max-video',workflow).includes('2:1'));
+}
+assert.deepEqual(videos.videoModelResolutions('flux-3-max-video'),['720p','1080p']);
+assert.deepEqual(videos.videoModelDurations('flux-3-max-video'),Array.from({length:16},(_,index)=>(index+5)+'s'));
 // Grok Lite quotes must match documented supplier cost at every supported duration.
 for (const [resolution,centsPerSecond] of [['480p',2],['720p',3],['1080p',14]]) {
  for(let seconds=1;seconds<=15;seconds++) for(const hasReferences of [false,true]) {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {GalleryImage} from "../../../components/gallery-image";
 import { useEffect, useState } from "react";
 import { TopNav } from "../../../components/top-nav";
 import { AppButton } from "../../../components/ui/button";
@@ -218,12 +219,13 @@ export function GalleryDetailClient({ itemId }: { itemId: string }) {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {relatedItems.map((related) => (
                     <Link key={related.id} href={galleryItemPath(related)} className="card group overflow-hidden rounded-2xl bg-white">
-                      <div className="aspect-[4/5] overflow-hidden bg-[#eef2f7]">
-                        <img
+                      <div className="relative aspect-[4/5] overflow-hidden bg-[#eef2f7]">
+                        <GalleryImage
                           src={related.thumbnailUrl || related.imageUrl}
                           alt={related.title}
                           className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                          loading="lazy"
+                          fill
+                          sizes="(min-width: 1540px) 350px, (min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
                         />
                       </div>
                       <div className="p-4">

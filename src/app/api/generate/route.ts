@@ -70,6 +70,8 @@ type GenerateRequest = {
   enableWebSearch?: boolean;
   thinkingLevel?: string;
   generateAudio?: boolean;
+  reasoningLevel?: "low" | "high";
+  expectedCredits?: number;
   voice?: string;
   stability?: number;
   timestamps?: boolean;
@@ -179,6 +181,9 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "kling-avatar-standard": process.env.FAL_MODEL_VIDEO_KLING_AVATAR_STANDARD || "fal-ai/kling-video/ai-avatar/v2/standard",
     "kling-avatar-pro": process.env.FAL_MODEL_VIDEO_KLING_AVATAR_PRO || "fal-ai/kling-video/ai-avatar/v2/pro",
     "veo-video": process.env.FAL_MODEL_VIDEO_VEO || "fal-ai/veo3.1",
+    "flux-3-max-video": editImage
+      ? "blackforestlabs/flux-3-max/image-to-video"
+      : "blackforestlabs/flux-3-max/text-to-video",
     "grok-video": editImage
       ? process.env.FAL_MODEL_VIDEO_GROK_I2V || "xai/grok-imagine-video/v1.5/lite/image-to-video"
       : process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/v1.5/lite/text-to-video",
@@ -311,6 +316,20 @@ function getFalImageSize(ratio: string, imageSize?: string) {
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
+  if (body.mode === "video" && body.provider === "flux-3-max-video") {
+    const seconds = Number.parseInt(body.duration, 10);
+    const seed = optionalSeed(body.seed);
+    return {
+      prompt,
+      duration: Number.isInteger(seconds) && seconds >= 5 && seconds <= 20 ? seconds : 5,
+      resolution: body.resolution === "1080p" ? "1080p" : "720p",
+      aspect_ratio: ["auto","21:9","2:1","16:9","4:3","1:1","3:4","9:16"].includes(body.ratio) ? body.ratio : "auto",
+      reasoning_level: body.reasoningLevel === "low" ? "low" : "high",
+      generate_audio: body.generateAudio !== false,
+      ...(hasInputImages(body) ? {image_url:firstInputImage(body),...videoEndFrameInput(body.provider,body.imageUrls)} : {}),
+      ...(seed !== undefined ? {seed} : {})
+    };
+  }
   if (body.mode === "audio" && body.provider === "minimax-music-2.6") {
     const isInstrumental = Boolean(body.isInstrumental);
     const lyrics = typeof body.lyrics === "string" ? body.lyrics.trim().slice(0, 3500) : "";
@@ -635,6 +654,7 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     music_format: body.musicFormat || null,
     thinking_level: body.thinkingLevel || null,
     generate_audio: typeof body.generateAudio === "boolean" ? body.generateAudio : null,
+    reasoning_level: body.provider === "flux-3-max-video" ? body.reasoningLevel === "low" ? "low" : "high" : null,
     voice: body.voice || null,
     stability: typeof body.stability === "number" ? body.stability : null,
     timestamps: typeof body.timestamps === "boolean" ? body.timestamps : null,
@@ -889,6 +909,15 @@ export async function POST(request: Request) {
           generateAudio: body.generateAudio,
           promptText: prompt
         });
+    if (body.provider === "flux-3-max-video" && body.mode !== "video") {
+      return NextResponse.json({error:"FLUX 3 Max is only available for video generation."},{status:400});
+    }
+    if (body.mode === "video" && body.provider === "flux-3-max-video" && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
+      return NextResponse.json({error:"FLUX 3 Max image-to-video requires a start frame."},{status:400});
+    }
+    if (body.provider === "flux-3-max-video" && body.expectedCredits !== undefined && body.expectedCredits !== baseEstimatedCredits) {
+      return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"video_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
+    }
     if (body.mode === "image" && body.provider === "nano-banana-edit") {
       if (!imageUrls.length) {
         return NextResponse.json({ error: "Image to Image requires at least one reference image." }, { status: 400 });

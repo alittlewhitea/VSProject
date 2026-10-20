@@ -100,6 +100,7 @@ function providerLabel(provider?: string) {
     "happy-horse-video": "Happy Horse 1.1",
     "kling-video": "Kling",
     "veo-video": "Veo",
+    "flux-3-max-video": "FLUX 3 Max",
     "grok-video": "Grok Imagine Video",
     "elevenlabs-tts": "ElevenLabs Eleven v4 Turbo",
     "minimax-music-2.6": "MiniMax Music 2.6"
