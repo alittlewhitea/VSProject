@@ -25,6 +25,28 @@ declare global {
 
 const ANON_ID_KEY = "dreamface_analytics_anonymous_id";
 const SESSION_ID_KEY = "dreamface_analytics_session_id";
+const PURCHASE_KEY_PREFIX = "dreamface_analytics_purchase:";
+const reportedPurchases = new Set<string>();
+
+function claimPurchase(transactionId: string) {
+  if (reportedPurchases.has(transactionId)) return false;
+  const key = `${PURCHASE_KEY_PREFIX}${transactionId}`;
+  // Shared by every checkout entry point and retained across page reloads.
+  // Storage can be unavailable; the in-memory guard still covers callbacks.
+  for (const storageName of ["localStorage", "sessionStorage"] as const) {
+    try {
+      if (window[storageName].getItem(key) === "1") {
+        reportedPurchases.add(transactionId);
+        return false;
+      }
+    } catch { /* Optional browser storage. */ }
+  }
+  reportedPurchases.add(transactionId);
+  for (const storageName of ["localStorage", "sessionStorage"] as const) {
+    try { window[storageName].setItem(key, "1"); } catch { /* Optional browser storage. */ }
+  }
+  return true;
+}
 
 function randomId(prefix: string) {
   if (typeof window !== "undefined" && window.crypto?.randomUUID) {
@@ -125,6 +147,7 @@ export function trackPurchaseEvent(
   accessToken?: string | null
 ) {
   if (typeof window === "undefined" || !properties.transaction_id) return;
+  if (!claimPurchase(properties.transaction_id)) return;
 
   const { items, ...scalarProperties } = properties;
   const payload = analyticsPayload("purchase", scalarProperties as AnalyticsProperties);
