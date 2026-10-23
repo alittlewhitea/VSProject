@@ -472,7 +472,9 @@
     "modelGuide": {
       "eyebrow": "モデルガイド",
       "title": "一般的な信用コスト",
-      "description": "正確な価格は「生成」ボタンの横に表示されます。可能な場合は、継続性のためのフォールバック見積もりとともに、ライブの Fal 価格が使用されます。"
+      "description": "正確な価格は「生成」ボタンの横に表示されます。可能な場合は、継続性のためのフォールバック見積もりとともに、ライブの Fal 価格が使用されます。",
+      "estimatedCredits": "目安：{credits} クレジット",
+      "duration": "{seconds} 秒"
     },
     "comparison": {
       "getStarted": "始めましょう",

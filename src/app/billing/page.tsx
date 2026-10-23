@@ -64,6 +64,8 @@ type PricingGuideRow = {
   workflow: string;
   falBasis: string;
   typicalCredits: number;
+  referenceDuration?: string;
+  referenceResolution?: string;
   unitNote: string;
   source?: "live" | "fallback";
   liveUnitPriceUsd?: number | null;
@@ -751,7 +753,7 @@ function PricingContent({ surface = "price" }: { surface?: "price" | "billing" }
         <h2 className="text-2xl font-black">{t("pricing.modelGuide.title")}</h2>
         <p className="mt-3 text-sm leading-6 text-[#82748f]">{t("creditShop.modelNote")}</p>
         <div className="mt-5 overflow-hidden rounded-2xl border border-[#e7e1f0] bg-white">
-          {pricingRows.slice(0,7).map(row => <div key={`${row.provider}-${row.workflow}`} className="flex flex-wrap justify-between gap-3 border-b border-[#eee9f4] p-5 last:border-0"><div><p className="font-bold">{row.label}</p><p className="text-xs text-[#82748f]">{row.workflow}</p></div><p className="text-sm font-bold text-[#7554df]">{row.unitNote}</p></div>)}
+          {pricingRows.slice(0,7).map(row => <div key={`${row.provider}-${row.workflow}`} className="flex flex-wrap justify-between gap-3 border-b border-[#eee9f4] p-5 last:border-0"><div><p className="font-bold">{row.label}</p><p className="text-xs text-[#82748f]">{t(row.workflow === "Image to Video" ? "nav.imageToVideo" : "nav.textToVideo")} &middot; {row.referenceResolution} &middot; {t("pricing.modelGuide.duration", {seconds: Number.parseInt(row.referenceDuration || "5s", 10)})}</p></div><p className="text-sm font-bold text-[#7554df]">{t("pricing.modelGuide.estimatedCredits", {credits: row.typicalCredits})}</p></div>)}
         </div>
       </section>
     </main>

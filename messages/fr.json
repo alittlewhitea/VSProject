@@ -472,7 +472,9 @@
     "modelGuide": {
       "eyebrow": "Guide du modèle",
       "title": "Coûts de crédit typiques",
-      "description": "Le prix exact apparaît à côté du bouton Générer. Le prix du fal en direct est utilisé lorsqu'il est disponible, avec des estimations de recul pour la continuité."
+      "description": "Le prix exact apparaît à côté du bouton Générer. Le prix du fal en direct est utilisé lorsqu'il est disponible, avec des estimations de recul pour la continuité.",
+      "estimatedCredits": "Environ {credits} crédits",
+      "duration": "{seconds} secondes"
     },
     "comparison": {
       "getStarted": "Commencez",

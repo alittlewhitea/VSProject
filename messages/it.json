@@ -472,7 +472,9 @@
     "modelGuide": {
       "eyebrow": "Guida ai modelli",
       "title": "Costi tipici dei crediti",
-      "description": "Il prezzo esatto appare accanto al pulsante Genera. Viene utilizzato il prezzo live quando disponibile, con stime di riserva per continuità."
+      "description": "Il prezzo esatto appare accanto al pulsante Genera. Viene utilizzato il prezzo live quando disponibile, con stime di riserva per continuità.",
+      "estimatedCredits": "Circa {credits} crediti",
+      "duration": "{seconds} secondi"
     },
     "comparison": {
       "getStarted": "Inizia",

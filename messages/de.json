@@ -434,7 +434,9 @@
     "modelGuide": {
       "eyebrow": "Modellübersicht",
       "title": "Typische Credit-Kosten",
-      "description": "Der genaue Preis steht neben der Schaltfläche Erstellen. Wenn verfügbar, werden aktuelle fal-Preise verwendet."
+      "description": "Der genaue Preis steht neben der Schaltfläche Erstellen. Wenn verfügbar, werden aktuelle fal-Preise verwendet.",
+      "estimatedCredits": "Ca. {credits} Credits",
+      "duration": "{seconds} Sekunden"
     },
     "testimonials": {
       "eyebrow": "Kundenstimmen",

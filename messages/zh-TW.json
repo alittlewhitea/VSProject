@@ -472,7 +472,9 @@
     "modelGuide": {
       "eyebrow": "模型參考",
       "title": "常見積分消耗",
-      "description": "準確價格會顯示在生成按鈕旁。可用時使用即時 fal 價格，並用備用估算保證連續性。"
+      "description": "準確價格會顯示在生成按鈕旁。可用時使用即時 fal 價格，並用備用估算保證連續性。",
+      "estimatedCredits": "預估 {credits} 點數",
+      "duration": "{seconds} 秒"
     },
     "comparison": {
       "getStarted": "開始使用",

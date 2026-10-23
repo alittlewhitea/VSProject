@@ -472,7 +472,9 @@
     "modelGuide": {
       "eyebrow": "Modelgids",
       "title": "Typische kredietkosten",
-      "description": "Exacte prijzen verschijnen naast de knop Genereren. Indien beschikbaar wordt gebruik gemaakt van live fal-prijzen, met terugvalschattingen voor de continuïteit."
+      "description": "Exacte prijzen verschijnen naast de knop Genereren. Indien beschikbaar wordt gebruik gemaakt van live fal-prijzen, met terugvalschattingen voor de continuïteit.",
+      "estimatedCredits": "Ongeveer {credits} credits",
+      "duration": "{seconds} seconden"
     },
     "comparison": {
       "getStarted": "Ga aan de slag",

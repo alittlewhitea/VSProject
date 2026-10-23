@@ -472,7 +472,9 @@
     "modelGuide": {
       "eyebrow": "模型参考",
       "title": "常见积分消耗",
-      "description": "准确价格会显示在生成按钮旁。可用时使用实时 fal 价格，并用备用估算保证连续性。"
+      "description": "准确价格会显示在生成按钮旁。可用时使用实时 fal 价格，并用备用估算保证连续性。",
+      "estimatedCredits": "预计 {credits} 积分",
+      "duration": "{seconds} 秒"
     },
     "comparison": {
       "getStarted": "开始使用",

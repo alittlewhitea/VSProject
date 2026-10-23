@@ -472,7 +472,9 @@
     "modelGuide": {
       "eyebrow": "Hướng dẫn mô hình",
       "title": "Chi phí credit thường gặp",
-      "description": "Giá chính xác hiển thị cạnh nút Tạo. Khi có thể, hệ thống dùng giá fal trực tiếp cùng ước tính dự phòng."
+      "description": "Giá chính xác hiển thị cạnh nút Tạo. Khi có thể, hệ thống dùng giá fal trực tiếp cùng ước tính dự phòng.",
+      "estimatedCredits": "Ước tính {credits} tín dụng",
+      "duration": "{seconds} giây"
     },
     "comparison": {
       "getStarted": "Bắt đầu",

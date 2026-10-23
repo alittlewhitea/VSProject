@@ -29,6 +29,8 @@ export type ModelPricingRow = {
   endpointId: string;
   falBasis: string;
   typicalCredits: number;
+  referenceDuration?: string;
+  referenceResolution?: string;
   unitNote: string;
 };
 
@@ -175,6 +177,7 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 
 export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
   ...["text-to-video", "image-to-video"].map((workflow): ModelPricingRow => ({
+    referenceDuration: "5s", referenceResolution: "720p",
     provider: "flux-3-max-video", label: workflow === "text-to-video" ? "FLUX 3 Max" : "FLUX 3 Max I2V",
     mode: "video", workflow: workflow === "text-to-video" ? "Text to Video" : "Image to Video",
     endpointId: `blackforestlabs/flux-3-max/${workflow}`,
@@ -183,6 +186,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   })),
   {
+    referenceDuration: "5s", referenceResolution: "480p",
     provider: "minimax-h3-max-turbo-video",
     label: "MiniMax H3 Max Turbo",
     mode: "video",
@@ -193,6 +197,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   },
   {
+    referenceDuration: "5s", referenceResolution: "480p",
     provider: "minimax-h3-max-turbo-video",
     label: "MiniMax H3 Max Turbo I2V",
     mode: "video",
@@ -203,6 +208,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   },
   {
+    referenceDuration: "5s", referenceResolution: "480p",
     provider: "minimax-h3-max-video",
     label: "MiniMax H3 Max",
     mode: "video",
@@ -213,6 +219,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   },
   {
+    referenceDuration: "5s", referenceResolution: "480p",
     provider: "minimax-h3-max-video",
     label: "MiniMax H3 Max I2V",
     mode: "video",
@@ -223,6 +230,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   },
   {
+    referenceDuration: "8s", referenceResolution: "720p",
     provider: "gemini-omni-flash-video",
     label: "Gemini Omni Flash",
     mode: "video",
@@ -233,6 +241,7 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   },
   {
+    referenceDuration: "8s", referenceResolution: "720p",
     provider: "gemini-omni-flash-video",
     label: "Gemini Omni Flash I2V",
     mode: "video",

@@ -472,7 +472,9 @@
     "modelGuide": {
       "eyebrow": "Guía de modelos",
       "title": "Costos típicos de créditos",
-      "description": "El precio exacto aparece junto al botón Generar. Se utiliza la tarifa en vivo cuando está disponible, con estimaciones de respaldo para continuidad."
+      "description": "El precio exacto aparece junto al botón Generar. Se utiliza la tarifa en vivo cuando está disponible, con estimaciones de respaldo para continuidad.",
+      "estimatedCredits": "Aprox. {credits} créditos",
+      "duration": "{seconds} segundos"
     },
     "comparison": {
       "getStarted": "Comenzar",

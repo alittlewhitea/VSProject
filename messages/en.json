@@ -472,7 +472,9 @@
     "modelGuide": {
       "eyebrow": "Model guide",
       "title": "Typical credit costs",
-      "description": "Exact pricing appears next to the Generate button. Live fal pricing is used when available, with fallback estimates for continuity."
+      "description": "Exact pricing appears next to the Generate button. Live fal pricing is used when available, with fallback estimates for continuity.",
+      "estimatedCredits": "Estimated {credits} credits",
+      "duration": "{seconds} seconds"
     },
     "comparison": {
       "getStarted": "Get started",

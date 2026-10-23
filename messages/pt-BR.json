@@ -472,7 +472,9 @@
     "modelGuide": {
       "eyebrow": "Guia de modelos",
       "title": "Custos típicos em créditos",
-      "description": "O preço exato aparece perto do botão Gerar. Quando disponível, usamos preço fal em tempo real com estimativas de reserva."
+      "description": "O preço exato aparece perto do botão Gerar. Quando disponível, usamos preço fal em tempo real com estimativas de reserva.",
+      "estimatedCredits": "Aprox. {credits} créditos",
+      "duration": "{seconds} segundos"
     },
     "comparison": {
       "getStarted": "Começar",

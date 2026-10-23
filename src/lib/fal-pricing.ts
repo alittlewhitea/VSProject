@@ -284,8 +284,8 @@ export async function getLiveModelPricingRows(): Promise<LiveModelPricingRow[]> 
       const typicalCredits = estimateGenerationCredits({
         mode: row.mode,
         provider: row.provider,
-        duration: row.provider === "flux-3-max-video" || row.provider === "dreamface-io-video" || row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "5s" : row.mode === "video" ? "6s" : undefined,
-        resolution: row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "480p" : undefined,
+        duration: row.referenceDuration ?? (row.provider === "flux-3-max-video" || row.provider === "dreamface-io-video" || row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "5s" : row.mode === "video" ? "6s" : undefined),
+        resolution: row.referenceResolution ?? (row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "480p" : undefined),
         imageSize: row.provider === "flux-image" ? "landscape_16_9" : "default_4_3",
         hasReferences: row.workflow.toLowerCase().includes("image to image") || row.workflow.toLowerCase().includes("image to video"),
         promptText: row.mode === "audio" ? "x".repeat(1000) : undefined,
