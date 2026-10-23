@@ -106,7 +106,7 @@
     "title": "Zet uw ideeën binnen enkele minuten om in video's",
     "subtitle": "Ga van script, afbeelding, presentatie of prompt naar voltooid advertentiemateriaal. Geen camera's, geen bemanning, geen montagevaardigheden vereist.",
     "ctaGoogle": "Ga verder met Google",
-    "ctaPrimary": "Ga gratis aan de slag"
+    "ctaPrimary": "DreamFace proberen"
   },
   "home": {
     "gallery": {
@@ -146,8 +146,8 @@
       "trial": {
         "name": "Proefkredieten",
         "price": "Gratis",
-        "note": "Voor nieuwe rekeningen",
-        "credits": "100 aanmeldingscredits inbegrepen"
+        "note": "Het recht en het aantal hangen af van de registratieregels. Bekijk je saldo.",
+        "credits": "Proefcredits voor in aanmerking komende accounts"
       },
       "bestValue": "Beste waarde",
       "topUpWhenNeeded": "Vul bij wanneer dat nodig is"
@@ -198,7 +198,7 @@
       },
       "models": {
         "question": "Welke AI-modellen kan ik gebruiken?",
-        "answer": "Beschikbaarheid hangt af van de workflow. Huidige opties zijn GPT Image 2, Nano Banana 2, FLUX en Topaz voor beelden; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video en Happy Horse 1.1 voor video; en ElevenLabs Eleven v3 en MiniMax Music 2.6 voor audio."
+        "answer": "Beschikbaarheid hangt af van de workflow. Huidige opties zijn GPT Image 2.5, Nano Banana 2.1, FLUX en Topaz voor beelden; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video en Happy Horse 1.1 voor video; en ElevenLabs Eleven v4 Turbo en MiniMax Music 2.6 voor audio."
       },
       "videoTiming": {
         "question": "Hoe lang duurt het om een AI-video te genereren?",
@@ -214,7 +214,7 @@
       },
       "freeTrial": {
         "question": "Is DreamFace gratis te proberen?",
-        "answer": "Ja. Nieuwe accounts krijgen 100 aanmeldcredits om ondersteunde workflows te testen. Daarna zijn eenmalige creditpakketten en Premium-lidmaatschappen met wekelijkse, maandelijkse of jaarlijkse facturering beschikbaar."
+        "answer": "Nieuwe accounts die aan de registratieregels voldoen, kunnen proefcredits ontvangen. Koop daarna eenmalige creditpakketten zonder automatische verlenging."
       },
       "failedTask": {
         "question": "Wat gebeurt er als een taak voor het genereren van AI mislukt?",
@@ -279,7 +279,7 @@
       "description": "Meld u één keer aan om uw gratis credits te ontgrendelen, elke prompt op te slaan en de gegenereerde afbeeldingen en video's geordend te houden in Projecten."
     },
     "benefit": {
-      "freeCredits": "100 gratis tegoeden",
+      "freeCredits": "Proefcredits voor in aanmerking komende accounts",
       "projectHistory": "Projectgeschiedenis",
       "google": "Google met één klik"
     },
@@ -301,8 +301,8 @@
     "footerNote": "Als u doorgaat, krijgt u toegang tot Studio, tegoeden, facturering en opgeslagen projecten."
   },
   "pricing": {
-    "title": "Premium Plannen voor het maken van AI",
-    "subtitle": "Kies een Premium-lidmaatschap voor creatie zonder watermerk, snellere wachtrijen, commercieel gebruik en tegoeden die worden verlengd met uw factureringscyclus. Er zijn extra credits beschikbaar als je opwaardeert.",
+    "title": "Credits voor je volgende idee",
+    "subtitle": "Koop een pakket. Geen abonnement of automatische verlenging.",
     "eyebrow": "Prijs",
     "forIndividuals": "Voor individuen",
     "currentBalance": "Huidig saldo",
@@ -313,9 +313,9 @@
       "name": "Gratis",
       "badge": "Gratis",
       "priceInterval": "ma",
-      "credits": "100 proefcredits",
+      "credits": "Proefcredits voor in aanmerking komende accounts",
       "eligible": "voor in aanmerking komende nieuwe accounts",
-      "description": "Begin met de basis: het genereren van afbeeldingen, bewerken, beperkte stem, beperkte video, watermerk en standaardwachtrij.",
+      "description": "Proefcredits voor in aanmerking komende accounts",
       "cta": "Begin gratis"
     },
     "freeFeatures": {
@@ -375,7 +375,7 @@
       },
       "proTopup": {
         "name": "Pro-opwaardering",
-        "idealFor": "Voor incidenteel hoog volumegebruik wanneer een Premium abonnement tijdelijk extra capaciteit nodig heeft."
+        "idealFor": "Voor grotere creatieve batches. Geen abonnement nodig."
       }
     },
     "extraCredits": {
@@ -717,7 +717,7 @@
     },
     "price": {
       "title": "DreamFace Prijzen en tegoedpakketten",
-      "description": "Vergelijk DreamFace Premium abonnementen, creditpakketten, modeltoegang, snellere wachtrijen, watermerkvrije export en pay-as-you-go-credits voor het maken van AI-afbeeldingen en -video's."
+      "description": "Nieuwe accounts die aan de registratieregels voldoen, kunnen proefcredits ontvangen. Koop daarna eenmalige creditpakketten zonder automatische verlenging."
     },
     "auth": {
       "title": "Meld u aan bij DreamFace",

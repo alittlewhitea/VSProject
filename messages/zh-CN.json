@@ -106,7 +106,7 @@
     "title": "几分钟内把想法变成视频",
     "subtitle": "从脚本、图片、演示文稿或提示词出发，快速生成可发布的创意内容。不需要相机、团队或剪辑经验。",
     "ctaGoogle": "使用 Google 继续",
-    "ctaPrimary": "免费开始创作"
+    "ctaPrimary": "开始体验"
   },
   "home": {
     "gallery": {
@@ -146,8 +146,8 @@
       "trial": {
         "name": "试用积分",
         "price": "免费",
-        "note": "新账户可用",
-        "credits": "注册赠送 100 积分"
+        "note": "资格与额度取决于注册规则，请查看账户实际余额。",
+        "credits": "符合条件的账号可获试用积分"
       },
       "bestValue": "最划算",
       "topUpWhenNeeded": "需要时再充值"
@@ -198,7 +198,7 @@
       },
       "models": {
         "question": "可以使用哪些 AI 模型？",
-        "answer": "可用模型取决于工作流。目前图片方向包括 GPT Image 2、Nano Banana 2、FLUX 和 Topaz；视频方向包括 Seedance 2、Kling v3、Veo 3.1、Grok Imagine Video 和 Happy Horse 1.1；音频方向包括 ElevenLabs Eleven v3 和 MiniMax Music 2.6。"
+        "answer": "可用模型取决于工作流。目前图片方向包括 GPT Image 2.5、Nano Banana 2.1、FLUX 和 Topaz；视频方向包括 Seedance 2、Kling v3、Veo 3.1、Grok Imagine Video 和 Happy Horse 1.1；音频方向包括 ElevenLabs Eleven v4 Turbo 和 MiniMax Music 2.6。"
       },
       "videoTiming": {
         "question": "生成 AI 视频需要多久？",
@@ -214,7 +214,7 @@
       },
       "freeTrial": {
         "question": "DreamFace 可以免费试用吗？",
-        "answer": "可以。新账户可获得 100 注册积分，用于体验支持的生成流程。后续可购买一次性积分包，或选择按周、按月、按年计费的 Premium 会员。"
+        "answer": "符合条件的新账号可获得试用积分，额度取决于注册规则和资格检查。后续可购买一次性积分包，积分包不会自动续费。"
       },
       "failedTask": {
         "question": "生成失败会怎样？",
@@ -279,7 +279,7 @@
       "description": "登录即可领取免费积分，保存每一次提示词，并在项目中管理生成的图片和视频。"
     },
     "benefit": {
-      "freeCredits": "注册即送免费积分",
+      "freeCredits": "符合条件的账号可获试用积分",
       "projectHistory": "自动保存项目历史",
       "google": "支持 Google 快速登录"
     },
@@ -301,8 +301,8 @@
     "footerNote": "继续后，你可以访问工作台、积分、账单和已保存项目。"
   },
   "pricing": {
-    "title": "Premium AI 创作方案",
-    "subtitle": "选择 Premium 会员，解锁无水印创作、更快队列、商业使用权和按周期续发的积分。需要更多时也可以额外加购积分。",
+    "title": "为下一个创意充值",
+    "subtitle": "买多少，用多少。无需订阅，不会自动续费。",
     "eyebrow": "价格",
     "forIndividuals": "适合个人用户",
     "currentBalance": "当前余额",
@@ -313,9 +313,9 @@
       "name": "免费",
       "badge": "免费",
       "priceInterval": "月",
-      "credits": "100 试用积分",
+      "credits": "符合条件的账号可获试用积分",
       "eligible": "适用于符合条件的新账户",
-      "description": "从基础功能开始：图片生成、图片编辑、有限语音、有限视频、带水印和标准队列。",
+      "description": "符合条件的账号可获试用积分",
       "cta": "免费开始"
     },
     "freeFeatures": {
@@ -375,7 +375,7 @@
       },
       "proTopup": {
         "name": "专业加量包",
-        "idealFor": "适合 Premium 订阅需要临时增加容量的高频使用场景。"
+        "idealFor": "适合较大批量创作，无需订阅。"
       }
     },
     "extraCredits": {
@@ -717,7 +717,7 @@
     },
     "price": {
       "title": "DreamFace 价格和积分套餐",
-      "description": "查看 DreamFace Premium 会员、积分包、模型权限、更快队列、无水印导出和按需购买积分，适合 AI 图片和视频创作。"
+      "description": "符合条件的新账号可获得试用积分，额度取决于注册规则和资格检查。后续可购买一次性积分包，积分包不会自动续费。"
     },
     "auth": {
       "title": "登录 DreamFace",

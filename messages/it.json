@@ -106,7 +106,7 @@
     "title": "Trasforma le tue idee in videoclip in pochi minuti",
     "subtitle": "Passa da script, immagine, presentazione o prompt a creazione completa. Nessuna telecamera, nessuna troupe, nessuna competenza di montaggio richiesta.",
     "ctaGoogle": "Continua con Google",
-    "ctaPrimary": "Inizia gratuitamente"
+    "ctaPrimary": "Prova DreamFace"
   },
   "home": {
     "gallery": {
@@ -146,8 +146,8 @@
       "trial": {
         "name": "Crediti di Prova",
         "price": "Gratis",
-        "note": "Per nuovi account",
-        "credits": "100 crediti di registrazione inclusi"
+        "note": "Idoneità e quantità dipendono dalle regole di registrazione. Controlla il saldo.",
+        "credits": "Crediti di prova per gli account idonei"
       },
       "bestValue": "Miglior valore",
       "topUpWhenNeeded": "Ricarica quando necessario"
@@ -198,7 +198,7 @@
       },
       "models": {
         "question": "Quali modelli AI posso usare?",
-        "answer": "La disponibilità dipende dal flusso di lavoro. Le opzioni attuali includono GPT Image 2, Nano Banana 2, FLUX e Topaz per le immagini; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video e Happy Horse 1.1 per i video; ElevenLabs Eleven v3 e MiniMax Music 2.6 per l'audio."
+        "answer": "La disponibilità dipende dal flusso di lavoro. Le opzioni attuali includono GPT Image 2.5, Nano Banana 2.1, FLUX e Topaz per le immagini; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video e Happy Horse 1.1 per i video; ElevenLabs Eleven v4 Turbo e MiniMax Music 2.6 per l'audio."
       },
       "videoTiming": {
         "question": "Quanto tempo ci vuole per generare un video AI?",
@@ -214,7 +214,7 @@
       },
       "freeTrial": {
         "question": "DreamFace è gratuito da provare?",
-        "answer": "Sì. I nuovi account ricevono 100 crediti di registrazione per provare i flussi supportati. In seguito sono disponibili pacchetti di crediti una tantum e abbonamenti Premium con fatturazione settimanale, mensile o annuale."
+        "answer": "I nuovi account idonei possono ricevere crediti di prova secondo le regole di registrazione. Puoi poi acquistare pacchetti di crediti una tantum, senza rinnovo automatico."
       },
       "failedTask": {
         "question": "Cosa succede se un compito di generazione con l'IA fallisce?",
@@ -279,7 +279,7 @@
       "description": "Accedi una volta per sbloccare i tuoi crediti gratuiti, salvare ogni prompt e mantenere immagini e video generati organizzati nei Progetti."
     },
     "benefit": {
-      "freeCredits": "100 crediti gratuiti",
+      "freeCredits": "Crediti di prova per gli account idonei",
       "projectHistory": "Cronologia dei progetti",
       "google": "Google in un clic"
     },
@@ -301,8 +301,8 @@
     "footerNote": "Continuando, puoi accedere a Studio, crediti, fatturazione e progetti salvati."
   },
   "pricing": {
-    "title": "Premium Piani di creazione AI",
-    "subtitle": "Scegli un abbonamento Premium per creazioni senza filigrana, code più veloci, uso commerciale e crediti che si rinnovano con il ciclo di fatturazione. Crediti extra sono disponibili quando hai bisogno di una ricarica.",
+    "title": "Crediti per la tua prossima idea",
+    "subtitle": "Acquista un pacchetto. Senza abbonamento o rinnovo automatico.",
     "eyebrow": "Prezzo",
     "forIndividuals": "Per singoli",
     "currentBalance": "Saldo attuale",
@@ -313,9 +313,9 @@
       "name": "Gratuito",
       "badge": "Gratuito",
       "priceInterval": "mo",
-      "credits": "100 crediti di prova",
+      "credits": "Crediti di prova per gli account idonei",
       "eligible": "per nuovi account idonei",
-      "description": "Inizia con le basi: generazione di immagini, modifica, voce limitata, video limitato, filigrana e coda standard.",
+      "description": "Crediti di prova per gli account idonei",
       "cta": "Inizia Gratis"
     },
     "freeFeatures": {
@@ -375,7 +375,7 @@
       },
       "proTopup": {
         "name": "Ricarica Pro",
-        "idealFor": "Per utilizzo ad alto volume occasionale quando un abbonamento Premium ha bisogno di capacità extra temporanea."
+        "idealFor": "Per grandi quantità di contenuti. Nessun abbonamento richiesto."
       }
     },
     "extraCredits": {
@@ -717,7 +717,7 @@
     },
     "price": {
       "title": "Prezzi e Pacchetti di Crediti di DreamFace",
-      "description": "Confronta i piani DreamFace Premium, pacchetti di crediti, accesso ai modelli, code più veloci, esportazioni senza watermark e crediti pay-as-you-go per la creazione di immagini e video AI."
+      "description": "I nuovi account idonei possono ricevere crediti di prova secondo le regole di registrazione. Puoi poi acquistare pacchetti di crediti una tantum, senza rinnovo automatico."
     },
     "auth": {
       "title": "Accedi a DreamFace",

@@ -106,7 +106,7 @@
     "title": "アイデアを数分でビデオに変換",
     "subtitle": "スクリプト、画像、プレゼンテーション、プロンプトからクリエイティブを完成させます。カメラもスタッフも編集スキルも必要ありません。",
     "ctaGoogle": "Google で続行",
-    "ctaPrimary": "無料で始めましょう"
+    "ctaPrimary": "DreamFaceを試す"
   },
   "home": {
     "gallery": {
@@ -146,8 +146,8 @@
       "trial": {
         "name": "トライアルクレジット",
         "price": "無料",
-        "note": "新規アカウントの場合",
-        "credits": "100 サインアップ クレジットが含まれています"
+        "note": "対象条件と付与数は登録ルールによります。アカウントの残高をご確認ください。",
+        "credits": "対象アカウント向けの試用クレジット"
       },
       "bestValue": "最高の価値",
       "topUpWhenNeeded": "必要に応じて補充する"
@@ -198,7 +198,7 @@
       },
       "models": {
         "question": "どの AI モデルを使用できますか?",
-        "answer": "利用可能なモデルはワークフローによって異なります。現在、画像向けに GPT Image 2、Nano Banana 2、FLUX、Topaz、動画向けに Seedance 2、Kling v3、Veo 3.1、Grok Imagine Video、Happy Horse 1.1、音声向けに ElevenLabs Eleven v3 と MiniMax Music 2.6 を利用できます。"
+        "answer": "利用可能なモデルはワークフローによって異なります。現在、画像向けに GPT Image 2.5、Nano Banana 2.1、FLUX、Topaz、動画向けに Seedance 2、Kling v3、Veo 3.1、Grok Imagine Video、Happy Horse 1.1、音声向けに ElevenLabs Eleven v4 Turbo と MiniMax Music 2.6 を利用できます。"
       },
       "videoTiming": {
         "question": "AIビデオの生成にはどのくらい時間がかかりますか?",
@@ -214,7 +214,7 @@
       },
       "freeTrial": {
         "question": "DreamFace は無料で試せますか?",
-        "answer": "はい。新規アカウントには、対応ワークフローを試すための登録クレジットが 100 付与されます。その後は、1 回限りのクレジットパック、または週・月・年払いの Premium メンバーシップを選択できます。"
+        "answer": "条件を満たす新規アカウントには、登録ルールに応じて試用クレジットが付与されます。追加分は買い切りのクレジットパックで購入でき、自動更新はありません。"
       },
       "failedTask": {
         "question": "AI 生成タスクが失敗した場合はどうなりますか?",
@@ -279,7 +279,7 @@
       "description": "一度サインインすると、無料クレジットのロックが解除され、すべてのプロンプトが保存され、生成された画像とビデオがプロジェクトに整理されます。"
     },
     "benefit": {
-      "freeCredits": "100無料クレジット",
+      "freeCredits": "対象アカウント向けの試用クレジット",
       "projectHistory": "プロジェクトの歴史",
       "google": "ワンクリックでGoogle"
     },
@@ -301,8 +301,8 @@
     "footerNote": "続行すると、Studio、クレジット、請求、保存されたプロジェクトにアクセスできるようになります。"
   },
   "pricing": {
-    "title": "Premium AI 作成計画",
-    "subtitle": "ウォーターマークなしの作成、より高速なキュー、商用利用、請求サイクルに合わせて更新されるクレジットを利用するには、Premium メンバーシップを選択してください。チャージが必要な場合は、追加のクレジットをご利用いただけます。",
+    "title": "次のアイデアにクレジットを",
+    "subtitle": "パックを購入して自由に制作。サブスク・自動更新なし。",
     "eyebrow": "価格",
     "forIndividuals": "個人向け",
     "currentBalance": "現在の残高",
@@ -313,9 +313,9 @@
       "name": "無料",
       "badge": "無料",
       "priceInterval": "も",
-      "credits": "100 トライアルクレジット",
+      "credits": "対象アカウント向けの試用クレジット",
       "eligible": "対象となる新規アカウントの場合",
-      "description": "画像生成、編集、限定音声、限定ビデオ、ウォーターマーク、標準キューなどの基本から始めます。",
+      "description": "対象アカウント向けの試用クレジット",
       "cta": "無料で始める"
     },
     "freeFeatures": {
@@ -375,7 +375,7 @@
       },
       "proTopup": {
         "name": "プロトップアップ",
-        "idealFor": "Premium サブスクリプションに一時的な追加容量が必要な場合に、時折大量に使用する場合。"
+        "idealFor": "大量の制作に。サブスクリプションは不要です。"
       }
     },
     "extraCredits": {
@@ -717,7 +717,7 @@
     },
     "price": {
       "title": "DreamFace 価格とクレジット パック",
-      "description": "DreamFace Premium プラン、クレジット パック、モデル アクセス、高速キュー、ウォーターマークなしのエクスポート、AI 画像とビデオ作成用の従量課金制クレジットを比較します。"
+      "description": "条件を満たす新規アカウントには、登録ルールに応じて試用クレジットが付与されます。追加分は買い切りのクレジットパックで購入でき、自動更新はありません。"
     },
     "auth": {
       "title": "DreamFace にサインインします",

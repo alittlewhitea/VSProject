@@ -106,7 +106,7 @@
     "title": "Turn your ideas into videos in minutes",
     "subtitle": "Go from script, image, presentation, or prompt to finished creative. No cameras, no crew, no editing skills required.",
     "ctaGoogle": "Continue with Google",
-    "ctaPrimary": "Get Started for Free"
+    "ctaPrimary": "Try DreamFace"
   },
   "home": {
     "gallery": {
@@ -146,8 +146,8 @@
       "trial": {
         "name": "Trial Credits",
         "price": "Free",
-        "note": "For new accounts",
-        "credits": "100 signup credits included"
+        "note": "Eligibility and amount depend on signup rules. Check your account balance.",
+        "credits": "Trial credits for eligible accounts"
       },
       "bestValue": "Best value",
       "topUpWhenNeeded": "Top up when needed"
@@ -198,7 +198,7 @@
       },
       "models": {
         "question": "Which AI models can I use?",
-        "answer": "Model availability depends on the workflow. Current options include GPT Image 2, Nano Banana 2, FLUX, and Topaz for images; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video, and Happy Horse 1.1 for video; and ElevenLabs Eleven v3 and MiniMax Music 2.6 for audio."
+        "answer": "Model availability depends on the workflow. Current options include GPT Image 2.5, Nano Banana 2.1, FLUX, and Topaz for images; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video, and Happy Horse 1.1 for video; and ElevenLabs Eleven v4 Turbo and MiniMax Music 2.6 for audio."
       },
       "videoTiming": {
         "question": "How long does it take to generate an AI video?",
@@ -214,7 +214,7 @@
       },
       "freeTrial": {
         "question": "Is DreamFace free to try?",
-        "answer": "Yes. New accounts receive 100 signup credits to test supported workflows. For continued use, DreamFace offers one-time credit packs plus Premium memberships with weekly, monthly, or yearly billing."
+        "answer": "Eligible new accounts can receive trial credits. The amount depends on signup rules and eligibility. Continue with one-time credit packs; these packs do not renew automatically."
       },
       "failedTask": {
         "question": "What happens if an AI generation task fails?",
@@ -279,7 +279,7 @@
       "description": "Sign in once to unlock your free credits, save every prompt, and keep generated images and videos organized in Projects."
     },
     "benefit": {
-      "freeCredits": "100 free credits",
+      "freeCredits": "Trial credits for eligible accounts",
       "projectHistory": "Project history",
       "google": "Google in one click"
     },
@@ -301,8 +301,8 @@
     "footerNote": "By continuing, you can access Studio, credits, billing, and saved Projects."
   },
   "pricing": {
-    "title": "Premium AI creation plans",
-    "subtitle": "Choose a Premium membership for watermark-free creation, faster queues, commercial use, and credits that renew with your billing cycle. Extra credits are available when you need a top-up.",
+    "title": "Credits for your next idea",
+    "subtitle": "Buy a pack. Create at your pace. No subscription or automatic renewal.",
     "eyebrow": "Price",
     "forIndividuals": "For Individuals",
     "currentBalance": "Current balance",
@@ -313,9 +313,9 @@
       "name": "Free",
       "badge": "Free",
       "priceInterval": "mo",
-      "credits": "100 trial credits",
+      "credits": "Trial credits for eligible accounts",
       "eligible": "for eligible new accounts",
-      "description": "Start with the basics: image generation, editing, limited voice, limited video, watermark, and standard queue.",
+      "description": "Trial credits for eligible accounts",
       "cta": "Start Free"
     },
     "freeFeatures": {
@@ -375,7 +375,7 @@
       },
       "proTopup": {
         "name": "Pro Top-up",
-        "idealFor": "For occasional high-volume usage when a Premium subscription needs temporary extra capacity."
+        "idealFor": "For larger creative batches. No subscription required."
       }
     },
     "extraCredits": {
@@ -717,7 +717,7 @@
     },
     "price": {
       "title": "DreamFace Pricing and Credit Packs",
-      "description": "Compare DreamFace Premium plans, credit packs, model access, faster queues, watermark-free exports, and pay-as-you-go credits for AI image and video creation."
+      "description": "Eligible new accounts can receive trial credits. The amount depends on signup rules and eligibility. Continue with one-time credit packs; these packs do not renew automatically."
     },
     "auth": {
       "title": "Sign in to DreamFace",

@@ -915,7 +915,7 @@ export async function POST(request: Request) {
     if (body.mode === "video" && body.provider === "flux-3-max-video" && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
       return NextResponse.json({error:"FLUX 3 Max image-to-video requires a start frame."},{status:400});
     }
-    if (body.provider === "flux-3-max-video" && body.expectedCredits !== undefined && body.expectedCredits !== baseEstimatedCredits) {
+    if (["flux-3-max-video", "minimax-h3-max-video", "minimax-h3-max-turbo-video"].includes(body.provider) && body.dailyFree !== true && body.expectedCredits !== undefined && body.expectedCredits !== baseEstimatedCredits) {
       return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"video_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
     }
     if (body.mode === "image" && body.provider === "nano-banana-edit") {

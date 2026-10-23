@@ -106,7 +106,7 @@
     "title": "Biến ý tưởng thành video trong vài phút",
     "subtitle": "Từ kịch bản, hình ảnh, bài thuyết trình hoặc prompt đến nội dung sáng tạo hoàn chỉnh. Không cần máy quay, ekip hay kỹ năng dựng phim.",
     "ctaGoogle": "Tiếp tục với Google",
-    "ctaPrimary": "Bắt đầu miễn phí"
+    "ctaPrimary": "Dùng thử DreamFace"
   },
   "home": {
     "gallery": {
@@ -146,8 +146,8 @@
       "trial": {
         "name": "Credit dùng thử",
         "price": "Miễn phí",
-        "note": "Cho tài khoản mới",
-        "credits": "100 credit khi đăng ký"
+        "note": "Điều kiện và số lượng tùy thuộc quy tắc đăng ký. Kiểm tra số dư tài khoản.",
+        "credits": "Tín dụng dùng thử cho tài khoản đủ điều kiện"
       },
       "bestValue": "Đáng giá nhất",
       "topUpWhenNeeded": "Nạp thêm khi cần"
@@ -198,7 +198,7 @@
       },
       "models": {
         "question": "Có thể dùng mô hình AI nào?",
-        "answer": "Khả dụng tùy theo quy trình. Hiện có GPT Image 2, Nano Banana 2, FLUX và Topaz cho ảnh; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video và Happy Horse 1.1 cho video; ElevenLabs Eleven v3 và MiniMax Music 2.6 cho âm thanh."
+        "answer": "Khả dụng tùy theo quy trình. Hiện có GPT Image 2.5, Nano Banana 2.1, FLUX và Topaz cho ảnh; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video và Happy Horse 1.1 cho video; ElevenLabs Eleven v4 Turbo và MiniMax Music 2.6 cho âm thanh."
       },
       "videoTiming": {
         "question": "Tạo video AI mất bao lâu?",
@@ -214,7 +214,7 @@
       },
       "freeTrial": {
         "question": "DreamFace có dùng thử miễn phí không?",
-        "answer": "Có. Tài khoản mới nhận 100 credit đăng ký để thử các quy trình được hỗ trợ. Sau đó, bạn có thể mua gói credit một lần hoặc chọn Premium thanh toán theo tuần, tháng hoặc năm."
+        "answer": "Tài khoản mới đủ điều kiện có thể nhận tín dụng dùng thử theo quy tắc đăng ký. Bạn có thể mua gói tín dụng một lần, không tự động gia hạn."
       },
       "failedTask": {
         "question": "Nếu tạo thất bại thì sao?",
@@ -279,7 +279,7 @@
       "description": "Đăng nhập một lần để nhận credit miễn phí, lưu prompt và quản lý ảnh, video đã tạo trong Dự án."
     },
     "benefit": {
-      "freeCredits": "Nhận credit miễn phí khi đăng nhập",
+      "freeCredits": "Tín dụng dùng thử cho tài khoản đủ điều kiện",
       "projectHistory": "Lưu lịch sử dự án tự động",
       "google": "Đăng nhập nhanh bằng Google"
     },
@@ -301,8 +301,8 @@
     "footerNote": "Đã bao gồm"
   },
   "pricing": {
-    "title": "Gói Premium cho sáng tạo AI",
-    "subtitle": "Chọn Premium để tạo nội dung không hình mờ, vào hàng đợi nhanh hơn, dùng cho mục đích thương mại và nhận credit theo chu kỳ thanh toán.",
+    "title": "Credit cho ý tưởng tiếp theo",
+    "subtitle": "Mua gói credit. Không đăng ký hay tự động gia hạn.",
     "eyebrow": "Đã bao gồm",
     "forIndividuals": "Đã bao gồm",
     "currentBalance": "Đã bao gồm",
@@ -313,9 +313,9 @@
       "name": "Miễn phí",
       "badge": "Miễn phí",
       "priceInterval": "tháng",
-      "credits": "100 credit dùng thử",
+      "credits": "Tín dụng dùng thử cho tài khoản đủ điều kiện",
       "eligible": "cho tài khoản mới đủ điều kiện",
-      "description": "Bắt đầu với tính năng cơ bản: tạo ảnh, chỉnh sửa, giọng nói giới hạn, video giới hạn, watermark và hàng đợi tiêu chuẩn.",
+      "description": "Tín dụng dùng thử cho tài khoản đủ điều kiện",
       "cta": "Bắt đầu miễn phí"
     },
     "freeFeatures": {
@@ -375,7 +375,7 @@
       },
       "proTopup": {
         "name": "Nạp thêm Pro",
-        "idealFor": "Cho nhu cầu dùng nhiều tạm thời khi gói Premium cần thêm dung lượng."
+        "idealFor": "Dành cho khối lượng sáng tạo lớn. Không cần đăng ký định kỳ."
       }
     },
     "extraCredits": {
@@ -717,7 +717,7 @@
     },
     "price": {
       "title": "Bảng giá và gói credit DreamFace",
-      "description": "So sánh gói Premium, gói credit, quyền truy cập model, hàng đợi nhanh hơn, xuất không watermark và credit dùng linh hoạt cho sáng tạo AI."
+      "description": "Tài khoản mới đủ điều kiện có thể nhận tín dụng dùng thử theo quy tắc đăng ký. Bạn có thể mua gói tín dụng một lần, không tự động gia hạn."
     },
     "auth": {
       "title": "Đăng nhập DreamFace",

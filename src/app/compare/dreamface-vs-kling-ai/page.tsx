@@ -1,3 +1,4 @@
+import { DreamfaceCreditPacks, DreamfacePricingCtaCopy, DREAMFACE_CREDIT_SUMMARY } from "../dreamface-credit-packs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { absoluteUrl, siteUrl } from "../../../lib/site-url";
@@ -12,9 +13,9 @@ const faqs = [
       "DreamFace is a strong Kling AI alternative for creators who want several video model providers, talking avatars, AI voice, image tools, and marketing templates in one workspace. Kling AI is the stronger specialist choice when Kling's own video models, native audio, multi-shot control, and element consistency are the main requirements."
   },
   {
-    question: "Which platform has the lower paid entry price?",
+    question: "How does DreamFace billing work?",
     answer:
-      "DreamFace starts at $4.99 per week with 800 credits and access to the models listed in DreamFace Studio. Kling AI's Standard membership is publicly listed at about $10 per month, with annual billing commonly shown at a $6.60 monthly equivalent. Regional pricing and promotions can change the checkout price."
+      DREAMFACE_CREDIT_SUMMARY
   },
   {
     question: "Can DreamFace users access Kling models?",
@@ -27,16 +28,16 @@ const faqs = [
       "Kling AI's official Credits Policy says regular membership credits are distributed monthly and remain valid for one month from distribution. Separately purchased credits are listed as valid for two years."
   },
   {
-    question: "Does DreamFace's $4.99 weekly plan include unlimited generation?",
+    question: "Does a DreamFace credit pack include unlimited generation?",
     answer:
-      "No. DreamFace Premium Lite weekly provides 800 credits and access to the Studio model catalog. Each generation consumes credits according to the selected model and settings."
+      DREAMFACE_CREDIT_SUMMARY
   }
 ];
 
 export const metadata: Metadata = {
   title: "DreamFace vs Kling AI: Video Generator Comparison (2026)",
   description:
-    "Compare DreamFace and Kling AI pricing, annual plans, credits, video models, native audio, avatars, voice tools, templates, and best-fit workflows.",
+    "Compare DreamFace and Kling AI pricing, credit packs, credits, video models, native audio, avatars, voice tools, templates, and best-fit workflows.",
   keywords: [
     "DreamFace vs Kling AI",
     "Kling AI alternative",
@@ -102,16 +103,16 @@ export default function DreamFaceVsKlingAiPage() {
     ["AI voice / TTS", "Dedicated multilingual voice generation", "Native dialogue, voice control, and model-specific audio features"],
     ["Image tools", "Generation, editing, upscaling, and background removal", "Image generation, Omni editing, references, and Canvas"],
     ["Marketing assets", "300+ reusable marketing templates", "Creative tools and templates; comparable public template count not confirmed"],
-    ["Billing flexibility", "Weekly, monthly, annual, and one-time credit options", "Free access, monthly or annual memberships, and separately purchased credits"]
+    ["Billing flexibility", "One-time credit packs; no automatic renewal", "Free access, monthly or annual memberships, and separately purchased credits"]
   ];
 
   const useCaseRows = [
-    ["Low-commitment multi-model testing", "DreamFace", "The $4.99 weekly plan provides 800 credits and access to the current Studio model catalog."],
+    ["Low-commitment multi-model testing", "DreamFace", "One-time credit packs let creators top up when needed without automatic renewal."],
     ["Kling-native cinematic generation", "Kling AI", "Direct access to Kling's newest native controls, model modes, and generation interface."],
     ["Social ads and talking explainers", "DreamFace", "Templates, talking avatars, voice, images, and video are integrated as direct creation modes."],
     ["Native-audio multi-shot video", "Kling AI", "Kling Video 3.0 documents native audio, flexible multi-shot control, and clips up to 15 seconds."],
     ["Testing several model providers", "DreamFace", "A single workspace can reduce the need to maintain separate subscriptions for each supported provider."],
-    ["Irregular or seasonal creation", "DreamFace", "Weekly subscriptions and one-time credits allow a shorter initial commitment."]
+    ["Irregular or seasonal creation", "DreamFace", "One-time credit packs offer usage-based creation without automatic renewal."]
   ];
 
   return (
@@ -146,7 +147,7 @@ export default function DreamFaceVsKlingAiPage() {
             <div className="mt-7 grid gap-5 md:grid-cols-2">
               <div className="comparison-card comparison-card-primary rounded-lg border border-[#9bdffc] bg-[#f1fbff] p-6">
                 <h3 className="text-2xl font-black">DreamFace</h3>
-                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">An all-in-one multimodal platform with text-to-video, image-to-video, talking avatars, AI voice and TTS, image creation and editing, and 300+ marketing templates.</p>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">An all-in-one multimodal platform with text-to-video, image-to-video, talking avatars, AI voice and TTS, image creation and editing, and curated prompts and creative examples.</p>
               </div>
               <div className="comparison-card rounded-lg border border-black/10 bg-white p-6">
                 <h3 className="text-2xl font-black">Kling AI</h3>
@@ -171,24 +172,13 @@ export default function DreamFaceVsKlingAiPage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-[#087ea4]">Purchase comparison</p>
-                <h2 className="mt-3 text-3xl font-black tracking-normal md:text-4xl">Monthly and annual pricing</h2>
+                <h2 className="mt-3 text-3xl font-black tracking-normal md:text-4xl">Pricing and billing comparison</h2>
               </div>
               <p className="max-w-xl text-sm font-medium leading-6 text-[#5b6677]">Kling AI prices can vary by region and promotion. Annual figures below use the publicly displayed monthly equivalents and are shown for comparison.</p>
             </div>
 
-            <h3 className="mt-9 text-xl font-black">DreamFace plans</h3>
-            <div className="comparison-table-frame mt-4 overflow-x-auto rounded-lg border border-black/10 bg-white">
-              <table className={tableClass}>
-                <thead><tr><th className={thClass}>Plan</th><th className={thClass}>Billing price</th><th className={thClass}>Credits</th><th className={thClass}>Purchase note</th></tr></thead>
-                <tbody>
-                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium Lite weekly</td><td className={tdClass}>$4.99 / week</td><td className={tdClass}>800 / week</td><td className={tdClass}>Lowest paid commitment; access to the current Studio catalog with credit-based usage.</td></tr>
-                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium Lite monthly</td><td className={tdClass}>$12.99 / month</td><td className={tdClass}>2,400 / month</td><td className={tdClass}>Flexible monthly billing.</td></tr>
-                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium Lite annual</td><td className={tdClass}>$99 / year ($8.25/mo equivalent)</td><td className={tdClass}>18,000 / year</td><td className={tdClass}>About $56 less than 12 monthly payments.</td></tr>
-                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium monthly</td><td className={tdClass}>$24.99 / month</td><td className={tdClass}>4,600 / month</td><td className={tdClass}>Higher capacity for premium video and campaign work.</td></tr>
-                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium annual</td><td className={tdClass}>$199 / year ($16.58/mo equivalent)</td><td className={tdClass}>38,000 / year</td><td className={tdClass}>About $100 less than 12 monthly payments.</td></tr>
-                </tbody>
-              </table>
-            </div>
+            <h3 className="mt-9 text-xl font-black">DreamFace one-time credit packs</h3>
+<DreamfaceCreditPacks />
 
             <h3 className="mt-9 text-xl font-black">Kling AI individual memberships</h3>
             <div className="comparison-table-frame mt-4 overflow-x-auto rounded-lg border border-black/10 bg-white">
@@ -221,8 +211,8 @@ export default function DreamFaceVsKlingAiPage() {
             <h2 className="text-3xl font-black tracking-normal md:text-4xl">Feature-by-feature analysis</h2>
             <div className="comparison-analysis-grid mt-8 grid gap-9 md:grid-cols-3">
               <div><h3 className="text-xl font-black">Video generation</h3><p className="mt-3 text-sm font-medium leading-7 text-[#586477]">Kling AI provides the most direct route to Kling's newest native capabilities. Its Video 3.0 documentation highlights native audio, flexible multi-shot direction, element references, and up to 15-second output. DreamFace is broader: it lets creators compare supported providers from one Studio and combine video with image, avatar, and voice workflows.</p></div>
-              <div><h3 className="text-xl font-black">Avatars and marketing</h3><p className="mt-3 text-sm font-medium leading-7 text-[#586477]">DreamFace exposes talking avatars, multilingual voice generation, and 300+ marketing templates as dedicated creation paths. Kling AI offers avatar, lip-sync, Canvas, image, and audio capabilities, but its clearest differentiator remains the Kling model ecosystem rather than a template-led campaign workflow.</p></div>
-              <div><h3 className="text-xl font-black">Pricing and credits</h3><p className="mt-3 text-sm font-medium leading-7 text-[#586477]">DreamFace has the lower initial paid commitment through its weekly plan. Kling AI's annual memberships can reduce the effective monthly price, while its upper tiers provide larger monthly credit allocations. Credit counts are not directly interchangeable because each platform and model uses different generation costs.</p></div>
+              <div><h3 className="text-xl font-black">Avatars and marketing</h3><p className="mt-3 text-sm font-medium leading-7 text-[#586477]">DreamFace exposes talking avatars, multilingual voice generation, and curated prompts and creative examples as dedicated creation paths. Kling AI offers avatar, lip-sync, Canvas, image, and audio capabilities, but its clearest differentiator remains the Kling model ecosystem rather than a template-led campaign workflow.</p></div>
+              <div><h3 className="text-xl font-black">Pricing and credits</h3><p className="mt-3 text-sm font-medium leading-7 text-[#586477]">DreamFace offers one-time credit packs without automatic renewal. Kling AI's annual memberships can reduce the effective monthly price, while its upper tiers provide larger monthly credit allocations. Credit counts are not directly interchangeable because each platform and model uses different generation costs.</p></div>
             </div>
           </section>
 
@@ -239,8 +229,8 @@ export default function DreamFaceVsKlingAiPage() {
           </section>
 
           <section className="comparison-cta rounded-lg bg-[#111318] px-6 py-9 text-white md:flex md:items-center md:justify-between md:px-9">
-            <div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#72d9ff]">Try the lower-commitment path</p><h2 className="mt-3 max-w-2xl text-3xl font-black tracking-normal">Access the DreamFace model catalog from $4.99 per week.</h2><p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-white/70">Includes 800 weekly credits. Model usage remains credit-based and subject to availability.</p></div>
-            <Link href="/price" className="mt-6 inline-flex rounded-lg bg-[#10bff3] px-6 py-3 text-sm font-black text-[#06151b] md:mt-0">View DreamFace pricing</Link>
+            <div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#72d9ff]">Try the lower-commitment path</p><DreamfacePricingCtaCopy /></div>
+            <Link href="/price" className="mt-6 inline-flex rounded-lg bg-[#10bff3] px-6 py-3 text-sm font-black text-[#06151b] md:mt-0">View current credit packs</Link>
           </section>
 
           <section className="comparison-sources py-10 text-xs font-medium leading-6 text-[#667084]">

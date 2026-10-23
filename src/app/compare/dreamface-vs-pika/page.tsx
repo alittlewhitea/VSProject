@@ -1,3 +1,4 @@
+import { DreamfaceCreditPacks, DreamfacePricingCtaCopy, DREAMFACE_CREDIT_SUMMARY } from "../dreamface-credit-packs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { absoluteUrl, siteUrl } from "../../../lib/site-url";
@@ -12,9 +13,9 @@ const faqs = [
       "DreamFace is a strong Pika alternative for creators who want video generation alongside talking avatars, AI voice, image tools, and reusable marketing templates. Pika is the stronger specialist choice for creators centered on Pika 2.5 and Pika's branded video transformation tools."
   },
   {
-    question: "Which platform has the lower paid entry price?",
+    question: "How does DreamFace billing work?",
     answer:
-      "DreamFace starts at $4.99 per week with 800 credits. Pika Standard is $10 per month with 700 monthly video credits, or an $8 monthly equivalent when billed annually at Pika's published 20 percent discount."
+      DREAMFACE_CREDIT_SUMMARY
   },
   {
     question: "Does Pika offer a free plan?",
@@ -27,16 +28,16 @@ const faqs = [
       "Pika's subscription credits do not roll over from month to month. Additional credits purchased on paid plans are described by Pika as rollover credits that do not expire."
   },
   {
-    question: "Does DreamFace's $4.99 weekly plan include unlimited generation?",
+    question: "Does a DreamFace credit pack include unlimited generation?",
     answer:
-      "No. DreamFace Premium Lite weekly includes 800 credits and access to the models currently listed in DreamFace Studio. Generations consume credits according to the selected model and settings."
+      DREAMFACE_CREDIT_SUMMARY
   }
 ];
 
 export const metadata: Metadata = {
   title: "DreamFace vs Pika: AI Video Generator Comparison (2026)",
   description:
-    "Compare DreamFace and Pika pricing, annual plans, credits, AI video, effects, video editing, avatars, voice tools, templates, and best-fit workflows.",
+    "Compare DreamFace and Pika pricing, credit packs, credits, AI video, effects, video editing, avatars, voice tools, templates, and best-fit workflows.",
   keywords: [
     "DreamFace vs Pika",
     "Pika alternative",
@@ -101,12 +102,12 @@ export default function DreamFaceVsPikaPage() {
     ["Video transformation", "Model-dependent generation and editing", "Pikadditions, Pikaswaps, Pikatwists, Pikascenes, and Pikaffects"],
     ["Talking avatars", "Dedicated talking-avatar workflow", "Pikaformance animates expressions from audio; broader avatar workflow differs"],
     ["AI voice / TTS", "Dedicated multilingual voice generation", "Pikaformance uses uploaded audio; standalone TTS is not the main published workflow"],
-    ["Image and marketing tools", "Image generation, editing, cleanup, and 300+ marketing templates", "Video-first creation with effects and scene transformation"],
-    ["Billing flexibility", "Weekly, monthly, annual, and one-time credit options", "Free, monthly, yearly, and weekly choices shown in Pika's subscription interface"]
+    ["Image and marketing tools", "Image generation, editing, cleanup, and curated prompts and creative examples", "Video-first creation with effects and scene transformation"],
+    ["Billing flexibility", "One-time credit packs; no automatic renewal", "Free, monthly, yearly, and weekly choices shown in Pika's subscription interface"]
   ];
 
   const useCaseRows = [
-    ["Low-commitment paid testing", "DreamFace", "The $4.99 weekly plan provides 800 credits without requiring a month or year upfront."],
+    ["Low-commitment paid testing", "DreamFace", "One-time credit packs let creators top up when needed without automatic renewal."],
     ["Trying AI video for free", "Pika", "Pika Basic currently includes 80 monthly video credits and limited Pika 2.5 access."],
     ["Social video effects and transformations", "Pika", "Pikaffects, Pikadditions, Pikaswaps, and Pikatwists are direct, branded transformation workflows."],
     ["Talking explainers and campaign assets", "DreamFace", "Talking avatars, voice, image tools, video, and marketing templates are available in one workspace."],
@@ -146,7 +147,7 @@ export default function DreamFaceVsPikaPage() {
           <div className="mt-7 grid gap-5 md:grid-cols-2">
             <div className="comparison-card comparison-card-primary rounded-lg border border-[#9bdffc] bg-[#f1fbff] p-6">
               <h3 className="text-2xl font-black">DreamFace</h3>
-              <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">An all-in-one multimodal creation platform with video generation, talking avatars, AI voice and TTS, image creation and editing, and 300+ marketing templates.</p>
+              <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">An all-in-one multimodal creation platform with video generation, talking avatars, AI voice and TTS, image creation and editing, and curated prompts and creative examples.</p>
             </div>
             <div className="comparison-card rounded-lg border border-black/10 bg-white p-6">
               <h3 className="text-2xl font-black">Pika</h3>
@@ -171,24 +172,13 @@ export default function DreamFaceVsPikaPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.14em] text-[#087ea4]">Purchase comparison</p>
-              <h2 className="mt-3 text-3xl font-black tracking-normal md:text-4xl">Monthly and annual pricing</h2>
+              <h2 className="mt-3 text-3xl font-black tracking-normal md:text-4xl">Pricing and billing comparison</h2>
             </div>
             <p className="max-w-xl text-sm font-medium leading-6 text-[#5b6677]">Pika advertises 20 percent off yearly subscriptions. Annual totals below are calculated from the displayed monthly equivalents and are billed upfront.</p>
           </div>
 
-          <h3 className="mt-9 text-xl font-black">DreamFace plans</h3>
-          <div className="comparison-table-frame mt-4 overflow-x-auto rounded-lg border border-black/10 bg-white">
-            <table className={tableClass}>
-              <thead><tr><th className={thClass}>Plan</th><th className={thClass}>Billing price</th><th className={thClass}>Credits</th><th className={thClass}>Purchase note</th></tr></thead>
-              <tbody>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium Lite weekly</td><td className={tdClass}>$4.99 / week</td><td className={tdClass}>800 / week</td><td className={tdClass}>Lowest paid commitment; access to the current Studio catalog with credit-based usage.</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium Lite monthly</td><td className={tdClass}>$12.99 / month</td><td className={tdClass}>2,400 / month</td><td className={tdClass}>Flexible monthly billing.</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium Lite annual</td><td className={tdClass}>$99 / year ($8.25/mo equivalent)</td><td className={tdClass}>18,000 / year</td><td className={tdClass}>About $56 less than 12 monthly payments.</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium monthly</td><td className={tdClass}>$24.99 / month</td><td className={tdClass}>4,600 / month</td><td className={tdClass}>Higher capacity for premium video and campaign work.</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium annual</td><td className={tdClass}>$199 / year ($16.58/mo equivalent)</td><td className={tdClass}>38,000 / year</td><td className={tdClass}>About $100 less than 12 monthly payments.</td></tr>
-              </tbody>
-            </table>
-          </div>
+          <h3 className="mt-9 text-xl font-black">DreamFace one-time credit packs</h3>
+<DreamfaceCreditPacks />
 
           <h3 className="mt-9 text-xl font-black">Pika plans</h3>
           <div className="comparison-table-frame mt-4 overflow-x-auto rounded-lg border border-black/10 bg-white">
@@ -222,7 +212,7 @@ export default function DreamFaceVsPikaPage() {
           <div className="comparison-analysis-grid mt-8 grid gap-9 md:grid-cols-3">
             <div><h3 className="text-xl font-black">Video generation</h3><p className="mt-3 text-sm font-medium leading-7 text-[#586477]">Pika offers a focused Pika 2.5 workflow with transparent per-resolution credit costs. DreamFace approaches video as one part of a larger creative workspace. Choose Pika for direct access to its native video model and effects; choose DreamFace when video needs to sit beside avatars, voice, images, and campaign assets.</p></div>
             <div><h3 className="text-xl font-black">Effects and frame control</h3><p className="mt-3 text-sm font-medium leading-7 text-[#586477]">Pika's clearest advantage is its named transformation toolkit. Pikadditions inserts subjects, Pikaswaps replaces elements, Pikatwists changes actions, Pikascenes combines scene inputs, and Pikaframes controls transitions between frames. These are easier to discover than model-dependent editing features in a multi-provider workspace.</p></div>
-            <div><h3 className="text-xl font-black">Avatars and marketing</h3><p className="mt-3 text-sm font-medium leading-7 text-[#586477]">Pikaformance creates expressive video from audio, but DreamFace provides a more explicit talking-avatar and multilingual voice workflow. DreamFace also adds image utilities and 300+ marketing templates, making it better suited to repeatable campaign production rather than one-off social video effects.</p></div>
+            <div><h3 className="text-xl font-black">Avatars and marketing</h3><p className="mt-3 text-sm font-medium leading-7 text-[#586477]">Pikaformance creates expressive video from audio, but DreamFace provides a more explicit talking-avatar and multilingual voice workflow. DreamFace also adds image utilities and curated prompts and creative examples, making it better suited to repeatable campaign production rather than one-off social video effects.</p></div>
           </div>
         </section>
 
@@ -239,8 +229,8 @@ export default function DreamFaceVsPikaPage() {
         </section>
 
         <section className="comparison-cta rounded-lg bg-[#111318] px-6 py-9 text-white md:flex md:items-center md:justify-between md:px-9">
-          <div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#72d9ff]">Try the lower-commitment path</p><h2 className="mt-3 max-w-2xl text-3xl font-black tracking-normal">Access the DreamFace model catalog from $4.99 per week.</h2><p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-white/70">Includes 800 weekly credits. Model usage remains credit-based and subject to availability.</p></div>
-          <Link href="/price" className="mt-6 inline-flex rounded-lg bg-[#10bff3] px-6 py-3 text-sm font-black text-[#06151b] md:mt-0">View DreamFace pricing</Link>
+          <div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#72d9ff]">Try the lower-commitment path</p><DreamfacePricingCtaCopy /></div>
+          <Link href="/price" className="mt-6 inline-flex rounded-lg bg-[#10bff3] px-6 py-3 text-sm font-black text-[#06151b] md:mt-0">View current credit packs</Link>
         </section>
 
         <section className="comparison-sources py-10 text-xs font-medium leading-6 text-[#667084]">

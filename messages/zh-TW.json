@@ -106,7 +106,7 @@
     "title": "幾分鐘內把想法變成影片",
     "subtitle": "從腳本、圖片、簡報或提示詞出發，快速生成可發布的創意內容。不需要相機、團隊或剪輯經驗。",
     "ctaGoogle": "使用 Google 繼續",
-    "ctaPrimary": "免費開始創作"
+    "ctaPrimary": "開始體驗"
   },
   "home": {
     "gallery": {
@@ -146,8 +146,8 @@
       "trial": {
         "name": "試用積分",
         "price": "免費",
-        "note": "新帳號可用",
-        "credits": "註冊贈送 100 積分"
+        "note": "資格與額度依註冊規則而定，請查看帳戶實際餘額。",
+        "credits": "符合資格的帳號可獲試用點數"
       },
       "bestValue": "最划算",
       "topUpWhenNeeded": "需要時再儲值"
@@ -198,7 +198,7 @@
       },
       "models": {
         "question": "可以使用哪些 AI 模型？",
-        "answer": "可用模型取決於工作流。目前圖片方向包括 GPT Image 2、Nano Banana 2、FLUX 和 Topaz；影片方向包括 Seedance 2、Kling v3、Veo 3.1、Grok Imagine Video 和 Happy Horse 1.1；音訊方向包括 ElevenLabs Eleven v3 和 MiniMax Music 2.6。"
+        "answer": "可用模型取決於工作流。目前圖片方向包括 GPT Image 2.5、Nano Banana 2.1、FLUX 和 Topaz；影片方向包括 Seedance 2、Kling v3、Veo 3.1、Grok Imagine Video 和 Happy Horse 1.1；音訊方向包括 ElevenLabs Eleven v4 Turbo 和 MiniMax Music 2.6。"
       },
       "videoTiming": {
         "question": "生成 AI 影片需要多久？",
@@ -214,7 +214,7 @@
       },
       "freeTrial": {
         "question": "DreamFace 可以免費試用嗎？",
-        "answer": "可以。新帳號可獲得 100 註冊點數，用於體驗支援的生成流程。後續可購買一次性點數包，或選擇按週、按月、按年計費的 Premium 會員。"
+        "answer": "符合資格的新帳號可獲得試用點數，額度依註冊規則及資格審查而定。後續可購買一次性點數包，不會自動續費。"
       },
       "failedTask": {
         "question": "生成失敗會怎樣？",
@@ -279,7 +279,7 @@
       "description": "登入即可領取免費積分，儲存每一次提示詞，並在專案中管理生成的圖片和影片。"
     },
     "benefit": {
-      "freeCredits": "註冊即送免費積分",
+      "freeCredits": "符合資格的帳號可獲試用點數",
       "projectHistory": "自動儲存專案歷史",
       "google": "支援 Google 快速登入"
     },
@@ -301,8 +301,8 @@
     "footerNote": "繼續後，你可以使用工作台、查看積分與帳務，並管理已儲存的專案。"
   },
   "pricing": {
-    "title": "Premium AI 創作方案",
-    "subtitle": "選擇 Premium 會員，解鎖無水印創作、更快佇列、商業使用權和定期發放的積分。需要更多時也可以額外加購積分。",
+    "title": "為下一個創意儲值",
+    "subtitle": "買多少，用多少。無需訂閱，不會自動續費。",
     "eyebrow": "價格",
     "forIndividuals": "適合個人使用者",
     "currentBalance": "目前餘額",
@@ -313,9 +313,9 @@
       "name": "免費",
       "badge": "免費",
       "priceInterval": "月",
-      "credits": "100 試用積分",
+      "credits": "符合資格的帳號可獲試用點數",
       "eligible": "適用於符合條件的新帳號",
-      "description": "從基礎功能開始：圖片生成、圖片編輯、有限語音、有限影片、帶水印和標準佇列。",
+      "description": "符合資格的帳號可獲試用點數",
       "cta": "免費開始"
     },
     "freeFeatures": {
@@ -375,7 +375,7 @@
       },
       "proTopup": {
         "name": "專業加量包",
-        "idealFor": "適合 Premium 訂閱需要臨時增加容量的高頻使用場景。"
+        "idealFor": "適合較大批量創作，無需訂閱。"
       }
     },
     "extraCredits": {
@@ -717,7 +717,7 @@
     },
     "price": {
       "title": "DreamFace 價格和積分方案",
-      "description": "查看 DreamFace Premium 會員、積分包、高階模型存取權限、更快佇列、無水印匯出和隨用隨付積分，適合 AI 圖片和影片創作。"
+      "description": "符合資格的新帳號可獲得試用點數，額度依註冊規則及資格審查而定。後續可購買一次性點數包，不會自動續費。"
     },
     "auth": {
       "title": "登入 DreamFace",

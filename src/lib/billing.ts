@@ -87,6 +87,24 @@ export function creditUsageCapacity(credits: number) {
   };
 }
 
+// Examples follow the same estimator used by Studio and server billing.
+// Token-priced examples are allowances; actual prompts and references can vary.
+function creditPackExamples(credits: number): CreditPack["examples"] {
+  const samples = [
+    {label: "GPT Image 2.5 Flare", input: {mode:"image",provider:"chatgpt-image",quality:"low"}, note:"Low quality image allowance; prompt and reference costs vary"},
+    {label: "Nano Banana 2.1", input: {mode:"image",provider:"nano-banana-image",resolution:"1K"}, note:"1K image allowance; token costs vary"},
+    {label: "Nano Banana Pro", input: {mode:"image",provider:"nano-banana-pro",resolution:"1K"}, note:"1K images"},
+    {label: "FLUX Schnell", input: {mode:"image",provider:"flux-image",imageSize:"landscape_16_9"}, note:"1024 × 576 image drafts"},
+    {label: "Topaz Upscale", input: {mode:"image",provider:"topaz-image"}, note:"image enhancement allowance"},
+    {label: "Eleven v4 Turbo", input: {mode:"audio",provider:"elevenlabs-tts",promptText:"x".repeat(1000)}, note:"1,000-character voiceovers"},
+    {label: "Grok Imagine 1.5 Lite", input: {mode:"video",provider:"grok-video",duration:"6s",resolution:"720p"}, note:"6-second 720p clips without reference surcharge"},
+    {label: "Kling v3 Pro", input: {mode:"video",provider:"kling-video",duration:"6s",resolution:"1080p",generateAudio:false}, note:"6-second 1080p clips without audio"},
+    {label: "Seedance 2.0", input: {mode:"video",provider:"seedance-video",duration:"6s",resolution:"720p"}, note:"6-second 720p allowance"},
+    {label: "Veo 3.1", input: {mode:"video",provider:"veo-video",duration:"4s",resolution:"720p",generateAudio:false}, note:"4-second 720p clips without audio"}
+  ] satisfies Array<{label:string;input:Parameters<typeof estimateGenerationCredits>[0];note:string}>;
+  return samples.map(sample=>({label:sample.label,count:`up to ${Math.floor(credits / estimateGenerationCredits(sample.input)).toLocaleString("en-US")}`,note:sample.note}));
+}
+
 export const CREDIT_PACKS: CreditPack[] = [
   {
     id: "starter",
@@ -95,18 +113,7 @@ export const CREDIT_PACKS: CreditPack[] = [
     amountCents: 499,
     description: "A friendly starter balance for testing prompts, polishing images, and creating a few short clips.",
     idealFor: "Great for exploring the studio across image, audio, and light video workflows.",
-    examples: [
-      { label: "GPT Image 2", count: "up to 21", note: "high quality 4:3 images" },
-      { label: "Nano Banana 2.1", count: "up to 72", note: "1K image generations or edits" },
-      { label: "Nano Banana Pro", count: "up to 20", note: "premium 1K image generations" },
-      { label: "FLUX Schnell", count: "up to 100", note: "fast image drafts" },
-      { label: "Topaz Upscale", count: "up to 40", note: "image enhance jobs" },
-      { label: "Eleven v4 Turbo", count: "up to 80", note: "1,000-character voiceovers" },
-      { label: "Grok Imagine 1.5 Lite", count: "up to 29", note: "6-second 720p video clips" },
-      { label: "Kling v3 Pro", count: "up to 4", note: "6-second video clips" },
-      { label: "Seedance 2.0", count: "up to 1", note: "6-second 720p video clip" },
-      { label: "Veo 3.1", count: "up to 4", note: "4-second 720p video drafts" }
-    ]
+    examples: creditPackExamples(800)
   },
   {
     id: "creator",
@@ -115,18 +122,7 @@ export const CREDIT_PACKS: CreditPack[] = [
     amountCents: 999,
     description: "A comfortable working balance for weekly creative batches, variations, and mixed media tests.",
     idealFor: "Best for creators making several visual directions before choosing the final output.",
-    examples: [
-      { label: "GPT Image 2", count: "up to 49", note: "high quality 4:3 images" },
-      { label: "Nano Banana 2.1", count: "up to 163", note: "1K image generations or edits" },
-      { label: "Nano Banana Pro", count: "up to 47", note: "premium 1K image generations" },
-      { label: "FLUX Schnell", count: "up to 225", note: "fast image drafts" },
-      { label: "Topaz Upscale", count: "up to 90", note: "image enhance jobs" },
-      { label: "Eleven v4 Turbo", count: "up to 180", note: "1,000-character voiceovers" },
-      { label: "Grok Imagine 1.5 Lite", count: "up to 66", note: "6-second 720p video clips" },
-      { label: "Kling v3 Pro", count: "up to 10", note: "6-second video clips" },
-      { label: "Seedance 2.0", count: "up to 4", note: "6-second 720p video clips" },
-      { label: "Veo 3.1", count: "up to 8", note: "4-second 720p video drafts" }
-    ]
+    examples: creditPackExamples(1800)
   },
   {
     id: "studio",
@@ -135,18 +131,7 @@ export const CREDIT_PACKS: CreditPack[] = [
     amountCents: 2499,
     description: "The most flexible pack for campaigns, prompt libraries, enhancement passes, and video experiments.",
     idealFor: "Best value when you want room for images, audio, and multiple short video drafts.",
-    examples: [
-      { label: "GPT Image 2", count: "up to 133", note: "high quality 4:3 images" },
-      { label: "Nano Banana 2.1", count: "up to 436", note: "1K image generations or edits" },
-      { label: "Nano Banana Pro", count: "up to 126", note: "premium 1K image generations" },
-      { label: "FLUX Schnell", count: "up to 600", note: "fast image drafts" },
-      { label: "Topaz Upscale", count: "up to 240", note: "image enhance jobs" },
-      { label: "Eleven v4 Turbo", count: "up to 480", note: "1,000-character voiceovers" },
-      { label: "Grok Imagine 1.5 Lite", count: "up to 177", note: "6-second 720p video clips" },
-      { label: "Kling v3 Pro", count: "up to 28", note: "6-second video clips" },
-      { label: "Seedance 2.0", count: "up to 10", note: "6-second 720p video clips" },
-      { label: "Veo 3.1", count: "up to 24", note: "4-second 720p video drafts" }
-    ]
+    examples: creditPackExamples(4800)
   },
   {
     id: "pro-topup",
@@ -155,18 +140,7 @@ export const CREDIT_PACKS: CreditPack[] = [
     amountCents: 4999,
     description: "A larger one-time credit pack for high-volume creative work. No subscription required.",
     idealFor: "For teams and creators producing larger batches of images, video, avatars and audio.",
-    examples: [
-      { label: "GPT Image 2", count: "up to 305", note: "high quality 4:3 images" },
-      { label: "Nano Banana 2.1", count: "up to 1000", note: "1K image generations or edits" },
-      { label: "Nano Banana Pro", count: "up to 289", note: "premium 1K image generations" },
-      { label: "FLUX Schnell", count: "up to 1,375", note: "fast image drafts" },
-      { label: "Topaz Upscale", count: "up to 550", note: "image enhance jobs" },
-      { label: "Eleven v4 Turbo", count: "up to 1100", note: "1,000-character voiceovers" },
-      { label: "Grok Imagine 1.5 Lite", count: "up to 407", note: "6-second 720p video clips" },
-      { label: "Kling v3 Pro", count: "up to 64", note: "6-second video clips" },
-      { label: "Seedance 2.0", count: "up to 22", note: "6-second 720p video clips" },
-      { label: "Veo 3.1", count: "up to 55", note: "4-second video drafts" }
-    ]
+    examples: creditPackExamples(11000)
   }
 ];
 

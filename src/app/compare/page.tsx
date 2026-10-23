@@ -80,32 +80,32 @@ export default function ComparePage() {
               {
                 href: "/compare/dreamface-vs-higgsfield",
                 title: "DreamFace vs Higgsfield",
-                description: "Compare weekly entry access, monthly and annual plans, cinematic controls, avatars, voice tools, and marketing workflows."
+                description: "Compare one-time credit packs, monthly and annual plans, cinematic controls, avatars, voice tools, and marketing workflows."
               },
               {
                 href: "/compare/dreamface-vs-runway",
                 title: "DreamFace vs Runway",
-                description: "Compare weekly entry access, monthly and annual plans, credits, AI video, editing, avatars, audio, and high-volume workflows."
+                description: "Compare one-time credit packs, monthly and annual plans, credits, AI video, editing, avatars, audio, and high-volume workflows."
               },
               {
                 href: "/compare/dreamface-vs-kling-ai",
                 title: "DreamFace vs Kling AI",
-                description: "Compare weekly entry access, monthly and annual plans, credits, Kling-native video controls, avatars, voice, and multi-model workflows."
+                description: "Compare one-time credit packs, monthly and annual plans, credits, Kling-native video controls, avatars, voice, and multi-model workflows."
               },
               {
                 href: "/compare/dreamface-vs-pika",
                 title: "DreamFace vs Pika",
-                description: "Compare weekly entry access, monthly and annual plans, credits, Pika effects, frame animation, avatars, voice, and marketing workflows."
+                description: "Compare one-time credit packs, monthly and annual plans, credits, Pika effects, frame animation, avatars, voice, and marketing workflows."
               },
               {
                 href: "/compare/dreamface-vs-artlist",
                 title: "DreamFace vs Artlist",
-                description: "Compare weekly entry access, AI Suite monthly and annual plans, credits, stock media, licensing, avatars, voice, music, and production workflows."
+                description: "Compare one-time credit packs, AI Suite monthly and annual plans, credits, stock media, licensing, avatars, voice, music, and production workflows."
               },
               {
                 href: "/compare/dreamface-vs-heygen",
                 title: "DreamFace vs HeyGen",
-                description: "Compare weekly entry access, monthly and annual plans, credits, digital twins, stock avatars, voice cloning, video translation, and localization workflows."
+                description: "Compare one-time credit packs, monthly and annual plans, credits, digital twins, stock avatars, voice cloning, video translation, and localization workflows."
               }
             ].map((comparison) => (
               <Link

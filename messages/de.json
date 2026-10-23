@@ -106,7 +106,7 @@
     "title": "Verwandle deine Ideen in minutenschnelle Videos",
     "subtitle": "Von Skript, Bild, Präsentation oder Prompt zum fertigen Inhalt. Keine Kamera, kein Team und keine Schnittkenntnisse erforderlich.",
     "ctaGoogle": "Mit Google fortfahren",
-    "ctaPrimary": "Kostenlos starten"
+    "ctaPrimary": "DreamFace ausprobieren"
   },
   "home": {
     "gallery": {
@@ -146,8 +146,8 @@
       "trial": {
         "name": "Test-Credits",
         "price": "Kostenlos",
-        "note": "Für neue Konten",
-        "credits": "100 Start-Credits enthalten"
+        "note": "Berechtigung und Umfang richten sich nach den Registrierungsregeln. Prüfe dein Guthaben.",
+        "credits": "Test-Credits für berechtigte Konten"
       },
       "bestValue": "Bestes Preis-Leistungs-Verhältnis",
       "topUpWhenNeeded": "Bei Bedarf Credits nachladen"
@@ -198,7 +198,7 @@
       },
       "models": {
         "question": "Welche KI-Modelle kann ich verwenden?",
-        "answer": "Die Verfügbarkeit hängt vom Workflow ab. Aktuelle Optionen sind GPT Image 2, Nano Banana 2, FLUX und Topaz für Bilder; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video und Happy Horse 1.1 für Videos; sowie ElevenLabs Eleven v3 und MiniMax Music 2.6 für Audio."
+        "answer": "Die Verfügbarkeit hängt vom Workflow ab. Aktuelle Optionen sind GPT Image 2.5, Nano Banana 2.1, FLUX und Topaz für Bilder; Seedance 2, Kling v3, Veo 3.1, Grok Imagine Video und Happy Horse 1.1 für Videos; sowie ElevenLabs Eleven v4 Turbo und MiniMax Music 2.6 für Audio."
       },
       "videoTiming": {
         "question": "Wie lange dauert die Erstellung eines KI-Videos?",
@@ -214,7 +214,7 @@
       },
       "freeTrial": {
         "question": "Kann ich DreamFace kostenlos testen?",
-        "answer": "Ja. Neue Konten erhalten 100 Start-Credits, um unterstützte Workflows zu testen. Danach stehen einmalige Credit-Pakete sowie Premium-Mitgliedschaften mit wöchentlicher, monatlicher oder jährlicher Abrechnung zur Verfügung."
+        "answer": "Berechtigte neue Konten können gemäß den Registrierungsregeln Test-Credits erhalten. Weitere Credits gibt es als Einmalkauf ohne automatische Verlängerung."
       },
       "failedTask": {
         "question": "Was passiert bei einer fehlgeschlagenen Erstellung?",
@@ -279,7 +279,7 @@
       "description": "Melde dich an, sichere dir deine Test-Credits und verwalte Prompts, Bilder und Videos in deinen Projekten."
     },
     "benefit": {
-      "freeCredits": "100 kostenlose Credits",
+      "freeCredits": "Test-Credits für berechtigte Konten",
       "projectHistory": "Projektverlauf",
       "google": "Google mit einem Klick"
     },
@@ -301,8 +301,8 @@
     "footerNote": "Mit der Anmeldung erhältst du Zugriff auf Studio, Credits, Abrechnung und gespeicherte Projekte."
   },
   "pricing": {
-    "title": "Premium-Pläne für KI-Kreationen",
-    "subtitle": "Wähle eine Premium-Mitgliedschaft für Kreationen ohne Wasserzeichen, schnellere Warteschlangen, kommerzielle Nutzung und regelmäßig erneuerte Credits.",
+    "title": "Credits für deine nächste Idee",
+    "subtitle": "Kaufe ein Paket. Ohne Abo oder automatische Verlängerung.",
     "eyebrow": "Preise",
     "forIndividuals": "Für Einzelpersonen",
     "currentBalance": "Aktueller Kontostand",
@@ -313,9 +313,9 @@
       "name": "Kostenlos",
       "badge": "Kostenlos",
       "priceInterval": "Monat",
-      "credits": "100 Test-Credits",
+      "credits": "Test-Credits für berechtigte Konten",
       "eligible": "für berechtigte neue Konten",
-      "description": "Teste Bildgenerierung, Bearbeitung, Sprache und kurze Videos mit Standardwarteschlange und Wasserzeichen.",
+      "description": "Test-Credits für berechtigte Konten",
       "cta": "Kostenlos starten"
     },
     "freeFeatures": {
@@ -375,7 +375,7 @@
       },
       "proTopup": {
         "name": "Pro-Aufladung",
-        "idealFor": "Für gelegentliche hohe Nutzung, wenn ein Premium-Abonnement vorübergehend zusätzliche Kapazität benötigt."
+        "idealFor": "Für größere Kreativprojekte. Kein Abo erforderlich."
       }
     },
     "extraCredits": {
@@ -717,7 +717,7 @@
     },
     "price": {
       "title": "DreamFace Preise und Credit-Pakete",
-      "description": "Vergleiche DreamFace Premium-Pläne, Credit-Pakete, Modellzugriff und Credits für KI-Bilder und Videos."
+      "description": "Berechtigte neue Konten können gemäß den Registrierungsregeln Test-Credits erhalten. Weitere Credits gibt es als Einmalkauf ohne automatische Verlängerung."
     },
     "auth": {
       "title": "Bei DreamFace anmelden",

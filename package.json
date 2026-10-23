@@ -20,6 +20,7 @@
     "verify:studio-inputs": "node scripts/verify-studio-inputs.mjs",
     "verify:video-keyframes": "node scripts/verify-video-keyframes.mjs",
     "verify:model-upgrades": "node scripts/verify-model-upgrades.mjs",
+    "verify:pricing": "node scripts/verify-cost-tier-pricing.mjs",
     "verify:model-suspension": "node scripts/verify-model-suspension.mjs",
     "verify:h3-daily-free": "node scripts/verify-h3-daily-free.mjs",
     "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run verify:referrals && npm run verify:gpt-image && npm run verify:payments && npm run verify:wallets && npm run verify:analytics && npm run verify:dodo && npm run verify:video-keyframes && npm run verify:model-upgrades && npm run verify:flux3 && npm run verify:model-suspension && npm run verify:h3-daily-free && npm run verify:video-prompt-ai && npm run verify:studio-performance && npm run verify:studio-inputs && npm run build",

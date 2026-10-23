@@ -34,29 +34,29 @@ globalThis.fetch=async()=>{throw new Error('Unexpected network call');};
 try {
  const policy=load('src/lib/flux3-max.ts');let now=policy.FLUX3_MAX_PROMO_END-1;Date.now=()=>now;
  const route=load('src/app/api/generate/route.ts');
- const request=(extra={})=>({headers:new Headers(),json:async()=>({mode:'video',provider:'flux-3-max-video',videoWorkflow:'text-to-video',duration:'5s',resolution:'720p',ratio:'auto',prompt:'A red panda walks in a forest.',expectedCredits:53,idempotencyKey:crypto.randomUUID(),...extra})});
+ const request=(extra={})=>({headers:new Headers(),json:async()=>({mode:'video',provider:'flux-3-max-video',videoWorkflow:'text-to-video',duration:'5s',resolution:'720p',ratio:'auto',prompt:'A red panda walks in a forest.',expectedCredits:39,idempotencyKey:crypto.randomUUID(),...extra})});
  let response=await route.POST(request());
- assert.equal(response.status,200);assert.equal(response.body.estimatedCredits,53);assert.deepEqual(spends,[53]);
+ assert.equal(response.status,200);assert.equal(response.body.estimatedCredits,39);assert.deepEqual(spends,[39]);
  assert.equal(submissions[0].url,'https://queue.fal.run/blackforestlabs/flux-3-max/text-to-video');
  assert.equal(submissions[0].input.generate_audio,true);assert.equal(submissions[0].input.reasoning_level,'high');
  const originalTask=Object.values(records)[0];
- response=await route.POST(request({videoWorkflow:'image-to-video',imageUrls:['https://example.invalid/start.png','https://example.invalid/end.png'],duration:'20s',resolution:'1080p',reasoningLevel:'low',generateAudio:false,expectedCredits:359}));
- assert.equal(response.status,200);assert.deepEqual(spends,[53,359]);
+ response=await route.POST(request({videoWorkflow:'image-to-video',imageUrls:['https://example.invalid/start.png','https://example.invalid/end.png'],duration:'20s',resolution:'1080p',reasoningLevel:'low',generateAudio:false,expectedCredits:261}));
+ assert.equal(response.status,200);assert.deepEqual(spends,[39,261]);
  assert.equal(submissions.at(-1).url,'https://queue.fal.run/blackforestlabs/flux-3-max/image-to-video');
  assert.equal(submissions.at(-1).input.end_image_url,'https://example.invalid/end.png');
  assert.equal(submissions.at(-1).input.duration,20);assert.equal(submissions.at(-1).input.resolution,'1080p');
  assert.equal(submissions.at(-1).input.reasoning_level,'low');assert.equal(submissions.at(-1).input.generate_audio,false);
  now=policy.FLUX3_MAX_PROMO_END;
  response=await route.POST(request());
- assert.equal(response.status,409);assert.equal(response.body.code,'video_price_changed');assert.equal(response.body.estimatedCredits,211);
- assert.deepEqual(spends,[53,359]);assert.equal(submissions.length,2,'Expired quote must not charge or submit');
- assert.equal(records[originalTask.id].estimated_credits,53,'Promotion expiry must not rewrite existing task prices');
- response=await route.POST(request({expectedCredits:211}));
- assert.equal(response.status,200);assert.deepEqual(spends,[53,359,211]);
+ assert.equal(response.status,409);assert.equal(response.body.code,'video_price_changed');assert.equal(response.body.estimatedCredits,153);
+ assert.deepEqual(spends,[39,261]);assert.equal(submissions.length,2,'Expired quote must not charge or submit');
+ assert.equal(records[originalTask.id].estimated_credits,39,'Promotion expiry must not rewrite existing task prices');
+ response=await route.POST(request({expectedCredits:153}));
+ assert.equal(response.status,200);assert.deepEqual(spends,[39,261,153]);
  for(const extra of [{videoWorkflow:'image-to-video',imageUrls:[]},{mode:'avatar'},{videoWorkflow:'image-to-video',imageUrls:['a','b','c']}]) {
-  response=await route.POST(request({...extra,expectedCredits:211}));assert.equal(response.status,400);
+  response=await route.POST(request({...extra,expectedCredits:153}));assert.equal(response.status,400);
  }
- assert.deepEqual(spends,[53,359,211]);
+ assert.deepEqual(spends,[39,261,153]);
  console.log('FLUX 3 Max passed: actual route/endpoints, 20s/1080p, start/end frames, audio/reasoning, promotion expiry, stale quote rejection before charge, immutable old prices. No real network or database.');
 } finally {
  Date.now=previousNow;globalThis.fetch=previousFetch;

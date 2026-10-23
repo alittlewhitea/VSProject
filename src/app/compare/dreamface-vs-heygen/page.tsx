@@ -1,3 +1,4 @@
+import { DreamfaceCreditPacks, DreamfacePricingCtaCopy, DREAMFACE_CREDIT_SUMMARY } from "../dreamface-credit-packs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { absoluteUrl, siteUrl } from "../../../lib/site-url";
@@ -12,9 +13,9 @@ const faqs = [
       "DreamFace is a strong HeyGen alternative for creators who want talking avatars alongside image generation, video models, AI voice, and marketing templates at a lower starting commitment. HeyGen is the stronger specialist choice for digital twins, stock avatars, video translation, lip-sync localization, and business training workflows."
   },
   {
-    question: "Which platform has the lower paid entry price?",
+    question: "How does DreamFace billing work?",
     answer:
-      "DreamFace starts at $4.99 per week with 800 credits. HeyGen Creator costs $29 per month with 600 credits, or $288 per year at a $24 monthly equivalent. Credit values are not directly comparable because generation costs differ by feature and platform."
+      DREAMFACE_CREDIT_SUMMARY
   },
   {
     question: "Does HeyGen offer a free plan?",
@@ -36,7 +37,7 @@ const faqs = [
 export const metadata: Metadata = {
   title: "DreamFace vs HeyGen: AI Avatar Video Comparison (2026)",
   description:
-    "Compare DreamFace and HeyGen pricing, annual plans, credits, digital twins, stock avatars, voice cloning, video translation, lip sync, templates, and AI video workflows.",
+    "Compare DreamFace and HeyGen pricing, credit packs, credits, digital twins, stock avatars, voice cloning, video translation, lip sync, templates, and AI video workflows.",
   keywords: [
     "DreamFace vs HeyGen",
     "HeyGen alternative",
@@ -101,17 +102,17 @@ export default function DreamFaceVsHeyGenPage() {
     ["Voice and languages", "Dedicated multilingual voice and TTS generation", "Voice cloning and 175+ languages and dialects on Creator"],
     ["Video translation", "Model- and workflow-dependent localization", "Audio dubbing, lip-sync translation, precision modes, and script editing on Pro"],
     ["General AI video", "Text-to-video and image-to-video through supported Studio models", "Video Agent plus generated image, video, B-roll, and motion assets"],
-    ["Image and marketing tools", "Image generation, editing, cleanup, and 300+ marketing templates", "Photo Looks, Brand Kit, templates, and assets for avatar-led video"],
+    ["Image and marketing tools", "Image generation, editing, cleanup, and curated prompts and creative examples", "Photo Looks, Brand Kit, templates, and assets for avatar-led video"],
     ["Output and teams", "Individual creation and project workflows", "1080p Creator, 4K Pro, and Business collaboration, SSO, SCORM, LMS, and interactive video"]
   ];
 
   const useCaseRows = [
-    ["Low-commitment paid testing", "DreamFace", "The $4.99 weekly plan provides 800 credits without requiring a full month or year."],
+    ["Low-commitment paid testing", "DreamFace", "One-time credit packs let creators top up when needed without automatic renewal."],
     ["Digital-twin spokesperson videos", "HeyGen", "Its product is centered on stock avatars, custom digital twins, Avatar IV/V, scripts, and brand controls."],
     ["Multilingual video localization", "HeyGen", "Dedicated dubbing, lip sync, translation modes, and 175+ languages make localization a core workflow."],
-    ["Mixed image, avatar, voice, and video campaigns", "DreamFace", "Several media modes and 300+ marketing templates are accessible in one focused workspace."],
+    ["Mixed image, avatar, voice, and video campaigns", "DreamFace", "Several media modes and curated prompts and creative examples are accessible in one focused workspace."],
     ["Training and interactive learning", "HeyGen Business", "SCORM export, LMS integrations, screen recording, quizzes, links, and branching target learning teams."],
-    ["Irregular or seasonal creation", "DreamFace", "Weekly billing and one-time credit options allow more control over commitment length."]
+    ["Irregular or seasonal creation", "DreamFace", "One-time credit packs let you top up when needed without automatic renewal."]
   ];
 
   return (
@@ -146,7 +147,7 @@ export default function DreamFaceVsHeyGenPage() {
           <div className="mt-7 grid gap-5 md:grid-cols-2">
             <div className="comparison-card comparison-card-primary rounded-lg border border-[#9bdffc] bg-[#f1fbff] p-6">
               <h3 className="text-2xl font-black">DreamFace</h3>
-              <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">An all-in-one multimodal creation platform with talking avatars, AI voice and TTS, image creation and editing, video generation, and 300+ marketing templates.</p>
+              <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">An all-in-one multimodal creation platform with talking avatars, AI voice and TTS, image creation and editing, video generation, and curated prompts and creative examples.</p>
             </div>
             <div className="comparison-card rounded-lg border border-black/10 bg-white p-6">
               <h3 className="text-2xl font-black">HeyGen</h3>
@@ -171,24 +172,13 @@ export default function DreamFaceVsHeyGenPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.14em] text-[#087ea4]">Purchase comparison</p>
-              <h2 className="mt-3 text-3xl font-black tracking-normal md:text-4xl">Monthly and annual pricing</h2>
+              <h2 className="mt-3 text-3xl font-black tracking-normal md:text-4xl">Pricing and billing comparison</h2>
             </div>
             <p className="max-w-xl text-sm font-medium leading-6 text-[#5b6677]">HeyGen Pro supports configurable credit tiers up to 100,000 credits per month. The table compares the publicly documented starting tiers.</p>
           </div>
 
-          <h3 className="mt-9 text-xl font-black">DreamFace plans</h3>
-          <div className="comparison-table-frame mt-4 overflow-x-auto rounded-lg border border-black/10 bg-white">
-            <table className={tableClass}>
-              <thead><tr><th className={thClass}>Plan</th><th className={thClass}>Billing price</th><th className={thClass}>Credits</th><th className={thClass}>Purchase note</th></tr></thead>
-              <tbody>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium Lite weekly</td><td className={tdClass}>$4.99 / week</td><td className={tdClass}>800 / week</td><td className={tdClass}>Lowest paid commitment; access to the current Studio catalog with credit-based usage.</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium Lite monthly</td><td className={tdClass}>$12.99 / month</td><td className={tdClass}>2,400 / month</td><td className={tdClass}>Flexible monthly billing.</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium Lite annual</td><td className={tdClass}>$99 / year ($8.25/mo equivalent)</td><td className={tdClass}>18,000 / year</td><td className={tdClass}>About $56 less than 12 monthly payments.</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium monthly</td><td className={tdClass}>$24.99 / month</td><td className={tdClass}>4,600 / month</td><td className={tdClass}>Higher capacity for premium video and campaign work.</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Premium annual</td><td className={tdClass}>$199 / year ($16.58/mo equivalent)</td><td className={tdClass}>38,000 / year</td><td className={tdClass}>About $100 less than 12 monthly payments.</td></tr>
-              </tbody>
-            </table>
-          </div>
+          <h3 className="mt-9 text-xl font-black">DreamFace one-time credit packs</h3>
+<DreamfaceCreditPacks />
 
           <h3 className="mt-9 text-xl font-black">HeyGen credit-based plans</h3>
           <div className="comparison-table-frame mt-4 overflow-x-auto rounded-lg border border-black/10 bg-white">
@@ -239,8 +229,8 @@ export default function DreamFaceVsHeyGenPage() {
         </section>
 
         <section className="comparison-cta rounded-lg bg-[#111318] px-6 py-9 text-white md:flex md:items-center md:justify-between md:px-9">
-          <div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#72d9ff]">Try the lower-commitment path</p><h2 className="mt-3 max-w-2xl text-3xl font-black tracking-normal">Access the DreamFace model catalog from $4.99 per week.</h2><p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-white/70">Includes 800 weekly credits. Model usage remains credit-based and subject to availability.</p></div>
-          <Link href="/price" className="mt-6 inline-flex rounded-lg bg-[#10bff3] px-6 py-3 text-sm font-black text-[#06151b] md:mt-0">View DreamFace pricing</Link>
+          <div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#72d9ff]">Try the lower-commitment path</p><DreamfacePricingCtaCopy /></div>
+          <Link href="/price" className="mt-6 inline-flex rounded-lg bg-[#10bff3] px-6 py-3 text-sm font-black text-[#06151b] md:mt-0">View current credit packs</Link>
         </section>
 
         <section className="comparison-sources py-10 text-xs font-medium leading-6 text-[#667084]">

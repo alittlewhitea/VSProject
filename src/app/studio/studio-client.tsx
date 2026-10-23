@@ -2106,7 +2106,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               : undefined,
         generateAudio: mode === "video" ? generateAudio : undefined,
         reasoningLevel: provider === "flux-3-max-video" ? reasoningLevel : undefined,
-        expectedCredits: provider === "flux-3-max-video" ? estCredits : undefined,
+        expectedCredits: provider === "flux-3-max-video" || isH3VideoProvider(provider) ? estCredits : undefined,
         outputFormat: mode === "image" && provider !== "bria-background-remove" ? outputFormat : undefined,
         quality: mode === "image" && !isPromptlessImageWorkflow ? imageQuality : undefined,
         numImages: mode === "image" && !isPromptlessImageWorkflow ? numImages : undefined,
@@ -2158,7 +2158,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         clearPersistentIdempotency(idempotencyStorageKey);
         if(errorPayload?.code === "video_price_changed") {
           setPricingTime(errorPayload.pricingTime || Date.now());
-          throw new Error(st("studio.flux3.priceChanged"));
+          throw new Error(localizeStudioError(errorPayload.error || "The price has changed. Review the updated credits and try again.", response.status));
         }
         if (errorPayload?.code === "daily_free_unavailable") {
           h3DailyFree.invalidate();
