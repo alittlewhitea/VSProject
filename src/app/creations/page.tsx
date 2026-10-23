@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTaskDetails } from "../../features/studio/use-task-details";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { TopNav } from "../../components/top-nav";
@@ -291,7 +292,7 @@ export default function CreationsPage() {
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
-  async function loadTasks(token: string, sessionUserId: string, options?: { quiet?: boolean }) {
+  async function loadTasks(token: string, sessionUserId: string, options?: { quiet?: boolean; skipSync?: boolean }) {
     if (!options?.quiet) {
       setLoading(true);
       setSyncNote("Refreshing cloud history and background tasks...");
@@ -309,7 +310,12 @@ export default function CreationsPage() {
         storageWarning?: string;
       };
       const remoteTasks = payload.tasks.map(taskFromApi);
-      const merged = mergeTasks(remoteTasks, readSessionTasks(sessionUserId));
+      const merged = mergeTasks(remoteTasks, payload.storageWarning ? readSessionTasks(sessionUserId) : readSessionTasks(sessionUserId).filter(task => task.createdAt && Date.now() - new Date(task.createdAt).getTime() < 10 * 60 * 1000));
+      if (!options?.skipSync && !payload.storageWarning && remoteTasks.some(task => task.status === "Queued" || task.status === "Running")) {
+        void fetch("/api/tasks", { method: "POST", headers: { Authorization: `Bearer ${token}` } })
+          .then(response => { if (response.ok) return loadTasks(token, sessionUserId, {quiet: true, skipSync: true}); })
+          .catch(() => undefined);
+      }
       setTasks(merged);
       saveSessionTasks(merged, sessionUserId);
       setSelectedId((prev) => (prev && merged.some((task) => task.id === prev) ? prev : merged[0]?.id || null));
@@ -359,7 +365,9 @@ export default function CreationsPage() {
     setCopiedPrompt(false);
   }, [selectedId, tasks]);
 
-  const selectedTask = tasks.find((task) => task.id === selectedId) || tasks[0] || null;
+  const selectedSummary = tasks.find((task) => task.id === selectedId) || tasks[0] || null;
+  const selectedDetails = useTaskDetails<ApiTask>(selectedSummary?.id, accessToken);
+  const selectedTask = selectedSummary && selectedDetails ? { ...selectedSummary, settings: selectedDetails.request_settings || null, ratio: typeof selectedDetails.request_settings?.ratio === "string" ? selectedDetails.request_settings.ratio : undefined, mediaUrl: selectedSummary.mediaUrl || selectedDetails.output_url || pickMediaUrl(selectedDetails.raw_result) } : selectedSummary;
   const stats = useMemo(
     () => ({
       total: tasks.length,
@@ -540,7 +548,7 @@ export default function CreationsPage() {
                     <div className="flex h-[72px] items-center justify-center overflow-hidden rounded-xl bg-[#eef2f7]">
                       {task.mediaUrl ? (
                         task.type === "Video" ? (
-                          <video src={task.mediaUrl} className="h-full w-full object-cover" muted />
+                          <video src={task.mediaUrl} preload="none" className="h-full w-full object-cover" muted />
                         ) : task.type === "Audio" ? (
                           <span className="text-xs font-semibold text-[#667084]">Audio</span>
                         ) : (

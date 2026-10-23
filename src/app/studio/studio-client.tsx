@@ -41,6 +41,7 @@ import { StudioHeader } from "../../features/studio/studio-header";
 import { WorkflowSwitcher } from "../../features/studio/workflow-switcher";
 import { StudioBillingModal, type GenerationBillingContext } from "../../features/studio/studio-billing-modal";
 import { StudioHome } from "../../features/studio/studio-home";
+import { useTaskDetails } from "../../features/studio/use-task-details";
 import { StudioProjects } from "../../features/studio/studio-projects";
 import { StudioReferrals } from "../../features/studio/studio-referrals";
 import {
@@ -1055,7 +1056,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   useEffect(() => {
     if (!accessToken || !userId) return;
-    (async () => {
+    let cancelled = false;
+    async function loadHistory(skipSync = false) {
       try {
         const response = await fetch("/api/tasks", {
           headers: {
@@ -1118,6 +1120,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           refundStatus: t.refund_status,
           failureReason: t.failure_reason || null
         }));
+        if (cancelled) return;
         const sessionTasks = readSessionTasks(userId);
         if (payload.storageWarning) {
           setTasks((currentTasks) => mergeTasks(currentTasks, sessionTasks));
@@ -1128,9 +1131,16 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           );
           return;
         }
-        setTasks(mergeTasks(remoteTasks, sessionTasks));
-        setTaskHistoryNote(sessionTasks.length ? st("studio.projects.browserTasks") : "");
+        if (cancelled) return;
+        setTasks(mergeTasks(remoteTasks, sessionTasks.filter(task => task.createdAt && Date.now() - new Date(task.createdAt).getTime() < 10 * 60 * 1000)));
+        setTaskHistoryNote("");
+        if (!skipSync && remoteTasks.some(task => task.status === "Queued" || task.status === "Running")) {
+          void fetch("/api/tasks", { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } })
+            .then(response => { if (response.ok && !cancelled) return loadHistory(true); })
+            .catch(() => undefined);
+        }
       } catch (error) {
+        if (cancelled) return;
         const sessionTasks = readSessionTasks(userId);
         setTasks(sessionTasks);
         setTaskHistoryNote(
@@ -1141,7 +1151,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               : st("studio.projects.historyUnavailable")
         );
       }
-    })();
+    }
+    void loadHistory();
+    return () => { cancelled = true; };
   }, [accessToken, userId]);
 
   useEffect(() => {
@@ -1417,9 +1429,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const completedTasks = tasks.filter((task) => task.status === "Completed");
   const hasCompletedCreation = completedTasks.length > 0;
   const selectedProjectId = sp.get("taskId");
-  const selectedProjectTask = selectedProjectId
+  const selectedProjectSummary = selectedProjectId
     ? tasks.find((task) => task.id === selectedProjectId) || tasks[0] || null
     : tasks[0] || null;
+  const selectedProjectDetails = useTaskDetails<{ id: string; request_settings?: Record<string, unknown> | null; output_url?: string | null; raw_result?: unknown }>(selectedProjectSummary?.id, accessToken, view === "projects");
+  const selectedProjectTask = selectedProjectSummary ? {
+    ...selectedProjectSummary,
+    settings: selectedProjectDetails?.request_settings ?? selectedProjectSummary.settings,
+    mediaUrl: selectedProjectSummary.mediaUrl || selectedProjectDetails?.output_url || pickMediaUrl(selectedProjectDetails?.raw_result)
+  } : null;
   const selectedImageSize = getImageSizePreset(imageSize);
   const providerNoteKey = [
     "flux-image",

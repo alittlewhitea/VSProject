@@ -106,7 +106,7 @@ export function StudioProjects({ t, tasks, selectedTask, historyNote, duration, 
   const thumbnail = (task: ProjectTask) => (
     <span className="relative grid h-[66px] w-[82px] shrink-0 place-items-center overflow-hidden rounded-xl border border-[#eaecf0] bg-[linear-gradient(135deg,#f3f1ff,#f7f8fb)] text-lg font-black text-[#6a5af9]">
       {task.mediaUrl && task.type === "Image" ? <img src={task.mediaUrl} alt="" className="h-full w-full object-cover" /> : null}
-      {task.mediaUrl && task.type === "Video" ? <video src={task.mediaUrl} muted playsInline preload="metadata" className="h-full w-full object-cover" /> : null}
+      {task.mediaUrl && task.type === "Video" ? <video src={task.mediaUrl} muted playsInline preload="none" className="h-full w-full object-cover" /> : null}
       {task.type === "Audio" ? <span aria-hidden="true">{"\u266b"}</span> : !task.mediaUrl ? <span aria-hidden="true">{task.type === "Video" ? "\u25b6" : "\u2726"}</span> : null}
       {task.status === "Running" || task.status === "Queued" ? <span className="absolute inset-x-0 bottom-0 h-1 bg-[#ede9fe]"><span className="block h-full bg-[#7c69ff]" style={{ width: `${taskProgress(task, duration)}%` }} /></span> : null}
     </span>

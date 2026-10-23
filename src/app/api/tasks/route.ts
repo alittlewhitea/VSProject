@@ -20,8 +20,8 @@ const TASK_SYNC_LIMIT = 5;
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
 const TASK_LIST_SELECT =
-  "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, request_settings, created_at, updated_at, title, is_favorite, failure_code, failure_reason, last_checked_at, timed_out_at";
-const TASK_DETAIL_SELECT = `${TASK_LIST_SELECT}, raw_result`;
+  "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, created_at, updated_at, title, is_favorite, failure_code, failure_reason, last_checked_at, timed_out_at";
+const TASK_DETAIL_SELECT = `${TASK_LIST_SELECT}, request_settings, raw_result`;
 
 type TaskHistoryResult = {
   data: TaskRow[] | null;
@@ -367,7 +367,6 @@ export async function GET(request: Request) {
   }
 
   const userIds = await getUserIdsForAuthUser(user);
-  await withTimeout(syncPendingFalTasks(admin, userIds), taskSyncTimeoutMs()).catch(() => null);
 
   const historyStartedAt = Date.now();
   const historyTimeoutMs = taskHistoryTimeoutMs();
@@ -413,6 +412,17 @@ export async function GET(request: Request) {
     () => data ?? []
   );
   return NextResponse.json({ tasks: tasksWithLedger });
+}
+
+// Explicit background sync: never delay the history read with provider requests.
+export async function POST(request: Request) {
+  const user = await getUserFromBearerToken(request.headers.get("authorization"));
+  if (!user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const admin = createSupabaseAdminClient();
+  if (!admin) return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
+  const userIds = await getUserIdsForAuthUser(user);
+  await withTimeout(syncPendingFalTasks(admin, userIds), taskSyncTimeoutMs()).catch(() => null);
+  return NextResponse.json({ ok: true });
 }
 
 export async function PATCH(request: Request) {
