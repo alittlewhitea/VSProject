@@ -1,5 +1,6 @@
 import { TopNav } from "../../components/top-nav";
 import { AppButton } from "../../components/ui/button";
+import { absoluteUrl, siteUrl } from "../../lib/site-url";
 
 const pillars = [
   {
@@ -32,8 +33,15 @@ const companyDetails = [
 ];
 
 export const metadata = {
-  title: "About Us | DreamFace",
-  description: "Learn about DreamFace, our mission, AI tools, and creator-focused workflow."
+  title: "About Us",
+  description: "Learn about DreamFace, our mission, AI tools, and creator-focused workflow.",
+  alternates: { canonical: absoluteUrl(siteUrl(), "/about") },
+  openGraph: {
+    title: "About DreamFace",
+    description: "Learn about DreamFace, our mission, AI tools, and creator-focused workflow.",
+    url: absoluteUrl(siteUrl(), "/about"),
+    type: "website"
+  }
 };
 
 export const dynamic = "force-dynamic";

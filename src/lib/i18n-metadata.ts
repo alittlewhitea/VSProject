@@ -57,13 +57,13 @@ export async function createLocalizedMetadata(rawLocale: string, page: Marketing
     metadataBase: new URL(baseUrl),
     title: page === "home" ? { absolute: copy.title } : copy.title,
     description: copy.description,
-    alternates: {
+    ...(page === "auth" ? { robots: { index: false, follow: true } } : { alternates: {
       canonical: canonicalPath,
       languages: {
         ...languages,
         "x-default": localizedPath(defaultLocale, page)
       }
-    },
+    } }),
     openGraph: {
       title: copy.title,
       description: copy.description,
