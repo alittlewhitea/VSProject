@@ -48,7 +48,7 @@ for (const [resolution,centsPerSecond] of [['480p',2],['720p',3],['1080p',14]]) 
 }
 assert.deepEqual(videos.VIDEO_MODEL_CONFIGS['grok-video'].resolutions,['480p','720p','1080p']);
 assert.equal(videos.VIDEO_MODEL_CONFIGS['grok-video'].group,'freeDraft');
-for(const workflow of ['text-to-video','image-to-video'])assert.equal(videos.VIDEO_PROVIDERS_BY_WORKFLOW[workflow][1],'grok-video');
+for(const workflow of ['text-to-video','image-to-video'])assert.equal(videos.VIDEO_PROVIDERS_BY_WORKFLOW[workflow][2],'grok-video');
 assert.deepEqual(videos.VIDEO_MODEL_CONFIGS['grok-video'].workflows['image-to-video'].ratios,['source']);
 // All four H3 endpoints share the same resolution-dependent estimate. Use fixed promotional rates even if live pricing changes.
 for (const [provider,expected] of [

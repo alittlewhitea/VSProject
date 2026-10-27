@@ -41,6 +41,13 @@ export const CREDIT_USD_TO_CREDITS = 150;
 // fal model pages checked 2026-10-23: 35% off through October 31.
 // Application fallback boundary uses Asia/Shanghai; final provider billing may differ.
 export const H3_PROMOTION_END = Date.parse("2026-11-01T00:00:00+08:00");
+// The supplier specifies October 31 without a timezone; use the same
+// Asia/Shanghai fallback boundary as the existing H3 promotion.
+export const HEYGEN_PROMOTION_END = Date.parse("2026-11-01T00:00:00+08:00");
+export function heygenSecondPrice(resolution?: string | null, pricingTime = Date.now()) {
+  const high = resolution?.toLowerCase() === "1080p" || resolution?.toLowerCase() === "2k";
+  return (high ? 0.06 : 0.02) * (pricingTime < HEYGEN_PROMOTION_END ? 0.5 : 1);
+}
 export function h3SupplierSecondPrice(input: GenerationEstimateInput) {
   const turbo = input.provider === "minimax-h3-max-turbo-video";
   const resolution = input.resolution?.toLowerCase();
@@ -111,7 +118,7 @@ export function generationPricingMultiplier(input: GenerationEstimateInput) {
   const effectiveResolution = resolution || (basicDefault ? "480p" : "720p");
   if (input.provider === "kling-avatar-standard") return CREDIT_MARKUP_MULTIPLIER;
   if (input.provider === "kling-avatar-pro") return HD_CREDIT_MARKUP_MULTIPLIER;
-  return ["720p", "768p", "1080p", "4k", "2160p"].includes(effectiveResolution)
+  return ["720p", "768p", "1080p", "2k", "4k", "2160p"].includes(effectiveResolution)
     ? HD_CREDIT_MARKUP_MULTIPLIER : CREDIT_MARKUP_MULTIPLIER;
 }
 
@@ -152,6 +159,7 @@ export function estimateGenerationCostUsd(input: GenerationEstimateInput): numbe
     if (input.provider === "elevenlabs-tts") return Math.max(1, input.promptText?.trim().length || 1) / 1000 * (live && isFalUnit(unit, "1000 characters") ? live : 0.04);
     throw new Error("Missing supplier cost estimate for audio provider");
   }
+  if (input.provider === "heygen-video") return Math.min(15, Math.max(5, seconds)) * heygenSecondPrice(input.resolution, input.pricingTime);
   if (input.provider === "flux-3-max-video") return flux3MaxSecondPrice(input.resolution, input.pricingTime) * flux3MaxDuration(input.duration);
   if (input.provider === "minimax-h3-max-turbo-video" || input.provider === "minimax-h3-max-video") return seconds * h3SupplierSecondPrice(input);
   if (input.provider === "gemini-omni-flash-video") return Math.min(10, Math.max(3, seconds)) * (input.hasReferences ? 0.10 : 0.125);
@@ -176,6 +184,15 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 }
 
 export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
+  ...["text-to-video", "image-to-video"].map((workflow): ModelPricingRow => ({
+    referenceDuration: "5s", referenceResolution: "768p",
+    provider: "heygen-video", label: workflow === "text-to-video" ? "HeyGen Video" : "HeyGen Video I2V",
+    mode: "video", workflow: workflow === "text-to-video" ? "Text to Video" : "Image to Video",
+    endpointId: `heygen/heygen-video/${workflow}`,
+    falBasis: "480p/768p $0.01/s; 1080p/2k $0.03/s through October 31, 2026; list rates double after the promotion.",
+    typicalCredits: estimateGenerationCredits({mode:"video",provider:"heygen-video",duration:"5s",resolution:"768p"}),
+    unitNote: "Estimated credits depend on the selected model and settings; check Generate"
+  })),
   ...["text-to-video", "image-to-video"].map((workflow): ModelPricingRow => ({
     referenceDuration: "5s", referenceResolution: "720p",
     provider: "flux-3-max-video", label: workflow === "text-to-video" ? "FLUX 3 Max" : "FLUX 3 Max I2V",

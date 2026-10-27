@@ -363,13 +363,13 @@ const WORKFLOW_META: Record<
   "text-to-video": {
     label: "Text to Video",
     description: "Turn a written scene into a short video.",
-    recommendedProvider: "minimax-h3-max-turbo-video",
+    recommendedProvider: "heygen-video",
     providers: VIDEO_PROVIDERS_BY_WORKFLOW["text-to-video"]
   },
   "image-to-video": {
     label: "Image to Video",
     description: "Animate a reference image into a short video.",
-    recommendedProvider: "minimax-h3-max-turbo-video",
+    recommendedProvider: "heygen-video",
     providers: VIDEO_PROVIDERS_BY_WORKFLOW["image-to-video"]
   },
   "text-to-audio": {
@@ -387,7 +387,9 @@ const WORKFLOW_META: Record<
 };
 
 function lastModelStorageKey(workflow: StudioWorkflow) {
-  return `${LAST_MODEL_STORAGE_PREFIX}:${workflow}`;
+  // Use a new preference namespace for the two video workflows so existing
+  // users see the new default once; explicit choices are still remembered.
+  return `${LAST_MODEL_STORAGE_PREFIX}:${workflow}${workflow === "text-to-video" || workflow === "image-to-video" ? ":v2" : ""}`;
 }
 
 function readRememberedModel(workflow: StudioWorkflow) {
@@ -761,6 +763,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [guidanceScale, setGuidanceScale] = useState(3.5);
   const [numInferenceSteps, setNumInferenceSteps] = useState(4);
   const [enableSafetyChecker, setEnableSafetyChecker] = useState(false);
+  useEffect(() => {
+    if (provider === "heygen-video") setEnableSafetyChecker(false);
+  }, [provider]);
   const [acceleration, setAcceleration] = useState("none");
   const [limitGenerations, setLimitGenerations] = useState(true);
   const [seed, setSeed] = useState("");
@@ -1392,7 +1397,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       description: st(groupKey),
       performanceNote: h3PerformanceNote(option.value, activeWorkflow),
       speed: isH3MaxProvider(option.value) ? meta.speed : st(modelPickerSpeedKey(meta.speed)),
-      quality: meta.quality,
+      quality: option.value === "heygen-video" ? st("studio.field.nativeAudio") : meta.quality,
       duration: mode === "video" || isAvatarWorkflow
         ? option.value === provider
           ? isAvatarWorkflow ? avatarDuration : duration
@@ -1420,7 +1425,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     mode: videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video",
     prompt, model: provider, duration, aspectRatio: ratio,
     resolution: videoModelConfig(provider)?.showResolutionControl ? videoResolution : undefined,
-    generateAudio,
+    generateAudio: provider === "heygen-video" ? true : generateAudio,
     imageUrls: videoWorkflow === "image-to-video" ? referenceImageUrls : undefined
   }, setPrompt, Boolean(accessToken));
   const generationSubmitLock = useRef<symbol | null>(null);
@@ -1460,7 +1465,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   ].includes(provider)
     ? provider
     : "default";
-  const providerNote = isGptImageProvider(provider) ? PROVIDER_META[provider].bestFor : st(`studio.model.${providerNoteKey}`);
+  const providerNote = provider === "heygen-video" ? `${st("studio.field.nativeAudio")} · 5–15s · 480p / 768p / 1080p / 2K` : isGptImageProvider(provider) ? PROVIDER_META[provider].bestFor : st(`studio.model.${providerNoteKey}`);
   const showVideoModelSelect = mode === "video" && (activeWorkflow === "text-to-video" || activeWorkflow === "image-to-video");
   const selectedProviderMeta = PROVIDER_META[provider] || {
     label: provider,
@@ -2119,21 +2124,21 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         resolution:
           mode === "image"
             ? editResolution
-            : (mode === "video" || isH3MaxAvatar) && (provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
+            : (mode === "video" || isH3MaxAvatar) && (provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
-        generateAudio: mode === "video" ? generateAudio : undefined,
+        generateAudio: mode === "video" ? provider === "heygen-video" || generateAudio : undefined,
         reasoningLevel: provider === "flux-3-max-video" ? reasoningLevel : undefined,
-        expectedCredits: provider === "flux-3-max-video" || isH3VideoProvider(provider) ? estCredits : undefined,
+        expectedCredits: provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) ? estCredits : undefined,
         outputFormat: mode === "image" && provider !== "bria-background-remove" ? outputFormat : undefined,
         quality: mode === "image" && !isPromptlessImageWorkflow ? imageQuality : undefined,
         numImages: mode === "image" && !isPromptlessImageWorkflow ? numImages : undefined,
         guidanceScale: mode === "image" && !isPromptlessImageWorkflow ? guidanceScale : undefined,
         numInferenceSteps: mode === "image" && !isPromptlessImageWorkflow ? numInferenceSteps : undefined,
-        enableSafetyChecker: (mode === "image" && !isPromptlessImageWorkflow) || (mode === "video" && (provider === "happy-horse-video" || provider === "grok-video")) ? enableSafetyChecker : undefined,
+        enableSafetyChecker: (mode === "image" && !isPromptlessImageWorkflow) || (mode === "video" && (provider === "heygen-video" || provider === "happy-horse-video" || provider === "grok-video")) ? enableSafetyChecker : undefined,
         acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
         limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
-        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
+        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
         safetyTolerance: mode === "image" && !isPromptlessImageWorkflow ? safetyTolerance : undefined,
         systemPrompt: mode === "image" && !isPromptlessImageWorkflow && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" && !isPromptlessImageWorkflow ? enableWebSearch : undefined,

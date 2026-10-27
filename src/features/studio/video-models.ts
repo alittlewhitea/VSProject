@@ -125,6 +125,21 @@ const SEEDANCE_IMAGE_PROMPT = "Ultra high-end commercial product shot, photoreal
 const SEEDANCE_IMAGE_URL = "https://v3b.fal.media/files/b/0a95971b/bFYVNRi647e2hEFdbeU2Z_jMhj1ueK.jpg";
 
 export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
+  "heygen-video": {
+    id: "heygen-video",
+    meta: { label: "HeyGen Video", shortLabel: "HeyGen Video", speed: "Fast", quality: "Native audio", bestFor: "Text-to-video and image-to-video with generated sound" },
+    group: "freeDraft",
+    badge: "recommended",
+    workflows: {
+      "text-to-video": { ratios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] },
+      "image-to-video": { ratios: ["source"] }
+    },
+    durations: VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 5),
+    resolutions: ["480p", "768p", "1080p", "2k"],
+    defaultDuration: "5s",
+    defaultResolution: "768p",
+    showResolutionControl: true
+  },
   "flux-3-max-video": {
     id: "flux-3-max-video",
     meta: {label:"FLUX 3 Max",shortLabel:"FLUX 3 Max",speed:"Fast",quality:"Native audio",bestFor:"5–20 second text-to-video and start/end-frame image-to-video with 720p/1080p output, native audio and low/high prompt reasoning"},
@@ -320,8 +335,8 @@ export const VIDEO_PROVIDER_META: Record<string, VideoProviderMeta> = {
 };
 
 export const VIDEO_PROVIDERS_BY_WORKFLOW: Record<StudioVideoWorkflow, string[]> = {
-  "text-to-video": ["minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
-  "image-to-video": ["minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video"]
+  "text-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
+  "image-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video"]
 };
 
 export const VIDEO_EXAMPLE_PROMPTS = Object.values(VIDEO_MODEL_CONFIGS)

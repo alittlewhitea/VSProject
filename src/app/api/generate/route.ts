@@ -184,6 +184,9 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "flux-3-max-video": editImage
       ? "blackforestlabs/flux-3-max/image-to-video"
       : "blackforestlabs/flux-3-max/text-to-video",
+    "heygen-video": editImage
+      ? "heygen/heygen-video/image-to-video"
+      : "heygen/heygen-video/text-to-video",
     "grok-video": editImage
       ? process.env.FAL_MODEL_VIDEO_GROK_I2V || "xai/grok-imagine-video/v1.5/lite/image-to-video"
       : process.env.FAL_MODEL_VIDEO_GROK || "xai/grok-imagine-video/v1.5/lite/text-to-video",
@@ -316,6 +319,20 @@ function getFalImageSize(ratio: string, imageSize?: string) {
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
+  if (body.mode === "video" && body.provider === "heygen-video") {
+    const seed = optionalSeed(body.seed);
+    return {
+      prompt,
+      duration: Number.parseInt(body.duration, 10),
+      resolution: body.resolution || "768p",
+      prompt_enhancement: "turbo",
+      enable_safety_checker: body.enableSafetyChecker === true,
+      ...(body.videoWorkflow === "image-to-video"
+        ? { image_url: firstInputImage(body) }
+        : { aspect_ratio: body.ratio }),
+      ...(seed !== undefined && seed <= 4294967295 ? { seed } : {})
+    };
+  }
   if (body.mode === "video" && body.provider === "flux-3-max-video") {
     const seconds = Number.parseInt(body.duration, 10);
     const seed = optionalSeed(body.seed);
@@ -866,6 +883,30 @@ export async function POST(request: Request) {
       if (body.videoWorkflow === "text-to-video" && hasInputImages(body)) return NextResponse.json({ error: "Select Image to Video to use images." }, { status: 400 });
     }
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
+    if (body.provider === "heygen-video") {
+      if (body.mode !== "video" || !["text-to-video", "image-to-video"].includes(body.videoWorkflow || "")) {
+        return NextResponse.json({ error: "HeyGen Video requires a text-to-video or image-to-video workflow." }, { status: 400 });
+      }
+      if (!/^(?:[5-9]|1[0-5])s$/.test(body.duration)) {
+        return NextResponse.json({ error: "HeyGen Video supports durations from 5 to 15 seconds." }, { status: 400 });
+      }
+      if (body.resolution && !["480p", "768p", "1080p", "2k"].includes(body.resolution)) {
+        return NextResponse.json({ error: "HeyGen Video supports 480p, 768p, 1080p, and 2k." }, { status: 400 });
+      }
+      if (body.videoWorkflow === "image-to-video" && imageUrls.length !== 1) {
+        return NextResponse.json({ error: "HeyGen Video image-to-video requires one reference image." }, { status: 400 });
+      }
+      if (body.videoWorkflow === "text-to-video" && !MINIMAX_H3_MAX_VIDEO_ASPECT_RATIOS.has(body.ratio)) {
+        return NextResponse.json({ error: "Unsupported HeyGen Video aspect ratio." }, { status: 400 });
+      }
+      if (body.enableSafetyChecker !== undefined && typeof body.enableSafetyChecker !== "boolean") {
+        return NextResponse.json({ error: "Invalid safety checker option." }, { status: 400 });
+      }
+      if (body.seed !== undefined && (!Number.isInteger(body.seed) || body.seed < 0 || body.seed > 4294967295)) {
+        return NextResponse.json({ error: "HeyGen Video seed must be an integer from 0 to 4294967295." }, { status: 400 });
+      }
+      body.resolution ||= "768p";
+    }
     if(body.mode === "image" && isGptImageProvider(body.provider)) {
       if(body.imageWorkflow === "image-to-image" && !imageUrls.length) return NextResponse.json({error:"Image to Image requires at least one reference image."},{status:400});
       if(imageUrls.length > 16) return NextResponse.json({error:"GPT Image 2.5 supports at most 16 reference images."},{status:400});
@@ -915,7 +956,7 @@ export async function POST(request: Request) {
     if (body.mode === "video" && body.provider === "flux-3-max-video" && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
       return NextResponse.json({error:"FLUX 3 Max image-to-video requires a start frame."},{status:400});
     }
-    if (["flux-3-max-video", "minimax-h3-max-video", "minimax-h3-max-turbo-video"].includes(body.provider) && body.dailyFree !== true && body.expectedCredits !== undefined && body.expectedCredits !== baseEstimatedCredits) {
+    if (["heygen-video", "flux-3-max-video", "minimax-h3-max-video", "minimax-h3-max-turbo-video"].includes(body.provider) && (body.provider === "heygen-video" || body.dailyFree !== true) && body.expectedCredits !== undefined && body.expectedCredits !== baseEstimatedCredits) {
       return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"video_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
     }
     if (body.mode === "image" && body.provider === "nano-banana-edit") {
