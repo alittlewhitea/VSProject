@@ -2,6 +2,13 @@
   "checkedAt": "2026-10-20",
   "models": [
     {
+      "provider": "heygen-video",
+      "lab": "HeyGen",
+      "slug": "heygen",
+      "sourcePage": "https://fal.ai/models/heygen/heygen-video/text-to-video",
+      "sourceLogo": "https://v3b.fal.media/files/b/0aa1b4e5/Umjj6T4sRIP2tac_7GDnH_Logo%3DHeygen%2C%20Style%3DLight.png"
+    },
+    {
       "provider": "flux-3-max-video",
       "lab": "Fal",
       "slug": "fal",

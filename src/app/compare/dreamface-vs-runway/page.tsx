@@ -4,7 +4,7 @@ import Link from "next/link";
 import { absoluteUrl, siteUrl } from "../../../lib/site-url";
 import { ComparisonPageShell } from "../comparison-page-shell";
 
-const verifiedDate = "2026-07-10";
+const verifiedDate = "2026-10-27";
 
 const faqs = [
   {
@@ -20,7 +20,7 @@ const faqs = [
   {
     question: "Does Runway still offer an Unlimited plan?",
     answer:
-      "Runway stopped offering Unlimited to new subscribers in June 2026 and introduced Max as its high-volume plan. Existing Unlimited subscriptions are scheduled to move to Max on September 1, 2026, subject to Runway's published migration terms."
+      "Runway lists Max as its high-volume individual plan. Existing Unlimited subscribers should check their account and Runway's current migration terms."
   },
   {
     question: "Do Runway monthly credits roll over?",
@@ -35,7 +35,7 @@ const faqs = [
 ];
 
 export const metadata: Metadata = {
-  title: "DreamFace vs Runway: AI Video Generator Comparison (2026)",
+  title: "DreamFace vs Runway: Pricing, Plans & AI Video (2026)",
   description:
     "Compare DreamFace and Runway pricing, credit packs, credits, model access, AI video, avatars, voice tools, editing, and best-fit workflows.",
   keywords: [
@@ -110,7 +110,7 @@ export default function DreamFaceVsRunwayPage() {
               DreamFace emphasizes low-commitment multi-model creation, talking avatars, voice, and marketing templates. Runway emphasizes AI video generation, editing, visual effects, and higher-volume production workspaces.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3 text-xs font-bold text-[#667084]">
-              <span className="rounded-full border border-black/10 bg-white px-4 py-2">Pricing verified July 10, 2026</span>
+              <span className="rounded-full border border-black/10 bg-white px-4 py-2">Comparison updated October 27, 2026</span>
               <span className="rounded-full border border-black/10 bg-white px-4 py-2">Prices in USD</span>
             </div>
           </header>
@@ -120,6 +120,23 @@ export default function DreamFaceVsRunwayPage() {
             <p className="mt-3 max-w-5xl text-xl font-black leading-8 md:text-2xl">
               DreamFace is the lower-commitment choice for creators who need multiple model providers, avatars, voice, images, video, and reusable marketing formats. Runway is the stronger fit for teams centered on video editing, VFX, Runway's native generation workflow, and large monthly credit allocations.
             </p>
+          </section>
+
+          <section className="comparison-section py-12 md:py-16" aria-labelledby="pricing-quick-answer">
+            <h2 id="pricing-quick-answer" className="text-3xl font-black tracking-normal md:text-4xl">Runway pricing and plans at a glance</h2>
+            <div className="mt-7 grid gap-5 md:grid-cols-2">
+              <div className="comparison-card rounded-lg border border-black/10 bg-white p-6">
+                <h3 className="text-xl font-black">Runway pricing</h3>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">Runway Standard is $15/month, or $12/month equivalent billed annually ($144/year), with 625 credits per month. Pro and Max start at $35 and $95 per month respectively. Plan credits and purchased credits have different expiration rules.</p>
+                <a href="https://runwayml.com/pricing" target="_blank" rel="noopener noreferrer nofollow" className="mt-3 inline-block text-sm font-black text-[#087ea4] underline">Check official pricing</a>
+              </div>
+              <div className="comparison-card comparison-card-primary rounded-lg border border-[#9bdffc] bg-[#f1fbff] p-6">
+                <h3 className="text-xl font-black">DreamFace one-time credit packs</h3>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">{DREAMFACE_CREDIT_SUMMARY}</p>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">Each platform uses its own credit system; credits and generation costs are not directly interchangeable.</p>
+                <Link href="/price" className="mt-3 inline-block text-sm font-black text-[#087ea4] underline">See DreamFace pricing</Link>
+              </div>
+            </div>
           </section>
 
           <section className="comparison-section py-12 md:py-16">
@@ -187,7 +204,7 @@ export default function DreamFaceVsRunwayPage() {
               </table>
             </div>
             <p className="mt-4 text-xs font-medium leading-6 text-[#667084]">
-              Runway Free includes 125 one-time credits. Standard and Pro plan credits reset on the billing date. Runway introduced Max in June 2026 and is phasing out Unlimited; existing Unlimited subscribers are scheduled to transition under Runway's published migration process.
+              Runway Free includes 125 one-time credits. Standard and Pro plan credits reset on the billing date. Runway lists Max as its high-volume individual plan; existing Unlimited subscribers should check current account terms.
             </p>
           </section>
 
@@ -235,7 +252,7 @@ export default function DreamFaceVsRunwayPage() {
 
           <section className="comparison-sources py-10 text-xs font-medium leading-6 text-[#667084]">
             <h2 className="font-black uppercase tracking-[0.12em] text-[#3f4856]">Sources and methodology</h2>
-            <p className="mt-3 max-w-5xl">DreamFace prices and credits are sourced from the live product configuration. Runway prices, credits, rollover rules, and the Unlimited-to-Max transition were checked against Runway's official pricing page and help center on July 10, 2026. Prices, taxes, credits, models, promotions, and availability can change.</p>
+            <p className="mt-3 max-w-5xl">DreamFace credit-pack prices are sourced from the product configuration. This page was updated October 27, 2026. Competitor plans, prices, availability, taxes, and features can change; confirm current terms using the official sources below. Earlier feature comparisons were checked July 10, 2026.</p>
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
               <Link href="/price" className="font-bold underline">DreamFace pricing</Link>
               <a href="https://runwayml.com/pricing" target="_blank" rel="noopener noreferrer nofollow" className="font-bold underline">Runway pricing</a>

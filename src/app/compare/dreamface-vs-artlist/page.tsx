@@ -4,7 +4,7 @@ import Link from "next/link";
 import { absoluteUrl, siteUrl } from "../../../lib/site-url";
 import { ComparisonPageShell } from "../comparison-page-shell";
 
-const verifiedDate = "2026-07-10";
+const verifiedDate = "2026-10-27";
 
 const faqs = [
   {
@@ -35,7 +35,7 @@ const faqs = [
 ];
 
 export const metadata: Metadata = {
-  title: "DreamFace vs Artlist: AI Creative Suite Comparison (2026)",
+  title: "DreamFace vs Artlist: Pricing, Plans & AI Video (2026)",
   description:
     "Compare DreamFace and Artlist pricing, credit packs, AI credits, video, image, voice, music, avatars, stock assets, licensing, and best-fit workflows.",
   keywords: [
@@ -130,7 +130,7 @@ export default function DreamFaceVsArtlistPage() {
             DreamFace is a focused AI creation workspace for video, images, talking avatars, voice, and marketing templates. Artlist combines AI generation and production tools with a large licensed catalog of music, sound effects, footage, templates, plugins, and LUTs.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3 text-xs font-bold text-[#667084]">
-            <span className="rounded-full border border-black/10 bg-white px-4 py-2">Pricing verified July 10, 2026</span>
+            <span className="rounded-full border border-black/10 bg-white px-4 py-2">Comparison updated October 27, 2026</span>
             <span className="rounded-full border border-black/10 bg-white px-4 py-2">Prices in USD, before VAT</span>
           </div>
         </header>
@@ -141,6 +141,23 @@ export default function DreamFaceVsArtlistPage() {
             DreamFace is the lower-commitment choice for creators who primarily need generation, avatars, voice, images, video, and campaign templates. Artlist is the broader production subscription for creators who also need licensed stock media, AI music, advanced project workflows, and team-scale allowances.
           </p>
         </section>
+
+        <section className="comparison-section py-12 md:py-16" aria-labelledby="pricing-quick-answer">
+            <h2 id="pricing-quick-answer" className="text-3xl font-black tracking-normal md:text-4xl">Artlist pricing and plans at a glance</h2>
+            <div className="mt-7 grid gap-5 md:grid-cols-2">
+              <div className="comparison-card rounded-lg border border-black/10 bg-white p-6">
+                <h3 className="text-xl font-black">Artlist pricing</h3>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">Artlist offers AI plans with monthly or annual billing. Subscription credits reset monthly and do not roll over. Plan names, prices, credit allowances, and selected-model unlimited terms can vary; confirm the current offer at checkout.</p>
+                <a href="https://artlist.io/pricing" target="_blank" rel="noopener noreferrer nofollow" className="mt-3 inline-block text-sm font-black text-[#087ea4] underline">Check official pricing</a>
+              </div>
+              <div className="comparison-card comparison-card-primary rounded-lg border border-[#9bdffc] bg-[#f1fbff] p-6">
+                <h3 className="text-xl font-black">DreamFace one-time credit packs</h3>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">{DREAMFACE_CREDIT_SUMMARY}</p>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">Each platform uses its own credit system; credits and generation costs are not directly interchangeable.</p>
+                <Link href="/price" className="mt-3 inline-block text-sm font-black text-[#087ea4] underline">See DreamFace pricing</Link>
+              </div>
+            </div>
+          </section>
 
         <section className="comparison-section py-12 md:py-16">
           <h2 className="text-3xl font-black tracking-normal md:text-4xl">Product overview</h2>
@@ -174,26 +191,14 @@ export default function DreamFaceVsArtlistPage() {
               <p className="text-xs font-black uppercase tracking-[0.14em] text-[#087ea4]">Purchase comparison</p>
               <h2 className="mt-3 text-3xl font-black tracking-normal md:text-4xl">Pricing and billing comparison</h2>
             </div>
-            <p className="max-w-xl text-sm font-medium leading-6 text-[#5b6677]">Artlist offers configurable AI credit tiers. The rows below cover representative individual options rather than every high-volume or enterprise allowance.</p>
+            <p className="max-w-xl text-sm font-medium leading-6 text-[#5b6677]">Competitor pricing and available plans can change by region and account. Confirm current terms before purchasing.</p>
           </div>
 
           <h3 className="mt-9 text-xl font-black">DreamFace one-time credit packs</h3>
 <DreamfaceCreditPacks />
 
-          <h3 className="mt-9 text-xl font-black">Representative Artlist individual plans</h3>
-          <div className="comparison-table-frame mt-4 overflow-x-auto rounded-lg border border-black/10 bg-white">
-            <table className={tableClass}>
-              <thead><tr><th className={thClass}>Plan / allowance</th><th className={thClass}>Monthly billing</th><th className={thClass}>Annual billing</th><th className={thClass}>Included AI credits / month</th></tr></thead>
-              <tbody>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>AI Starter 7,500</td><td className={tdClass}>$15.99 / month</td><td className={tdClass}>$119.88 / year ($9.99/mo equivalent)</td><td className={tdClass}>7,500</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>AI Starter 16,500</td><td className={tdClass}>$19.99 / month</td><td className={tdClass}>$143.88 / year ($11.99/mo equivalent)</td><td className={tdClass}>16,500</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>AI Starter 40,000</td><td className={tdClass}>$39.99 / month</td><td className={tdClass}>$287.88 / year ($23.99/mo equivalent)</td><td className={tdClass}>40,000</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>AI Professional 180,000</td><td className={tdClass}>$149.99 / month</td><td className={tdClass}>$1,079.88 / year ($89.99/mo equivalent)</td><td className={tdClass}>180,000; higher-tier production features</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Artlist Max</td><td className={tdClass}>No monthly option listed</td><td className={tdClass}>$479.88 / year ($39.99/mo equivalent)</td><td className={tdClass}>7,500 plus the full stock catalog</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-4 text-xs font-medium leading-6 text-[#667084]">Artlist credits are shared across eligible AI products and reset monthly without rollover. Eligible annual tiers include unlimited generation on selected models, subject to reasonable-use thresholds. Artlist plan names and available credit tiers can vary across its live pricing interface and account upgrade flow, so the credit allowance is the clearest identifier.</p>
+          <h3 className="mt-9 text-xl font-black">Artlist current plans</h3>
+            <p className="mt-4 text-sm font-medium leading-7 text-[#526071]">Artlist offers AI plans with monthly or annual billing. Subscription credits reset monthly and do not roll over. Plan names, prices, credit allowances, and selected-model unlimited terms can vary; confirm the current offer at checkout. <a href="https://artlist.io/pricing" target="_blank" rel="noopener noreferrer nofollow" className="font-black underline">Check official pricing and terms</a>.</p>
         </section>
 
         <section className="comparison-section py-12 md:py-16">
@@ -236,7 +241,7 @@ export default function DreamFaceVsArtlistPage() {
 
         <section className="comparison-sources py-10 text-xs font-medium leading-6 text-[#667084]">
           <h2 className="font-black uppercase tracking-[0.12em] text-[#3f4856]">Sources and methodology</h2>
-          <p className="mt-3 max-w-5xl">DreamFace prices and credits are sourced from the live product configuration. Artlist prices, credit tiers, included tools, licensing, billing options, and rollover rules were checked against Artlist's official pricing pages, help center, and June 2026 pricing guide on July 10, 2026. Prices exclude VAT and can change.</p>
+          <p className="mt-3 max-w-5xl">DreamFace credit-pack prices are sourced from the product configuration. This page was updated October 27, 2026. Competitor plans, prices, availability, taxes, and features can change; confirm current terms using the official sources below. Earlier feature comparisons were checked July 10, 2026.</p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             <Link href="/price" className="font-bold underline">DreamFace pricing</Link>
             <a href="https://artlist.io/page/pricing/max" target="_blank" rel="noopener noreferrer nofollow" className="font-bold underline">Artlist pricing</a>

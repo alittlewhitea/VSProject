@@ -57,6 +57,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   const staticUrls: MetadataRoute.Sitemap = [
+    ...["/image/text-to-image", "/video/image-to-video"].flatMap((path) => ["es", "pt-BR"].map((locale) => ({
+      url: absoluteUrl(baseUrl, "/" + locale + path),
+      lastModified: "2026-10-27",
+      changeFrequency: "monthly" as const,
+      priority: 0.85
+    }))),
+    {
+      url: absoluteUrl(baseUrl, "/image/text-to-image"),
+      lastModified: "2026-10-27",
+      changeFrequency: "monthly",
+      priority: 0.85
+    },
+    {
+      url: absoluteUrl(baseUrl, "/video/image-to-video"),
+      lastModified: "2026-10-27",
+      changeFrequency: "monthly",
+      priority: 0.85
+    },
     {
       url: absoluteUrl(baseUrl, "/studio"),
       changeFrequency: "weekly",

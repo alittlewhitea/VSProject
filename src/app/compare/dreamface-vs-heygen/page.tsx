@@ -4,9 +4,14 @@ import Link from "next/link";
 import { absoluteUrl, siteUrl } from "../../../lib/site-url";
 import { ComparisonPageShell } from "../comparison-page-shell";
 
-const verifiedDate = "2026-07-10";
+const verifiedDate = "2026-10-27";
 
 const faqs = [
+  {
+    question: "How much does HeyGen cost on an annual plan?",
+    answer:
+      "HeyGen lists Creator at $29 per month, or $24 per month equivalent when billed annually ($288 per year). Pro starts at $49 per month and Business at $149 per month with monthly billing; check HeyGen's pricing page for current annual rates, taxes, and regional availability."
+  },
   {
     question: "Is DreamFace a good HeyGen alternative?",
     answer:
@@ -35,9 +40,9 @@ const faqs = [
 ];
 
 export const metadata: Metadata = {
-  title: "DreamFace vs HeyGen: AI Avatar Video Comparison (2026)",
+  title: "DreamFace vs HeyGen: Pricing, Annual Plans & AI Avatars (2026)",
   description:
-    "Compare DreamFace and HeyGen pricing, credit packs, credits, digital twins, stock avatars, voice cloning, video translation, lip sync, templates, and AI video workflows.",
+    "Compare HeyGen monthly and annual pricing with DreamFace credit packs, plus AI avatars, video generation, voice and translation workflows.",
   keywords: [
     "DreamFace vs HeyGen",
     "HeyGen alternative",
@@ -98,10 +103,10 @@ export default function DreamFaceVsHeyGenPage() {
   const featureRows = [
     ["Primary focus", "Multimodal creation, talking avatars, and marketing assets", "Avatar-led business video, digital twins, and localization"],
     ["Talking avatars", "Dedicated talking-avatar workflow", "500+ stock digital twins on Free and 700+ stock avatars on Creator"],
-    ["Custom avatars", "Avatar creation through the current DreamFace workflow", "One custom digital twin on Free; five slots on Creator and Pro"],
+    ["Custom avatars", "Avatar creation through the current DreamFace workflow", "Custom video avatars; availability and limits depend on plan"],
     ["Voice and languages", "Dedicated multilingual voice and TTS generation", "Voice cloning and 175+ languages and dialects on Creator"],
     ["Video translation", "Model- and workflow-dependent localization", "Audio dubbing, lip-sync translation, precision modes, and script editing on Pro"],
-    ["General AI video", "Text-to-video and image-to-video through supported Studio models", "Video Agent plus generated image, video, B-roll, and motion assets"],
+    ["General AI video", "Text-to-video and image-to-video through supported Studio models, including HeyGen Video via fal.ai", "Video Agent plus generated image, video, B-roll, and motion assets"],
     ["Image and marketing tools", "Image generation, editing, cleanup, and curated prompts and creative examples", "Photo Looks, Brand Kit, templates, and assets for avatar-led video"],
     ["Output and teams", "Individual creation and project workflows", "1080p Creator, 4K Pro, and Business collaboration, SSO, SCORM, LMS, and interactive video"]
   ];
@@ -130,7 +135,7 @@ export default function DreamFaceVsHeyGenPage() {
             DreamFace combines talking avatars with image, video, voice, and marketing creation. HeyGen specializes in digital twins, stock avatars, multilingual spokesperson videos, lip-sync translation, and business learning workflows.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3 text-xs font-bold text-[#667084]">
-            <span className="rounded-full border border-black/10 bg-white px-4 py-2">Pricing verified July 10, 2026</span>
+            <span className="rounded-full border border-black/10 bg-white px-4 py-2">HeyGen pricing checked October 27, 2026</span>
             <span className="rounded-full border border-black/10 bg-white px-4 py-2">Prices in USD</span>
           </div>
         </header>
@@ -140,6 +145,23 @@ export default function DreamFaceVsHeyGenPage() {
           <p className="mt-3 max-w-5xl text-xl font-black leading-8 md:text-2xl">
             DreamFace is the lower-commitment, broader creative option for avatars, voice, images, video models, and campaign templates. HeyGen is the more specialized platform for polished digital-twin presentations, multilingual localization, learning content, and team-controlled avatar production.
           </p>
+        </section>
+
+        <section className="comparison-section py-12 md:py-16" aria-labelledby="pricing-quick-answer">
+          <h2 id="pricing-quick-answer" className="text-3xl font-black tracking-normal md:text-4xl">HeyGen pricing and annual plans at a glance</h2>
+          <div className="mt-7 grid gap-5 md:grid-cols-2">
+            <div className="comparison-card rounded-lg border border-black/10 bg-white p-6">
+              <h3 className="text-xl font-black">HeyGen: subscription plans</h3>
+              <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">Creator costs $29 per month, or $24 per month equivalent billed annually ($288 per year), and includes 600 credits per month. Pro starts at $49 per month and Business at $149 per month with monthly billing. Annual rates for other plans and any taxes should be confirmed at checkout.</p>
+              <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">Annual subscribers receive credits monthly; unused credits accumulate until renewal. Monthly subscribers can roll unused credits over for one additional billing cycle.</p>
+            </div>
+            <div className="comparison-card comparison-card-primary rounded-lg border border-[#9bdffc] bg-[#f1fbff] p-6">
+              <h3 className="text-xl font-black">DreamFace: one-time credit packs</h3>
+              <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">{DREAMFACE_CREDIT_SUMMARY}</p>
+              <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">The two platforms use separate credit systems, so their credit balances and per-generation costs are not directly interchangeable.</p>
+              <Link href="/price" className="mt-3 inline-block text-sm font-black text-[#087ea4] underline">See DreamFace pricing</Link>
+            </div>
+          </div>
         </section>
 
         <section className="comparison-section py-12 md:py-16">
@@ -235,11 +257,12 @@ export default function DreamFaceVsHeyGenPage() {
 
         <section className="comparison-sources py-10 text-xs font-medium leading-6 text-[#667084]">
           <h2 className="font-black uppercase tracking-[0.12em] text-[#3f4856]">Sources and methodology</h2>
-          <p className="mt-3 max-w-5xl">DreamFace prices and credits are sourced from the live product configuration. HeyGen prices, credit tiers, rollover rules, avatar limits, language support, translation rates, and business features were checked against HeyGen's official pricing page, FAQ, and current credit-plan documentation on July 10, 2026. Prices and features can change.</p>
+          <p className="mt-3 max-w-5xl">DreamFace prices and credits are sourced from the product configuration. HeyGen pricing, included credits, and rollover rules were checked against its official pricing page and credit documentation on October 27, 2026. Other HeyGen feature comparisons were checked on July 10, 2026. Prices, features, regional availability, and taxes can change; confirm details with each provider.</p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             <Link href="/price" className="font-bold underline">DreamFace pricing</Link>
             <a href="https://www.heygen.com/pricing" target="_blank" rel="noopener noreferrer nofollow" className="font-bold underline">HeyGen pricing</a>
             <a href="https://help.heygen.com/en/articles/15125761-heygen-credit-based-pricing-plans-explained" target="_blank" rel="noopener noreferrer nofollow" className="font-bold underline">HeyGen credit plans</a>
+            <a href="https://help.heygen.com/en/articles/15126059-how-to-use-credits-on-heygen" target="_blank" rel="noopener noreferrer nofollow" className="font-bold underline">HeyGen credit usage and rollover</a>
             <a href="https://www.heygen.com/faq" target="_blank" rel="noopener noreferrer nofollow" className="font-bold underline">HeyGen FAQ</a>
           </div>
         </section>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { absoluteUrl, siteUrl } from "../../../lib/site-url";
 import { ComparisonPageShell } from "../comparison-page-shell";
 
-const verifiedDate = "2026-07-10";
+const verifiedDate = "2026-10-27";
 
 const faqs = [
   {
@@ -20,7 +20,7 @@ const faqs = [
   {
     question: "Does Pika offer a free plan?",
     answer:
-      "Yes. Pika's current pricing page lists a Basic plan with 80 monthly video credits, Pika 2.5 access at 480p, selected Pika tools, watermark-free downloads, and commercial use. Features and allowances can change."
+      "Pika offers free access, but its published pricing page and FAQ may show different allowances. Confirm the current free-plan limits and available features in your account."
   },
   {
     question: "Do unused Pika credits roll over?",
@@ -35,7 +35,7 @@ const faqs = [
 ];
 
 export const metadata: Metadata = {
-  title: "DreamFace vs Pika: AI Video Generator Comparison (2026)",
+  title: "DreamFace vs Pika: Pricing, Plans & AI Video (2026)",
   description:
     "Compare DreamFace and Pika pricing, credit packs, credits, AI video, effects, video editing, avatars, voice tools, templates, and best-fit workflows.",
   keywords: [
@@ -108,7 +108,7 @@ export default function DreamFaceVsPikaPage() {
 
   const useCaseRows = [
     ["Low-commitment paid testing", "DreamFace", "One-time credit packs let creators top up when needed without automatic renewal."],
-    ["Trying AI video for free", "Pika", "Pika Basic currently includes 80 monthly video credits and limited Pika 2.5 access."],
+    ["Trying AI video for free", "Pika", "Pika offers free access; check its current allowance and model availability before creating."],
     ["Social video effects and transformations", "Pika", "Pikaffects, Pikadditions, Pikaswaps, and Pikatwists are direct, branded transformation workflows."],
     ["Talking explainers and campaign assets", "DreamFace", "Talking avatars, voice, image tools, video, and marketing templates are available in one workspace."],
     ["First-to-last-frame animation", "Pika", "Pikaframes provides an explicit frame-transition workflow with durations up to 25 seconds."],
@@ -130,7 +130,7 @@ export default function DreamFaceVsPikaPage() {
             DreamFace combines video generation with talking avatars, voice, image tools, and marketing templates. Pika focuses on social-first video generation and transformation through Pika 2.5, Pikaframes, Pikascenes, Pikadditions, Pikaswaps, Pikatwists, and Pikaffects.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3 text-xs font-bold text-[#667084]">
-            <span className="rounded-full border border-black/10 bg-white px-4 py-2">Pricing verified July 10, 2026</span>
+            <span className="rounded-full border border-black/10 bg-white px-4 py-2">Comparison updated October 27, 2026</span>
             <span className="rounded-full border border-black/10 bg-white px-4 py-2">Prices in USD</span>
           </div>
         </header>
@@ -141,6 +141,23 @@ export default function DreamFaceVsPikaPage() {
             DreamFace is the more complete choice for creators producing mixed marketing content across avatars, voice, images, and video. Pika is the stronger specialist choice for fast, playful video effects, scene transformations, and Pika-native frame animation.
           </p>
         </section>
+
+        <section className="comparison-section py-12 md:py-16" aria-labelledby="pricing-quick-answer">
+            <h2 id="pricing-quick-answer" className="text-3xl font-black tracking-normal md:text-4xl">Pika pricing and plans at a glance</h2>
+            <div className="mt-7 grid gap-5 md:grid-cols-2">
+              <div className="comparison-card rounded-lg border border-black/10 bg-white p-6">
+                <h3 className="text-xl font-black">Pika pricing</h3>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">Pika offers plans and credit-based video generation. Pricing and free-plan allowances can vary across the current pricing page and FAQ, so confirm the current amount, annual billing, and generation limits directly with Pika.</p>
+                <a href="https://pika.art/pricing" target="_blank" rel="noopener noreferrer nofollow" className="mt-3 inline-block text-sm font-black text-[#087ea4] underline">Check official pricing</a>
+              </div>
+              <div className="comparison-card comparison-card-primary rounded-lg border border-[#9bdffc] bg-[#f1fbff] p-6">
+                <h3 className="text-xl font-black">DreamFace one-time credit packs</h3>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">{DREAMFACE_CREDIT_SUMMARY}</p>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">Each platform uses its own credit system; credits and generation costs are not directly interchangeable.</p>
+                <Link href="/price" className="mt-3 inline-block text-sm font-black text-[#087ea4] underline">See DreamFace pricing</Link>
+              </div>
+            </div>
+          </section>
 
         <section className="comparison-section py-12 md:py-16">
           <h2 className="text-3xl font-black tracking-normal md:text-4xl">Product overview</h2>
@@ -174,25 +191,14 @@ export default function DreamFaceVsPikaPage() {
               <p className="text-xs font-black uppercase tracking-[0.14em] text-[#087ea4]">Purchase comparison</p>
               <h2 className="mt-3 text-3xl font-black tracking-normal md:text-4xl">Pricing and billing comparison</h2>
             </div>
-            <p className="max-w-xl text-sm font-medium leading-6 text-[#5b6677]">Pika advertises 20 percent off yearly subscriptions. Annual totals below are calculated from the displayed monthly equivalents and are billed upfront.</p>
+            <p className="max-w-xl text-sm font-medium leading-6 text-[#5b6677]">Competitor pricing and available plans can change by region and account. Confirm current terms before purchasing.</p>
           </div>
 
           <h3 className="mt-9 text-xl font-black">DreamFace one-time credit packs</h3>
 <DreamfaceCreditPacks />
 
-          <h3 className="mt-9 text-xl font-black">Pika plans</h3>
-          <div className="comparison-table-frame mt-4 overflow-x-auto rounded-lg border border-black/10 bg-white">
-            <table className={tableClass}>
-              <thead><tr><th className={thClass}>Plan</th><th className={thClass}>Monthly billing</th><th className={thClass}>Annual billing</th><th className={thClass}>Monthly video credits</th></tr></thead>
-              <tbody>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Basic</td><td className={tdClass}>Free</td><td className={tdClass}>Free</td><td className={tdClass}>80</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Standard</td><td className={tdClass}>$10 / month</td><td className={tdClass}>$96 / year ($8/mo equivalent)</td><td className={tdClass}>700</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Pro</td><td className={tdClass}>$35 / month</td><td className={tdClass}>$336 / year ($28/mo equivalent)</td><td className={tdClass}>2,300</td></tr>
-                <tr><td className={`${tdClass} font-black text-[#20242b]`}>Fancy</td><td className={tdClass}>$95 / month</td><td className={tdClass}>$912 / year ($76/mo equivalent)</td><td className={tdClass}>6,000</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-4 text-xs font-medium leading-6 text-[#667084]">Pika paid plans include all-resolution Pika 2.5 access, faster generation tiers, commercial use, and the ability to purchase rollover credits. Regular monthly subscription credits do not roll over. VAT may apply based on country.</p>
+          <h3 className="mt-9 text-xl font-black">Pika current plans</h3>
+            <p className="mt-4 text-sm font-medium leading-7 text-[#526071]">Pika offers plans and credit-based video generation. Pricing and free-plan allowances can vary across the current pricing page and FAQ, so confirm the current amount, annual billing, and generation limits directly with Pika. <a href="https://pika.art/pricing" target="_blank" rel="noopener noreferrer nofollow" className="font-black underline">Check official pricing and terms</a>.</p>
         </section>
 
         <section className="comparison-section py-12 md:py-16">
@@ -235,7 +241,7 @@ export default function DreamFaceVsPikaPage() {
 
         <section className="comparison-sources py-10 text-xs font-medium leading-6 text-[#667084]">
           <h2 className="font-black uppercase tracking-[0.12em] text-[#3f4856]">Sources and methodology</h2>
-          <p className="mt-3 max-w-5xl">DreamFace prices and credits are sourced from the live product configuration. Pika prices, plan allowances, generation costs, feature access, and rollover rules were checked against Pika's official pricing page and FAQ on July 10, 2026. Prices, taxes, credits, models, promotions, and availability can change.</p>
+          <p className="mt-3 max-w-5xl">DreamFace credit-pack prices are sourced from the product configuration. This page was updated October 27, 2026. Competitor plans, prices, availability, taxes, and features can change; confirm current terms using the official sources below. Earlier feature comparisons were checked July 10, 2026.</p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             <Link href="/price" className="font-bold underline">DreamFace pricing</Link>
             <a href="https://pika.art/pricing?interval=month" target="_blank" rel="noopener noreferrer nofollow" className="font-bold underline">Pika pricing</a>

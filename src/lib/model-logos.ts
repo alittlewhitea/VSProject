@@ -1,6 +1,7 @@
 // fal modelLab associations and original asset URLs: public/model-logos/sources.json.
 // Keep these small assets local so the model picker never waits for fal's image CDN.
 const MODEL_LOGO_LABS:Record<string,string> = {
+  "heygen-video":"heygen",
   "flux-3-max-video":"fal",
   "minimax-h3-max-video":"fal",
   "minimax-h3-max-turbo-video":"fal",

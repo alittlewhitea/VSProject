@@ -4,7 +4,7 @@ import Link from "next/link";
 import { absoluteUrl, siteUrl } from "../../../lib/site-url";
 import { ComparisonPageShell } from "../comparison-page-shell";
 
-const verifiedDate = "2026-07-10";
+const verifiedDate = "2026-10-27";
 
 const faqs = [
   {
@@ -23,9 +23,9 @@ const faqs = [
       DREAMFACE_CREDIT_SUMMARY
   },
   {
-    question: "How do DreamFace and Higgsfield annual plans compare?",
+    question: "How does Higgsfield annual billing compare with DreamFace credit packs?",
     answer:
-      DREAMFACE_CREDIT_SUMMARY
+      "Higgsfield offers annual subscriptions; confirm current annual rates and terms at checkout. DreamFace offers one-time credit packs without automatic renewal."
   },
   {
     question: "Does a DreamFace credit pack provide unlimited generation?",
@@ -35,7 +35,7 @@ const faqs = [
 ];
 
 export const metadata: Metadata = {
-  title: "DreamFace vs Higgsfield: AI Video Generator Comparison (2026)",
+  title: "DreamFace vs Higgsfield: Pricing, Plans & AI Video (2026)",
   description:
     "Compare DreamFace and Higgsfield pricing, annual plans, model access, AI video, avatars, voice tools, cinematic controls, and best-fit use cases.",
   keywords: [
@@ -110,7 +110,7 @@ export default function DreamFaceVsHiggsfieldPage() {
               DreamFace emphasizes accessible multi-model creation across video, images, talking avatars, and voice. Higgsfield emphasizes cinematic direction, persistent character workflows, and higher-volume production plans.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3 text-xs font-bold text-[#667084]">
-              <span className="rounded-full border border-black/10 bg-white px-4 py-2">Pricing verified July 10, 2026</span>
+              <span className="rounded-full border border-black/10 bg-white px-4 py-2">Comparison updated October 27, 2026</span>
               <span className="rounded-full border border-black/10 bg-white px-4 py-2">Prices in USD</span>
             </div>
           </header>
@@ -120,6 +120,23 @@ export default function DreamFaceVsHiggsfieldPage() {
             <p className="mt-3 max-w-5xl text-xl font-black leading-8 md:text-2xl">
               DreamFace is the lower-commitment option for creators who want broad model access and integrated avatars, voice, image, and video tools. Higgsfield is best suited to creators who prioritize its Cinema Studio controls, Soul ID workflow, and larger production subscriptions.
             </p>
+          </section>
+
+          <section className="comparison-section py-12 md:py-16" aria-labelledby="pricing-quick-answer">
+            <h2 id="pricing-quick-answer" className="text-3xl font-black tracking-normal md:text-4xl">Higgsfield pricing and plans at a glance</h2>
+            <div className="mt-7 grid gap-5 md:grid-cols-2">
+              <div className="comparison-card rounded-lg border border-black/10 bg-white p-6">
+                <h3 className="text-xl font-black">Higgsfield pricing</h3>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">Higgsfield lists Starter at $15/month for 200 credits, Plus at $49/month for 1,000 credits, and Ultra at $129/month for 3,000 credits in its October 2026 pricing guide. Annual plans and offers vary; check the current pricing page before purchasing.</p>
+                <a href="https://higgsfield.ai/blog/higgsfield-pricing-explained" target="_blank" rel="noopener noreferrer nofollow" className="mt-3 inline-block text-sm font-black text-[#087ea4] underline">Check official pricing</a>
+              </div>
+              <div className="comparison-card comparison-card-primary rounded-lg border border-[#9bdffc] bg-[#f1fbff] p-6">
+                <h3 className="text-xl font-black">DreamFace one-time credit packs</h3>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">{DREAMFACE_CREDIT_SUMMARY}</p>
+                <p className="mt-3 text-sm font-medium leading-7 text-[#526071]">Each platform uses its own credit system; credits and generation costs are not directly interchangeable.</p>
+                <Link href="/price" className="mt-3 inline-block text-sm font-black text-[#087ea4] underline">See DreamFace pricing</Link>
+              </div>
+            </div>
           </section>
 
           <section className="comparison-section py-12 md:py-16">
@@ -180,14 +197,14 @@ export default function DreamFaceVsHiggsfieldPage() {
               <table className={tableClass}>
                 <thead><tr><th className={thClass}>Plan</th><th className={thClass}>Monthly billing</th><th className={thClass}>Annual billing</th><th className={thClass}>Published credit allowance</th></tr></thead>
                 <tbody>
-                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Starter</td><td className={tdClass}>$15 / month</td><td className={tdClass}>$180 / year ($15/mo equivalent)</td><td className={tdClass}>200 credits per month</td></tr>
-                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Plus</td><td className={tdClass}>$49 / month</td><td className={tdClass}>$468 / year ($39/mo equivalent)</td><td className={tdClass}>1,000 credits per month</td></tr>
-                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Ultra</td><td className={tdClass}>$129 / month</td><td className={tdClass}>$1,188 / year ($99/mo equivalent)</td><td className={tdClass}>3,000 credits per month for the base Ultra configuration</td></tr>
+                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Starter</td><td className={tdClass}>$15 / month</td><td className={tdClass}>Check current annual checkout</td><td className={tdClass}>200 credits per month</td></tr>
+                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Plus</td><td className={tdClass}>$49 / month</td><td className={tdClass}>Check current annual checkout</td><td className={tdClass}>1,000 credits per month</td></tr>
+                  <tr><td className={`${tdClass} font-black text-[#20242b]`}>Ultra</td><td className={tdClass}>$129 / month</td><td className={tdClass}>Check current annual checkout</td><td className={tdClass}>3,000 credits per month for the base Ultra configuration</td></tr>
                 </tbody>
               </table>
             </div>
             <p className="mt-4 text-xs font-medium leading-6 text-[#667084]">
-              Higgsfield also exposes higher-credit Ultra configurations. These prices reflect the anonymous default USD plan set; regional, account, or cohort offers can differ. Promotional unlimited access can be model-specific, time-limited, resolution-limited, and queue-dependent, so it is not treated as a permanent platform-wide entitlement in this comparison.
+              Monthly prices are from Higgsfield?s October 2026 official pricing guide; regional, account, or cohort offers can differ. Promotional unlimited access can be model-specific, time-limited, resolution-limited, and queue-dependent, so it is not treated as a permanent platform-wide entitlement in this comparison.
             </p>
           </section>
 
@@ -235,7 +252,7 @@ export default function DreamFaceVsHiggsfieldPage() {
 
           <section className="comparison-sources py-10 text-xs font-medium leading-6 text-[#667084]">
             <h2 className="font-black uppercase tracking-[0.12em] text-[#3f4856]">Sources and methodology</h2>
-            <p className="mt-3 max-w-5xl">DreamFace prices and credits are sourced from the live product configuration. Higgsfield prices were checked against its public pricing page and the anonymous pricing data loaded by that page on July 10, 2026. Features are limited to capabilities documented on official product pages. Prices, credits, model access, promotions, and availability can change.</p>
+            <p className="mt-3 max-w-5xl">DreamFace credit-pack prices are sourced from the product configuration. This page was updated October 27, 2026. Competitor plans, prices, availability, taxes, and features can change; confirm current terms using the official sources below. Earlier feature comparisons were checked July 10, 2026.</p>
             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
               <Link href="/price" className="font-bold underline">DreamFace pricing</Link>
               <a href="https://higgsfield.ai/pricing" target="_blank" rel="noopener noreferrer nofollow" className="font-bold underline">Higgsfield pricing</a>
