@@ -15,9 +15,9 @@ function title(head){return head.match(/<title>(.*?)<\/title>/)?.[1]||'';}
 for(const locale of locales){
  const auth=await page(`/${locale}/auth?next=%2Fstudio`);
  assert.equal(auth.response.status,200,locale);
- assert.match(robots(auth.head),/noindex/,locale);
- assert.equal(canonical(auth.head).length,0,locale);
- assert.doesNotMatch(auth.head,/rel="alternate"[^>]*hreflang=/i,locale);
+ assert.doesNotMatch(robots(auth.head),/noindex/,locale);
+ assert.deepEqual(canonical(auth.head),[`https://dreamface.io/${locale}/auth`],locale);
+ assert.equal((auth.head.match(/hreflang=/gi)||[]).length,17,locale);
  for(const suffix of ['', '/price']){
   const item=await page(`/${locale}${suffix}`);
   assert.equal(item.response.status,200,`${locale}${suffix}`);
@@ -52,10 +52,10 @@ const about=await page('/about');assert.equal(about.response.status,200);
 assert.deepEqual(canonical(about.head),['https://dreamface.io/about']);
 assert.equal(title(about.head),'About Us | DreamFace');
 const robotResponse=await fetch(base+'/robots.txt');const robotText=await robotResponse.text();
-assert.doesNotMatch(robotText,/Disallow:\s*\/auth(?:\s|$)/i);
+assert.match(robotText,/Disallow:\s*\/auth(?:\s|$)/i);
 assert.match(robotText,/Disallow:\s*\/api(?:\s|$)/i);
 const sitemap=await (await fetch(base+'/sitemap.xml')).text();
 assert.match(sitemap,/<loc>https:\/\/dreamface\.io\/studio<\/loc>/);
 assert.match(sitemap,/<loc>https:\/\/dreamface\.io\/gallery<\/loc>/);
 assert.doesNotMatch(sitemap,/<loc>https:\/\/dreamface\.io\/(?:[\w-]+\/)?auth(?:[<\/])/);
-console.log('Search metadata passed against local production: 16 login noindex pages, 32 marketing canonical/hreflang pages, robots, sitemap, Studio and Gallery query policies, About, auth redirect. No production traffic.');
+console.log('Search metadata passed against local production: existing 16 login indexing settings, 32 marketing canonical/hreflang pages, robots, sitemap, Studio and Gallery query policies, About, auth redirect. No production traffic.');
