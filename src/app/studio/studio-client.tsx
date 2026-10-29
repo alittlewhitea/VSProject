@@ -701,7 +701,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const initialAudioWorkflow: AudioWorkflow = initialWorkflow === "text-to-music" ? "text-to-music" : "text-to-audio";
   const initialReferenceUrl = sp.get("reference");
   const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider, initialWorkflow, st("studio.music.defaultPrompt")));
-  const [provider, setProvider] = useState(initialProvider);
+  const [selectedProvider, setProvider] = useState(initialProvider);
+  // Query navigation updates mode before effects synchronize the selected model.
+  // Never render/quote a model from the previous mode during that transition.
+  const provider = isProviderAllowedForMode(selectedProvider, mode) ? selectedProvider : initialProvider;
   const [imageWorkflow, setImageWorkflow] = useState<ImageWorkflow>(initialImageWorkflow);
   const [videoWorkflow, setVideoWorkflow] = useState<VideoWorkflow>(initialVideoWorkflow);
   const [videoSidebarCollapsed, setVideoSidebarCollapsed] = useState(false);
