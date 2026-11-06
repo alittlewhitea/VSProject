@@ -1,9 +1,10 @@
 // Optional UI smoke test. Requires Node 22+ and a disposable Chrome/Edge CDP session at 127.0.0.1:9338.
-// Run the app at 127.0.0.1:3000. Every browser /api request is intercepted; no real accounts or rewards.
+// Run the app at STUDIO_BASE_URL (defaults to 127.0.0.1:3012). Every browser /api request is intercepted; no real accounts or rewards.
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+const baseUrl=process.env.STUDIO_BASE_URL || "http://127.0.0.1:3012";
 const tabs=await (await fetch("http://127.0.0.1:9338/json/list")).json();
 const tab=tabs.find(t=>t.type==="page");
 assert.ok(tab,"Start an isolated debug browser first.");
@@ -33,35 +34,26 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 try {
   await send("Page.enable");await send("Runtime.enable");
   await send("Network.enable");await send("Network.setCacheDisabled",{cacheDisabled:true});
-  await send("Fetch.enable",{patterns:[{urlPattern:"*://127.0.0.1:3000/api/*",requestStage:"Request"}]});
+  await send("Fetch.enable",{patterns:[{urlPattern:new URL("/api/*",baseUrl).toString(),requestStage:"Request"}]});
   await send("Emulation.setDeviceMetricsOverride",{width:1440,height:1100,deviceScaleFactor:1,mobile:false});
-  const cases=[
-    ["chatgpt-image","text-to-image","create a realistic image","EnWrO3XWjPE0nxBDpaQrj.png",0],
-    ["gpt-image-2.5-sunburst","text-to-image","Create a high-end hero infographic","brrnJKoDXxFXhOqwcSVKy_enC0gTH3.png",0],
-    ["chatgpt-image","image-to-image","These two are riding together","EtXID57a6RBQSY_ElY17C_ExXxAYZ2.png",2],
-    ["gpt-image-2.5-sunburst","image-to-image","Replace her clothing","mrMrDcbFOKzl75tVEdXxo_f44XKXFx.png",1]
-  ];
-  for(const [provider,workflow,prompt,preview,references] of cases) {
-    await send("Page.navigate",{url:"http://127.0.0.1:3000/studio?mode=image&workflow="+workflow+"&provider="+provider});
-    for(let i=0;i<120;i++){if(await evaluate("Boolean([...document.querySelectorAll('textarea')].find(e=>e.value.startsWith("+JSON.stringify(prompt)+")))"))break;await pause(500);}
-    assert.equal(await evaluate("Boolean([...document.querySelectorAll('textarea')].find(e=>e.value.startsWith("+JSON.stringify(prompt)+")))"),true,provider+" "+workflow+" prompt");
-    assert.equal(await evaluate("Boolean(document.querySelector('img[src$="+JSON.stringify(preview)+"]'))"),true,"preview");
-    const refs=await evaluate("[...document.querySelectorAll('textarea')].map(e=>e.value).filter(v=>v.includes('andrew-wyeth')||v.includes('johannes-vermeer')).join(' ')");
-    assert.equal((refs.match(/https:\/\//g)||[]).length,references,"reference count: "+JSON.stringify(await evaluate("[...document.querySelectorAll('textarea,input:not([type=password])')].map(e=>({tag:e.tagName,value:e.value?.slice(0,300)}))")));
+  for(const provider of ["chatgpt-image","gpt-image-2.6-sunburst","gpt-image-2.5-sunburst"]) for(const workflow of ["text-to-image","image-to-image"]) {
+    await send("Page.navigate",{url:baseUrl+"/studio?mode=image&workflow="+workflow+"&provider="+provider});
+    for(let i=0;i<120;i++){if(await evaluate("Boolean(document.querySelector('.df-image-settings > button:not([aria-haspopup])'))"))break;await pause(250);}
+    assert.equal(await evaluate("document.querySelector('.df-unified-inspector textarea[dir=auto]').value"),"","No sample prompt substitutes for user input");
+    assert.equal(await evaluate("document.querySelectorAll('[data-reference-panel] img').length"),0,"No invented references");
+    assert.equal(await evaluate("document.querySelector('.df-image-settings').textContent.includes('GPT Image 2.6')"),true);
+    await evaluate("document.querySelector('.df-image-settings > button:not([aria-haspopup])').click()");await pause(100);
+    const settings=await evaluate(`(()=>{const block=document.querySelector('[data-gpt26-controls]'),selects=block.querySelectorAll('select');return {quality:selects[0].value,reasoning:selects[1].value,qualities:selects[0].options.length,count:selects[4].options.length,formats:[...selects[2].options].map(e=>e.value),safe:block.querySelector('[data-gpt-safety]').getAttribute('aria-checked')}})()`);
+    assert.equal(settings.quality,'low');assert.equal(settings.reasoning,'low');assert.equal(settings.qualities,6);assert.equal(settings.count,10);assert.equal(settings.safe,'true');
+    assert.equal(settings.formats.includes('svg'),workflow==='text-to-image');assert.ok(settings.formats.includes('gif'));
     assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"),true);
-    await pause(300);
-    await evaluate("[...document.querySelectorAll('button')].find(e=>/更多设置|More settings/i.test(e.textContent)).click()");
-    await pause(100);
-    assert.equal(await evaluate("[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='low')?.className.includes('text-[#6a5af9]')"),true,"Low selected by default");
-    console.log(provider+" "+workflow+" example passed");
+    console.log(provider+" "+workflow+" 2.6 settings passed");
   }
-  // Exercise real picker transition, not just direct URLs.
-  await evaluate("document.querySelector('button[aria-haspopup=dialog]').click()");
-  await pause(250);
-  await evaluate("[...document.querySelectorAll('[role=dialog] button')].find(e=>e.textContent.includes('GPT Image 2.5 Flare')).click()");
-  await pause(900);
-  assert.equal(await evaluate("Boolean([...document.querySelectorAll('textarea')].find(e=>e.value.startsWith('These two are riding together')))"),true,"Switch restores Flare edit prompt");
-  await evaluate("Promise.race([Promise.all([...document.querySelectorAll('figure img')].map(img=>img.decode().catch(()=>{}))),new Promise(resolve=>setTimeout(resolve,8000))])");
+  // User-written drafts survive a real model picker transition.
+  await evaluate(`(()=>{const e=document.querySelector('.df-unified-inspector textarea[dir=auto]');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'Keep this user-written editing draft.');e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await evaluate("document.querySelector('.df-image-settings button[aria-haspopup=dialog]').click()");await pause(200);
+  await evaluate("[...document.querySelectorAll('[role=dialog] button')].find(e=>e.textContent.includes('GPT Image 2.6 Flare')).click()");await pause(250);
+  assert.equal(await evaluate("document.querySelector('.df-unified-inspector textarea[dir=auto]').value"),'Keep this user-written editing draft.');
   for(const [width,height,name] of [[1440,1100,"desktop"],[390,844,"mobile"]]){
     await send("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile:width<600});await pause(250);
     assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth"),true,name+" overflow");

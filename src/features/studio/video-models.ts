@@ -1,4 +1,4 @@
-export type StudioVideoWorkflow = "text-to-video" | "image-to-video";
+export type StudioVideoWorkflow = "text-to-video" | "image-to-video" | "reference-to-video";
 export type VideoModelGroup = "freeDraft" | "betterQuality" | "premium";
 export type VideoModelBadge = "free" | "recommended" | "pro" | "premium";
 
@@ -132,7 +132,8 @@ export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
     badge: "recommended",
     workflows: {
       "text-to-video": { ratios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] },
-      "image-to-video": { ratios: ["source"] }
+      "image-to-video": { ratios: ["source"] },
+      "reference-to-video": { ratios: ["adaptive", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] }
     },
     durations: VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 5),
     resolutions: ["480p", "768p", "1080p", "2k"],
@@ -335,6 +336,7 @@ export const VIDEO_PROVIDER_META: Record<string, VideoProviderMeta> = {
 };
 
 export const VIDEO_PROVIDERS_BY_WORKFLOW: Record<StudioVideoWorkflow, string[]> = {
+  "reference-to-video": ["heygen-video"],
   "text-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
   "image-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video"]
 };

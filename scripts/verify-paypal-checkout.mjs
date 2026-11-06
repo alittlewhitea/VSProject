@@ -58,7 +58,7 @@ assert.equal((await checkout.POST(request({ packId: 'starter' }))).status, 429);
 assert.equal(orders.length, 2);
 assert.equal(existsSync('src/app/api/billing/kyrenpay/webhook/route.ts'), false);
 assert.equal(existsSync('src/app/api/cron/reconcile-kyrenpay/route.ts'), false);
-const page = readFileSync('src/app/billing/page.tsx', 'utf8');
+const page = readFileSync('src/features/billing/billing-content.tsx', 'utf8');
 assert.ok(page.includes('"checkout_success"') && page.includes('trackPurchaseEvent('));
 assert.ok(readFileSync('src/lib/analytics.ts', 'utf8').includes('analyticsPayload("purchase"'));
 assert.ok(existsSync('src/app/api/billing/paypal/capture/route.ts'));

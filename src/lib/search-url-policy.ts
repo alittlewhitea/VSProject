@@ -8,5 +8,5 @@ export function hasOnlyTrackingParameters(params: SearchParameters) {
 
 export function isPrivateStudioView(params: SearchParameters) {
   const views = Array.isArray(params.view) ? params.view : [params.view];
-  return views.some((view) => view === "projects" || view === "referrals") || params.taskId !== undefined;
+  return views.some((view) => view === "projects" || view === "referrals" || view === "billing") || params.taskId !== undefined;
 }

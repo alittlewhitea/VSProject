@@ -6,9 +6,14 @@ export function shouldApplyUrlInput(previous: AppliedUrlInput | null, mode: stri
   return !previous || previous.mode !== mode || previous.value !== value;
 }
 
+/** Commas inside CDN transform paths and data URLs belong to the image URL. */
+export function parseStudioReferenceImages(value: string) {
+  return value.split(/\r?\n|,(?=\s*(?:https?:\/\/|data:image\/))/i).map(url => url.trim()).filter(Boolean);
+}
+
 /** Uploading a real image replaces built-in examples, not other user references. */
 export function referenceTextWithoutExamples(value: string) {
-  return value.split(/\r?\n|,/).map(url => url.trim())
+  return parseStudioReferenceImages(value)
     .filter(url => url && !GPT_IMAGE_EXAMPLE_REFERENCES.includes(url) && !VIDEO_EXAMPLE_SOURCE_IMAGES.includes(url))
     .join("\n");
 }

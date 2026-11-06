@@ -61,6 +61,7 @@ const nextConfig = {
     maximumResponseBody: 12 * 1024 * 1024,
     localPatterns: [{ pathname: "/images/**", search: "" }],
     remotePatterns: [
+      { protocol: "https", hostname: "resource2.heygen.ai", pathname: "/**" },
       { protocol: "https", hostname: "pbs.twimg.com", pathname: "/media/**" },
       { protocol: "https", hostname: "v3b.fal.media", pathname: "/files/**" },
       { protocol: "https", hostname: "refinery.fal.media", pathname: "/url/**" }

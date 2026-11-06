@@ -1,19 +1,18 @@
 "use client";
 
 import Link from "./studio-link";
+import { useEffect, useRef, useState } from "react";
+import { StudioButton, StudioSectionHeading, StudioSegmentedControl } from "./studio-primitives";
+import type { Locale } from "../../i18n/routing";
 import { StudioIcon } from "./studio-navigation";
 import { ViewportVideo } from "../../components/viewport-video";
+import dynamic from "next/dynamic";
+
+const HomeTemplateCarousel = dynamic(() => import("./studio-home-template-carousel"), { ssr: false });
+const CombinedTemplateGallery = dynamic(() => import("./studio-combined-template-gallery"), { ssr: false });
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
-type HomeTask = {
-  id: string;
-  type: "Image" | "Video" | "Audio";
-  status: "Queued" | "Running" | "Completed" | "Failed";
-  title?: string | null;
-  prompt?: string;
-  mediaUrl?: string | null;
-};
-
+export type HomeCreationInput = { mode: "video" | "image" | "audio"; prompt: string; image?: string };
 const VIDEO_BASE_URL = "https://media.dreamface.io/ai_video";
 const SHOWCASES: Array<{
   key: "baseball" | "cgi" | "tokyo" | "spectator";
@@ -30,16 +29,6 @@ const SHOWCASES: Array<{
   { key: "spectator", file: "spectator-sprints-from-the-stands", prompt: "Spectator sprints from the stands, jumps fences, evades security, charges onto the pitch and strikes - all in one continuous telephoto take.", labelKey: "studio.workspace.showcase.spectator.label", titleKey: "studio.workspace.showcase.spectator.title", metaKey: "studio.workspace.showcase.spectator.meta", desktopRatio: "1x1" }
 ];
 
-const INTENTS: Array<{ title: string; body: string; href: string; icon: string; color: string; tools: string[] }> = [
-  { title: "studio.workspace.intent.video", body: "studio.workspace.intent.videoBody", href: "/studio?mode=video&workflow=text-to-video&duration=5s", icon: "🎞️", color: "bg-[#f1efff]", tools: ["studio.workflow.text-to-video", "studio.workflow.image-to-video"] },
-  { title: "studio.workspace.intent.image", body: "studio.workspace.intent.imageBody", href: "/studio?mode=image&workflow=text-to-image", icon: "🖼️", color: "bg-[#eef8ff]", tools: ["studio.workflow.text-to-image", "studio.workflow.image-to-image"] },
-  { title: "studio.workspace.intent.avatar", body: "studio.workspace.intent.avatarBody", href: "/studio?mode=avatar&workflow=avatar-video&provider=minimax-h3-max-turbo-video", icon: "💬", color: "bg-[#fff1f6]", tools: ["studio.nav.avatar"] },
-  { title: "studio.workspace.intent.enhance", body: "studio.workspace.intent.enhanceBody", href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image", icon: "✨", color: "bg-[#effbf4]", tools: ["studio.workflow.enhance-cleanup"] },
-  { title: "studio.workflow.background-remove", body: "studio.home.quick.remove", href: "/studio?mode=image&workflow=background-remove&provider=bria-background-remove", icon: "✂️", color: "bg-[#fff6ed]", tools: ["studio.workflow.background-remove"] },
-  { title: "studio.workflow.text-to-audio", body: "studio.home.quick.audio", href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "🎙️", color: "bg-[#f5f3ff]", tools: ["studio.workflow.text-to-audio"] },
-  { title: "studio.workflow.text-to-music", body: "studio.music.promptDescription", href: "/studio?mode=audio&workflow=text-to-music&provider=minimax-music-2.6", icon: "🎵", color: "bg-[#fffbea]", tools: ["studio.workflow.text-to-music"] }
-];
-
 function showcaseHref(prompt: string) {
   return `/studio?mode=video&workflow=text-to-video&duration=5s&prompt=${encodeURIComponent(prompt)}`;
 }
@@ -47,7 +36,6 @@ function showcaseHref(prompt: string) {
 function ShowcaseVideo({ file, desktopRatio = "16x9", mobileRatio = "1x1", className = "" }: { file: string; desktopRatio?: "16x9" | "1x1"; mobileRatio?: "16x9" | "1x1"; className?: string }) {
   return (
     <ViewportVideo
-      playbackGroup="studio-home"
       muted loop playsInline className={className}
       mobileSrc={`${VIDEO_BASE_URL}/${mobileRatio}/${file}-${mobileRatio}.mp4`}
       src={`${VIDEO_BASE_URL}/${desktopRatio}/${file}-${desktopRatio}.mp4`}
@@ -55,61 +43,75 @@ function ShowcaseVideo({ file, desktopRatio = "16x9", mobileRatio = "1x1", class
   );
 }
 
-export function StudioHome({ t, tasks, onUpgrade }: { t: Translate; tasks: HomeTask[]; onUpgrade: () => void }) {
-  const taskTypeLabel = (type: HomeTask["type"]) => t(`studio.task.${type.toLowerCase()}`);
-  const taskStatusLabel = (status: HomeTask["status"]) => t(`studio.task.${status.toLowerCase()}`);
+export function StudioHome({ t, locale, onCreate }: { t: Translate; locale: Locale; onCreate: (input: HomeCreationInput) => void }) {
+  const [videoTemplatesRequest, setVideoTemplatesRequest] = useState(0);
+  const [draft, setDraft] = useState("");
+  const [intent, setIntent] = useState<"video" | "image" | "audio">("video");
+  const [upload, setUpload] = useState<{ dataUrl: string; name: string } | null>(null);
+  const [reading, setReading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileInput = useRef<HTMLInputElement | null>(null);
+  const uploadSequence = useRef(0);
+  useEffect(() => () => { uploadSequence.current++; }, []);
+  const start = (mode = intent) => onCreate({ mode, prompt: draft.trim(), image: mode !== "audio" ? upload?.dataUrl : undefined });
+  const readImage = async (file?: File) => {
+    if (!file) return;
+    const sequence = ++uploadSequence.current;
+    setUploadError("");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 30 * 1024 * 1024) {
+      setReading(false);
+      setUploadError(t("studio.videoWorkbench.uploadError", { count: 1 }));
+      return;
+    }
+    setReading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("read"));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      if (sequence === uploadSequence.current) setUpload({ dataUrl, name: file.name });
+    } catch {
+      if (sequence === uploadSequence.current) setUploadError(t("studio.status.fileReadFailed"));
+    } finally { if (sequence === uploadSequence.current) setReading(false); }
+  };
 
   return (
-    <div className="w-full min-w-0 max-w-full pb-4 text-start">
-      <section className="grid min-w-0 overflow-hidden rounded-[20px] border border-[#eaecf0] bg-white/95 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)] xl:grid-cols-[minmax(390px,0.82fr)_minmax(500px,1.18fr)]">
-        <div className="relative flex min-h-[330px] min-w-0 flex-col justify-center overflow-hidden p-5 sm:p-7 xl:min-h-[390px] xl:p-9">
-          <span className="pointer-events-none absolute -start-28 -top-32 h-72 w-72 rounded-full bg-[#efeaff] blur-3xl" />
-          <div className="relative">
-            <span className="inline-flex rounded-full border border-[#ddd7ff] bg-[#f4f1ff] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#6a5af9]">{t("studio.workspace.badge")}</span>
-            <p className="mt-5 text-[10px] font-black uppercase tracking-[0.16em] text-[#98a2b3]">{t("studio.workspace.eyebrow")}</p>
-            <h2 className="mt-2 max-w-2xl text-[clamp(30px,3.1vw,46px)] font-black leading-[1.05] tracking-[-0.045em] text-[#101828]">{t("studio.workspace.heroTitle")} <span className="bg-[linear-gradient(90deg,#744bfb,#9d55ed)] bg-clip-text text-transparent">{t("studio.workspace.heroAccent")}</span></h2>
-            <p className="mt-4 max-w-xl text-sm font-medium leading-6 text-[#667085] sm:text-[15px]">{t("studio.workspace.heroBody")}</p>
-            <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
-              <Link href="/studio?mode=video&workflow=text-to-video&duration=5s" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(90deg,#744bfb,#6757f6_55%,#7d53ff)] px-5 text-sm font-black text-white shadow-[0_10px_24px_rgba(106,90,249,0.2)] transition hover:-translate-y-px">{t("studio.workspace.start")}<StudioIcon name="chevron-right" className="h-4 w-4" /></Link>
-              <a href="#workspace-examples" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#eaecf0] bg-white px-5 text-sm font-black text-[#344054] transition hover:bg-[#fafafb]">{t("studio.workspace.examples")}</a>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">{["studio.workflow.image-to-video", "studio.workspace.productAds", "studio.nav.avatar", "studio.workflow.enhance-cleanup"].map((key) => <span key={key} className="rounded-full border border-[#eaecf0] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[#667085]">{t(key)}</span>)}</div>
+    <div className="studio-home">
+      <section className="df-home-create">
+        <div className="df-home-masthead">
+        <span className="df-eyebrow">DreamFace Creative Studio</span>
+        <h2>{t("studio.workspace.heroTitle")} {t("studio.workspace.heroAccent")}</h2>
+        <p>{t("studio.workspace.heroBody")}</p>
+        </div>
+        <HomeTemplateCarousel translate={t} />
+        <div className="studio-composer">
+          {upload ? <div className="df-home-upload-preview"><img src={upload.dataUrl} alt={upload.name} /><span>{upload.name}</span><button type="button" onClick={() => { uploadSequence.current++; setUpload(null); setReading(false); }} aria-label={t("studio.action.clear")}><StudioIcon name="x" className="h-4 w-4" /></button></div> : null}
+          <label htmlFor="studio-home-prompt" className="sr-only">{t("studio.field.prompt")}</label>
+          <textarea id="studio-home-prompt" dir="auto" value={draft} onChange={event => setDraft(event.target.value)} placeholder={t(intent === "video" ? "studio.placeholder.video" : intent === "image" ? "studio.placeholder.image" : "studio.placeholder.audio")} rows={2} />
+          <div className="studio-composer-actions">
+            <input ref={fileInput} data-home-image-input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={t("studio.action.chooseImage")} onChange={event => { void readImage(event.target.files?.[0]); event.target.value = ""; }} />
+            <StudioButton className="studio-upload-link" disabled={reading} onClick={() => fileInput.current?.click()} aria-label={t("studio.action.chooseImage")} title={t("studio.action.chooseImage")}><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-5 w-5"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg><span className="df-home-upload-label">{t("studio.action.chooseImage")}</span></StudioButton>
+            <StudioSegmentedControl label={t("studio.workspace.intentTitle")} value={intent} onChange={mode => { if (reading) return; setIntent(mode); if (upload) start(mode); }} options={(["video", "image", "audio"] as const).map(value => ({ value, label: t(`studio.nav.${value}`), icon: <StudioIcon name={value} className="h-4 w-4" /> }))} />
+            <StudioButton onClick={() => start()} disabled={reading} variant="primary" className="studio-start">{t("studio.workspace.start")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></StudioButton>
           </div>
-        </div>
-        <Link href={showcaseHref(SHOWCASES[0].prompt)} className="group relative m-3 mt-0 min-h-[250px] overflow-hidden rounded-2xl bg-[#101010] sm:m-4 sm:mt-0 xl:ms-0 xl:mt-4">
-          <ShowcaseVideo file={SHOWCASES[0].file} className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]" />
-          <span className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.04),rgba(0,0,0,0.72))]" />
-          <span className="absolute start-4 top-4 rounded-full border border-white/20 bg-black/25 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-white backdrop-blur-md">{t(SHOWCASES[0].labelKey)}</span>
-          <span className="absolute end-4 top-4 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/25 text-white backdrop-blur-md"><StudioIcon name="chevron-right" className="h-4 w-4" /></span>
-          <span className="absolute inset-x-5 bottom-5 text-white"><strong className="block text-xl font-black sm:text-2xl">{t(SHOWCASES[0].titleKey)}</strong><span className="mt-1 block text-xs font-semibold text-white/70 sm:text-sm">{t(SHOWCASES[0].metaKey)}</span></span>
-        </Link>
-      </section>
-
-      <section className="mt-4 rounded-[20px] border border-[#eaecf0] bg-white/95 p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)] sm:p-5">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4"><div><h2 className="text-lg font-black tracking-[-0.025em] text-[#101828] sm:text-xl">{t("studio.workspace.intentTitle")}</h2><p className="mt-1 text-xs leading-5 text-[#667085] sm:text-sm">{t("studio.workspace.intentHint")}</p></div><span className="mt-2 text-[10px] font-black uppercase tracking-[0.12em] text-[#8f80ff] sm:mt-0">DreamFace AI Studio</span></div>
-        <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {INTENTS.map((item) => <Link key={item.title} href={item.href} className="group flex min-h-[142px] min-w-0 flex-col rounded-2xl border border-[#eaecf0] bg-white p-4 transition hover:-translate-y-px hover:border-[#cfc9ff] hover:bg-[#fdfcff] hover:shadow-[0_10px_24px_rgba(106,90,249,0.08)]"><span className={`grid h-10 w-10 place-items-center rounded-xl text-lg ${item.color}`}>{item.icon}</span><span className="mt-3 flex items-start justify-between gap-2"><strong className="min-w-0 text-sm font-black text-[#101828]">{t(item.title)}</strong><StudioIcon name="chevron-right" className="mt-0.5 h-4 w-4 shrink-0 text-[#b0a7ff] transition group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" /></span><span className="mt-1.5 line-clamp-2 text-xs leading-5 text-[#7b879b]">{t(item.body)}</span><span className="mt-auto flex flex-wrap gap-1.5 pt-3">{item.tools.map((tool) => <span key={tool} className="rounded-full bg-[#f5f4fa] px-2 py-1 text-[9px] font-bold text-[#7b879b]">{t(tool)}</span>)}</span></Link>)}
+          {uploadError ? <p role="alert" className="mt-3 text-sm text-[var(--studio-error)]">{uploadError}</p> : null}
         </div>
       </section>
 
-      <section id="workspace-examples" className="mt-4 scroll-mt-24 rounded-[20px] border border-[#eaecf0] bg-white/95 p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)] sm:p-5">
-        <div className="flex min-w-0 items-end justify-between gap-3"><div className="min-w-0"><h2 className="text-lg font-black tracking-[-0.025em] text-[#101828] sm:text-xl">{t("studio.workspace.featuredTitle")}</h2><p className="mt-1 truncate text-xs text-[#667085] sm:text-sm">{t("studio.workspace.featuredHint")}</p></div><Link href="/gallery" className="inline-flex min-h-10 shrink-0 items-center rounded-[10px] border border-[#eaecf0] bg-white px-3 text-xs font-bold text-[#344054]">{t("studio.workspace.viewAll")}</Link></div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {SHOWCASES.map((item) => <Link key={`featured-${item.key}`} href={showcaseHref(item.prompt)} className="group min-w-0"><span className="relative block aspect-video overflow-hidden rounded-xl border border-[#eaecf0] bg-[#101010]"><ShowcaseVideo file={item.file} desktopRatio={item.desktopRatio} className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]" /><span className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_40%,rgba(0,0,0,0.68))]" /><span className="absolute start-2.5 top-2.5 rounded-md bg-white/90 px-2 py-1 text-[9px] font-black text-[#344054]">{t(item.labelKey)}</span><span className="absolute bottom-3 start-3 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-[11px] text-white">▶</span></span><strong className="mt-2 block truncate text-[13px] font-black text-[#101828]">{t(item.titleKey)}</strong><span className="mt-1 block truncate text-[11px] text-[#98a2b3]">{t(item.metaKey)}</span></Link>)}
+      <section className="df-home-gallery" aria-labelledby="studio-featured-title">
+        <StudioSectionHeading id="studio-featured-title" title={t("studio.workspace.featuredTitle")} description={t("studio.workspace.featuredHint")} action={<StudioButton variant="ghost" data-open-video-templates onClick={() => setVideoTemplatesRequest(value => value + 1)}>{t("studio.templates.viewVideos")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></StudioButton>} />
+        <div className="studio-showcase-grid">
+          {SHOWCASES.map(item => <Link key={item.key} href={showcaseHref(item.prompt)} className="studio-showcase">
+            <ShowcaseVideo file={item.file} desktopRatio={item.desktopRatio} />
+            <span className="df-tile-type"><StudioIcon name="video" className="h-3 w-3" />{t("studio.workbench.sampleVideo")}</span>
+            <span className="studio-showcase-caption"><strong>{t(item.titleKey)}</strong><small>{t(item.labelKey)}<span className="inline-flex items-center gap-1">{t("studio.workspace.start")}<StudioIcon name="chevron-right" className="h-3 w-3 rtl:rotate-180" /></span></small></span>
+          </Link>)}
         </div>
       </section>
 
-      <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-[0.92fr_1.08fr]">
-        <section className="relative flex min-w-0 flex-col justify-between overflow-hidden rounded-[20px] bg-[linear-gradient(135deg,#6955f6,#8a5df7)] p-5 text-white shadow-[0_12px_30px_rgba(106,90,249,0.2)] sm:p-6">
-          <span className="pointer-events-none absolute -end-16 -top-24 h-60 w-60 rounded-full bg-white/15 blur-2xl" />
-          <div className="relative"><p className="text-[10px] font-black uppercase tracking-[0.13em] text-white/65">{t("creditShop.eyebrow")}</p><h2 className="mt-2 text-xl font-black tracking-[-0.025em] sm:text-2xl">{t("creditShop.title")}</h2><p className="mt-2 max-w-xl text-sm leading-6 text-white/75">{t("creditShop.subtitle")}</p><div className="mt-4 grid grid-cols-2 gap-2">{["creditShop.oneTime", "creditShop.shared"].map((key) => <span key={key} className="rounded-xl border border-white/15 bg-white/10 px-2.5 py-2 text-center text-[10px] font-bold text-white/90">✓ {t(key)}</span>)}</div></div>
-          <button type="button" onClick={onUpgrade} className="relative mt-5 min-h-11 w-full rounded-xl bg-white px-4 text-sm font-black text-[#6757f6] shadow-sm transition hover:-translate-y-px sm:w-auto sm:self-start">{t("creditShop.buy")}</button>
-        </section>
-        <section className="min-w-0 overflow-hidden rounded-[20px] border border-[#eaecf0] bg-white/95 p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)] sm:p-5">
-          <div className="flex min-w-0 items-center justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-lg font-black tracking-[-0.025em] text-[#101828] sm:text-xl">{t("studio.workspace.recentTitle")}</h2><p className="mt-1 text-xs text-[#98a2b3]">{t("studio.workbench.latest")}</p></div><Link href="/studio?view=projects" className="inline-flex min-h-10 shrink-0 items-center rounded-[10px] border border-[#eaecf0] bg-white px-3 text-xs font-bold text-[#344054]">{t("studio.workspace.viewProjects")}</Link></div>
-          <div className="mt-3 space-y-1.5">{tasks.length ? tasks.slice(0, 3).map((task) => <Link key={`recent-${task.id}`} href={`/studio?view=projects&taskId=${encodeURIComponent(task.id)}`} className="flex min-w-0 items-center gap-3 rounded-xl border border-transparent p-2 transition hover:border-[#e3dfff] hover:bg-[#faf9ff]"><span className="grid h-14 w-[72px] shrink-0 place-items-center overflow-hidden rounded-[10px] bg-[linear-gradient(135deg,#f1efff,#f7f8fb)] text-lg">{task.mediaUrl && task.type === "Image" ? <img src={task.mediaUrl} alt="" className="h-full w-full object-cover" /> : task.mediaUrl && task.type === "Video" ? <video src={task.mediaUrl} muted playsInline preload="none" className="h-full w-full object-cover" /> : task.type === "Audio" ? "🎵" : task.type === "Video" ? "🎞️" : "🖼️"}</span><span className="min-w-0 flex-1"><strong className="block truncate text-[13px] font-black text-[#253044]">{task.title || task.prompt || taskTypeLabel(task.type)}</strong><span className="mt-1 flex items-center gap-2 text-[10px] font-bold text-[#98a2b3]"><span>{taskTypeLabel(task.type)}</span><span>•</span><span>{taskStatusLabel(task.status)}</span></span></span><StudioIcon name="chevron-right" className="h-4 w-4 shrink-0 text-[#b0a7ff]" /></Link>) : <div className="grid min-h-[180px] place-items-center rounded-2xl border border-dashed border-[#d7d1ff] bg-[#faf9ff] px-5 text-center"><div><span className="mx-auto grid h-11 w-11 place-items-center rounded-xl bg-[#eeeaff] text-lg text-[#6a5af9]">✦</span><p className="mt-3 text-sm font-black text-[#344054]">{t("studio.workspace.recentEmpty")}</p><Link href="/studio?mode=video&workflow=text-to-video" className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-[#6a5af9] px-4 text-xs font-black text-white">{t("studio.workspace.start")}</Link></div></div>}</div>
-        </section>
-      </div>
+      <CombinedTemplateGallery translate={t} locale={locale} videoFocusRequest={videoTemplatesRequest} />
     </div>
   );
 }

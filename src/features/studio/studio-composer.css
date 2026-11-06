@@ -1,0 +1,59 @@
+/* Compact creation surfaces share the Avatar composer's spacing and hierarchy. */
+.df-compact-composer .df-unified-inspector { padding:24px; }
+.df-compact-composer .df-unified-inspector > .df-panel-heading { padding:0 0 18px; border:0; }
+.creative-studio .df-compact-composer [data-creation-input] { padding:0; }
+.creative-studio .df-compact-composer [data-creation-config] { position:static; padding:16px 0 0; border:0; border-top:1px solid var(--df-border); margin-top:18px; }
+.df-compact-composer .df-workflow-nav .df-segmented { display:flex; flex-wrap:nowrap; gap:4px; overflow-x:auto; border:0; border-radius:0; padding:0; background:transparent; scrollbar-width:thin; }
+.df-compact-composer .df-workflow-nav .df-segmented button { flex:0 0 auto; min-height:44px; padding:10px 14px; border:0; border-bottom:2px solid transparent; border-radius:0; background:transparent; box-shadow:none; color:var(--df-muted); font-size:13px; font-weight:500; }
+.df-compact-composer .df-workflow-nav .df-segmented button[aria-pressed="true"] { color:var(--df-accent); border-bottom-color:var(--df-primary); }
+.df-composer-prompt-label { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; color:var(--df-muted); font-size:11px; }
+.df-composer-prompt-label label { color:var(--df-ink); font-size:12px; font-weight:500; }
+.creative-studio .df-compact-composer textarea[data-composer-prompt] { display:block; width:100%; height:180px; min-height:140px; max-height:480px; resize:vertical; border:0; border-radius:0; padding:18px 0; background:transparent; color:var(--df-ink); font:inherit; font-size:18px; line-height:1.7; outline:none; }
+.df-compact-composer textarea[data-composer-prompt]:focus-visible { box-shadow:inset 0 -2px var(--df-primary-border); }
+.df-composer-prompt-actions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-block:4px 12px; }
+.df-composer-prompt-actions > :is(button,a) { display:inline-flex; align-items:center; min-height:44px; padding:8px 10px; border-radius:8px; color:var(--df-muted); font-size:12px; }
+.df-composer-prompt-actions > :is(button,a):hover { color:var(--df-accent); background:var(--df-surface-soft); }
+.df-composer-prompt-actions > button:disabled { opacity:.45; }
+.df-composer-settings { min-width:0; padding:0; }
+.df-composer-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; }
+.df-composer-parameters { display:contents; }
+.df-compact-composer .df-inline-model-picker { width:auto; max-width:240px; min-width:0; flex:0 1 auto; }
+.df-compact-composer .df-select-field { position:relative; flex:0 1 auto; max-width:240px; gap:0; }
+.df-compact-composer .df-select-field > span:first-child { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.df-compact-composer .df-select-control > select, .df-composer-toolbar > .df-composer-parameters > select { min-height:44px; min-width:76px; max-width:220px; border-color:transparent; background:var(--df-surface-soft); font-size:13px; font-weight:400; color:var(--df-ink); }
+.df-composer-more { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:8px 10px; border-radius:8px; color:var(--df-muted); font-size:12px; text-align:start; }
+.df-composer-more:hover { color:var(--df-accent); background:var(--df-surface-soft); }
+.creative-studio .df-composer-generate { display:inline-flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; width:auto; min-height:48px; min-width:160px; margin-inline-start:auto; border:0; border-radius:var(--df-radius-button); padding:12px 16px; background:var(--df-primary); color:#fff; font-size:14px; font-weight:500; }
+.creative-studio .df-composer-generate:hover:not(:disabled) { background:var(--df-primary-hover); transform:none; }
+.df-composer-generate:disabled { opacity:.55; }
+.df-composer-quote { padding:3px 8px; border-radius:100px; background:rgb(255 255 255 / .15); color:white; font-size:11px; font-weight:400; white-space:nowrap; }
+.df-composer-cost { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:4px 12px; padding-top:10px; color:var(--df-muted); font-size:11px; line-height:18px; }
+.df-composer-cost > span { font-weight:400; }
+.df-composer-advanced { margin-top:16px; min-width:0; padding:16px; border-radius:var(--df-radius-input); background:var(--df-surface-soft); }
+.df-composer-advanced > [data-audio-voice-controls] { margin-top:8px; }
+.df-composer-validation { margin-top:10px; color:var(--df-error); font-size:12px; }
+.df-composer-option { display:flex; flex-direction:column; gap:8px; color:var(--df-muted); font-size:12px; }
+.df-composer-daily { flex-basis:100%; color:var(--df-success); font-size:12px; }
+.df-composer-music-options { border-top:1px solid var(--df-border); padding-top:8px; }
+.df-composer-music-options > button { font-size:12px; }
+.df-composer-utility-reference { padding:4px 0; }
+.df-composer-utility-reference > div:first-child { align-items:center; }
+.df-composer-utility-reference > div:first-child p { display:none; }
+.df-composer-utility-reference > div:last-child > div:last-child { display:flex; flex-wrap:wrap; }
+.df-composer-utility-reference img { width:112px; height:112px; object-fit:contain; }
+.df-composer-utility-reference > div:last-child > div:last-child > div { width:112px; height:112px; }
+.df-composer-reference-urls { margin-top:8px; }
+.df-composer-reference-urls summary { min-height:44px; padding:10px 0; color:var(--df-muted); cursor:pointer; font-size:12px; }
+@media(max-width:767px) {
+  .df-compact-composer .df-unified-inspector { padding:18px 14px; }
+  .df-compact-composer .df-unified-inspector > .df-panel-heading { padding:0 0 16px; }
+  .df-compact-composer .df-workflow-nav .df-segmented button { padding-inline:10px; font-size:12px; }
+  .creative-studio .df-compact-composer textarea[data-composer-prompt] { height:160px; min-height:140px; font-size:16px; }
+  .df-compact-composer .df-inline-model-picker { max-width:100%; }
+  .df-composer-toolbar { gap:8px; }
+  .df-compact-composer .df-select-field { max-width:100%; }
+  .df-compact-composer .df-select-control > select { max-width:100%; font-size:12px; }
+  .df-composer-toolbar > .df-composer-parameters > select { max-width:100%; }
+  .creative-studio .df-composer-generate { flex-basis:100%; width:100%; min-width:0; margin-top:4px; }
+  .df-composer-advanced { padding:12px; }
+}

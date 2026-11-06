@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { landingAlternates, LandingLanguages } from "../../../features/landing-pages/localized-landing";
+import { landingAlternates } from "../../../features/landing-pages/localized-landing";
 import Link from "next/link";
 import { SiteFooter } from "../../../components/site-footer";
 import { TopNav } from "../../../components/top-nav";
@@ -53,7 +53,6 @@ export default function ImageToVideoPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <TopNav />
-        <LandingLanguages kind="image-video" />
         <section className="py-16 md:py-24">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7554df]">AI image to video</p>
           <h1 className="mt-5 max-w-4xl text-4xl font-black leading-tight tracking-tight md:text-6xl">Turn an image into a video with AI</h1>

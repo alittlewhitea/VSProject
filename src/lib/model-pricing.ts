@@ -1,13 +1,17 @@
-import { isGptImageProvider, gptImageEndpoint, gptImageQuality } from "./gpt-image-models";
+import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } from "./gpt-image-models";
 import { flux3MaxDuration, flux3MaxSecondPrice } from "./flux3-max";
+import { lowestPaidCreditPriceUsd } from "./credit-pack-prices";
 export type PricingMode = "image" | "video" | "audio";
 
 export type GenerationEstimateInput = {
   mode: PricingMode;
   provider: string;
   imageSize?: string | null;
+  imageWidth?: number | null; imageHeight?: number | null; outputFormat?: string | null;
+  imageReasoningEffort?: string | null; frameCount?: number | null; svgModel?: string | null;
   duration?: string | null;
   hasReferences?: boolean;
+  videoWorkflow?: "text-to-video" | "image-to-video" | "reference-to-video";
   referenceCount?: number;
   resolution?: string | null;
   falUnitPriceUsd?: number | null;
@@ -55,27 +59,66 @@ export function h3SupplierSecondPrice(input: GenerationEstimateInput) {
   return listRate * (turbo ? 0.5 : 1) * ((input.pricingTime ?? Date.now()) < H3_PROMOTION_END ? 0.65 : 1);
 }
 
-// fal published output baselines; portrait/wide variants use conservative nearby sizes.
-// Input image reserve is an application estimate, not a fixed fal per-image price.
-const GPT_IMAGE_OUTPUT_USD = {
-  low: {standard:0.005,square:0.006,wide:0.006},
-  medium: {standard:0.037,square:0.053,wide:0.053},
-  high: {standard:0.145,square:0.211,wide:0.211}
-} as const;
-export function estimateGptImageUsd(input: GenerationEstimateInput) {
-  const size = input.imageSize || "default_4_3";
-  const shape = size === "square" || size === "square_hd" ? "square" : size.includes("16_9") ? "wide" : "standard";
-  const output = GPT_IMAGE_OUTPUT_USD[gptImageQuality(input.quality)][shape];
-  const references = input.hasReferences ? Math.min(16,Math.max(1,Math.trunc(input.referenceCount || 1))) : 0;
-  // Conservative UTF-8 byte/3 token heuristic; real tokenization and image detail vary.
-  const promptTokens = Math.ceil(new TextEncoder().encode(input.promptText || "").length / 3);
-  return output + references * 0.012 + promptTokens * 5 / 1_000_000;
+export const GPT_IMAGE_TARGET_MARGIN = 0.20;
+// Budget assumption, not a verified payment-provider fee schedule.
+export const GPT_IMAGE_PAYMENT_FEE_RESERVE = 0.05;
+
+export function gptImageCreditsFromCostUsd(costUsd: number, targetMargin = GPT_IMAGE_TARGET_MARGIN) {
+  if (!Number.isFinite(costUsd) || costUsd <= 0) return 1;
+  if (!Number.isFinite(targetMargin) || targetMargin < 0 || targetMargin + GPT_IMAGE_PAYMENT_FEE_RESERVE >= 1) {
+    throw new Error("Invalid GPT image pricing margin");
+  }
+  const revenuePerCredit = lowestPaidCreditPriceUsd() * (1 - targetMargin - GPT_IMAGE_PAYMENT_FEE_RESERVE);
+  return Math.max(1, Math.ceil(costUsd / revenuePerCredit - 1e-9));
 }
 
-function countMultiplier(numImages?: number | null) {
+// OpenAI's image-generation guide calculator, checked 2026-11-06.
+// https://developers.openai.com/api/docs/guides/image-generation#calculating-costs
+// The short grid uses round-to-even at exact half integers.
+export function gptImageOutputTokens(width: number, height: number, quality?: string | null) {
+  const tier = gptImageQuality(quality);
+  const effective = tier === "auto" ? "max" : tier;
+  const grid = {low:16, medium:24, high:48, xhigh:64, max:96}[effective];
+  const factor = {low:4.2, medium:3.3, high:1, xhigh:1, max:1}[effective];
+  const shortGrid = grid * Math.min(width, height) / Math.max(width, height);
+  const floor = Math.floor(shortGrid);
+  const rounded = shortGrid - floor === 0.5 ? floor + floor % 2 : Math.round(shortGrid);
+  return Math.round(Math.ceil(grid * rounded * (2_000_000 + width * height) / 4_000_000) * factor);
+}
+
+// SVG authoring model rates ($/M), plus explicit token budgets below. These
+// are estimates, not a claim that every SVG consumes this many tokens.
+const GPT_SVG_AUTHORING_RATES: Record<string, {input: number; output: number}> = {
+  "gpt-6-astra": {input:10, output:50},
+  "gpt-5.6-terra": {input:2, output:12},
+  "gpt-5.5": {input:5, output:30},
+  "gpt-5.4": {input:2.5, output:15},
+  "gpt-6-luna": {input:0.1, output:0.5}
+};
+export function estimateGptImageUsd(input: GenerationEstimateInput) {
+  const resolved = gptImageSize(input.imageSize, input.imageWidth, input.imageHeight);
+  // Auto reserves the largest valid square, which costs more than a 4K wide
+  // image at the same quality. Never quote auto as the cheapest preset.
+  const {width, height} = resolved === "auto" ? {width:2880, height:2880} : resolved;
+  const frames=input.outputFormat==="gif"?Math.min(16,Math.max(2,input.frameCount||9)):1;
+  // Per-frame GIF budgeting is conservative; actual shared usage may differ.
+  const output = gptImageOutputTokens(width, height, input.quality) * 30 / 1_000_000 * frames;
+  const references = input.hasReferences ? Math.min(17,Math.max(1,Math.trunc(input.referenceCount || 1))) : 0;
+  // UTF-8 byte count budgets uncached prompt tokens. Reference/planning token
+  // usage isn't known pre-generation: these reserves need invoice calibration.
+  const promptTokens = Math.max(32, new TextEncoder().encode((input.promptText || "").trim()).length);
+  const planningTokens=input.imageReasoningEffort==="high"?4096:input.imageReasoningEffort==="medium"?1024:128;
+  const svgRate = GPT_SVG_AUTHORING_RATES[input.svgModel || "gpt-6-astra"] || GPT_SVG_AUTHORING_RATES["gpt-6-astra"];
+  const svgCost = input.outputFormat === "svg" ? ((promptTokens + 4096) * svgRate.input + 8192 * svgRate.output) / 1_000_000 : 0;
+  const cost = output + references * 0.012 + promptTokens * 5 / 1_000_000 + planningTokens * 10 / 1_000_000 + svgCost;
+  // fal rounds total cost up to the closest $0.0001.
+  return Math.ceil(cost * 10_000 - 1e-9) / 10_000;
+}
+
+function countMultiplier(numImages?: number | null, maximum=4) {
   const parsed = typeof numImages === "number" ? numImages : 1;
   if (!Number.isFinite(parsed)) return 1;
-  return Math.min(4, Math.max(1, Math.trunc(parsed)));
+  return Math.min(maximum, Math.max(1, Math.trunc(parsed)));
 }
 
 const IMAGE_MEGAPIXELS_BY_SIZE: Record<string, number> = {
@@ -111,6 +154,10 @@ export function generationPricingMultiplier(input: GenerationEstimateInput) {
   const resolution = input.resolution?.toLowerCase();
   if (input.mode === "audio") return CREDIT_MARKUP_MULTIPLIER;
   if (input.mode === "image") {
+    if(isGptImageProvider(input.provider)) {
+      // GPT uses its own revenue-margin policy, without a second HD markup.
+      return 1;
+    }
     return resolution === "2k" || resolution === "4k" || input.quality === "medium" || input.quality === "high" || input.provider === "topaz-image"
       ? HD_CREDIT_MARKUP_MULTIPLIER : CREDIT_MARKUP_MULTIPLIER;
   }
@@ -152,7 +199,7 @@ export function estimateGenerationCostUsd(input: GenerationEstimateInput): numbe
     } else if (input.provider === "topaz-image") cost = 0.08;
     else if (input.provider === "bria-background-remove") cost = live && isFalUnit(unit, "image", "images", "generation", "generations") ? live : 0.018;
     else throw new Error("Missing supplier cost estimate for image provider");
-    return cost * countMultiplier(input.numImages);
+    return cost * countMultiplier(input.numImages,isGptImageProvider(input.provider)?10:4);
   }
   if (input.mode === "audio") {
     if (input.provider === "minimax-music-2.6") return live && isFalUnit(unit, "audio", "audios", "generation", "generations") ? live : 0.15;
@@ -178,12 +225,22 @@ export function estimateGenerationCostUsd(input: GenerationEstimateInput): numbe
 
 export function estimateGenerationCredits(input: GenerationEstimateInput) {
   // Each output image is quoted individually; batches do not change per-image pricing.
-  const count = input.mode === "image" ? countMultiplier(input.numImages) : 1;
+  const count = input.mode === "image" ? countMultiplier(input.numImages,isGptImageProvider(input.provider)?10:4) : 1;
   const unitInput = count > 1 ? { ...input, numImages: 1 } : input;
+  if (input.mode === "image" && isGptImageProvider(input.provider)) {
+    return gptImageCreditsFromCostUsd(estimateGenerationCostUsd(unitInput)) * count;
+  }
   return creditsFromFalUsd(estimateGenerationCostUsd(unitInput), 1, generationPricingMultiplier(input)) * count;
 }
 
 export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
+  {
+    provider: "heygen-video", label: "HeyGen Video Reference", mode: "video", workflow: "Reference to Video",
+    endpointId: "heygen/heygen-video/reference-to-video", referenceDuration: "5s", referenceResolution: "768p",
+    falBasis: "480p/768p $0.02/s; 1080p/2k $0.06/s after October 31, 2026.",
+    typicalCredits: estimateGenerationCredits({mode:"video",provider:"heygen-video",duration:"5s",resolution:"768p"}),
+    unitNote: "Estimated credits depend on the selected model and settings; check Generate"
+  },
   ...["text-to-video", "image-to-video"].map((workflow): ModelPricingRow => ({
     referenceDuration: "5s", referenceResolution: "768p",
     provider: "heygen-video", label: workflow === "text-to-video" ? "HeyGen Video" : "HeyGen Video I2V",
@@ -268,13 +325,13 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "gemini-omni-flash-video", duration: "8s", hasReferences: true }),
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   },
-  ...["chatgpt-image","gpt-image-2.5-sunburst"].flatMap(provider => [false,true].map(edit => ({
+  ...["chatgpt-image","gpt-image-2.6-sunburst"].flatMap(provider => [false,true].map(edit => ({
     provider,
-    label: (provider === "chatgpt-image" ? "GPT Image 2.5 Flare · Fast" : "GPT Image 2.5 Sunburst · Pro") + (edit ? " Edit" : ""),
+    label: (provider === "chatgpt-image" ? "GPT Image 2.6 Flare · Fast" : "GPT Image 2.6 Sunburst · Pro") + (edit ? " Edit" : ""),
     mode: "image" as const,
     workflow: edit ? "Image to Image" : "Text to Image",
     endpointId: gptImageEndpoint(provider,edit),
-    falBasis: "Token billed: text input $5/M, image input $8/M, image output $30/M. Size baselines plus estimated prompt/reference allowance; not a fixed supplier quote.",
+    falBasis: "Token billed: text input $5/M, image input $8/M, image output $30/M. Official output token formula plus estimated input/reasoning/format reserves; not a fixed supplier quote.",
     typicalCredits: estimateGenerationCredits({mode:"image",provider,imageSize:"default_4_3",quality:"low",hasReferences:edit,referenceCount:edit?1:0}),
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   }))),

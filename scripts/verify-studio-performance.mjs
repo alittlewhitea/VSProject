@@ -60,7 +60,10 @@ assert.equal(window.location.search,'?mode=video&workflow=image-to-video');
 for(const href of ['/billing','https://other.test/studio?mode=image','javascript:alert(1)','/studio?view=home#examples']) assert.equal(nav.studioNavigationTarget(href,window.location.href),null);
 assert.equal(nav.studioNavigationTarget('/studio?mode=image','https://dreamface.test/gallery'),null);
 assert.equal(Link({href:'/billing',prefetch:true}).props.prefetch,true);
-for(const name of ['studio-navigation','studio-home','studio-header','studio-projects','video-settings']) assert.match(readFileSync(`src/features/studio/${name}.tsx`,'utf8'),/import Link from "\.\/studio-link"/);
+for(const name of ['studio-navigation','studio-home','studio-header','studio-projects','video-settings']) {
+ const source=readFileSync(`src/features/studio/${name}.tsx`,'utf8');
+ if(source.includes('<Link '))assert.match(source,/import Link from "\.\/studio-link"/);
+}
 const studio = readFileSync('src/app/studio/studio-client.tsx','utf8');
 assert.doesNotMatch(studio,/router\.replace\(`/);
 assert.match(studio,/navigateStudio\(studioProjectHref/);
@@ -82,12 +85,24 @@ let maxPlaying=0;
 function fakeVideo(){const attrs=new Map(),events=new Map();const video={playing:false,getAttribute:key=>attrs.get(key)||null,load(){},pause(){this.playing=false;},play(){this.playing=true;maxPlaying=Math.max(maxPlaying,videos.filter(v=>v.playing).length);return Promise.resolve();},addEventListener(name,cb){events.set(name,cb);},removeEventListener(name){events.delete(name);}};Object.defineProperty(video,'src',{set(value){attrs.set('src',value);}});videos.push(video);return video;}
 const Preview=loader({react})('src/components/viewport-video.tsx').ViewportVideo;
 function runner(props){const r={cells:[],cursor:0,queue:[],video:fakeVideo(),render(){this.cursor=0;this.queue=[];currentRunner=this;const element=Preview(props);element.props.ref.current=this.video;for(const effect of this.queue)effect();return element;},cleanup(){for(const cell of this.cells)cell?.cleanup?.();}};r.render();return r;}
-const previews=Array.from({length:5},(_,i)=>runner({src:`https://media.test/${i}.mp4`,playbackGroup:'studio-home'}));
+const previews=Array.from({length:5},(_,i)=>runner({src:`https://media.test/${i}.mp4`,playbackGroup:'single-preview-test'}));
 for(let i=0;i<previews.length;i++){assert.equal(previews[i].video.getAttribute('src'),null);observers[i].notify(true);previews[i].render();}
 assert.equal(videos.filter(v=>v.playing).length,1);assert.equal(previews[0].video.playing,true);assert.equal(maxPlaying,1);
 observers[0].notify(false);assert.equal(previews[0].video.playing,false);assert.equal(previews[1].video.playing,true);
 document.hidden=true;for(const cb of listeners)cb();assert.equal(videos.filter(v=>v.playing).length,0);
 document.hidden=false;for(const cb of listeners)cb();assert.equal(videos.filter(v=>v.playing).length,1);
 for(const preview of previews)preview.cleanup();assert.equal(videos.filter(v=>v.playing).length,0);assert.equal(listeners.size,0);
+
+// Home now restores all four original examples; each visible tile can play.
+const homeSource=readFileSync('src/features/studio/studio-home.tsx','utf8');
+assert.doesNotMatch(homeSource,/playbackGroup=/);
+const offset=observers.length;
+const independent=Array.from({length:4},(_,i)=>runner({src:`https://media.test/home-${i}.mp4`}));
+for(let i=0;i<independent.length;i++){observers[offset+i].notify(true);independent[i].render();}
+assert.equal(videos.filter(v=>v.playing).length,4);
+observers[offset+1].notify(false);assert.equal(independent[1].video.playing,false);assert.equal(videos.filter(v=>v.playing).length,3);
+document.hidden=true;for(const cb of listeners)cb();assert.equal(videos.filter(v=>v.playing).length,0);
+document.hidden=false;for(const cb of listeners)cb();assert.equal(videos.filter(v=>v.playing).length,3);
+for(const preview of independent)preview.cleanup();assert.equal(videos.filter(v=>v.playing).length,0);assert.equal(listeners.size,0);
 globalThis.window=oldWindow;globalThis.document=oldDocument;globalThis.IntersectionObserver=oldObserver;
-console.log('Studio performance regression passed: desktop/mobile links share no-fetch navigation, replace/back/forward/scroll semantics, modified clicks/external links preserved, workflow actions covered, only one home preview plays, offscreen/hidden/unmounted videos pause. No database or paid API calls.');
+console.log('Studio performance regression passed: no-fetch navigation and history semantics preserved; grouped previews remain exclusive; all four visible home examples can play independently; offscreen/hidden/unmounted videos pause. No database or paid API calls.');

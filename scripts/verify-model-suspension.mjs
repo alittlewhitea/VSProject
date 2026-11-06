@@ -20,9 +20,10 @@ function loader(overrides={}) {
 }
 const load=loader(),release=load('src/lib/model-release.ts'),models=load('src/features/studio/video-models.ts');
 assert.equal(release.DREAMFACE_IO_SUSPENDED,true);
-for(const providers of Object.values(models.VIDEO_PROVIDERS_BY_WORKFLOW)) {
+for(const [workflow,providers] of Object.entries(models.VIDEO_PROVIDERS_BY_WORKFLOW)) {
   assert.ok(!providers.includes('dreamface-io-video'));
-  assert.ok(providers.includes('minimax-h3-max-turbo-video'));
+  if(workflow==='reference-to-video') assert.deepEqual(providers,['heygen-video']);
+  else assert.ok(providers.includes('minimax-h3-max-turbo-video'));
 }
 assert.ok(!load('src/lib/model-pricing.ts').MODEL_PRICING_ROWS.some(row=>row.provider==='dreamface-io-video'));
 const studio=readFileSync('src/app/studio/studio-client.tsx','utf8');
@@ -35,7 +36,8 @@ const initializer=nodeMatching(n=>ts.isVariableDeclaration(n)&&n.name.getText(as
 const workflows=new Function('VIDEO_PROVIDERS_BY_WORKFLOW',`return (${initializer});`)(models.VIDEO_PROVIDERS_BY_WORKFLOW);
 const providerFor=nodeMatching(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='providerForWorkflow').getText(ast);
 const allowed=nodeMatching(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='isProviderAllowedForMode').getText(ast);
-const selectors=new Function('WORKFLOW_META','videoModelConfig','isAvatarProvider',compile(providerFor+'\n'+allowed)+'\nreturn {providerForWorkflow,isProviderAllowedForMode};')(workflows,models.videoModelConfig,()=>false);
+const normalizeGptImageProvider=load('src/lib/gpt-image-models.ts').normalizeGptImageProvider;
+const selectors=new Function('WORKFLOW_META','videoModelConfig','isAvatarProvider','normalizeGptImageProvider',compile(providerFor+'\n'+allowed)+'\nreturn {providerForWorkflow,isProviderAllowedForMode};')(workflows,models.videoModelConfig,()=>false,normalizeGptImageProvider);
 for(const workflow of Object.keys(workflows)) {
   assert.ok(!workflows[workflow].providers.includes('dreamface-io-video'));
   assert.equal(selectors.providerForWorkflow(workflow,'dreamface-io-video'),workflows[workflow].recommendedProvider);
@@ -60,9 +62,9 @@ try {
 // Execute the actual POST prefix through its suspension guard. Anything beyond it must be unreachable.
 const route=readFileSync('src/app/api/generate/route.ts','utf8');
 const prefix=route.slice(route.indexOf('export async function POST'),route.indexOf('    const isDreamfaceIoTalkingAvatar ='));
-const post=new Function('getUserFromBearerToken','isValidBody','isAvatarRequest','isH3MaxAvatarRequest','DREAMFACE_IO_PROVIDER','DREAMFACE_IO_SUSPENDED','NextResponse','exports',
+const post=new Function('getUserFromBearerToken','isValidBody','isAvatarRequest','isH3MaxAvatarRequest','DREAMFACE_IO_PROVIDER','DREAMFACE_IO_SUSPENDED','NextResponse','exports','normalizeGptImageProvider',
   compile(prefix+"throw new Error('Suspended request reached generation processing'); } catch(error) { throw error; } }")+'\nreturn exports.POST;')(
-  async()=>({id:'fixture'}),()=>true,()=>false,()=>false,'dreamface-io-video',true,NextResponse,{}
+  async()=>({id:'fixture'}),()=>true,()=>false,()=>false,'dreamface-io-video',true,NextResponse,{},normalizeGptImageProvider
 );
 for(const mode of ['video','avatar','image','audio']) {
   const result=await post({headers:new Headers(),json:async()=>({mode,provider:'dreamface-io-video'})});

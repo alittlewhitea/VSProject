@@ -1,3 +1,4 @@
+import { AvatarComposerInput } from "./avatar-composer-input";
 type Translate = (
   key: string,
   values?: Record<string, string | number | null | undefined>
@@ -6,6 +7,7 @@ type Translate = (
 type VoiceGender = "all" | "female" | "male";
 
 type AvatarWorkbenchProps = {
+  compact?: boolean;
   prompt: string;
   referenceImagesText: string;
   referenceImageUrls: string[];
@@ -34,6 +36,7 @@ type AvatarWorkbenchProps = {
 };
 
 export function AvatarWorkbench({
+  compact=false,
   prompt,
   referenceImagesText,
   referenceImageUrls,
@@ -64,11 +67,50 @@ export function AvatarWorkbench({
     onReferenceFiles(files).catch(onFileError);
   };
 
+  const voiceControls = <>          {!isDreamfaceTalkingAvatar && !isH3MaxAvatar ? (
+            <div className="mt-4 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <span className="text-sm font-semibold text-[var(--studio-text)]">{translate("studio.avatar.voice")}</span>
+                <span className="rounded-full bg-[var(--studio-panel)] px-3 py-1 text-xs font-semibold text-[var(--studio-muted)]">{ttsVoice}</span>
+              </div>
+              <div className="mb-3 inline-grid grid-cols-3 rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] p-1 shadow-none">
+                {voiceGenderOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onAvatarVoiceGenderChange(option.value)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      avatarVoiceGender === option.value
+                        ? "bg-[var(--studio-primary)] text-white shadow-none"
+                        : "text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)] hover:text-[var(--studio-text)]"
+                    }`}
+                  >
+                    {translate(`studio.voiceGender.${option.value}`)}
+                  </button>
+                ))}
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <select value={ttsVoice} onChange={(event) => onTtsVoiceChange(event.target.value)} className="min-h-12 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 text-sm font-bold text-[var(--studio-text)] outline-none">
+                  {avatarVoiceOptions.map((voice) => <option key={voice} value={voice}>{voice}</option>)}
+                </select>
+                <select value={ttsLanguageCode} onChange={(event) => onTtsLanguageCodeChange(event.target.value)} className="min-h-12 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 text-sm font-bold text-[var(--studio-text)] outline-none">
+                  {languageOptions.map((item) => (
+                    <option key={item.value || "auto"} value={item.value}>{translate(`studio.languageOption.${item.value || "auto"}`)}</option>
+                  ))}
+                </select>
+                <label className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2.5">
+                  <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--studio-muted)]">{translate("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
+                  <input type="range" min="0" max="1" step="0.05" value={ttsStability} onChange={(event) => onTtsStabilityChange(Number(event.target.value))} className="mt-1 w-full accent-[var(--studio-primary)]" />
+                </label>
+              </div>
+            </div>
+          ) : null}</>;
+  if(compact) return <AvatarComposerInput prompt={prompt} images={referenceImageUrls} url={referenceImagesText} meta={avatarScriptMeta} tooLong={avatarScriptTooLong} translate={translate} onPrompt={onPromptChange} onUrl={onReferenceImagesTextChange} onFiles={onReferenceFiles} onFileError={onFileError} onGuide={onStartImageGuide}>{!isDreamfaceTalkingAvatar && !isH3MaxAvatar ? voiceControls : null}</AvatarComposerInput>;
   return (
     <div>
       <div className="grid gap-4 px-4 pb-4 pt-3">
         <div
-          className="rounded-2xl border border-dashed border-[#cfc9ff] bg-[#faf9ff] p-3"
+          className="rounded-2xl border border-dashed border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] p-3"
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
             event.preventDefault();
@@ -77,10 +119,10 @@ export function AvatarWorkbench({
         >
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{translate("studio.field.avatarImage")}</p>
-              <p className="mt-1 text-xs font-bold leading-5 text-[#8290a7]">{translate("studio.reference.avatarHint")}</p>
+              <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--studio-text)]">{translate("studio.field.avatarImage")}</p>
+              <p className="mt-1 text-xs font-bold leading-5 text-[var(--studio-muted)]">{translate("studio.reference.avatarHint")}</p>
             </div>
-            <label className="inline-flex min-h-11 cursor-pointer items-center rounded-[10px] border border-[#e2defe] bg-white px-3 text-xs font-bold text-[#6a5af9] transition hover:bg-[#f8f7ff]">
+            <label className="inline-flex min-h-11 cursor-pointer items-center rounded-[10px] border border-[var(--studio-accent-border)] bg-[var(--studio-panel)] px-3 text-xs font-bold text-[var(--studio-accent)] transition hover:bg-[var(--studio-accent-soft)]">
               {translate("studio.action.chooseImage")}
               <input type="file" accept="image/*" className="hidden" onChange={(event) => handleReferenceFiles(event.target.files)} />
             </label>
@@ -89,29 +131,29 @@ export function AvatarWorkbench({
             value={referenceImagesText}
             onChange={(event) => onReferenceImagesTextChange(event.target.value)}
             placeholder="https://.../avatar.jpg"
-            className="h-10 w-full rounded-[10px] border border-[#eaecf0] bg-white px-3 text-sm font-semibold text-[#344054] outline-none transition focus:border-[#8d80ff]"
+            className="h-10 w-full rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-sm font-semibold text-[var(--studio-text)] outline-none transition focus:border-[var(--studio-accent-border)]"
           />
           {referenceImageUrls.length ? (
             <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
               {referenceImageUrls.slice(0, 4).map((url, index) => (
-                <div key={`${url}-${index}`} className="aspect-square overflow-hidden rounded-2xl border border-white bg-white shadow-[0_8px_20px_rgba(35,58,97,0.08)]">
+                <div key={`${url}-${index}`} className="aspect-square overflow-hidden rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] shadow-none">
                   <img src={url} alt={`Avatar input ${index + 1}`} className="h-full w-full object-cover" />
                 </div>
               ))}
             </div>
           ) : (
-            <button type="button" onClick={onStartImageGuide} className="mt-3 block min-h-11 w-full rounded-xl border border-[#eaecf0] bg-white px-4 py-3 text-start transition hover:bg-[#fcfcfe]">
-              <span className="text-xs font-black uppercase tracking-[0.12em] text-[#2563eb]">{translate("studio.avatar.guideEyebrow")}</span>
-              <span className="mt-2 block text-sm font-black text-[#283249]">{translate("studio.avatar.guideTitle")}</span>
-              <span className="mt-1 block text-xs font-bold leading-5 text-[#8290a7]">{translate("studio.avatar.guideDescription")}</span>
+            <button type="button" onClick={onStartImageGuide} className="mt-3 block min-h-11 w-full rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-3 text-start transition hover:bg-[var(--studio-accent-soft)]">
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--studio-accent)]">{translate("studio.avatar.guideEyebrow")}</span>
+              <span className="mt-2 block text-sm font-semibold text-[var(--studio-text)]">{translate("studio.avatar.guideTitle")}</span>
+              <span className="mt-1 block text-xs font-bold leading-5 text-[var(--studio-muted)]">{translate("studio.avatar.guideDescription")}</span>
             </button>
           )}
         </div>
 
         <div className="min-w-0">
           <div className="mb-[13px] flex flex-wrap items-center justify-between gap-3">
-            <div className="text-[13px] font-black uppercase tracking-[0.08em] text-[#2d374c]">{translate(isH3MaxAvatar ? "studio.field.prompt" : "studio.avatarWorkbench.script")}</div>
-            <span className={`rounded-full px-3 py-1 text-xs font-black ${avatarScriptTooLong ? "bg-[#fff1f2] text-[#e11d48]" : "bg-[#f0fdf4] text-[#16a34a]"}`}>
+            <div className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--studio-text)]">{translate(isH3MaxAvatar ? "studio.field.prompt" : "studio.avatarWorkbench.script")}</div>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${avatarScriptTooLong ? "bg-[var(--studio-error-soft)] text-[var(--studio-error)]" : "bg-[var(--studio-success-soft)] text-[var(--studio-success)]"}`}>
               {avatarScriptMeta}
             </span>
           </div>
@@ -120,10 +162,10 @@ export function AvatarWorkbench({
             rows={7}
             value={prompt}
             onChange={(event) => onPromptChange(event.target.value)}
-            className="min-h-[180px] w-full resize-y rounded-2xl border border-[#eaecf0] bg-white p-4 text-[15px] leading-[1.55] text-[#101828] outline-none placeholder:text-[#98a2b3]"
+            className="min-h-[180px] w-full resize-y rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-4 text-[15px] leading-[1.55] text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]"
             placeholder={translate("studio.placeholder.avatar")}
           />
-          <div className={`mt-[18px] text-xs font-extrabold leading-5 ${avatarScriptTooLong ? "text-[#e11d48]" : "text-[#96a2b7]"}`}>
+          <div className={`mt-[18px] text-xs font-semibold leading-5 ${avatarScriptTooLong ? "text-[var(--studio-error)]" : "text-[var(--studio-muted)]"}`}>
             {avatarScriptTooLong
               ? translate("studio.avatar.scriptTooLong")
               : isH3MaxAvatar
@@ -133,44 +175,7 @@ export function AvatarWorkbench({
                 : translate("studio.avatar.billingHint", { duration: avatarDuration })}
           </div>
 
-          {!isDreamfaceTalkingAvatar && !isH3MaxAvatar ? (
-            <div className="mt-4 rounded-2xl border border-[#eaecf0] bg-[#fcfcfe] p-3">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <span className="text-sm font-black text-[#283249]">{translate("studio.avatar.voice")}</span>
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#66758b]">{ttsVoice}</span>
-              </div>
-              <div className="mb-3 inline-grid grid-cols-3 rounded-full border border-[#758bac]/15 bg-white p-1 shadow-[0_8px_24px_rgba(42,67,112,0.08)]">
-                {voiceGenderOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => onAvatarVoiceGenderChange(option.value)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-black transition ${
-                      avatarVoiceGender === option.value
-                        ? "bg-[#202633] text-white shadow-[0_8px_20px_rgba(32,38,51,0.14)]"
-                        : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
-                    }`}
-                  >
-                    {translate(`studio.voiceGender.${option.value}`)}
-                  </button>
-                ))}
-              </div>
-              <div className="grid gap-3 md:grid-cols-3">
-                <select value={ttsVoice} onChange={(event) => onTtsVoiceChange(event.target.value)} className="min-h-12 rounded-2xl border border-[#758bac]/15 bg-white px-4 text-sm font-bold text-[#485164] outline-none">
-                  {avatarVoiceOptions.map((voice) => <option key={voice} value={voice}>{voice}</option>)}
-                </select>
-                <select value={ttsLanguageCode} onChange={(event) => onTtsLanguageCodeChange(event.target.value)} className="min-h-12 rounded-2xl border border-[#758bac]/15 bg-white px-4 text-sm font-bold text-[#485164] outline-none">
-                  {languageOptions.map((item) => (
-                    <option key={item.value || "auto"} value={item.value}>{translate(`studio.languageOption.${item.value || "auto"}`)}</option>
-                  ))}
-                </select>
-                <label className="rounded-2xl border border-[#758bac]/15 bg-white px-4 py-2.5">
-                  <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-[#8791a3]">{translate("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
-                  <input type="range" min="0" max="1" step="0.05" value={ttsStability} onChange={(event) => onTtsStabilityChange(Number(event.target.value))} className="mt-1 w-full accent-[#202633]" />
-                </label>
-              </div>
-            </div>
-          ) : null}
+          {voiceControls}
         </div>
       </div>
     </div>

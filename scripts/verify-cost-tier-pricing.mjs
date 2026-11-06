@@ -17,11 +17,21 @@ assert.equal(estimate({mode:'image',provider:'nano-banana-pro',resolution:'1K'})
 assert.equal(estimate({mode:'image',provider:'nano-banana-pro',resolution:'2K'}),27);
 assert.equal(estimate({mode:'image',provider:'nano-banana-pro',resolution:'4K'}),54);
 assert.equal(estimate({mode:'image',provider:'topaz-image'}),15);
-for(const [quality,cost,markup] of [['low',.005,1],['medium',.037,1.2],['high',.145,1.2]])assert.equal(estimate({mode:'image',provider:'chatgpt-image',quality}),Math.ceil(cost*150*markup-1e-9));
+for(const [quality,credits] of [['low',6],['medium',10],['high',12],['xhigh',20],['max',43]])assert.equal(estimate({mode:'image',provider:'chatgpt-image',quality}),credits);
 for(const [resolution,rate] of [['480p',.02],['720p',.03],['1080p',.14]])assert.equal(estimate({mode:'video',provider:'grok-video',duration:'5s',resolution,hasReferences:true}),Math.ceil((5*rate+.01)*150*(resolution==='480p'?1:1.2)-1e-9));
 for(const [provider,cost,factor] of [['kling-avatar-standard',.0562,1],['kling-avatar-pro',.115,1.2],['gemini-omni-flash-video',.125,1.2],['happy-horse-video',.14,1.2]])assert.equal(estimate({mode:'video',provider,duration:'5s'}),Math.ceil(cost*5*150*factor-1e-9));
 assert.equal(pricing.creditsFromFalUsd(.1,1),15,'No phantom extra credit from floating-point rounding');
-const billing=load('src/lib/billing.ts');
+// This reference fixture describes the October promotion, just like estimate() above.
+// billing evaluates the public reference at import time; do not let the wall clock
+// turn this historical fixture into a failure once the promotion has expired.
+const actualDateNow=Date.now;
+let billing;
+try {
+ Date.now=()=>Date.parse('2026-10-23T00:00:00+08:00');
+ billing=load('src/lib/billing.ts');
+} finally {
+ Date.now=actualDateNow;
+}
 assert.deepEqual(billing.CREDIT_PACKS.map(({credits,amountCents})=>[credits,amountCents]),[[800,499],[1800,999],[4800,2499],[11000,4999]]);
 assert.equal(billing.CREDIT_USAGE_REFERENCE.video.credits,13);
 const component=readFileSync('src/app/compare/dreamface-credit-packs.tsx','utf8');assert.match(component,/CREDIT_PACKS\.map/);

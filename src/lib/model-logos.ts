@@ -1,3 +1,4 @@
+import { normalizeGptImageProvider } from "./gpt-image-models";
 // fal modelLab associations and original asset URLs: public/model-logos/sources.json.
 // Keep these small assets local so the model picker never waits for fal's image CDN.
 const MODEL_LOGO_LABS:Record<string,string> = {
@@ -15,7 +16,7 @@ const MODEL_LOGO_LABS:Record<string,string> = {
   "kling-avatar-standard":"kling",
   "kling-avatar-pro":"kling",
   "chatgpt-image":"openai",
-  "gpt-image-2.5-sunburst":"openai",
+  "gpt-image-2.6-sunburst":"openai",
   "nano-banana-image":"google",
   "nano-banana-edit":"google",
   "nano-banana-pro":"google",
@@ -30,6 +31,6 @@ const MODEL_LOGO_LABS:Record<string,string> = {
   "elevenlabs-tts":"elevenlabs"
 };
 export function modelLogoForProvider(provider?:string) {
-  const lab=provider ? MODEL_LOGO_LABS[provider] : undefined;
+  const lab=provider ? MODEL_LOGO_LABS[normalizeGptImageProvider(provider)] : undefined;
   return lab ? `/model-logos/${lab}.webp` : undefined;
 }

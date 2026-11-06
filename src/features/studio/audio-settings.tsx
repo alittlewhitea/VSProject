@@ -1,4 +1,7 @@
-import { formatApproximateCreditValue } from "../../lib/billing";
+"use client";
+
+import { useState } from "react";
+import { StudioComposerGenerate, StudioComposerParameter } from "./studio-composer-controls";
 import { GenerationCostSummary } from "./generation-cost-summary";
 import { ModelPicker, type ModelPickerOption } from "./model-picker";
 
@@ -46,7 +49,7 @@ type AudioSettingsProps = {
   onGenerate: () => void;
 };
 
-const controlClass = "h-10 min-w-0 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054] outline-none";
+const controlClass = "h-10 min-w-0 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-[13px] font-bold text-[var(--studio-text)] outline-none";
 
 export function AudioSettings({
   provider,
@@ -83,83 +86,52 @@ export function AudioSettings({
   onMusicFormatChange,
   onGenerate
 }: AudioSettingsProps) {
-  return (
-    <div className="bg-white px-4 py-4 text-start">
-      <ModelPicker value={provider} options={providerOptions} translate={translate} onChange={onProviderChange} />
-      <div className="mb-3 grid gap-2">
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {isElevenLabs ? (
-            <>
-              <select value={ttsVoice} onChange={(event) => onTtsVoiceChange(event.target.value)} className={controlClass}>
-                {audioVoiceOptions.map((voice) => <option key={voice} value={voice}>{voice}</option>)}
-              </select>
-              <select value={ttsLanguageCode} onChange={(event) => onTtsLanguageCodeChange(event.target.value)} className={controlClass}>
-                {languageOptions.map((item) => (
-                  <option key={item.value || "auto"} value={item.value}>{translate(`studio.languageOption.${item.value || "auto"}`)}</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => onTtsTimestampsChange(!ttsTimestamps)}
-                className={`inline-flex h-10 items-center justify-center rounded-[10px] border px-3 text-[12px] font-bold ${ttsTimestamps ? "border-[#cfc9ff] bg-[#f1efff] text-[#6a5af9]" : "border-[#eaecf0] bg-white text-[#667085]"}`}
-              >
-                {translate("studio.field.wordTimestamps")}: {translate(ttsTimestamps ? "studio.state.on" : "studio.state.off")}
-              </button>
-            </>
-          ) : (
-            <>
-              <select value={musicSampleRate} onChange={(event) => onMusicSampleRateChange(Number(event.target.value))} className={controlClass}>
-                {[16000, 24000, 32000, 44100].map((value) => <option key={value} value={value}>{value} Hz</option>)}
-              </select>
-              <select value={musicBitrate} onChange={(event) => onMusicBitrateChange(Number(event.target.value))} className={controlClass}>
-                {[32000, 64000, 128000, 256000].map((value) => <option key={value} value={value}>{value / 1000} kbps</option>)}
-              </select>
-              <select value={musicFormat} onChange={(event) => onMusicFormatChange(event.target.value as MusicFormat)} className={`${controlClass} uppercase`}>
-                {(["mp3", "wav", "pcm"] as const).map((value) => <option key={value} value={value}>{value}</option>)}
-              </select>
-            </>
-          )}
-
-          <span className="inline-flex h-10 items-center justify-center rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054]">
-            {estimatedCredits} {translate("studio.common.credits")}
-          </span>
-        </div>
-
-        <button type="button" onClick={onGenerate} disabled={generateDisabled} className="inline-flex h-[46px] w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(90deg,#744bfb,#6757f6_55%,#7d53ff)] px-5 text-[15px] font-extrabold text-white shadow-[0_10px_24px_rgba(106,90,249,0.2)] transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-55">
-          <span>{isSubmitting ? translate("studio.generate.creating") : isAuthenticated ? translate("studio.generate.button") : translate("studio.auth.signInToGenerate")}</span>
-          {isAuthenticated ? <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">{estimatedCredits} {translate("studio.common.credits")} · ≈{formatApproximateCreditValue(estimatedCredits)}</span> : null}
-          <span className="grid h-7 w-7 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
-        </button>
-        <GenerationCostSummary estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate} />
+  const [advancedOpen,setAdvancedOpen]=useState(false);
+  return <div className="df-audio-settings df-composer-settings">
+    <div className="df-composer-toolbar">
+      <ModelPicker inline value={provider} options={providerOptions} translate={translate} onChange={onProviderChange}/>
+      <div className="df-composer-parameters">
+        {isElevenLabs ? <>
+          <StudioComposerParameter kind="voice" label={translate("studio.field.voice")}><select aria-label={translate("studio.field.voice")} title={translate("studio.field.voice")} value={ttsVoice} onChange={event=>onTtsVoiceChange(event.target.value)} className={controlClass}>{audioVoiceOptions.map(voice=><option key={voice} value={voice}>{voice}</option>)}</select></StudioComposerParameter>
+          <StudioComposerParameter kind="language" label={translate("studio.field.language")}><select aria-label={translate("studio.field.language")} title={translate("studio.field.language")} value={ttsLanguageCode} onChange={event=>onTtsLanguageCodeChange(event.target.value)} className={controlClass}>{languageOptions.map(item=><option key={item.value||"auto"} value={item.value}>{translate(`studio.languageOption.${item.value||"auto"}`)}</option>)}</select></StudioComposerParameter>
+        </> : <StudioComposerParameter kind="format" label={translate("studio.music.format")}><select aria-label={translate("studio.music.format")} title={translate("studio.music.format")} value={musicFormat} onChange={event=>onMusicFormatChange(event.target.value as MusicFormat)} className={controlClass}>{(["mp3","wav","pcm"] as const).map(value=><option key={value} value={value}>{value.toUpperCase()}</option>)}</select></StudioComposerParameter>}
       </div>
-
-      {isElevenLabs ? (
-        <div className="grid gap-2 sm:grid-cols-3">
-          <div className="rounded-xl border border-[#eaecf0] bg-white p-3">
-            <div className="mb-3 flex items-center justify-between text-xs font-black text-[#6e7d95]">
+      <button type="button" data-audio-advanced-trigger aria-expanded={advancedOpen} onClick={()=>setAdvancedOpen(value=>!value)} className="df-composer-more">{translate(advancedOpen?"studio.workbench.lessSettings":"studio.workbench.moreSettings")}</button>
+      <StudioComposerGenerate disabled={generateDisabled} submitting={isSubmitting} authenticated={isAuthenticated} credits={estimatedCredits} translate={translate} onGenerate={onGenerate}/>
+    </div>
+    <GenerationCostSummary compact estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate}/>
+    {advancedOpen ? <div data-audio-advanced className="df-composer-advanced">
+      {isElevenLabs ? <>
+        <button type="button" data-audio-timestamps aria-pressed={ttsTimestamps} onClick={()=>onTtsTimestampsChange(!ttsTimestamps)} className="df-composer-more">{translate("studio.field.wordTimestamps")}: {translate(ttsTimestamps?"studio.state.on":"studio.state.off")}</button>
+        <div data-audio-voice-controls className="grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-3">
+            <div className="mb-3 flex items-center justify-between text-xs font-semibold text-[var(--studio-muted)]">
               <span>{translate("studio.music.voiceGender")}</span>
               <span>{translate(`studio.music.${audioVoiceGender}`)}</span>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
               {voiceGenderOptions.map((option) => (
-                <button key={option.value} type="button" onClick={() => onAudioVoiceGenderChange(option.value)} className={`h-10 rounded-[0.9rem] text-xs font-black transition ${audioVoiceGender === option.value ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>
+                <button key={option.value} type="button" onClick={() => onAudioVoiceGenderChange(option.value)} className={`h-10 rounded-[0.9rem] text-xs font-semibold transition ${audioVoiceGender === option.value ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-accent-soft)] text-[var(--studio-muted)] hover:bg-[var(--studio-panel)]"}`}>
                   {translate(`studio.music.${option.value}`)}
                 </button>
               ))}
             </div>
           </div>
-          <label className="rounded-xl border border-[#eaecf0] bg-white p-3">
-            <span className="mb-3 block text-xs font-black text-[#6e7d95]">{translate("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
-            <input type="range" min="0" max="1" step="0.05" value={ttsStability} onChange={(event) => onTtsStabilityChange(Number(event.target.value))} className="w-full accent-[#151b2a]" />
+          <label className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-3">
+            <span className="mb-3 block text-xs font-semibold text-[var(--studio-muted)]">{translate("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
+            <input type="range" min="0" max="1" step="0.05" value={ttsStability} onChange={(event) => onTtsStabilityChange(Number(event.target.value))} className="w-full accent-[var(--studio-primary)]" />
           </label>
-          <label className="rounded-xl border border-[#eaecf0] bg-white p-3">
-            <span className="mb-3 block text-xs font-black text-[#6e7d95]">{translate("studio.field.textNormalization")}</span>
-            <select value={textNormalization} onChange={(event) => onTextNormalizationChange(event.target.value)} className="h-10 w-full rounded-[0.9rem] border border-black/[0.06] bg-[#fbfcfe] px-3 text-sm font-black text-[#66758b] outline-none">
+          <label className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-3">
+            <span className="mb-3 block text-xs font-semibold text-[var(--studio-muted)]">{translate("studio.field.textNormalization")}</span>
+            <select value={textNormalization} onChange={(event) => onTextNormalizationChange(event.target.value)} className="h-10 w-full rounded-[0.9rem] border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] px-3 text-sm font-semibold text-[var(--studio-muted)] outline-none">
               {textNormalizationOptions.map((item) => <option key={item.value} value={item.value}>{translate(`studio.textNormalization.${item.value}`)}</option>)}
             </select>
           </label>
         </div>
-      ) : null}
-    </div>
-  );
+      </> : <div className="grid gap-3 sm:grid-cols-2">
+        <label className="df-composer-option"><span>{translate("studio.music.sampleRate")}</span><select value={musicSampleRate} onChange={event=>onMusicSampleRateChange(Number(event.target.value))} className={controlClass}>{[16000,24000,32000,44100].map(value=><option key={value} value={value}>{value} Hz</option>)}</select></label>
+        <label className="df-composer-option"><span>{translate("studio.music.bitrate")}</span><select value={musicBitrate} onChange={event=>onMusicBitrateChange(Number(event.target.value))} className={controlClass}>{[32000,64000,128000,256000].map(value=><option key={value} value={value}>{value/1000} kbps</option>)}</select></label>
+      </div>}
+    </div> : null}
+  </div>;
 }

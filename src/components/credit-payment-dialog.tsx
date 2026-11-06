@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { CREDIT_PACKS, formatUsd, type CreditPack, type CreditPaymentProvider } from "../lib/billing";
 import { trackEvent, trackPurchaseEvent } from "../lib/analytics";
 import { mountPayPalWallets, type WalletConfig, type WalletReceipt, type Wallet, type WalletCallbacks } from "../lib/paypal-wallets-client";
+import { DODO_CHECKOUT_SUSPENDED } from "../lib/payment-release";
 type Translate=(key:string,values?:Record<string,string|number>)=>string;
 const PENDING_KEY="dreamface_wallet_pending_order";
 type Pending={orderId:string;packId:string};
@@ -88,7 +89,7 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
     let cancelled=false,controller:Awaited<ReturnType<typeof mountPayPalWallets>>|null=null;
     const sdkAbort=new AbortController();
     const signal=AbortSignal.timeout(15000);
-    void fetch("/api/billing/payment-methods",{signal}).then(response=>response.json()).then(data=>{if(!cancelled)setCard(Array.isArray(data.providers)&&data.providers.includes("dodo"));}).catch(()=>undefined);
+    if(!DODO_CHECKOUT_SUSPENDED) void fetch("/api/billing/payment-methods",{signal}).then(response=>response.json()).then(data=>{if(!cancelled)setCard(Array.isArray(data.providers)&&data.providers.includes("dodo"));}).catch(()=>undefined);
     void (async()=>{
       try {
         const response=await fetch("/api/billing/paypal/wallet-config",{signal,cache:"no-store"});
@@ -99,7 +100,7 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
           canStart:()=>callbacks.current.canStart(),createOrder:wallet=>callbacks.current.createOrder(wallet),capture:id=>callbacks.current.capture(id),onBusy:value=>callbacks.current.onBusy(value),onAuthorized:id=>callbacks.current.onAuthorized(id),onSuccess:receipt=>callbacks.current.onSuccess(receipt),onError:()=>callbacks.current.onError()
         }});
         if(cancelled)controller.destroy();
-      }catch{/* PayPal and Credit Card remain available if wallet SDKs are unavailable. */}
+      }catch{/* Available redirect methods remain usable if wallet SDKs are unavailable. */}
       finally{if(!cancelled)setWalletLoading(false);}
     })();
     return ()=>{cancelled=true;sdkAbort.abort();controller?.destroy();};
@@ -115,6 +116,7 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
     finally{operation.current=false;if(alive.current)setWalletBusy(false);}
   }
   async function redirect(provider:CreditPaymentProvider) {
+    if(provider==="dodo"&&DODO_CHECKOUT_SUSPENDED)return;
     if(operation.current||busy||pendingRef.current||paid)return;
     operation.current=true;setRedirectAttempted(true);setError(false);
     try{await onCheckout(pack.id,provider);}catch{setError(true);}finally{operation.current=false;}
@@ -140,7 +142,7 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
           {walletLoading?<p role="status" className="mb-3 text-xs text-[#82758f]">{t("creditShop.walletLoading")}</p>:null}
           <div className="grid gap-2">
             <button type="button" data-payment-provider="paypal" disabled={disabled} onClick={()=>void redirect("paypal")} className="min-h-12 rounded-xl bg-[#ffc439] px-4 text-sm font-black text-[#003087] disabled:opacity-40">PayPal</button>
-            {card?<button type="button" data-payment-provider="dodo" disabled={disabled} onClick={()=>void redirect("dodo")} className="min-h-12 rounded-xl bg-[#7554e8] px-4 text-sm font-black text-white disabled:opacity-40">Credit Card</button>:null}
+            {card&&!DODO_CHECKOUT_SUSPENDED?<button type="button" data-payment-provider="dodo" disabled={disabled} onClick={()=>void redirect("dodo")} className="min-h-12 rounded-xl bg-[#7554e8] px-4 text-sm font-black text-white disabled:opacity-40">Credit Card</button>:null}
           </div>
           {pending?<div role="status" className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><p>{t("creditShop.pending")}</p><button type="button" data-wallet-retry disabled={busy} onClick={()=>void retry()} className="mt-3 min-h-11 w-full rounded-lg bg-amber-900 px-3 font-bold text-white disabled:opacity-50">{t("creditShop.retry")}</button></div>:null}
           {busy?<p role="status" className="mt-3 text-sm text-[#8061b8]">{t("creditShop.paying")}</p>:null}

@@ -1,4 +1,5 @@
-import { creditsFromFalUsd } from "./model-pricing";
+import { isGptImageProvider } from "./gpt-image-models";
+import { creditsFromFalUsd, gptImageCreditsFromCostUsd } from "./model-pricing";
 
 type FalModelError = {
   loc?: unknown[];
@@ -216,13 +217,13 @@ export async function falApiErrorFromResponse(response: Response) {
   return new FalApiError(response.status, parseFalFailure(payload, response.headers, response.status));
 }
 
-export function falActualCreditsFromCost(costUsd: number | null, estimatedCredits: number) {
+export function falActualCreditsFromCost(costUsd: number | null, estimatedCredits: number, provider?: string | null) {
   if (!Number.isFinite(costUsd || 0) || !costUsd || costUsd <= 0) return 0;
-  return Math.min(Math.max(0, estimatedCredits), creditsFromFalUsd(costUsd, 1));
+  return Math.min(Math.max(0, estimatedCredits), provider && isGptImageProvider(provider) ? gptImageCreditsFromCostUsd(costUsd, 0) : creditsFromFalUsd(costUsd, 1));
 }
 
-export function falRefundCreditsFromCost(costUsd: number | null, estimatedCredits: number) {
-  return Math.max(0, estimatedCredits - falActualCreditsFromCost(costUsd, estimatedCredits));
+export function falRefundCreditsFromCost(costUsd: number | null, estimatedCredits: number, provider?: string | null) {
+  return Math.max(0, estimatedCredits - falActualCreditsFromCost(costUsd, estimatedCredits, provider));
 }
 
 export function formatFalFailureReason(info: FalFailureInfo, estimatedCredits: number, refundedCredits: number) {

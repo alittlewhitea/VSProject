@@ -1,216 +1,30 @@
-/* Existing mobile/tablet layout is unchanged. These wrappers have no layout box. */
-.editorScroll,
-.parameters {
-  display: contents;
-}
-
-.shortcut {
-  display: none;
-}
-
-@media (min-width: 1024px) {
-  .workbench .columns {
-    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
-    align-items: start;
-    gap: 16px;
-  }
-
-  .workbench .editor {
-    min-height: 0;
-    height: auto;
-    /* Short windows scroll within the panel, without pushing its CTA off screen. */
-    max-height: min(900px, calc(100dvh - 176px));
-    overflow: hidden;
-    border-color: #e3dcfa;
-  }
-
-  .editor .editorScroll {
-    display: block;
-    flex: 0 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior-y: contain;
-    scrollbar-width: thin;
-    scrollbar-color: #d7d1ea transparent;
-    padding-bottom: 12px;
-  }
-
-  .editorScroll > [aria-haspopup="dialog"] {
-    padding: 8px;
-  }
-
-  .editorScroll > [aria-haspopup="dialog"] > span:first-child {
-    margin-bottom: 2px;
-  }
-
-  .promptActions > button {
-    min-height: 32px;
-  }
-
-  .editorScroll [data-video-keyframes] {
-    margin-bottom: 8px;
-  }
-
-  .editorScroll [data-frame-index] {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) auto;
-    grid-template-rows: 16px 30px;
-    column-gap: 6px;
-    height: 70px;
-    align-content: center;
-    align-items: center;
-  }
-
-  .editorScroll [data-frame-index] > p {
-    grid-column: 2 / -1;
-    grid-row: 1;
-    margin: 0;
-  }
-
-  .editorScroll [data-frame-index] > img {
-    grid-column: 1;
-    grid-row: 1 / 3;
-    height: 44px;
-    margin: 0;
-  }
-
-  .editorScroll [data-frame-index] > label {
-    grid-column: 2;
-    grid-row: 2;
-    padding: 6px;
-    font-size: 11px;
-  }
-
-  .editorScroll [data-frame-index] > button {
-    grid-column: 3;
-    grid-row: 2;
-    min-height: 30px;
-    margin: 0;
-  }
-
-  .editorScroll [data-frame-index]:not(:has(img)) > p,
-  .editorScroll [data-frame-index]:not(:has(img)) > label {
-    grid-column: 1 / -1;
-  }
-
-  .editor .parameters {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.35fr);
-    gap: 8px;
-    margin-top: 12px;
-    align-items: stretch;
-  }
-
-  .parameters .parameterGroup {
-    display: contents;
-  }
-
-  .parameterGroup > label {
-    height: 56px;
-    min-width: 0;
-    margin: 0;
-    padding: 6px 10px;
-    border: 1px solid #eaecf0;
-    border-radius: 10px;
-    background: #fff;
-  }
-
-  .parameterGroup > label > span:first-child {
-    margin-bottom: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .parameterGroup > label > select,
-  .parameterGroup > label > span:last-child:not(:first-child) {
-    height: 30px;
-    min-height: 30px;
-    max-width: 100%;
-  }
-
-  .parameterGroup > div {
-    padding: 0;
-  }
-
-  .parameterGroup [data-video-advanced-trigger] {
-    height: 56px;
-    min-height: 56px;
-    padding: 0 6px;
-    font-size: 11px;
-    line-height: 16px;
-  }
-
-  .editor .actionBar {
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
-    flex: 0 0 auto;
-    margin-top: 0;
-    padding-top: 12px;
-    border-top: 1px solid #eee9f8;
-    background: #fff;
-  }
-
-  .actionBar > button {
-    height: 60px;
-    min-height: 60px;
-    padding: 0 14px;
-    gap: 10px;
-    justify-content: flex-start;
-    font-size: 14px;
-  }
-
-  .actionBar > button > span {
-    flex-shrink: 0;
-  }
-
-  .actionBar > button > span:nth-child(2) {
-    min-width: 0;
-    flex-shrink: 1;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  .actionBar .shortcut {
-    display: block;
-    margin-inline-start: auto;
-    white-space: nowrap;
-    font: inherit;
-    font-size: 10px;
-    font-weight: 500;
-    color: #eee9ff;
-  }
-
-  .shortcut > span {
-    display: none;
-  }
-
-  .actionBar .legacyShortcut {
-    display: none;
-  }
-
-  .workbench .preview {
-    min-height: 0;
-    padding: 14px;
-  }
-
-  .preview [data-video-showcases] > div {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    overflow: visible;
-  }
-
-  .preview [data-video-showcases] > div > button {
-    min-width: 0;
-  }
-}
-
-@media (min-width: 1600px) {
-  .actionBar .shortcut > span {
-    display: inline;
-  }
+/* Full-width composer; all scrolling stays with the page. */
+.workbench { width:100%; max-width:none; min-width:0; margin-inline:auto; }
+.editor { min-width:0; overflow:visible; }
+.editor :global(.df-panel-heading) { padding:18px 24px 0; border:0; }
+.editor :global(.df-workflow-nav) { margin:0; max-width:none; }
+.editorScroll { min-width:0; padding:20px 24px 24px; overflow:visible; overscroll-behavior-y:auto; }
+.formGrid { display:flex; flex-direction:column; gap:18px; min-width:0; margin:0; border:0; padding:0; }
+.content, .configuration { min-width:0; }
+.toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.configuration { padding-top:16px; border-top:1px solid var(--df-border); }
+.content :global(#video-studio-prompt) { display:block; width:100%; height:180px; min-height:140px; max-height:480px; padding:18px 0; resize:vertical; border:0; background:transparent; color:var(--df-ink); font:inherit; font-size:18px; line-height:1.7; }
+.content :global(#video-studio-prompt):focus-visible { outline:none; box-shadow:inset 0 -2px var(--df-primary-border); }
+.content :global([data-video-reference-panel]) { margin-bottom:18px; }
+.content :global([data-video-keyframes]) { margin:8px 0 14px; }
+.content :global([data-video-keyframes]) > div { display:flex; flex-wrap:wrap; }
+.content :global([data-frame-index]) { position:relative; flex:0 1 160px; min-width:0; padding:10px; border:1px dashed var(--df-primary-border); border-radius:var(--df-radius-input); background:var(--df-surface-soft); }
+.content :global([data-frame-index]) > img { height:84px; object-fit:contain; }
+.content :global([data-frame-index]) label { display:flex; min-height:44px; align-items:center; justify-content:center; background:var(--df-surface); }
+.promptActions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.promptActions > button { min-height:44px; border-color:transparent; background:transparent; font-size:12px; font-weight:400; }
+.parameters, .actionBar { display:contents; }
+.advancedButton { flex:0 1 auto; min-height:44px; padding:8px 10px; border:0; border-radius:8px; background:transparent; color:var(--df-muted); font-size:12px; line-height:20px; font-weight:400; }
+.advancedButton:hover { color:var(--df-accent); background:var(--df-surface-soft); }
+@media(max-width:767px) {
+  .editor :global(.df-panel-heading) { padding:14px 14px 0; }
+  .editorScroll { padding:16px 14px 18px; }
+  .content :global(#video-studio-prompt) { height:160px; min-height:140px; font-size:16px; }
+  .content :global([data-frame-index]) { flex-basis:calc(50% - 4px); padding:8px; }
+  .configuration { gap:8px; }
 }

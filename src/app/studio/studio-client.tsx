@@ -1,14 +1,19 @@
 "use client";
 
+import "../../features/studio/studio-theme.css";
+import dynamic from "next/dynamic";
+import { heygenAvatarTiming } from "../../lib/heygen-avatar";
+
 import Link from "../../features/studio/studio-link";
 import { navigateStudio } from "../../lib/studio-navigation";
-import { referenceTextWithoutExamples, shouldApplyUrlInput, type AppliedUrlInput } from "../../lib/studio-workspace-inputs";
+import { parseStudioReferenceImages, referenceTextWithoutExamples, shouldApplyUrlInput, type AppliedUrlInput } from "../../lib/studio-workspace-inputs";
 import { useVideoPromptEnhancement } from "../../features/studio/use-video-prompt-enhancement";
 import { useH3DailyFree } from "../../features/studio/use-h3-daily-free";
 import { isH3DailyFreeRequest } from "../../lib/h3-daily-free-policy";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
+import { HEYGEN_REFERENCE_IMAGE_LIMIT, isPublicReferenceUrl } from "../../lib/heygen-reference-video";
 import { isFlux3MaxPromotion, FLUX3_MAX_PROMO_END } from "../../lib/flux3-max";
-import { isGptImageProvider, gptImageQuality, GPT_IMAGE_EXAMPLE_PROMPTS, GPT_IMAGE_SIZES, GPT_IMAGE_QUALITIES } from "../../lib/gpt-image-models";
+import { isGptImageProvider, gptImageQuality, GPT_IMAGE_EXAMPLE_PROMPTS, GPT_IMAGE_SIZES, GPT_IMAGE_QUALITIES, DEFAULT_GPT_IMAGE_OPTIONS, normalizeGptImageProvider, gptImageOptionError, type GptImageOptions, type GptImageQuality } from "../../lib/gpt-image-models";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -27,7 +32,7 @@ import { AvatarWorkbench } from "../../features/studio/avatar-workbench";
 import { ImageWorkbench } from "../../features/studio/image-workbench";
 import { ImageSettings } from "../../features/studio/image-settings";
 import { AudioSettings } from "../../features/studio/audio-settings";
-import { VideoSettings, type PromptShowcase } from "../../features/studio/video-settings";
+import { VideoSettings } from "../../features/studio/video-settings";
 import { AvatarSettings } from "../../features/studio/avatar-settings";
 import { UnifiedWorkbenchLayout } from "../../features/studio/unified-workbench-layout";
 import { ModelPicker } from "../../features/studio/model-picker";
@@ -38,9 +43,11 @@ import {
   type StudioIconName
 } from "../../features/studio/studio-navigation";
 import { StudioHeader } from "../../features/studio/studio-header";
+import { StudioScrollToBottom } from "../../features/studio/studio-scroll-to-bottom";
 import { WorkflowSwitcher } from "../../features/studio/workflow-switcher";
+import { StudioBillingWorkspace } from "../../features/studio/studio-billing-workspace";
 import { StudioBillingModal, type GenerationBillingContext } from "../../features/studio/studio-billing-modal";
-import { StudioHome } from "../../features/studio/studio-home";
+import { StudioHome, type HomeCreationInput } from "../../features/studio/studio-home";
 import { useTaskDetails } from "../../features/studio/use-task-details";
 import { StudioProjects } from "../../features/studio/studio-projects";
 import { StudioReferrals } from "../../features/studio/studio-referrals";
@@ -51,6 +58,7 @@ import {
   getPersistentIdempotency,
   mergeTasks,
   pickMediaUrl,
+  pickImageOutputUrls,
   readSessionTasks,
   readStudioLoginDraft,
   safeRemoveLocalStorage,
@@ -89,7 +97,7 @@ import {
 } from "../../features/studio/video-models";
 
 type ImageWorkflow = "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
-type VideoWorkflow = "avatar-video" | "text-to-video" | "image-to-video";
+type VideoWorkflow = "avatar-video" | "text-to-video" | "image-to-video" | "reference-to-video";
 type AudioWorkflow = "text-to-audio" | "text-to-music";
 type StudioWorkflow = ImageWorkflow | VideoWorkflow | AudioWorkflow;
 
@@ -97,6 +105,10 @@ const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
 const LAST_MODEL_STORAGE_PREFIX = "dreamface_studio_last_model_v1";
 const TEXT_IMAGE_PAGE_INNER_CLASS = "mx-auto w-full max-w-[1220px]";
 const STUDIO_SIGN_IN_URL = "/en/auth?next=%2Fstudio%3Fview%3Dhome";
+
+const VideoTemplateGallery = dynamic(() => import("../../features/studio/studio-video-template-gallery"), { ssr: false });
+const ImageTemplateGallery = dynamic(() => import("../../features/studio/studio-image-template-gallery"), { ssr: false });
+const AvatarLibrary = dynamic(() => import("../../features/studio/studio-avatar-library"), { ssr: false });
 
 const WORKSPACE_VIDEO_BASE_URL = "https://media.dreamface.io/ai_video";
 const YOUNG_KOREAN_WOMAN_VIDEO_URL = `${WORKSPACE_VIDEO_BASE_URL}/16x9/young_Korean_woman.mp4`;
@@ -235,15 +247,15 @@ const PROVIDER_META: Record<
   }
 > = {
   "chatgpt-image": {
-    label: "GPT Image 2.5 Flare",
-    shortLabel: "GPT Image 2.5 Flare",
+    label: "GPT Image 2.6 Flare",
+    shortLabel: "GPT Image 2.6 Flare",
     speed: "Fast",
     quality: "Highest text fidelity",
     bestFor: "Ads, infographics, product visuals, readable typography"
   },
-  "gpt-image-2.5-sunburst": {
-    label: "GPT Image 2.5 Sunburst",
-    shortLabel: "GPT Image 2.5 Sunburst",
+  "gpt-image-2.6-sunburst": {
+    label: "GPT Image 2.6 Sunburst",
+    shortLabel: "GPT Image 2.6 Sunburst",
     speed: "Slower",
     quality: "Pro",
     bestFor: "Precision editing, intricate layouts and typography"
@@ -334,13 +346,13 @@ const WORKFLOW_META: Record<
     label: "Text to Image",
     description: "Create a new image from a prompt.",
     recommendedProvider: "chatgpt-image",
-    providers: ["chatgpt-image", "gpt-image-2.5-sunburst", "nano-banana-pro", "nano-banana-image", "nano-banana-2-lite", "nano-banana-lite", "flux-dev", "flux-image"]
+    providers: ["chatgpt-image", "gpt-image-2.6-sunburst", "nano-banana-pro", "nano-banana-image", "nano-banana-2-lite", "nano-banana-lite", "flux-dev", "flux-image"]
   },
   "image-to-image": {
     label: "Image to Image",
     description: "Upload references and edit, restyle, or extend them.",
     recommendedProvider: "nano-banana-image",
-    providers: ["chatgpt-image", "gpt-image-2.5-sunburst", "nano-banana-image", "nano-banana-lite", "nano-banana-pro"]
+    providers: ["chatgpt-image", "gpt-image-2.6-sunburst", "nano-banana-image", "nano-banana-lite", "nano-banana-pro"]
   },
   "enhance-cleanup": {
     label: "Image Enhance",
@@ -357,8 +369,8 @@ const WORKFLOW_META: Record<
   "avatar-video": {
     label: "AI Talking",
     description: "Upload one image, type what it should say, and create a talking video.",
-    recommendedProvider: "minimax-h3-max-turbo-video",
-    providers: ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "kling-avatar-standard", "kling-avatar-pro"]
+    recommendedProvider: "heygen-video",
+    providers: ["heygen-video", "minimax-h3-max-turbo-video", "minimax-h3-max-video", "kling-avatar-standard", "kling-avatar-pro"]
   },
   "text-to-video": {
     label: "Text to Video",
@@ -371,6 +383,10 @@ const WORKFLOW_META: Record<
     description: "Animate a reference image into a short video.",
     recommendedProvider: "heygen-video",
     providers: VIDEO_PROVIDERS_BY_WORKFLOW["image-to-video"]
+  },
+  "reference-to-video": {
+    label: "Reference Video", description: "Create a new video using a reference video and optional subject images.",
+    recommendedProvider: "heygen-video", providers: VIDEO_PROVIDERS_BY_WORKFLOW["reference-to-video"]
   },
   "text-to-audio": {
     label: "Text to Audio",
@@ -395,7 +411,8 @@ function lastModelStorageKey(workflow: StudioWorkflow) {
 function readRememberedModel(workflow: StudioWorkflow) {
   if (typeof window === "undefined") return null;
   try {
-    const remembered = window.localStorage.getItem(lastModelStorageKey(workflow));
+    const stored = window.localStorage.getItem(lastModelStorageKey(workflow));
+    const remembered = stored ? normalizeGptImageProvider(stored) : null;
     return remembered && WORKFLOW_META[workflow].providers.includes(remembered) ? remembered : null;
   } catch {
     return null;
@@ -426,7 +443,7 @@ function modelPickerBadge(mode: StudioMode, provider: string, recommendedProvide
     if (badge === "pro") return "studio.modelSelect.badge.pro";
     if (badge === "premium") return "studio.modelSelect.badge.premium";
   }
-  if (provider === "gpt-image-2.5-sunburst" || provider === "kling-avatar-pro" || provider === "nano-banana-pro") return "studio.modelSelect.badge.pro";
+  if (provider === "gpt-image-2.6-sunburst" || provider === "kling-avatar-pro" || provider === "nano-banana-pro") return "studio.modelSelect.badge.pro";
   return undefined;
 }
 
@@ -463,10 +480,12 @@ function studioProjectHref(taskId?: string) {
 }
 
 function getImageSizePreset(value: string) {
-  return IMAGE_SIZE_PRESETS.find((preset) => preset.value === value) || IMAGE_SIZE_PRESETS[0];
+  const preset=IMAGE_SIZE_PRESETS.find((preset) => preset.value === value)||GPT_IMAGE_SIZES.find(preset=>preset.value===value)||IMAGE_SIZE_PRESETS[0];
+  return {...preset,dimensions:`${preset.width} x ${preset.height}`};
 }
 
 function ratioFromImageSize(value: string) {
+  if(value==="auto"||value==="custom")return "auto";
   const preset = getImageSizePreset(value);
   const ratio = preset.width / preset.height;
   if (Math.abs(ratio - 1) < 0.01) return "1:1";
@@ -518,7 +537,7 @@ function promptForProviderChange(current: string, nextDefaultPrompt: string, loc
 }
 
 function defaultImageSizeForProvider(provider: string) {
-  if(provider === "gpt-image-2.5-sunburst") return "landscape_16_9";
+  if(provider === "gpt-image-2.6-sunburst") return "landscape_16_9";
   if (provider === "flux-image" || provider === "flux-dev") return "landscape_16_9";
   if (isNanoBananaProvider(provider)) return "default_4_3";
   return "default_4_3";
@@ -566,9 +585,7 @@ function isH3VideoProvider(provider: string) {
 }
 
 function stripAvatarDefaultReferences(value: string) {
-  return value
-    .split(/\r?\n|,/)
-    .map((url) => url.trim())
+  return parseStudioReferenceImages(value)
     .filter((url) => url && url !== KLING_AVATAR_DEFAULT_IMAGE_URL && !VIDEO_EXAMPLE_SOURCE_IMAGES.includes(url))
     .join("\n");
 }
@@ -614,10 +631,11 @@ function shortInputValue(value: string) {
 
 function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   if (!provider) return false;
+  provider=normalizeGptImageProvider(provider);
   if (provider === "dreamface-io-video") return false;
-  if (mode === "image") return ["gpt-image-2.5-sunburst", "chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
+  if (mode === "image") return ["gpt-image-2.6-sunburst", "chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return ["minimax-music-2.6", "elevenlabs-tts"].includes(provider);
-  if (mode === "avatar") return ["minimax-h3-max-turbo-video", "minimax-h3-max-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
+  if (mode === "avatar") return ["heygen-video", "minimax-h3-max-turbo-video", "minimax-h3-max-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return Boolean(videoModelConfig(provider)) || isAvatarProvider(provider);
 }
 
@@ -629,10 +647,11 @@ function workflowForMode(mode: StudioMode, workflow: string | null): StudioWorkf
     return "text-to-image";
   }
   if (workflow === "avatar-video") return "avatar-video";
-  return workflow === "image-to-video" ? "image-to-video" : "text-to-video";
+  return workflow === "reference-to-video" ? "reference-to-video" : workflow === "image-to-video" ? "image-to-video" : "text-to-video";
 }
 
 function providerForWorkflow(workflow: StudioWorkflow, requestedProvider?: string | null) {
+  if(requestedProvider) requestedProvider=normalizeGptImageProvider(requestedProvider);
   const meta = WORKFLOW_META[workflow];
   if (requestedProvider && meta.providers.includes(requestedProvider)) return requestedProvider;
   return meta.recommendedProvider;
@@ -643,7 +662,7 @@ function frontendPollAttempts(mode: "image" | "video" | "audio", provider: strin
   return 100;
 }
 
-function StudioContent({ initialLocale }: { initialLocale: Locale }) {
+function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; initialView?: "billing" }) {
   const studioI18n = useStudioI18n(initialLocale);
   const st = studioI18n.t;
   const localizeStudioError = (message: string, status?: number) => {
@@ -663,6 +682,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     if (normalized.includes("cannot trim audio") || normalized.includes("audio file could not be trimmed")) {
       return st("studio.status.audioTrimFailed");
     }
+    if (normalized.includes("pixel budget")) return st("studio.gpt26.gifHint");
     if (
       status === 422 ||
       normalized.includes("nsfw") ||
@@ -680,7 +700,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const router = useRouter();
   const sp = useSearchParams();
   const mode: StudioMode = sp.get("mode") === "image" ? "image" : sp.get("mode") === "audio" ? "audio" : sp.get("mode") === "avatar" ? "avatar" : "video";
-  const view = sp.get("view");
+  const view = sp.get("view") || initialView;
+  const isBillingView = view === "billing";
+  const billingParams = new URLSearchParams(sp.toString());
+  billingParams.set("view", "billing");
+  for (const key of ["taskId", "checkout", "token", "payment_id", "session_id", "checkout_id"]) billingParams.delete(key);
+  const billingHref = `/studio?${billingParams.toString()}`;
   const isReferralsView = view === "referrals";
   const isProjectsView = view === "projects" || isReferralsView;
   const isAppsHome = view === "home" || (!view && !sp.get("mode") && !sp.get("workflow"));
@@ -697,14 +722,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const initialImageWorkflow: ImageWorkflow =
     initialWorkflow === "image-to-image" || initialWorkflow === "enhance-cleanup" || initialWorkflow === "background-remove" ? initialWorkflow : "text-to-image";
   const initialVideoWorkflow: VideoWorkflow =
-    initialWorkflow === "avatar-video" || initialWorkflow === "image-to-video" ? initialWorkflow : "text-to-video";
+    initialWorkflow === "avatar-video" || initialWorkflow === "image-to-video" || initialWorkflow === "reference-to-video" ? initialWorkflow : "text-to-video";
   const initialAudioWorkflow: AudioWorkflow = initialWorkflow === "text-to-music" ? "text-to-music" : "text-to-audio";
   const initialReferenceUrl = sp.get("reference");
   const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider, initialWorkflow, st("studio.music.defaultPrompt")));
   const [selectedProvider, setProvider] = useState(initialProvider);
   // Query navigation updates mode before effects synchronize the selected model.
   // Never render/quote a model from the previous mode during that transition.
-  const provider = isProviderAllowedForMode(selectedProvider, mode) ? selectedProvider : initialProvider;
+  const provider = isProviderAllowedForMode(selectedProvider, mode) && WORKFLOW_META[initialWorkflow].providers.includes(selectedProvider) ? selectedProvider : initialProvider;
   const [imageWorkflow, setImageWorkflow] = useState<ImageWorkflow>(initialImageWorkflow);
   const [videoWorkflow, setVideoWorkflow] = useState<VideoWorkflow>(initialVideoWorkflow);
   const [videoSidebarCollapsed, setVideoSidebarCollapsed] = useState(false);
@@ -722,12 +747,16 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       : ""
   );
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
+  const [referenceVideoUrl, setReferenceVideoUrl] = useState(sp.get("referenceVideo") || "");
+  const lastAppliedVideoUrlRef = useRef<AppliedUrlInput | null>(null);
+  const previousReferenceWorkflow = useRef(initialWorkflow === "reference-to-video");
+  const homeReferenceRef = useRef<{ mode: "image" | "video"; image: string } | null>(null);
   const lastAppliedPromptUrlRef = useRef<AppliedUrlInput | null>(null);
   const lastAppliedReferenceUrlRef = useRef<AppliedUrlInput | null>(null);
   // Image workspaces start empty; switching models only sets the supported quality default.
   useEffect(() => {
     if(mode !== "image") return;
-    if(isGptImageProvider(provider)) setImageQuality("low");
+    if(isGptImageProvider(provider)) setImageQuality(current=>gptImageQuality(current));
   },[mode,provider,imageWorkflow]);
 
   const [avatarAudioUrl, setAvatarAudioUrl] = useState(sp.get("audioUrl") || "");
@@ -761,8 +790,19 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const [musicFormat, setMusicFormat] = useState<"mp3" | "wav" | "pcm">("mp3");
   const [musicAdvancedOpen, setMusicAdvancedOpen] = useState(false);
   const [outputFormat, setOutputFormat] = useState("png");
-  const [imageQuality, setImageQuality] = useState<"auto" | "low" | "medium" | "high">("low");
+  const [imageQuality, setImageQuality] = useState<GptImageQuality>("low");
+  const [gptImageOptions, setGptImageOptions] = useState<GptImageOptions>({...DEFAULT_GPT_IMAGE_OPTIONS});
   const [numImages, setNumImages] = useState(1);
+  useEffect(()=>{
+    if(mode!=="image")return;
+    if(!isGptImageProvider(provider)) {
+      if(!["png","jpeg","webp"].includes(outputFormat))setOutputFormat("png");
+      if(numImages>4)setNumImages(4);
+    } else {
+      if(imageWorkflow==="image-to-image"&&outputFormat==="svg")setOutputFormat("png");
+      if(outputFormat==="svg"&&numImages!==1)setNumImages(1);
+    }
+  },[mode,provider,imageWorkflow,outputFormat,numImages]);
   const [guidanceScale, setGuidanceScale] = useState(3.5);
   const [numInferenceSteps, setNumInferenceSteps] = useState(4);
   const [enableSafetyChecker, setEnableSafetyChecker] = useState(false);
@@ -805,6 +845,16 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   },[accessToken]);
   const [userId, setUserId] = useState<string | null>(null);
   const h3DailyFree = useH3DailyFree(accessToken, userId);
+  function startHomeCreation(input: HomeCreationInput) {
+    const hasImage = input.mode !== "audio" && Boolean(input.image);
+    const workflow = input.mode === "video" ? hasImage ? "image-to-video" : "text-to-video" : input.mode === "image" ? hasImage ? "image-to-image" : "text-to-image" : "text-to-audio";
+    homeReferenceRef.current = hasImage ? { mode: input.mode as "image" | "video", image: input.image! } : null;
+    const params = new URLSearchParams({ mode: input.mode, workflow });
+    if (input.prompt) params.set("prompt", input.prompt);
+    if (input.mode === "audio") { setReferenceImagesText(""); setReferenceImageFiles([]); }
+    navigateStudio(`/studio?${params.toString()}`);
+  }
+
   useEffect(() => {
     if (!accessToken || !userId) return;
     const controller = new AbortController();
@@ -881,7 +931,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   useEffect(() => {
     setMobileStudioMenuOpen(false);
-  }, [isAppsHome, isProjectsView, mode]);
+  }, [isAppsHome, isProjectsView, isBillingView, mode]);
 
   useFloatingPanel({
     open: modelSelectOpen,
@@ -958,36 +1008,42 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         : "text-to-image"
     );
     setVideoWorkflow(
-      mode === "video" && (workflowParam === "image-to-video")
+      mode === "video" && (workflowParam === "image-to-video" || workflowParam === "reference-to-video")
         ? workflowParam
         : mode === "avatar"
           ? "avatar-video"
           : "text-to-video"
     );
     setAudioWorkflow(mode === "audio" && workflowParam === "text-to-music" ? "text-to-music" : "text-to-audio");
+    const enteringReference = mode === "video" && workflowParam === "reference-to-video";
+    if (enteringReference && !previousReferenceWorkflow.current) {
+      setReferenceImagesText(""); setReferenceImageFiles([]);
+    }
+    previousReferenceWorkflow.current = enteringReference;
     const validProviderParam = isProviderAllowedForMode(providerParam, mode) ? providerParam : null;
     const rememberedProvider = validProviderParam ? null : readRememberedModel(workflowParam);
     const nextProvider = providerForWorkflow(
       workflowParam,
       validProviderParam || rememberedProvider
     );
+    if(mode==="image"&&isGptImageProvider(nextProvider)&&(modeChanged||!isGptImageProvider(selectedProvider)))setImageQuality("low");
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
     if (!sp.get("prompt") && (modeChanged || nextProvider !== initialProvider)) {
       setPrompt(current => mode === "avatar" && !modeChanged
         ? promptForProviderChange(current, "", st("studio.music.defaultPrompt"))
         : defaultPromptForProvider(nextProvider, workflowParam, st("studio.music.defaultPrompt")));
     }
-    if (modeChanged && mode === "image" && !sp.get("reference")) {
-      setReferenceImagesText("");
-      setReferenceImageFiles([]);
+    if (modeChanged && mode === "image") {
+      if (!sp.get("reference")) setReferenceImagesText("");
+      if (!sp.get("reference") || sp.get("templateId")) setReferenceImageFiles([]);
     }
-    const nextImageSize = mode === "image" ? defaultImageSizeForProvider(nextProvider) : "default_4_3";
-    setRatio(mode === "image" ? defaultImageRatioForProvider(nextProvider, nextImageSize) : mode === "avatar" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
+    const nextImageSize = mode === "image" ? isGptImageProvider(nextProvider) && sp.get("imageSize") ? sp.get("imageSize")! : defaultImageSizeForProvider(nextProvider) : "default_4_3";
+    setRatio(mode === "image" ? defaultImageRatioForProvider(nextProvider, nextImageSize) : mode === "avatar" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : workflowParam === "reference-to-video" ? "adaptive" : "16:9");
     setImageSize(nextImageSize);
-    setDuration(
-      mode === "video" || mode === "avatar"
-        ? videoModelDefaultDuration(nextProvider)
-        : "single"
+    setDuration(current =>
+      mode === "avatar" && !modeChanged && provider === nextProvider && videoModelDurations(nextProvider).includes(current)
+        ? current
+        : mode === "video" || mode === "avatar" ? videoModelDefaultDuration(nextProvider) : "single"
     );
     setVideoResolution(defaultVideoResolutionForProvider(nextProvider));
     setStatusText("");
@@ -1028,7 +1084,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     }
 
     const imageSizeParam = sp.get("imageSize");
-    if (provider !== "topaz-image" && imageSizeParam && IMAGE_SIZE_PRESETS.some((preset) => preset.value === imageSizeParam)) {
+    if (provider !== "topaz-image" && imageSizeParam && (IMAGE_SIZE_PRESETS.some((preset) => preset.value === imageSizeParam) || (isGptImageProvider(provider) && ["auto","custom",...GPT_IMAGE_SIZES.map(preset=>preset.value)].includes(imageSizeParam)))) {
       setImageSize(imageSizeParam);
       setRatio(ratioFromImageSize(imageSizeParam));
     }
@@ -1049,8 +1105,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     if (mode === "image" && referenceParam) {
       const referenceWorkflow = workflowForMode(mode, sp.get("workflow"));
       setImageWorkflow(referenceWorkflow === "enhance-cleanup" || referenceWorkflow === "background-remove" ? referenceWorkflow : "image-to-image");
-      if (applyReferenceParam) setReferenceImagesText(referenceParam);
-    } else if (mode === "video" && referenceParam) {
+      if (applyReferenceParam) {setReferenceImagesText(referenceParam);setGptImageOptions(current=>({...current,maskUrl:"",markupImageUrl:""}));}
+    } else if (mode === "video" && referenceParam && workflowForMode(mode, sp.get("workflow")) !== "reference-to-video") {
       if (applyReferenceParam) setReferenceImagesText(referenceParam);
     } else if (mode === "avatar") {
       if (applyReferenceParam && referenceParam) setReferenceImagesText(referenceParam);
@@ -1060,6 +1116,28 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setReferenceImagesText((current) => stripAvatarDefaultReferences(current));
       setPrompt((current) => current.trim() === KLING_AVATAR_DEFAULT_SCRIPT || current.trim() === MINIMAX_H3_MAX_AVATAR_PROMPT || current.trim() === MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT ? "" : current);
     }
+  }, [mode, sp]);
+
+  useEffect(() => {
+    if (mode !== "video" || workflowForMode(mode, sp.get("workflow")) !== "reference-to-video") {
+      lastAppliedVideoUrlRef.current = null;
+      return;
+    }
+    const value = sp.get("referenceVideo");
+    if (shouldApplyUrlInput(lastAppliedVideoUrlRef.current, mode, value)) setReferenceVideoUrl(value || "");
+    lastAppliedVideoUrlRef.current = {mode, value};
+  }, [mode, sp]);
+
+  // Apply the local upload after the existing route effects select the workflow.
+  // Keep image data out of URLs and use the same reference state as editor uploads.
+  useEffect(() => {
+    const pending = homeReferenceRef.current;
+    if (!pending || sp.get("view") === "home" || mode !== pending.mode) return;
+    const expectedWorkflow = mode === "image" ? "image-to-image" : "image-to-video";
+    if (sp.get("workflow") !== expectedWorkflow) return;
+    setReferenceImagesText("");
+    setReferenceImageFiles([pending.image]);
+    homeReferenceRef.current = null;
   }, [mode, sp]);
 
   useEffect(() => {
@@ -1276,26 +1354,25 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? audioWorkflow : mode === "avatar" ? "avatar-video" : videoWorkflow;
   const isPromptlessImageWorkflow = mode === "image" && (activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove");
   const allReferenceImageUrls = [
-    ...referenceImagesText
-      .split(/\r?\n|,/)
-      .map((url) => url.trim())
-      .filter(Boolean),
+    ...parseStudioReferenceImages(referenceImagesText),
     ...referenceImageFiles
   ];
   const referenceImageUrls = allReferenceImageUrls.slice(0, isPromptlessImageWorkflow ? 1 : isGptImageProvider(provider) ? 16 : 14);
   const isAvatarWorkflow = mode === "avatar" || activeWorkflow === "avatar-video";
   const isDreamfaceTalkingAvatar = isAvatarWorkflow && provider === "dreamface-io-video";
   const isH3MaxAvatar = isAvatarWorkflow && isH3MaxProvider(provider);
+  const isHeygenAvatar = isAvatarWorkflow && provider === "heygen-video";
+  const heygenTiming = heygenAvatarTiming(prompt);
   const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
   const avatarScriptSeconds = isAvatarWorkflow ? estimateAvatarScriptSeconds(prompt) : 0;
   const avatarOutputSeconds = isAvatarWorkflow ? avatarScriptSeconds + (isDreamfaceTalkingAvatar ? 0 : AVATAR_KLING_BUFFER_SECONDS) : 0;
   const isDefaultAvatarScript = isAvatarWorkflow && prompt.trim() === KLING_AVATAR_DEFAULT_SCRIPT;
-  const avatarDuration = isAvatarWorkflow
+  const avatarDuration = isHeygenAvatar ? duration : isAvatarWorkflow
     ? isDreamfaceTalkingAvatar || isH3MaxAvatar
       ? duration
       : avatarDurationFromPrompt(prompt)
     : duration;
-  const avatarScriptTooLong = isAvatarWorkflow && !isDreamfaceTalkingAvatar && !isH3MaxAvatar && !isDefaultAvatarScript && avatarOutputSeconds > AVATAR_MAX_SECONDS;
+  const avatarScriptTooLong = isHeygenAvatar ? heygenTiming.tooLong : isAvatarWorkflow && !isDreamfaceTalkingAvatar && !isH3MaxAvatar && !isDefaultAvatarScript && avatarOutputSeconds > AVATAR_MAX_SECONDS;
   const avatarScriptMeta = isAvatarWorkflow
     ? prompt.trim()
       ? isH3MaxAvatar
@@ -1319,9 +1396,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     mode: modeForPricing(mode),
     provider,
     imageSize,
+    ...(isGptImageProvider(provider)?{imageWidth:gptImageOptions.width,imageHeight:gptImageOptions.height,outputFormat,imageReasoningEffort:gptImageOptions.reasoningEffort,frameCount:gptImageOptions.frameCount,svgModel:gptImageOptions.svgModel}:{}),
     duration: isAvatarWorkflow ? avatarDuration : duration,
     hasReferences: referenceImageUrls.length > 0,
-    referenceCount: referenceImageUrls.length,
+    referenceCount: referenceImageUrls.length + Number(mode==="image"&&isGptImageProvider(provider)&&imageWorkflow==="image-to-image"&&Boolean(gptImageOptions.maskUrl||gptImageOptions.markupImageUrl)),
     resolution: mode === "image" ? editResolution : videoResolution,
     generateAudio: mode === "video" ? generateAudio : false,
     quality: imageQuality,
@@ -1365,8 +1443,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       ? editResolution
       : defaultVideoResolutionForProvider(option.value);
     const optionGenerateAudio = mode === "video" && Boolean(videoModelConfig(option.value)?.showAudioControl) && generateAudio;
-    const optionImageSize = mode === "image" ? defaultImageSizeForProvider(option.value) : imageSize;
-    const optionReferenceCount = referenceImageUrls.length;
+    const keepGptSettings = mode === "image" && isGptImageProvider(provider) && isGptImageProvider(option.value);
+    const optionImageSize = mode === "image" && !keepGptSettings ? defaultImageSizeForProvider(option.value) : imageSize;
+    const optionReferenceCount = referenceImageUrls.length + Number(keepGptSettings && imageWorkflow === "image-to-image" && Boolean(gptImageOptions.maskUrl || gptImageOptions.markupImageUrl));
     const rawOptionCredits = option.value === provider
       ? estCredits
       : estimateGenerationCredits({
@@ -1379,7 +1458,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           referenceCount: optionReferenceCount,
           resolution: optionResolution,
           generateAudio: optionGenerateAudio,
-          quality: isGptImageProvider(option.value) ? "low" : "high",
+          quality: keepGptSettings ? imageQuality : isGptImageProvider(option.value) ? "low" : "high",
+          ...(keepGptSettings ? {imageWidth:gptImageOptions.width,imageHeight:gptImageOptions.height,outputFormat,imageReasoningEffort:gptImageOptions.reasoningEffort,frameCount:gptImageOptions.frameCount,svgModel:gptImageOptions.svgModel} : {}),
           numImages: mode === "image" ? numImages : 1,
           enableWebSearch,
           thinkingLevel,
@@ -1422,8 +1502,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         : prompt.trim().length > 0
   );
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
-  const hasRequiredReference = !needsReferenceImage || referenceImageUrls.length > 0;
-  const canSubmit = isPromptValid && hasRequiredReference;
+  const hasRequiredReference = activeWorkflow === "reference-to-video" ? isPublicReferenceUrl(referenceVideoUrl) : !needsReferenceImage || referenceImageUrls.length > 0;
+  const gptRequestOptions = {imageSize,imageWidth:gptImageOptions.width,imageHeight:gptImageOptions.height,quality:imageQuality,outputFormat,numImages,imageUrls:referenceImageUrls,background:gptImageOptions.background,imageReasoningEffort:gptImageOptions.reasoningEffort,...(["jpeg","webp"].includes(outputFormat)?{outputCompression:gptImageOptions.outputCompression}:{}),...(outputFormat==="gif"?{frameCount:gptImageOptions.frameCount,frameDurationMs:gptImageOptions.frameDurationMs}:{}),...(outputFormat==="svg"?{svgModel:gptImageOptions.svgModel}:{}),...(activeWorkflow==="image-to-image"?{maskUrl:gptImageOptions.maskUrl,markupImageUrl:gptImageOptions.markupImageUrl}:{})};
+  const gptValidationError = mode==="image"&&isGptImageProvider(provider)?gptImageOptionError({...gptRequestOptions,prompt}):null;
+  const canSubmit = isPromptValid && hasRequiredReference && !gptValidationError;
   const videoPromptAI = useVideoPromptEnhancement({
     mode: videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video",
     prompt, model: provider, duration, aspectRatio: ratio,
@@ -1444,7 +1526,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   const selectedProjectTask = selectedProjectSummary ? {
     ...selectedProjectSummary,
     settings: selectedProjectDetails?.request_settings ?? selectedProjectSummary.settings,
-    mediaUrl: selectedProjectSummary.mediaUrl || selectedProjectDetails?.output_url || pickMediaUrl(selectedProjectDetails?.raw_result)
+    mediaUrl: selectedProjectSummary.mediaUrl || selectedProjectDetails?.output_url || pickMediaUrl(selectedProjectDetails?.raw_result),
+    mediaUrls: pickImageOutputUrls(selectedProjectDetails?.raw_result).length?pickImageOutputUrls(selectedProjectDetails?.raw_result):selectedProjectSummary.mediaUrls
   } : null;
   const selectedImageSize = getImageSizePreset(imageSize);
   const providerNoteKey = [
@@ -1469,7 +1552,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     ? provider
     : "default";
   const providerNote = provider === "heygen-video" ? `${st("studio.field.nativeAudio")} · 5–15s · 480p / 768p / 1080p / 2K` : isGptImageProvider(provider) ? PROVIDER_META[provider].bestFor : st(`studio.model.${providerNoteKey}`);
-  const showVideoModelSelect = mode === "video" && (activeWorkflow === "text-to-video" || activeWorkflow === "image-to-video");
+  const showVideoModelSelect = mode === "video" && (activeWorkflow === "text-to-video" || activeWorkflow === "image-to-video" || activeWorkflow === "reference-to-video");
   const selectedProviderMeta = PROVIDER_META[provider] || {
     label: provider,
     shortLabel: provider,
@@ -1483,14 +1566,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     { key: "premium", label: st("studio.modelSelect.group.premium") }
   ];
   const selectedVideoModelConfig = videoModelConfig(provider);
-  const configuredVideoWorkflow = videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
-  // Shared showcase library: selecting a generation model must not replace preview media.
-  const videoPromptShowcases: PromptShowcase[] = [
-        { videoUrl: YOUNG_KOREAN_WOMAN_VIDEO_URL, posterUrl: "/images/video-examples/young-korean-neighborhood.png", prompt: YOUNG_KOREAN_WOMAN_PROMPT, duration: "15s", provider: "seedance-video", ratio: "16:9" },
-        { videoUrl: EASTBOURNE_KOREAN_WOMAN_VIDEO_URL, posterUrl: "/images/video-examples/eastbourne-tennis.png", prompt: EASTBOURNE_KOREAN_WOMAN_PROMPT, duration: "10s", provider: "seedance-video", ratio: "16:9" },
-        { videoUrl: SPORTS_BROADCAST_VIDEO_URL, posterUrl: "/images/video-examples/sports-broadcast.png", prompt: SPORTS_BROADCAST_PROMPT, duration: "15s", provider: "seedance-video", ratio: "16:9" }
-      ];
-  const videoRatioOptions = isAvatarProvider(provider) || isH3MaxAvatar
+  const configuredVideoWorkflow = videoWorkflow === "reference-to-video" ? "reference-to-video" : videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
+  const videoRatioOptions = isAvatarProvider(provider) || isH3MaxAvatar || isHeygenAvatar
     ? ["source"]
     : videoModelRatios(provider, configuredVideoWorkflow);
   const videoDurationOptions = isAvatarProvider(provider)
@@ -1498,17 +1575,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     : videoModelDurations(provider);
   const videoResolutionOptions = videoModelResolutions(provider);
   const showDreamfaceTalkingVideoControls = mode === "avatar" && provider === "dreamface-io-video";
-  const showVideoResolutionControl = (mode === "video" || isH3MaxAvatar) && Boolean(selectedVideoModelConfig?.showResolutionControl);
+  const showVideoResolutionControl = (mode === "video" || isH3MaxAvatar || isHeygenAvatar) && Boolean(selectedVideoModelConfig?.showResolutionControl);
   const showVideoAudioControl = mode === "video" && !isAvatarProvider(provider) && Boolean(selectedVideoModelConfig?.showAudioControl);
-  const showTextToImageTemplates = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "text-to-image";
-  const showImageToImageRedesign = !isAppsHome && !isProjectsView && mode === "image" && imageWorkflow === "image-to-image";
-  const showImageUtilityRedesign = !isAppsHome && !isProjectsView && mode === "image" && (imageWorkflow === "enhance-cleanup" || imageWorkflow === "background-remove");
-  const showVideoWorkbenchRedesign = !isAppsHome && !isProjectsView && mode === "video" && (videoWorkflow === "text-to-video" || videoWorkflow === "image-to-video");
-  const showAudioWorkbenchRedesign = !isAppsHome && !isProjectsView && mode === "audio" && (audioWorkflow === "text-to-audio" || audioWorkflow === "text-to-music");
-  const showAvatarWorkbenchRedesign = !isAppsHome && !isProjectsView && isAvatarWorkflow;
+  const showTextToImageTemplates = !isAppsHome && !isProjectsView && !isBillingView && mode === "image" && imageWorkflow === "text-to-image";
+  const showImageToImageRedesign = !isAppsHome && !isProjectsView && !isBillingView && mode === "image" && imageWorkflow === "image-to-image";
+  const showImageUtilityRedesign = !isAppsHome && !isProjectsView && !isBillingView && mode === "image" && (imageWorkflow === "enhance-cleanup" || imageWorkflow === "background-remove");
+  const showVideoWorkbenchRedesign = !isAppsHome && !isProjectsView && !isBillingView && mode === "video" && (videoWorkflow === "text-to-video" || videoWorkflow === "image-to-video" || videoWorkflow === "reference-to-video");
+  const showAudioWorkbenchRedesign = !isAppsHome && !isProjectsView && !isBillingView && mode === "audio" && (audioWorkflow === "text-to-audio" || audioWorkflow === "text-to-music");
+  const showAvatarWorkbenchRedesign = !isAppsHome && !isProjectsView && !isBillingView && isAvatarWorkflow;
   const showImageWorkbenchRedesign = showTextToImageTemplates || showImageToImageRedesign || showImageUtilityRedesign;
   const showModernWorkbenchRedesign = showImageWorkbenchRedesign || showVideoWorkbenchRedesign || showAudioWorkbenchRedesign || showAvatarWorkbenchRedesign;
-  const showModernStudioChrome = showModernWorkbenchRedesign || isProjectsView || isAppsHome;
+  const showModernStudioChrome = showModernWorkbenchRedesign || isProjectsView || isAppsHome || isBillingView;
   const useWideStudioShell = showModernStudioChrome || isAppsHome;
   const providerSettingsLabel =
     isGptImageProvider(provider)
@@ -1592,7 +1669,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       } else if (nextWorkflow === "background-remove") {
         setReferenceImageFiles((current) => current.slice(0, 1));
       }
-      setImageQuality(isGptImageProvider(nextProvider) ? "low" : "high");
+      setImageQuality(current=>isGptImageProvider(nextProvider)?isGptImageProvider(provider)?gptImageQuality(current):"low":"high");
     } else if (nextMode === "video" || nextMode === "avatar") {
       setVideoWorkflow(nextWorkflow as VideoWorkflow);
       if (nextWorkflow === "text-to-video") {
@@ -1603,6 +1680,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         setReferenceImagesText((current) => stripAvatarDefaultReferences(current));
         setReferenceImageFiles((current) => current.slice(0, 1));
       } else if (nextWorkflow === "image-to-video") {
+        if (activeWorkflow === "reference-to-video" && referenceImageUrls.length) {
+          setReferenceImagesText(""); setReferenceImageFiles(referenceImageUrls.slice(0, videoSupportsEndFrame(nextProvider) ? 2 : 1));
+        }
         const shouldUseModelSample = isModelSampleReference(referenceImagesText) || (!referenceImagesText.trim() && referenceImageFiles.length === 0);
         if (shouldUseModelSample) {
           setReferenceImagesText(modelSampleReferenceForProvider(nextProvider));
@@ -1633,7 +1713,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setImageSize(nextImageSize);
       setRatio(defaultImageRatioForProvider(nextProvider, nextImageSize));
     } else if (nextMode === "video" || nextMode === "avatar") {
-      setRatio(nextWorkflow === "avatar-video" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
+      setRatio(nextWorkflow === "avatar-video" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : nextWorkflow === "reference-to-video" ? "adaptive" : "16:9");
       setDuration(videoModelDefaultDuration(nextProvider));
       setVideoResolution(defaultVideoResolutionForProvider(nextProvider));
     } else {
@@ -1643,6 +1723,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     trackEvent("studio_workflow_selected", { mode: nextMode, workflow: nextWorkflow, provider: nextProvider }, accessToken);
     const params = new URLSearchParams(sp.toString());
     params.set("mode", nextMode);
+    if (nextWorkflow !== "reference-to-video") params.delete("referenceVideo");
+    if (nextWorkflow === "reference-to-video" || activeWorkflow === "reference-to-video") { params.delete("reference"); params.delete("templateId"); }
     params.set("workflow", nextWorkflow);
     params.set("provider", nextProvider);
     if (nextMode === "image") {
@@ -1650,7 +1732,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       params.set("ratio", defaultImageRatioForProvider(nextProvider, nextImageSize));
     } else if (nextMode === "video" || nextMode === "avatar") {
       params.delete("imageSize");
-      params.set("ratio", nextWorkflow === "avatar-video" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : "16:9");
+      params.set("ratio", nextWorkflow === "avatar-video" ? nextProvider === "dreamface-io-video" ? "16:9" : "source" : nextWorkflow === "reference-to-video" ? "adaptive" : "16:9");
       if (videoModelConfig(nextProvider)?.showResolutionControl) {
         params.set("resolution", defaultVideoResolutionForProvider(nextProvider));
       } else {
@@ -1664,7 +1746,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
   }
 
   function applyProvider(nextProvider: string, videoOverrides?: { duration?: string; ratio?: string; resolution?: string }) {
-    if (mode === "video" && !videoSupportsEndFrame(nextProvider) && referenceImageUrls.length > 1) {
+    if (mode === "video" && activeWorkflow === "image-to-video" && !videoSupportsEndFrame(nextProvider) && referenceImageUrls.length > 1) {
       setReferenceImagesText("");
       setReferenceImageFiles(referenceImageUrls.slice(0, 1));
       setStatusTone("idle");
@@ -1691,9 +1773,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       if (nextProvider === "topaz-image") setImageWorkflow("enhance-cleanup");
       if (nextProvider === "bria-background-remove") setImageWorkflow("background-remove");
       if (nextProvider === "nano-banana-2-lite" && activeWorkflow === "image-to-image") setImageWorkflow("text-to-image");
-      const nextImageSize = defaultImageSizeForProvider(nextProvider);
+      const nextImageSize = isGptImageProvider(nextProvider)&&isGptImageProvider(provider)?imageSize:defaultImageSizeForProvider(nextProvider);
       setImageSize(nextImageSize);
-      setImageQuality(isGptImageProvider(nextProvider) ? "low" : "high");
+      setImageQuality(current=>isGptImageProvider(nextProvider)?isGptImageProvider(provider)?gptImageQuality(current):"low":"high");
       setRatio(defaultImageRatioForProvider(nextProvider, nextImageSize));
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "image");
@@ -1770,6 +1852,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   async function handleReferenceFiles(files: FileList | null, frameIndex?: number) {
     if (!files?.length) return;
+    if (mode === "video" && videoWorkflow === "reference-to-video") {
+      const selected = Array.from(files);
+      if (selected.length + referenceImageUrls.length > HEYGEN_REFERENCE_IMAGE_LIMIT || selected.some(file => !["image/jpeg","image/png","image/webp"].includes(file.type) || file.size > 30*1024*1024)) {
+        setStatusTone("error"); setStatusText(st("studio.referenceVideo.subjectHint")); return;
+      }
+      const uploaded = await Promise.all(selected.map(file => new Promise<string>((resolve,reject) => {
+        const reader = new FileReader(); reader.onload=()=>resolve(String(reader.result)); reader.onerror=()=>reject(new Error("Image file could not be read.")); reader.readAsDataURL(file);
+      })));
+      setReferenceImageFiles(current => [...current,...uploaded].slice(0,HEYGEN_REFERENCE_IMAGE_LIMIT));
+      return;
+    }
     if (mode === "video" && videoWorkflow === "image-to-video") {
       const limit = videoSupportsEndFrame(provider) ? 2 : 1;
       const selected = Array.from(files);
@@ -1820,7 +1913,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       setImageWorkflow("image-to-image");
       setProvider(nextProvider);
       setImageSize(nextImageSize);
-      setImageQuality(isGptImageProvider(nextProvider) ? "low" : "high");
+      setImageQuality(current=>isGptImageProvider(nextProvider)?isGptImageProvider(provider)?gptImageQuality(current):"low":"high");
       setRatio(defaultImageRatioForProvider(nextProvider, nextImageSize));
       const params = new URLSearchParams(sp.toString());
       params.set("mode", "image");
@@ -1907,6 +2000,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setPrompt("");
     setReferenceImagesText("");
     setReferenceImageFiles([]);
+    setGptImageOptions(current=>({...current,maskUrl:"",markupImageUrl:""}));
   }
 
   function cacheCreditBalance(balance: number) {
@@ -1930,6 +2024,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       imageSize,
       referenceImagesText,
       referenceImageFiles,
+      referenceVideoUrl,
       avatarAudioUrl,
       editResolution,
       videoResolution,
@@ -1951,6 +2046,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
       duration,
       prompt,
       imageQuality,
+      gptImageOptions,
       numImages,
       guidanceScale,
       numInferenceSteps,
@@ -1974,7 +2070,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
     restoredLoginDraftRef.current = true;
     autoSubmitLoginDraftRef.current = draft.autoSubmit;
-    setProvider(draft.provider === "nano-banana-edit" ? "nano-banana-image" : draft.provider);
+    setProvider(draft.provider === "nano-banana-edit" ? "nano-banana-image" : normalizeGptImageProvider(draft.provider));
     setImageWorkflow(draft.imageWorkflow);
     setVideoWorkflow(draft.videoWorkflow || "text-to-video");
     setAudioWorkflow(draft.audioWorkflow || "text-to-audio");
@@ -1982,6 +2078,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setImageSize(draft.imageSize);
     setReferenceImagesText(draft.mode === "avatar" ? stripAvatarDefaultReferences(draft.referenceImagesText) : draft.referenceImagesText);
     setReferenceImageFiles(Array.isArray(draft.referenceImageFiles) ? draft.referenceImageFiles : []);
+    setReferenceVideoUrl(draft.referenceVideoUrl || "");
     setAvatarAudioUrl(draft.avatarAudioUrl || "");
     setEditResolution(draft.editResolution);
     setVideoResolution(draft.videoResolution);
@@ -2001,6 +2098,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     setMusicFormat(draft.musicFormat || "mp3");
     setOutputFormat(draft.outputFormat);
     setImageQuality(isGptImageProvider(draft.provider) ? gptImageQuality(draft.imageQuality) : draft.imageQuality || "high");
+    setGptImageOptions({...DEFAULT_GPT_IMAGE_OPTIONS,...draft.gptImageOptions});
     setNumImages(draft.numImages || 1);
     setGuidanceScale(draft.guidanceScale || 3.5);
     setNumInferenceSteps(draft.numInferenceSteps || 4);
@@ -2120,25 +2218,27 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
         promptEnhancement,
         imageSize: mode === "image" ? imageSize : undefined,
         imageUrls:
-          (mode === "image" && referenceImageUrls.length > 0) || (mode === "avatar" || (mode === "video" && videoWorkflow === "image-to-video"))
+          (mode === "image" && referenceImageUrls.length > 0) || (mode === "avatar" || (mode === "video" && (videoWorkflow === "image-to-video" || videoWorkflow === "reference-to-video")))
             ? referenceImageUrls
             : undefined,
+        videoUrls: mode === "video" && videoWorkflow === "reference-to-video" ? [referenceVideoUrl.trim()] : undefined,
         audioUrl: isAvatarProvider(provider) && avatarAudioUrl.trim() ? avatarAudioUrl.trim() : undefined,
         resolution:
           mode === "image"
             ? editResolution
-            : (mode === "video" || isH3MaxAvatar) && (provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
+            : (mode === "video" || isH3MaxAvatar || isHeygenAvatar) && (provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
-        generateAudio: mode === "video" ? provider === "heygen-video" || generateAudio : undefined,
+        generateAudio: mode === "video" || isHeygenAvatar ? provider === "heygen-video" || generateAudio : undefined,
         reasoningLevel: provider === "flux-3-max-video" ? reasoningLevel : undefined,
-        expectedCredits: provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) ? estCredits : undefined,
+        expectedCredits: isGptImageProvider(provider) || provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) ? estCredits : undefined,
         outputFormat: mode === "image" && provider !== "bria-background-remove" ? outputFormat : undefined,
         quality: mode === "image" && !isPromptlessImageWorkflow ? imageQuality : undefined,
+        ...(mode==="image"&&isGptImageProvider(provider)?{...gptRequestOptions,enableSafetyChecker:gptImageOptions.enableSafetyChecker}:{}),
         numImages: mode === "image" && !isPromptlessImageWorkflow ? numImages : undefined,
         guidanceScale: mode === "image" && !isPromptlessImageWorkflow ? guidanceScale : undefined,
         numInferenceSteps: mode === "image" && !isPromptlessImageWorkflow ? numInferenceSteps : undefined,
-        enableSafetyChecker: (mode === "image" && !isPromptlessImageWorkflow) || (mode === "video" && (provider === "heygen-video" || provider === "happy-horse-video" || provider === "grok-video")) ? enableSafetyChecker : undefined,
+        enableSafetyChecker: mode==="image"&&isGptImageProvider(provider)?gptImageOptions.enableSafetyChecker:(mode === "image" && !isPromptlessImageWorkflow) || ((mode === "video" || isHeygenAvatar) && (provider === "heygen-video" || provider === "happy-horse-video" || provider === "grok-video")) ? enableSafetyChecker : undefined,
         acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
         limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
         seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
@@ -2181,8 +2281,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
       if (!response.ok) {
         const errorPayload = (await response.json().catch(() => null)) as { error?: string; code?: string; pricingTime?:number } | null;
+        if(errorPayload?.code?.startsWith("studio.gpt26.")) throw new Error(st(errorPayload.code));
         clearPersistentIdempotency(idempotencyStorageKey);
-        if(errorPayload?.code === "video_price_changed") {
+        if(errorPayload?.code === "video_price_changed" || errorPayload?.code === "generation_price_changed") {
           setPricingTime(errorPayload.pricingTime || Date.now());
           throw new Error(localizeStudioError(errorPayload.error || "The price has changed. Review the updated credits and try again.", response.status));
         }
@@ -2375,7 +2476,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
             if (rawStatus === "COMPLETED") {
               const mediaUrl = pickMediaUrl(statusPayload.result);
               setTasks((prev) =>
-                prev.map((task) => (task.id === payload.taskId ? { ...task, mediaUrl } : task))
+                prev.map((task) => (task.id === payload.taskId ? { ...task, mediaUrl, mediaUrls:pickImageOutputUrls(statusPayload.result) } : task))
               );
             }
             finalStatus = rawStatus as "COMPLETED" | "FAILED" | "CANCELED" | "ERROR";
@@ -2441,7 +2542,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     if (!accessToken) {
       trackEvent("generate_login_required", { mode, provider, workflow: activeWorkflow }, accessToken);
       if (typeof window !== "undefined") {
-        window.location.href = STUDIO_SIGN_IN_URL;
+        if (!saveLoginDraft(true)) { setStatusTone("error"); setStatusText(st("studio.status.draftSaveFailed")); return; }
+        const next = `${window.location.pathname}${window.location.search}`;
+        window.location.href = `/${studioI18n.locale}/auth?next=${encodeURIComponent(next)}`;
       }
       return;
     }
@@ -2554,8 +2657,31 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     }
   }
 
+  const workflowNavigation = (
+    <WorkflowSwitcher
+                t={st}
+                mode={mode}
+                imageWorkflow={imageWorkflow}
+                videoWorkflow={videoWorkflow}
+                audioWorkflow={audioWorkflow}
+                modern={showModernWorkbenchRedesign}
+                imageRedesign={showImageWorkbenchRedesign}
+                videoRedesign={showVideoWorkbenchRedesign}
+                audioRedesign={showAudioWorkbenchRedesign}
+                avatarRedesign={showAvatarWorkbenchRedesign}
+                imageToImageRedesign={showImageToImageRedesign}
+                imageUtilityRedesign={showImageUtilityRedesign}
+                hasReferenceImages={Boolean(referenceImageUrls.length)}
+                onWorkflowChange={applyWorkflow}
+              />
+  );
+
   const imageSettingsPanel = showImageWorkbenchRedesign ? (
     <ImageSettings
+      gptOptions={gptImageOptions}
+      referenceImageUrls={referenceImageUrls}
+      onGptOptionsChange={setGptImageOptions}
+      gptValidationError={gptValidationError}
       provider={provider}
       providerOptions={modelPickerOptions}
       utilityWorkflow={showImageUtilityRedesign ? imageWorkflow === "enhance-cleanup" ? "enhance-cleanup" : "background-remove" : null}
@@ -2654,6 +2780,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
   const avatarSettingsPanel = showAvatarWorkbenchRedesign ? (
     <AvatarSettings
+      compact
+      isHeygenAvatar={isHeygenAvatar}
       dailyFreeLabel={h3FreeLabel}
       isDreamfaceTalkingAvatar={isDreamfaceTalkingAvatar}
       isH3MaxAvatar={isH3MaxAvatar}
@@ -2677,19 +2805,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
     />
   ) : null;
   const avatarModelSelector = showAvatarWorkbenchRedesign ? (
-    <ModelPicker value={provider} options={modelPickerOptions} translate={st} onChange={applyProvider} />
+    <ModelPicker inline value={provider} options={modelPickerOptions} translate={st} onChange={applyProvider} />
   ) : null;
 
   return (
     <main
       dir={isRtlLocale(studioI18n.locale) ? "rtl" : "ltr"}
-      className={`relative min-h-screen w-full max-w-full overflow-x-hidden text-[#1f2430] ${showModernStudioChrome ? "bg-[radial-gradient(1200px_500px_at_92%_-10%,rgba(106,90,249,0.05),transparent_45%),radial-gradient(900px_380px_at_10%_-20%,rgba(176,77,255,0.04),transparent_38%),#fafafc]" : "bg-[radial-gradient(circle_at_50%_0%,rgba(189,224,254,0.42),transparent_34%),radial-gradient(circle_at_74%_14%,rgba(255,200,221,0.28),transparent_28%),linear-gradient(180deg,#ffffff_0%,#fbfcff_54%,#f7f9fd_100%)] pb-10"}`}
+      className="creative-studio relative min-h-screen w-full max-w-full overflow-x-clip"
     >
-      <div className="pointer-events-none absolute left-[18%] top-10 h-72 w-72 rounded-full bg-[#bde0fe]/30 blur-3xl" />
-      <div className="pointer-events-none absolute right-[14%] top-6 h-80 w-80 rounded-full bg-[#ffc8dd]/24 blur-3xl" />
       <div className={showModernStudioChrome ? "w-full" : useWideStudioShell ? "mx-auto my-3 w-[calc(100vw-24px)] max-w-[1760px] md:my-7 md:w-[calc(100vw-56px)]" : "mx-auto w-full max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5"}>
         {!authReady && !showModernStudioChrome ? (
-          <section className="mb-4 rounded-2xl border border-black/[0.06] bg-white/82 p-6 text-sm text-[#667085] shadow-sm">
+          <section className="mb-4 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-6 text-sm text-[var(--studio-muted)] shadow-sm">
             {st("studio.checkingSession")}
           </section>
         ) : null}
@@ -2710,12 +2836,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           onCreditCheckout={startStudioCreditCheckout}
         />
 
-        <section className={showModernStudioChrome ? "relative min-h-screen w-full max-w-full bg-transparent" : "relative min-h-[calc(100vh-1rem)] w-full max-w-full overflow-hidden rounded-[1.35rem] border border-black/[0.06] bg-white/72 shadow-[0_20px_60px_rgba(71,85,105,0.10)] backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-[0_32px_120px_rgba(71,85,105,0.14)]"}>
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7dd3fc]/50 to-transparent" />
-          <div className={`grid min-h-screen min-w-0 transition-[grid-template-columns] duration-300 ease-out ${showModernStudioChrome ? videoSidebarCollapsed ? "lg:grid-cols-[76px_minmax(0,1fr)]" : "lg:grid-cols-[220px_minmax(0,1fr)]" : "lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]"}`}>
+        <section className={showModernStudioChrome ? "relative min-h-screen w-full max-w-full bg-transparent" : "relative min-h-[calc(100vh-1rem)] w-full max-w-full overflow-hidden rounded-[1.35rem] border border-[var(--studio-border)] bg-[var(--studio-panel)] shadow-none backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-none"}>
+          <div className={`grid min-h-screen min-w-0 transition-[grid-template-columns] duration-300 ease-out ${showModernStudioChrome ? videoSidebarCollapsed ? "md:grid-cols-[76px_minmax(0,1fr)]" : "md:grid-cols-[76px_minmax(0,1fr)] xl:grid-cols-[216px_minmax(0,1fr)]" : "lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]"}`}>
             <StudioSidebar
               referralsVisible={referralsVisible}
               referralLocale={studioI18n.locale}
+              isBillingView={isBillingView}
+              billingHref={billingHref}
               isReferralsView={isReferralsView && referralsVisible}
               t={st}
               modern={showModernStudioChrome}
@@ -2732,11 +2859,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               }
             />
 
-            <StudioBottomNavigation t={st} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} isReferralsView={isReferralsView && referralsVisible} />
-            <div className={`relative min-w-0 max-w-full ${showModernStudioChrome ? "px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-[22px] lg:pb-[22px]" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
+            <StudioBottomNavigation isBillingView={isBillingView} billingHref={billingHref} t={st} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} isReferralsView={isReferralsView && referralsVisible} />
+            <div className={`studio-content relative min-w-0 max-w-full ${showModernStudioChrome ? "px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-7 lg:pb-8" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
               <StudioHeader
                 referralsVisible={referralsVisible}
-                isReferralsView={isReferralsView && referralsVisible}
+                isBillingView={isBillingView}
+              billingHref={billingHref}
+              isReferralsView={isReferralsView && referralsVisible}
                 t={st}
                 modern={showModernStudioChrome}
                 videoStudio={showModernStudioChrome}
@@ -2757,10 +2886,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 onAudioWorkflowSelect={applyWorkflow}
               />
               {creditNote && !showModernStudioChrome ? (
-                <p className="mt-3 rounded-2xl border border-black/[0.06] bg-white/76 px-4 py-3 text-xs font-semibold text-[#667085] shadow-sm">
+                <p className="mt-3 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-3 text-xs font-semibold text-[var(--studio-muted)] shadow-sm">
                   {!accessToken && creditNote === st("studio.status.signInCredit") ? (
                     <>
-                      <Link href={STUDIO_SIGN_IN_URL} className="font-black text-[#1c6be1] underline-offset-4 hover:underline">
+                      <Link href={STUDIO_SIGN_IN_URL} className="font-semibold text-[var(--studio-accent)] underline-offset-4 hover:underline">
                         {st("studio.auth.signIn")}
                       </Link>
                       {creditNote.replace(st("studio.auth.signIn"), "")}
@@ -2771,14 +2900,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 </p>
               ) : null}
 
+              {isBillingView ? <StudioBillingWorkspace locale={studioI18n.locale} onBalanceChange={setCreditBalance} /> : null}
+
               {isAppsHome ? (
-                <StudioHome t={st} tasks={tasks} onUpgrade={() => openBillingModal("workspace_upgrade")} />
+                <StudioHome t={st} locale={studioI18n.locale} onCreate={startHomeCreation} />
               ) : null}
 
               {isReferralsView && referralsVisible ? <StudioReferrals accessToken={accessToken} locale={studioI18n.locale} /> : null}
-              {isReferralsView && !referralsVisible ? <StudioHome t={st} tasks={tasks} onUpgrade={() => openBillingModal("workspace_upgrade")} /> : null}
+              {isReferralsView && !referralsVisible ? <StudioHome t={st} locale={studioI18n.locale} onCreate={startHomeCreation} /> : null}
               {isProjectsView && !isReferralsView ? (
                 <StudioProjects
+                  locale={studioI18n.locale}
                   t={st}
                   tasks={tasks}
                   selectedTask={selectedProjectTask}
@@ -2790,55 +2922,53 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
               ) : null}
 
 
-              <div className={`${showModernWorkbenchRedesign ? "w-full" : "mx-auto mt-5 max-w-5xl text-center md:mt-16"} ${isAppsHome || isProjectsView ? "hidden" : ""}`}>
-              <WorkflowSwitcher
-                t={st}
-                mode={mode}
-                imageWorkflow={imageWorkflow}
-                videoWorkflow={videoWorkflow}
-                audioWorkflow={audioWorkflow}
-                modern={showModernWorkbenchRedesign}
-                imageRedesign={showImageWorkbenchRedesign}
-                videoRedesign={showVideoWorkbenchRedesign}
-                audioRedesign={showAudioWorkbenchRedesign}
-                avatarRedesign={showAvatarWorkbenchRedesign}
-                imageToImageRedesign={showImageToImageRedesign}
-                imageUtilityRedesign={showImageUtilityRedesign}
-                hasReferenceImages={Boolean(referenceImageUrls.length)}
-                onWorkflowChange={applyWorkflow}
-              />
-                <div className={showModernWorkbenchRedesign ? "w-full max-w-none overflow-visible" : "mt-4 overflow-visible rounded-[1.7rem] border border-black/[0.06] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.09)] sm:mt-5 md:mt-7 md:rounded-[2rem] md:shadow-[0_28px_80px_rgba(15,23,42,0.12)]"}>
+              <div className={`${showModernWorkbenchRedesign ? "w-full" : "mx-auto mt-5 max-w-5xl text-center md:mt-16"} ${isAppsHome || isProjectsView || isBillingView ? "hidden" : ""}`}>
+              {showModernWorkbenchRedesign ? null : workflowNavigation}
+                <div className={showModernWorkbenchRedesign ? "w-full max-w-none overflow-visible" : "mt-4 overflow-visible rounded-[1.7rem] border border-[var(--studio-border)] bg-[var(--studio-panel)] shadow-none sm:mt-5 md:mt-7 md:rounded-[2rem] md:shadow-none"}>
                   <div className={showModernWorkbenchRedesign ? "text-left" : "p-5 text-left md:p-7"}>
                     {showImageWorkbenchRedesign ? (
                       <UnifiedWorkbenchLayout
+                        workflowTabs={workflowNavigation}
+                        statusMessage={statusText}
+                        statusTone={statusTone}
                         mode="image"
-                        tasks={tasks}
                         translate={st}
                         editor={<ImageWorkbench
                           workflow={imageWorkflow}
                           prompt={prompt}
                           referenceImagesText={referenceImagesText}
                           referenceImageUrls={referenceImageUrls}
+                          templateReferenceUrl={sp.get("templateId") ? sp.get("reference") : null}
                           isPromptlessWorkflow={isPromptlessImageWorkflow}
                           outputFormat={outputFormat}
                           templatesUrl="/gallery"
                           translate={st}
                           onPromptChange={setPrompt}
                           onImprovePrompt={improveTextToImagePrompt}
-                          onReferenceImagesTextChange={setReferenceImagesText}
+                          onReferenceImagesTextChange={value=>{setReferenceImagesText(value);setGptImageOptions(current=>({...current,maskUrl:"",markupImageUrl:""}));}}
                           onReferenceFiles={handleReferenceFiles}
                           onReferenceClear={() => {
+                            setGptImageOptions(current=>({...current,maskUrl:"",markupImageUrl:""}));
                             setReferenceImagesText("");
                             setReferenceImageFiles([]);
                           }}
-                          onFileError={() => setStatusText(st("studio.status.fileReadFailed"))}
+                          onReferenceRemove={(index) => {
+                            const urls = parseStudioReferenceImages(referenceImagesText);
+                            if (index < 0 || index >= referenceImageUrls.length) return;
+                            if(index===0)setGptImageOptions(current=>({...current,maskUrl:"",markupImageUrl:""}));
+                            if (index < urls.length) setReferenceImagesText(urls.filter((_, position) => position !== index).join("\n"));
+                            else setReferenceImageFiles(files => files.filter((_, position) => position !== index - urls.length));
+                          }}
+                          onFileError={() => { setStatusTone("error"); setStatusText(st("studio.status.fileReadFailed")); }}
                         />}
                         settings={imageSettingsPanel}
                       />
                     ) : showAudioWorkbenchRedesign ? (
                       <UnifiedWorkbenchLayout
+                        workflowTabs={workflowNavigation}
+                        statusMessage={statusText}
+                        statusTone={statusTone}
                         mode="audio"
-                        tasks={tasks}
                         translate={st}
                         editor={<AudioWorkbench
                           workflow={audioWorkflow}
@@ -2862,16 +2992,19 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       null
                     ) : showAvatarWorkbenchRedesign ? (
                       <UnifiedWorkbenchLayout
+                        workflowTabs={workflowNavigation}
+                        statusMessage={statusText}
+                        statusTone={statusTone}
                         mode="avatar"
-                        tasks={tasks}
                         translate={st}
                         modelSelector={avatarModelSelector}
                         editor={<AvatarWorkbench
+                          compact
                           prompt={prompt}
                           referenceImagesText={referenceImagesText}
                           referenceImageUrls={referenceImageUrls}
                           isDreamfaceTalkingAvatar={isDreamfaceTalkingAvatar}
-                          isH3MaxAvatar={isH3MaxAvatar}
+                          isH3MaxAvatar={isH3MaxAvatar || isHeygenAvatar}
                           avatarScriptTooLong={avatarScriptTooLong}
                           avatarScriptMeta={avatarScriptMeta}
                           avatarDuration={avatarDuration}
@@ -2884,9 +3017,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           languageOptions={ELEVENLABS_LANGUAGE_OPTIONS}
                           translate={st}
                           onPromptChange={setPrompt}
-                          onReferenceImagesTextChange={setReferenceImagesText}
-                          onReferenceFiles={handleReferenceFiles}
-                          onFileError={() => setStatusText(st("studio.status.fileReadFailed"))}
+                          onReferenceImagesTextChange={value => { setReferenceImageFiles([]); setReferenceImagesText(value); }}
+                          onReferenceFiles={async files => { if (files?.length) setReferenceImagesText(""); await handleReferenceFiles(files); }}
+                          onFileError={() => { setStatusTone("error"); setStatusText(st("studio.status.fileReadFailed")); }}
                           onStartImageGuide={startAvatarImageGuide}
                           onAvatarVoiceGenderChange={setAvatarVoiceGender}
                           onTtsVoiceChange={setTtsVoice}
@@ -2897,7 +3030,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       />
                     ) : isPromptlessImageWorkflow ? (
                       <div
-                        className="rounded-2xl border border-dashed border-[#cbd5e1] bg-[#fbfdff] p-4"
+                        className="rounded-2xl border border-dashed border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-4"
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={(event) => {
                           event.preventDefault();
@@ -2905,17 +3038,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         }}
                       >
                         <div className="mb-2 flex items-center justify-between gap-3">
-                          <span className="text-sm font-semibold text-[#202633]">{st("studio.field.imageUrl")}<span className="text-[#2563eb]">*</span></span>
-                          <span className="rounded-full bg-[#ecfeff] px-3 py-1 text-xs font-semibold text-[#0891b2]">{st("studio.field.transparentPng")}</span>
+                          <span className="text-sm font-semibold text-[var(--studio-text)]">{st("studio.field.imageUrl")}<span className="text-[var(--studio-accent)]">*</span></span>
+                          <span className="rounded-full bg-[var(--studio-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--studio-accent)]">{st("studio.field.transparentPng")}</span>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                           <input
                             value={referenceImagesText}
                             onChange={(event) => setReferenceImagesText(event.target.value)}
                             placeholder="https://.../image.jpg"
-                            className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                            className="min-h-12 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 text-sm font-semibold text-[var(--studio-text)] outline-none transition focus:border-[var(--studio-accent-border)]"
                           />
-                          <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-black/[0.08] bg-white px-5 text-sm font-semibold text-[#202633] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                          <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-5 text-sm font-semibold text-[var(--studio-text)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                             {st("studio.action.chooseImage")}
                             <input
                               type="file"
@@ -2925,7 +3058,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             />
                           </label>
                         </div>
-                        <p className="mt-3 text-xs leading-5 text-[#667085]">
+                        <p className="mt-3 text-xs leading-5 text-[var(--studio-muted)]">
                           {st("studio.reference.backgroundHint")}
                         </p>
                       </div>
@@ -2935,7 +3068,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         rows={5}
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
-                        className="min-h-[190px] w-full resize-none bg-transparent text-[17px] leading-8 text-[#202633] outline-none placeholder:text-[#98a3b8] sm:min-h-[132px] sm:text-base sm:leading-7 md:min-h-[154px] md:text-lg md:leading-8"
+                        className="min-h-[190px] w-full resize-none bg-transparent text-[17px] leading-8 text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)] sm:min-h-[132px] sm:text-base sm:leading-7 md:min-h-[154px] md:text-lg md:leading-8"
                         placeholder={
                           mode === "image"
                             ? st("studio.placeholder.image")
@@ -2950,9 +3083,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       />
                     )}
                     {!showModernWorkbenchRedesign && referenceImageUrls.length ? (
-                      <div className="mt-4 border-t border-black/[0.06] pt-4">
+                      <div className="mt-4 border-t border-[var(--studio-border)] pt-4">
                         <div className="mb-3 flex items-center justify-between">
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8791a3]">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)]">
                             {st("studio.reference.count", {
                               count: referenceImageUrls.length,
                               label: st(referenceImageUrls.length === 1 ? "studio.reference.image" : "studio.reference.images")
@@ -2966,14 +3099,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                               if (mode === "image" && !isPromptlessImageWorkflow) setImageWorkflow("text-to-image");
                               if (mode === "video" && !isAvatarWorkflow) setVideoWorkflow("text-to-video");
                             }}
-                            className="rounded-full border border-black/[0.06] bg-white px-3 py-1 text-xs font-semibold text-[#667085] hover:bg-[#f8fafc]"
+                            className="rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-1 text-xs font-semibold text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"
                           >
                             {st("studio.action.clear")}
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {referenceImageUrls.slice(0, 8).map((url, index) => (
-                            <div key={`${url.slice(0, 32)}-${index}`} className="h-16 w-16 overflow-hidden rounded-2xl bg-[#f2f6fb] shadow-sm">
+                            <div key={`${url.slice(0, 32)}-${index}`} className="h-16 w-16 overflow-hidden rounded-2xl bg-[var(--studio-accent-soft)] shadow-sm">
                               <img src={url} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" />
                             </div>
                           ))}
@@ -2981,9 +3114,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       </div>
                     ) : null}
                     {!showModernWorkbenchRedesign && isAvatarWorkflow ? (
-                      <div className="mt-4 border-t border-black/[0.06] pt-4">
+                      <div className="mt-4 border-t border-[var(--studio-border)] pt-4">
                         <div
-                          className="mb-4 rounded-2xl border border-dashed border-[#cbd5e1] bg-[#fbfdff] p-4"
+                          className="mb-4 rounded-2xl border border-dashed border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-4"
                           onDragOver={(event) => event.preventDefault()}
                           onDrop={(event) => {
                             event.preventDefault();
@@ -2991,17 +3124,17 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           }}
                         >
                           <div className="mb-2 flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-[#202633]">{st("studio.field.imageUrl")}<span className="text-[#2563eb]">*</span></span>
-                            <span className="rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-semibold text-[#2563eb]">{st("studio.field.avatarImage")}</span>
+                            <span className="text-sm font-semibold text-[var(--studio-text)]">{st("studio.field.imageUrl")}<span className="text-[var(--studio-accent)]">*</span></span>
+                            <span className="rounded-full bg-[var(--studio-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--studio-accent)]">{st("studio.field.avatarImage")}</span>
                           </div>
                           <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                             <input
                               value={referenceImagesText}
                               onChange={(event) => setReferenceImagesText(event.target.value)}
                               placeholder="https://.../avatar.jpg"
-                              className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                              className="min-h-12 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 text-sm font-semibold text-[var(--studio-text)] outline-none transition focus:border-[var(--studio-accent-border)]"
                             />
-                            <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-black/[0.08] bg-white px-5 text-sm font-semibold text-[#202633] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                            <label className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-5 text-sm font-semibold text-[var(--studio-text)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                               {st("studio.action.choose")}
                               <input
                                 type="file"
@@ -3011,15 +3144,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                               />
                             </label>
                           </div>
-                          <p className="mt-3 text-xs leading-5 text-[#667085]">
+                          <p className="mt-3 text-xs leading-5 text-[var(--studio-muted)]">
                             {st("studio.reference.avatarHint")}
                           </p>
                           {referenceImageUrls.length ? (
                             <div className="mt-4 flex flex-wrap gap-2">
                               {referenceImageUrls.slice(0, 4).map((url, index) => (
-                                <div key={`${url.slice(0, 32)}-${index}`} className="relative h-24 w-24 overflow-hidden rounded-2xl border-2 border-[#7c3aed] bg-[#f2f6fb] shadow-sm">
+                                <div key={`${url.slice(0, 32)}-${index}`} className="relative h-24 w-24 overflow-hidden rounded-2xl border-2 border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] shadow-sm">
                                   <img src={url} alt={`Avatar input ${index + 1}`} className="h-full w-full object-cover" />
-                                  <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-[#7c3aed] text-xs font-black text-white">?</span>
+                                  <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-[var(--studio-primary)] text-xs font-semibold text-white">?</span>
                                 </div>
                               ))}
                             </div>
@@ -3028,7 +3161,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
 
                         {!isDreamfaceTalkingAvatar ? (
                         <div className="mb-4 grid gap-4 lg:grid-cols-[0.72fr_1fr]">
-                          <div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-[#0f172a] shadow-sm">
+                          <div className="overflow-hidden rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-primary)] shadow-sm">
                             <video
                               src={KLING_AVATAR_PREVIEW_VIDEO_URL}
                               controls
@@ -3038,9 +3171,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                               className="aspect-video w-full bg-black object-cover"
                             />
                           </div>
-                          <div className="rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
-                            <p className="text-sm font-semibold text-[#202633]">{st("studio.avatar.example")}</p>
-                            <p className="mt-2 text-xs leading-5 text-[#667085]">
+                          <div className="rounded-2xl border border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] p-4">
+                            <p className="text-sm font-semibold text-[var(--studio-text)]">{st("studio.avatar.example")}</p>
+                            <p className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">
                               {st("studio.avatar.exampleDescription")}
                             </p>
                           </div>
@@ -3048,14 +3181,14 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         ) : null}
 
                         {!isDreamfaceTalkingAvatar ? (
-                        <div className="mb-4 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
+                        <div className="mb-4 rounded-2xl border border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] p-4">
                           <div className="mb-2 flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-[#202633]">{st("studio.avatar.voice")}</span>
-                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${avatarScriptTooLong ? "bg-[#fff1f2] text-[#e11d48]" : "bg-[#f0fdf4] text-[#16a34a]"}`}>
+                            <span className="text-sm font-semibold text-[var(--studio-text)]">{st("studio.avatar.voice")}</span>
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${avatarScriptTooLong ? "bg-[var(--studio-error-soft)] text-[var(--studio-error)]" : "bg-[var(--studio-success-soft)] text-[var(--studio-success)]"}`}>
                               {avatarScriptMeta}
                             </span>
                           </div>
-                          <div className="mb-3 inline-grid grid-cols-3 rounded-full border border-black/[0.06] bg-white p-1 shadow-sm">
+                          <div className="mb-3 inline-grid grid-cols-3 rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] p-1 shadow-sm">
                             {ELEVENLABS_VOICE_GENDER_OPTIONS.map((option) => (
                               <button
                                 key={option.value}
@@ -3063,8 +3196,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 onClick={() => setAvatarVoiceGender(option.value)}
                                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                                   avatarVoiceGender === option.value
-                                    ? "bg-[#202633] text-white shadow-[0_8px_20px_rgba(32,38,51,0.14)]"
-                                    : "text-[#667085] hover:bg-[#f3f8ff] hover:text-[#202633]"
+                                    ? "bg-[var(--studio-primary)] text-white shadow-none"
+                                    : "text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)] hover:text-[var(--studio-text)]"
                                 }`}
                               >
                                 {st(`studio.voiceGender.${option.value}`)}
@@ -3075,7 +3208,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             <select
                               value={ttsVoice}
                               onChange={(e) => setTtsVoice(e.target.value)}
-                              className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                              className="min-h-12 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 text-sm font-semibold text-[var(--studio-text)] outline-none transition focus:border-[var(--studio-accent-border)]"
                             >
                               {avatarVoiceOptions.map((voice) => (
                                 <option key={voice} value={voice}>{voice}</option>
@@ -3084,7 +3217,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             <select
                               value={ttsLanguageCode}
                               onChange={(e) => setTtsLanguageCode(e.target.value)}
-                              className="min-h-12 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                              className="min-h-12 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 text-sm font-semibold text-[var(--studio-text)] outline-none transition focus:border-[var(--studio-accent-border)]"
                             >
                               {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
                                 <option key={item.value || "auto"} value={item.value}>
@@ -3092,8 +3225,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 </option>
                               ))}
                             </select>
-                            <label className="rounded-xl border border-black/[0.08] bg-white px-4 py-2.5">
-                              <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8791a3]">{st("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
+                            <label className="rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2.5">
+                              <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--studio-muted)]">{st("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
                               <input
                                 type="range"
                                 min="0"
@@ -3101,25 +3234,25 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 step="0.05"
                                 value={ttsStability}
                                 onChange={(e) => setTtsStability(Number(e.target.value))}
-                                className="mt-1 w-full accent-[#202633]"
+                                className="mt-1 w-full accent-[var(--studio-primary)]"
                               />
                             </label>
                           </div>
-                          <p className={`mt-3 text-xs leading-5 ${avatarScriptTooLong ? "text-[#e11d48]" : "text-[#667085]"}`}>
+                          <p className={`mt-3 text-xs leading-5 ${avatarScriptTooLong ? "text-[var(--studio-error)]" : "text-[var(--studio-muted)]"}`}>
                             {avatarScriptTooLong
                               ? st("studio.avatar.scriptTooLong")
                               : st("studio.avatar.billingHint", { duration: avatarDuration })}
                           </p>
                         </div>
                         ) : (
-                          <div className="mb-4 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-4">
+                          <div className="mb-4 rounded-2xl border border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] p-4">
                             <div className="mb-2 flex items-center justify-between gap-3">
-                              <span className="text-sm font-semibold text-[#202633]">Talking script</span>
-                              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${avatarScriptTooLong ? "bg-[#fff1f2] text-[#e11d48]" : "bg-[#f0fdf4] text-[#16a34a]"}`}>
+                              <span className="text-sm font-semibold text-[var(--studio-text)]">Talking script</span>
+                              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${avatarScriptTooLong ? "bg-[var(--studio-error-soft)] text-[var(--studio-error)]" : "bg-[var(--studio-success-soft)] text-[var(--studio-success)]"}`}>
                                 {avatarScriptMeta}
                               </span>
                             </div>
-                            <p className={`text-xs leading-5 ${avatarScriptTooLong ? "text-[#e11d48]" : "text-[#667085]"}`}>
+                            <p className={`text-xs leading-5 ${avatarScriptTooLong ? "text-[var(--studio-error)]" : "text-[var(--studio-muted)]"}`}>
                               {avatarScriptTooLong
                                 ? st("studio.avatar.scriptTooLong")
                                 : "DreamFace IO will animate only the uploaded image and make the visible subject say your script. No separate voice URL is needed."}
@@ -3132,32 +3265,32 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             <button
                               type="button"
                               onClick={startAvatarImageGuide}
-                              className="rounded-2xl border border-[#bfdbfe] bg-[#eff6ff] p-4 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                              className="rounded-2xl border border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] p-4 text-left transition hover:-translate-y-0.5 hover:bg-[var(--studio-panel)] hover:shadow-sm"
                             >
-                              <span className="text-xs font-black uppercase tracking-[0.12em] text-[#2563eb]">{st("studio.avatar.guideEyebrow")}</span>
-                              <span className="mt-2 block text-sm font-semibold text-[#202633]">{st("studio.avatar.guideTitle")}</span>
-                              <span className="mt-1 block text-xs leading-5 text-[#667085]">{st("studio.avatar.guideDescription")}</span>
+                              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--studio-accent)]">{st("studio.avatar.guideEyebrow")}</span>
+                              <span className="mt-2 block text-sm font-semibold text-[var(--studio-text)]">{st("studio.avatar.guideTitle")}</span>
+                              <span className="mt-1 block text-xs leading-5 text-[var(--studio-muted)]">{st("studio.avatar.guideDescription")}</span>
                             </button>
                           </div>
                         ) : null}
                         <label className="hidden">
-                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8791a3]">Voiceover audio URL</span>
+                          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)]">Voiceover audio URL</span>
                           <input
                             value={avatarAudioUrl}
                             onChange={(event) => setAvatarAudioUrl(event.target.value)}
                             placeholder="https://.../voiceover.mp3"
-                            className="mt-2 w-full rounded-2xl border border-black/[0.08] bg-white px-4 py-3 text-sm font-semibold text-[#485164] outline-none transition focus:border-[#77a8e8]"
+                            className="mt-2 w-full rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-3 text-sm font-semibold text-[var(--studio-text)] outline-none transition focus:border-[var(--studio-accent-border)]"
                           />
                         </label>
                       </div>
                     ) : null}
                   </div>
 
-                  <div className={showModernWorkbenchRedesign ? "hidden" : "grid grid-cols-2 gap-2.5 border-t border-black/[0.06] bg-[#fbfcff] px-5 py-4 sm:flex sm:flex-wrap sm:items-center md:px-7"}>
+                  <div className={showModernWorkbenchRedesign ? "hidden" : "grid grid-cols-2 gap-2.5 border-t border-[var(--studio-border)] bg-[var(--studio-accent-soft)] px-5 py-4 sm:flex sm:flex-wrap sm:items-center md:px-7"}>
                     {mode !== "audio" && !isPromptlessImageWorkflow ? (
                     <label
                       title={st("studio.action.addReference")}
-                      className="col-span-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-black/[0.08] bg-white text-sm font-semibold text-[#475467] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:grid sm:h-10 sm:w-10 sm:place-items-center sm:rounded-full sm:text-xl sm:font-light"
+                      className="col-span-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] text-sm font-semibold text-[var(--studio-text)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:grid sm:h-10 sm:w-10 sm:place-items-center sm:rounded-full sm:text-xl sm:font-light"
                     >
                       <span className="text-xl font-light leading-none">+</span>
                       <span className="sm:hidden">{st("studio.action.referenceImage")}</span>
@@ -3178,22 +3311,22 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           onClick={() => {
                             setToolbarModelSelectOpen((open) => !open);
                           }}
-                          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-full border border-black/[0.06] bg-white px-4 py-2 text-left text-sm font-semibold text-[#485164] shadow-sm outline-none transition hover:bg-[#f8fafc]"
+                          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-left text-sm font-semibold text-[var(--studio-text)] shadow-sm outline-none transition hover:bg-[var(--studio-accent-soft)]"
                           aria-haspopup="listbox"
                           aria-expanded={toolbarModelSelectOpen}
                         >
                           <span className="min-w-0">
                             <span className="block truncate">{selectedProviderMeta.label}</span>
-                            <span className="mt-0.5 block truncate text-[11px] font-medium text-[#8b95a7]">{st(`studio.modelSelect.desc.${provider}`)}</span>
+                            <span className="mt-0.5 block truncate text-[11px] font-medium text-[var(--studio-muted)]">{st(`studio.modelSelect.desc.${provider}`)}</span>
                           </span>
-                          <span className={`shrink-0 text-base text-[#64748b] transition ${toolbarModelSelectOpen ? "rotate-180" : ""}`}>v</span>
+                          <span className={`shrink-0 text-base text-[var(--studio-muted)] transition ${toolbarModelSelectOpen ? "rotate-180" : ""}`}>v</span>
                         </button>
                         {toolbarModelSelectOpen ? (
                           <div
                             ref={toolbarModelSelectPanelRef}
                             onMouseDown={(event) => event.stopPropagation()}
                             onTouchStart={(event) => event.stopPropagation()}
-                            className={`z-[200] overflow-y-auto overscroll-contain rounded-[1.35rem] border border-black/[0.08] bg-white/95 text-[#263244] shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl ${
+                            className={`z-[200] overflow-y-auto overscroll-contain rounded-[1.35rem] border border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-text)] shadow-none backdrop-blur-xl ${
                               toolbarModelSelectPlacement === "modal"
                                 ? "fixed left-1/2 top-20 max-h-[calc(100vh-6rem)] w-[min(calc(100vw-2rem),520px)] -translate-x-1/2"
                                 : `absolute left-0 max-h-[min(68vh,520px)] w-full sm:w-[480px] ${
@@ -3207,7 +3340,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                               if (!groupOptions.length) return null;
                               return (
                                 <div key={group.key}>
-                                  <div className="bg-gradient-to-b from-[#f8fafc] to-white/0 px-4 py-3 pb-2 text-[11px] font-black uppercase tracking-[0.14em] text-[#9aa6b8]">
+                                  <div className="bg-gradient-to-b from-[#f8fafc] to-white/0 px-4 py-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)]">
                                     {group.label}
                                   </div>
                                   {groupOptions.map((option) => {
@@ -3239,25 +3372,25 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                           applyProvider(option.value);
                                           setToolbarModelSelectOpen(false);
                                         }}
-                                        className={`flex w-full items-center justify-between gap-4 border-t border-[#e2e8f0]/80 px-4 py-3.5 text-left transition hover:bg-[#f5f9ff] ${active ? "bg-gradient-to-r from-[#eef8ff] to-white" : "bg-transparent"}`}
+                                        className={`flex w-full items-center justify-between gap-4 border-t border-[var(--studio-border)] px-4 py-3.5 text-left transition hover:bg-[var(--studio-accent-soft)] ${active ? "bg-gradient-to-r from-[#eef8ff] to-white" : "bg-transparent"}`}
                                       >
                                         <span className="min-w-0">
-                                          <span className="block text-[15px] font-black text-[#263244]">{meta.label}</span>
-                                          <span className="mt-1 block text-xs leading-5 text-[#7f8ca3]">{st(`studio.modelSelect.desc.${option.value}`)}</span>
+                                          <span className="block text-[15px] font-semibold text-[var(--studio-text)]">{meta.label}</span>
+                                          <span className="mt-1 block text-xs leading-5 text-[var(--studio-muted)]">{st(`studio.modelSelect.desc.${option.value}`)}</span>
                                         </span>
                                         <span className="flex shrink-0 items-center gap-2">
                                           {option.value !== "dreamface-io-video" ? (
-                                            <span className="text-xs font-bold text-[#64748b]">{st("studio.modelSelect.credits", { credits: modelCredits })}</span>
+                                            <span className="text-xs font-bold text-[var(--studio-muted)]">{st("studio.modelSelect.credits", { credits: modelCredits })}</span>
                                           ) : null}
                                           {badge ? (
-                                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                                               badge === "free"
-                                                ? "bg-[#eef2f7] text-[#536071]"
+                                                ? "bg-[var(--studio-surface)] text-[var(--studio-muted)]"
                                                 : badge === "recommended"
                                                   ? "bg-gradient-to-br from-[#2563eb] to-[#0ea5e9] text-white"
                                                   : badge === "pro"
-                                                    ? "bg-[#f3e8ff] text-[#7e22ce]"
-                                                    : "bg-[#fff4ce] text-[#9a6412]"
+                                                    ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
+                                                    : "bg-[var(--studio-warning-soft)] text-[var(--studio-warning)]"
                                             }`}>
                                               {st(`studio.modelSelect.badge.${badge}`)}
                                             </span>
@@ -3276,7 +3409,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       <select
                         value={provider}
                         onChange={(e) => applyProvider(e.target.value)}
-                        className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#485164] outline-none transition hover:bg-[#f8fafc] sm:w-auto"
+                        className="w-full rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-sm font-semibold text-[var(--studio-text)] outline-none transition hover:bg-[var(--studio-accent-soft)] sm:w-auto"
                       >
                         {options.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -3293,7 +3426,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             trackEvent("studio_size_selected", { mode, provider, ratio: e.target.value }, accessToken);
                             setRatio(e.target.value);
                           }}
-                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
+                          className="w-full rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-sm font-semibold text-[var(--studio-muted)] outline-none sm:w-auto"
                         >
                           {(provider === "nano-banana-pro" || provider === "nano-banana-2-lite" ? NANO_ASPECT_RATIO_OPTIONS.filter((item) => !["4:1", "1:4", "8:1", "1:8"].includes(item)) : NANO_ASPECT_RATIO_OPTIONS).map((item) => (
                             <option key={item} value={item}>
@@ -3309,7 +3442,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             setImageSize(e.target.value);
                             setRatio(ratioFromImageSize(e.target.value));
                           }}
-                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
+                          className="w-full rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-sm font-semibold text-[var(--studio-muted)] outline-none sm:w-auto"
                         >
                           {IMAGE_SIZE_PRESETS.map((preset) => (
                             <option key={preset.value} value={preset.value}>
@@ -3323,7 +3456,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         <select
                           value={ttsVoice}
                           onChange={(e) => setTtsVoice(e.target.value)}
-                          className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto"
+                          className="w-full rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-sm font-semibold text-[var(--studio-muted)] outline-none sm:w-auto"
                         >
                           {audioVoiceOptions.map((voice) => (
                             <option key={voice} value={voice}>{voice}</option>
@@ -3333,36 +3466,36 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     ) : mode === "avatar" ? (
                       isDreamfaceTalkingAvatar ? (
                         <>
-                          <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
+                          <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-sm font-semibold text-[var(--studio-muted)] outline-none sm:w-auto">
                             {videoDurationOptions.map((item) => (
                               <option key={item} value={item}>{item}</option>
                             ))}
                           </select>
-                          <select value={ratio} onChange={(e) => setRatio(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
+                          <select value={ratio} onChange={(e) => setRatio(e.target.value)} className="w-full rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-sm font-semibold text-[var(--studio-muted)] outline-none sm:w-auto">
                             {videoRatioOptions.map((item) => (
                               <option key={item} value={item}>{item === "source" ? st("studio.option.sourceImage") : item}</option>
                             ))}
                           </select>
                         </>
                       ) : (
-                        <span className={`rounded-full border px-4 py-2.5 text-center text-sm font-semibold sm:py-2 ${avatarScriptTooLong ? "border-[#fecdd3] bg-[#fff1f2] text-[#e11d48]" : "border-black/[0.06] bg-white text-[#667085]"}`}>
+                        <span className={`rounded-full border px-4 py-2.5 text-center text-sm font-semibold sm:py-2 ${avatarScriptTooLong ? "border-[var(--studio-border)] bg-[var(--studio-error-soft)] text-[var(--studio-error)]" : "border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-muted)]"}`}>
                           {avatarDuration} {st("studio.option.automatic")}
                         </span>
                       )
                     ) : (
                       <>
-                        <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
+                        <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-sm font-semibold text-[var(--studio-muted)] outline-none sm:w-auto">
                           {videoDurationOptions.map((item) => (
                             <option key={item} value={item}>{item}</option>
                           ))}
                         </select>
-                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={((provider === "kling-video" || provider === "grok-video" || isH3VideoProvider(provider)) && activeWorkflow === "image-to-video") || isAvatarWorkflow} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none disabled:opacity-70 sm:w-auto">
+                        <select value={ratio} onChange={(e) => setRatio(e.target.value)} disabled={((provider === "kling-video" || provider === "grok-video" || isH3VideoProvider(provider)) && activeWorkflow === "image-to-video") || isAvatarWorkflow} className="w-full rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-sm font-semibold text-[var(--studio-muted)] outline-none disabled:opacity-70 sm:w-auto">
                           {videoRatioOptions.map((item) => (
                             <option key={item} value={item}>{item === "source" ? st("studio.option.sourceImage") : item}</option>
                           ))}
                         </select>
                         {showVideoResolutionControl ? (
-                          <select value={videoResolution} onChange={(e) => setVideoResolution(e.target.value)} className="w-full rounded-full border border-black/[0.06] bg-white px-4 py-2 text-sm font-semibold text-[#667085] outline-none sm:w-auto">
+                          <select value={videoResolution} onChange={(e) => setVideoResolution(e.target.value)} className="w-full rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-sm font-semibold text-[var(--studio-muted)] outline-none sm:w-auto">
                             {videoResolutionOptions.map((item) => (
                               <option key={item} value={item}>{item}</option>
                             ))}
@@ -3370,7 +3503,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         ) : null}
                       </>
                     )}
-                    <span className="rounded-full border border-black/[0.06] bg-white px-4 py-2.5 text-center text-sm font-semibold text-[#667085] sm:py-2">
+                    <span className="rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2.5 text-center text-sm font-semibold text-[var(--studio-muted)] sm:py-2">
                       {provider === "dreamface-io-video"
                         ? usesDreamfaceIoFreeAllowance
                           ? st("studio.generate.dailyFree", { remaining: dreamfaceIoRemainingUnits })
@@ -3378,68 +3511,68 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             ? st("studio.generate.dailyPaid", { credits: estCredits })
                             : st("studio.generate.estimate", { credits: estCredits })
                         : st("studio.generate.estimate", { credits: estCredits })}
-                      <span className="ms-1.5 font-bold text-[#7868df]">· ≈{formatApproximateCreditValue(estCredits)}</span>
+                      <span className="ms-1.5 font-bold text-[var(--studio-accent)]">· ≈{formatApproximateCreditValue(estCredits)}</span>
                     </span>
                     <button
                       type="button"
                       onClick={handleGenerateClick}
                       disabled={generateDisabled}
-                      className="col-span-2 min-h-12 rounded-full bg-[#171a22] px-7 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(23,26,34,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(23,26,34,0.26)] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:min-h-11"
+                      className="col-span-2 min-h-12 rounded-full bg-[var(--studio-primary)] px-7 text-sm font-semibold text-white shadow-none transition hover:-translate-y-0.5 hover:shadow-none disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:min-h-11"
                     >
                       {isSubmitting ? st("studio.generate.creating") : accessToken ? st("studio.generate.button") : st("studio.auth.signInToGenerate")}
                     </button>
                     {isSubmitting ? (
-                      <p className="col-span-2 -mt-1 text-center text-xs font-medium leading-5 text-[#7a8496] sm:text-right">
+                      <p className="col-span-2 -mt-1 text-center text-xs font-medium leading-5 text-[var(--studio-muted)] sm:text-right">
                         {st("studio.generate.projectsHint")}{" "}
-                        <Link href="/studio?view=projects" className="font-semibold text-[#1c6be1] underline-offset-4 hover:underline">
+                        <Link href="/studio?view=projects" className="font-semibold text-[var(--studio-accent)] underline-offset-4 hover:underline">
                           {st("studio.nav.projects")}
                         </Link>
                       </p>
                     ) : null}
                   </div>
                   {provider === "dreamface-io-video" && !showVideoWorkbenchRedesign ? (
-                    <p className="border-t border-black/[0.05] bg-amber-50/55 px-5 py-2.5 text-center text-xs font-medium text-amber-800/80 md:px-7">
+                    <p className="border-t border-[var(--studio-border)] bg-amber-50/55 px-5 py-2.5 text-center text-xs font-medium text-amber-800/80 md:px-7">
                       {st("studio.dreamfaceIo.qualityHint")}
                     </p>
                   ) : null}
                   {mode === "audio" && !showAudioWorkbenchRedesign ? (
-                    <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
+                    <div className="border-t border-[var(--studio-border)] bg-[var(--studio-panel)] px-5 py-4 text-left md:px-7">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">{st("studio.field.modelSettings")}</p>
-                        <p className="text-xs font-medium text-[#8b95a7]">{providerSettingsLabel}</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)]">{st("studio.field.modelSettings")}</p>
+                        <p className="text-xs font-medium text-[var(--studio-muted)]">{providerSettingsLabel}</p>
                       </div>
                       {isElevenLabsAudio ? (
                       <>
                       <div className="grid gap-3 lg:grid-cols-5">
-                        <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.music.voiceGender")}</span>
+                        <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                          <span className="mb-2 block text-xs font-semibold text-[var(--studio-muted)]">{st("studio.music.voiceGender")}</span>
                           <div className="grid grid-cols-3 gap-1">
                             {ELEVENLABS_VOICE_GENDER_OPTIONS.map((option) => (
                               <button
                                 key={option.value}
                                 type="button"
                                 onClick={() => setAudioVoiceGender(option.value)}
-                                className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${audioVoiceGender === option.value ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"}`}
+                                className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${audioVoiceGender === option.value ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-panel)] text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"}`}
                               >
                                 {st(`studio.music.${option.value}`)}
                               </button>
                             ))}
                           </div>
                         </div>
-                        <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.field.voice")}</span>
+                        <label className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                          <span className="mb-2 block text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.voice")}</span>
                           <select
                             value={ttsVoice}
                             onChange={(e) => setTtsVoice(e.target.value)}
-                            className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none"
+                            className="w-full rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2 text-sm font-semibold text-[var(--studio-text)] outline-none"
                           >
                             {audioVoiceOptions.map((voice) => (
                               <option key={voice} value={voice}>{voice}</option>
                             ))}
                           </select>
                         </label>
-                        <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
+                        <label className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                          <span className="mb-2 block text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.stability", { value: ttsStability.toFixed(2) })}</span>
                           <input
                             type="range"
                             min="0"
@@ -3447,15 +3580,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             step="0.05"
                             value={ttsStability}
                             onChange={(e) => setTtsStability(Number(e.target.value))}
-                            className="w-full accent-[#202633]"
+                            className="w-full accent-[var(--studio-primary)]"
                           />
                         </label>
-                        <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.field.language")}</span>
+                        <label className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                          <span className="mb-2 block text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.language")}</span>
                           <select
                             value={ttsLanguageCode}
                             onChange={(e) => setTtsLanguageCode(e.target.value)}
-                            className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none"
+                            className="w-full rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2 text-sm font-semibold text-[var(--studio-text)] outline-none"
                           >
                           {ELEVENLABS_LANGUAGE_OPTIONS.map((item) => (
                               <option key={item.value || "auto"} value={item.value}>
@@ -3464,12 +3597,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             ))}
                           </select>
                         </label>
-                        <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.field.textNormalization")}</span>
+                        <label className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                          <span className="mb-2 block text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.textNormalization")}</span>
                           <select
                             value={textNormalization}
                             onChange={(e) => setTextNormalization(e.target.value)}
-                            className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none"
+                            className="w-full rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2 text-sm font-semibold text-[var(--studio-text)] outline-none"
                           >
                           {TEXT_NORMALIZATION_OPTIONS.map((item) => (
                               <option key={item.value} value={item.value}>
@@ -3480,10 +3613,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         </label>
                       </div>
                       <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-                        <label className="flex items-center justify-between gap-4 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
+                        <label className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
                           <span>
-                            <span className="block text-sm font-semibold text-[#485164]">{st("studio.field.wordTimestamps")}</span>
-                            <span className="mt-1 block text-xs text-[#8b95a7]">{st("studio.audio.wordTimestampsDescription")}</span>
+                            <span className="block text-sm font-semibold text-[var(--studio-text)]">{st("studio.field.wordTimestamps")}</span>
+                            <span className="mt-1 block text-xs text-[var(--studio-muted)]">{st("studio.audio.wordTimestampsDescription")}</span>
                           </span>
                           <input
                             type="checkbox"
@@ -3492,12 +3625,12 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             className="h-5 w-5"
                           />
                         </label>
-                        <p className="rounded-2xl border border-black/[0.06] bg-white px-4 py-3 text-sm font-semibold text-[#667085]">
+                        <p className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-3 text-sm font-semibold text-[var(--studio-muted)]">
                           {st("studio.audio.creditEstimate", {
                             characters: audioCharacterCount.toLocaleString(),
                             credits: estCredits
                           })}
-                          <span className="ms-1.5 font-bold text-[#7868df]">· ≈{formatApproximateCreditValue(estCredits)}</span>
+                          <span className="ms-1.5 font-bold text-[var(--studio-accent)]">· ≈{formatApproximateCreditValue(estCredits)}</span>
                         </p>
                       </div>
                       </>
@@ -3506,35 +3639,35 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           <button
                             type="button"
                             onClick={() => setMusicAdvancedOpen((value) => !value)}
-                            className="flex w-full items-center justify-between rounded-2xl border border-black/[0.06] bg-[#fbfdff] px-4 py-3 text-left"
+                            className="flex w-full items-center justify-between rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] px-4 py-3 text-left"
                           >
                             <span>
-                              <span className="block text-sm font-semibold text-[#485164]">{st("studio.music.additionalSettings")}</span>
-                              <span className="mt-1 block text-xs text-[#8b95a7]">{st("studio.music.additionalSettingsDescription")}</span>
+                              <span className="block text-sm font-semibold text-[var(--studio-text)]">{st("studio.music.additionalSettings")}</span>
+                              <span className="mt-1 block text-xs text-[var(--studio-muted)]">{st("studio.music.additionalSettingsDescription")}</span>
                             </span>
-                            <span className="text-sm font-semibold text-[#667085]">{musicAdvancedOpen ? st("studio.music.less") : st("studio.music.more")}</span>
+                            <span className="text-sm font-semibold text-[var(--studio-muted)]">{musicAdvancedOpen ? st("studio.music.less") : st("studio.music.more")}</span>
                           </button>
                           {musicAdvancedOpen ? (
                           <>
                           <div className="grid gap-3 sm:grid-cols-2">
-                            <label className="flex items-center justify-between gap-4 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-4">
+                            <label className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-4">
                               <span>
-                                <span className="block text-sm font-semibold text-[#485164]">{st("studio.music.instrumental")}</span>
-                                <span className="mt-1 block text-xs text-[#8b95a7]">{st("studio.music.instrumentalDescription")}</span>
+                                <span className="block text-sm font-semibold text-[var(--studio-text)]">{st("studio.music.instrumental")}</span>
+                                <span className="mt-1 block text-xs text-[var(--studio-muted)]">{st("studio.music.instrumentalDescription")}</span>
                               </span>
                               <input type="checkbox" checked={isInstrumental} onChange={(e) => setIsInstrumental(e.target.checked)} className="h-5 w-5" />
                             </label>
-                            <label className={`flex items-center justify-between gap-4 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-4 ${isInstrumental ? "opacity-50" : ""}`}>
+                            <label className={`flex items-center justify-between gap-4 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-4 ${isInstrumental ? "opacity-50" : ""}`}>
                               <span>
-                                <span className="block text-sm font-semibold text-[#485164]">{st("studio.music.autoLyrics")}</span>
-                                <span className="mt-1 block text-xs text-[#8b95a7]">{st("studio.music.autoLyricsDescription")}</span>
+                                <span className="block text-sm font-semibold text-[var(--studio-text)]">{st("studio.music.autoLyrics")}</span>
+                                <span className="mt-1 block text-xs text-[var(--studio-muted)]">{st("studio.music.autoLyricsDescription")}</span>
                               </span>
                               <input type="checkbox" checked={lyricsOptimizer} disabled={isInstrumental} onChange={(e) => setLyricsOptimizer(e.target.checked)} className="h-5 w-5" />
                             </label>
                           </div>
                           {!isInstrumental ? (
-                            <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                              <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.music.lyrics")}</span>
+                            <label className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                              <span className="mb-2 block text-xs font-semibold text-[var(--studio-muted)]">{st("studio.music.lyrics")}</span>
                               <textarea
                                 rows={8}
                                 maxLength={3500}
@@ -3542,33 +3675,33 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 onChange={(e) => setMusicLyrics(e.target.value)}
                                 disabled={lyricsOptimizer}
                                 placeholder={st("studio.music.lyricsPlaceholder")}
-                                className="w-full resize-y rounded-xl border border-black/[0.06] bg-white px-3 py-3 text-sm leading-6 text-[#485164] outline-none disabled:opacity-50"
+                                className="w-full resize-y rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-3 text-sm leading-6 text-[var(--studio-text)] outline-none disabled:opacity-50"
                               />
-                              <span className="mt-2 block text-xs leading-5 text-[#8b95a7]">{st("studio.music.lyricsDescription")}</span>
-                              <span className="mt-2 block text-right text-xs text-[#98a2b3]">{musicLyrics.length.toLocaleString()} / 3,500</span>
+                              <span className="mt-2 block text-xs leading-5 text-[var(--studio-muted)]">{st("studio.music.lyricsDescription")}</span>
+                              <span className="mt-2 block text-right text-xs text-[var(--studio-muted)]">{musicLyrics.length.toLocaleString()} / 3,500</span>
                             </label>
                           ) : null}
                           <div className="grid gap-3 md:grid-cols-3">
-                            <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                              <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.music.sampleRate")}</span>
-                              <select value={musicSampleRate} onChange={(e) => setMusicSampleRate(Number(e.target.value))} className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none">
+                            <label className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                              <span className="mb-2 block text-xs font-semibold text-[var(--studio-muted)]">{st("studio.music.sampleRate")}</span>
+                              <select value={musicSampleRate} onChange={(e) => setMusicSampleRate(Number(e.target.value))} className="w-full rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2 text-sm font-semibold text-[var(--studio-text)] outline-none">
                                 {[16000, 24000, 32000, 44100].map((value) => <option key={value} value={value}>{value} Hz</option>)}
                               </select>
-                              <span className="mt-2 block text-xs text-[#8b95a7]">{st("studio.music.sampleRateDescription")}</span>
+                              <span className="mt-2 block text-xs text-[var(--studio-muted)]">{st("studio.music.sampleRateDescription")}</span>
                             </label>
-                            <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                              <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.music.bitrate")}</span>
-                              <select value={musicBitrate} onChange={(e) => setMusicBitrate(Number(e.target.value))} className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold text-[#485164] outline-none">
+                            <label className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                              <span className="mb-2 block text-xs font-semibold text-[var(--studio-muted)]">{st("studio.music.bitrate")}</span>
+                              <select value={musicBitrate} onChange={(e) => setMusicBitrate(Number(e.target.value))} className="w-full rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2 text-sm font-semibold text-[var(--studio-text)] outline-none">
                                 {[32000, 64000, 128000, 256000].map((value) => <option key={value} value={value}>{value / 1000} kbps</option>)}
                               </select>
-                              <span className="mt-2 block text-xs text-[#8b95a7]">{st("studio.music.bitrateDescription")}</span>
+                              <span className="mt-2 block text-xs text-[var(--studio-muted)]">{st("studio.music.bitrateDescription")}</span>
                             </label>
-                            <label className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                              <span className="mb-2 block text-xs font-semibold text-[#667085]">{st("studio.music.format")}</span>
-                              <select value={musicFormat} onChange={(e) => setMusicFormat(e.target.value as "mp3" | "wav" | "pcm")} className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-sm font-semibold uppercase text-[#485164] outline-none">
+                            <label className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                              <span className="mb-2 block text-xs font-semibold text-[var(--studio-muted)]">{st("studio.music.format")}</span>
+                              <select value={musicFormat} onChange={(e) => setMusicFormat(e.target.value as "mp3" | "wav" | "pcm")} className="w-full rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2 text-sm font-semibold uppercase text-[var(--studio-text)] outline-none">
                                 {(["mp3", "wav", "pcm"] as const).map((value) => <option key={value} value={value}>{value}</option>)}
                               </select>
-                              <span className="mt-2 block text-xs text-[#8b95a7]">{st("studio.music.formatDescription")}</span>
+                              <span className="mt-2 block text-xs text-[var(--studio-muted)]">{st("studio.music.formatDescription")}</span>
                             </label>
                           </div>
                           </>
@@ -3578,6 +3711,10 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     </div>
                   ) : (showImageWorkbenchRedesign || showAudioWorkbenchRedesign || showAvatarWorkbenchRedesign) ? null : showImageWorkbenchRedesign ? (
                     <ImageSettings
+      gptOptions={gptImageOptions}
+      referenceImageUrls={referenceImageUrls}
+      onGptOptionsChange={setGptImageOptions}
+      gptValidationError={gptValidationError}
                       provider={provider}
                       providerOptions={modelPickerOptions}
                       utilityWorkflow={
@@ -3686,9 +3823,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       onGenerate={handleGenerateClick}
                     />
                   ) : showVideoWorkbenchRedesign ? (
+                    <>
                     <VideoSettings
+                      workflowTabs={workflowNavigation}
+                        statusMessage={statusText}
+                        statusTone={statusTone}
                       dailyFreeLabel={h3FreeLabel}
                       workflow={configuredVideoWorkflow}
+                      referenceVideoUrl={referenceVideoUrl}
+                      onReferenceVideoUrlChange={setReferenceVideoUrl}
                       prompt={prompt}
                       referenceImageUrls={referenceImageUrls}
                       provider={provider}
@@ -3713,8 +3856,6 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       generateDisabled={generateDisabled}
                       isSubmitting={isSubmitting}
                       isAuthenticated={Boolean(accessToken)}
-                      recentTasks={tasks}
-                      promptShowcases={videoPromptShowcases}
                       translate={st}
                       onPromptChange={videoPromptAI.edit}
                       promptAI={videoPromptAI}
@@ -3724,23 +3865,26 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       }}
                       onReferenceFiles={handleReferenceFiles}
                       onReferenceRemove={(index) => {
+                        if (videoWorkflow === "reference-to-video") {
+                          const urls = parseStudioReferenceImages(referenceImagesText);
+                          if (index < urls.length) setReferenceImagesText(urls.filter((_,position)=>position!==index).join("\n"));
+                          else setReferenceImageFiles(files=>files.filter((_,position)=>position!==index-urls.length));
+                          return;
+                        }
                         setReferenceImagesText("");
                         setReferenceImageFiles(index === 0 ? [] : referenceImageUrls.slice(0, 1));
                       }}
-                      onFileError={() => setStatusText(st("studio.status.fileReadFailed"))}
+                      onFileError={() => { setStatusTone("error"); setStatusText(st("studio.status.fileReadFailed")); }}
                       onProviderChange={applyProvider}
                       onDurationChange={setDuration}
                       onRatioChange={setRatio}
                       onResolutionChange={setVideoResolution}
                       onGenerateAudioChange={setGenerateAudio}
                       onSeedChange={setSeed}
-                      onUsePromptShowcase={(showcase) => {
-                        videoPromptAI.reset(showcase.prompt);
-                        if (videoModelDurations(provider).includes(showcase.duration)) setDuration(showcase.duration);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
                       onGenerate={handleGenerateClick}
                     />
+                    <VideoTemplateGallery translate={st} locale={studioI18n.locale} />
+                    </>
                   ) : showAvatarWorkbenchRedesign ? (
                     <AvatarSettings
                       dailyFreeLabel={h3FreeLabel}
@@ -3765,15 +3909,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       onGenerate={handleGenerateClick}
                     />
                   ) : mode === "image" && !isPromptlessImageWorkflow ? (
-                    <div className="border-t border-black/[0.06] bg-white/70 px-5 py-4 text-left md:px-7">
+                    <div className="border-t border-[var(--studio-border)] bg-[var(--studio-panel)] px-5 py-4 text-left md:px-7">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">{st("studio.field.modelSettings")}</p>
-                        <p className="text-xs font-medium text-[#8b95a7]">{providerSettingsLabel}</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)]">{st("studio.field.modelSettings")}</p>
+                        <p className="text-xs font-medium text-[var(--studio-muted)]">{providerSettingsLabel}</p>
                       </div>
                       <div className="grid gap-3 lg:grid-cols-4">
                         {isGptImageProvider(provider) ? (
-                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.quality")}</p>
+                          <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.quality")}</p>
                             <div className="grid grid-cols-4 gap-1">
                               {GPT_IMAGE_QUALITIES.map((quality) => (
                                 <button
@@ -3781,7 +3925,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                   type="button"
                                   onClick={() => setImageQuality(quality)}
                                   className={`rounded-xl px-2 py-2 text-xs font-semibold capitalize transition ${
-                                    imageQuality === quality ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                    imageQuality === quality ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-panel)] text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"
                                   }`}
                                 >
                                   {quality}
@@ -3792,8 +3936,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                         ) : null}
                         {provider === "flux-image" || provider === "flux-dev" ? (
                           <>
-                            <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                              <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.steps")}</p>
+                            <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                              <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.steps")}</p>
                               <div className="grid grid-cols-4 gap-1">
                                 {(provider === "flux-image" ? [1, 2, 4, 8, 12] : [4, 8, 16, 28, 50]).map((steps) => (
                                   <button
@@ -3801,7 +3945,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                     type="button"
                                     onClick={() => setNumInferenceSteps(steps)}
                                     className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${
-                                      numInferenceSteps === steps ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                      numInferenceSteps === steps ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-panel)] text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"
                                     }`}
                                   >
                                     {steps}
@@ -3809,8 +3953,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 ))}
                               </div>
                             </div>
-                            <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                              <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.guidance")}</p>
+                            <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                              <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.guidance")}</p>
                               <input
                                 type="range"
                                 min="1"
@@ -3818,15 +3962,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 step="0.5"
                                 value={guidanceScale}
                                 onChange={(e) => setGuidanceScale(Number(e.target.value))}
-                                className="w-full accent-[#0ea5e9]"
+                                className="w-full accent-[var(--studio-primary)]"
                               />
-                              <p className="mt-1 text-xs font-semibold text-[#202633]">{guidanceScale}</p>
+                              <p className="mt-1 text-xs font-semibold text-[var(--studio-text)]">{guidanceScale}</p>
                             </div>
                           </>
                         ) : null}
                         {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
-                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.resolution")}</p>
+                          <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.resolution")}</p>
                             <div className="grid grid-cols-4 gap-1">
                               {["1K", "2K", "4K"].map((resolution) => (
                                 <button
@@ -3834,7 +3978,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                   type="button"
                                   onClick={() => setEditResolution(resolution)}
                                   className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${
-                                    editResolution === resolution ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                    editResolution === resolution ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-panel)] text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"
                                   }`}
                                 >
                                   {resolution}
@@ -3843,8 +3987,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             </div>
                           </div>
                         ) : null}
-                        <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.output")}</p>
+                        <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                          <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.output")}</p>
                           <div className="grid grid-cols-3 gap-1">
                             {(provider === "flux-image" || provider === "flux-dev" ? ["jpeg", "png"] : ["png", "jpeg", "webp"]).map((format) => (
                               <button
@@ -3852,7 +3996,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 type="button"
                                 onClick={() => setOutputFormat(format)}
                                 className={`rounded-xl px-2 py-2 text-xs font-semibold uppercase transition ${
-                                  outputFormat === format ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                  outputFormat === format ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-panel)] text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"
                                 }`}
                               >
                                 {format}
@@ -3860,8 +4004,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             ))}
                           </div>
                         </div>
-                        <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.count")}</p>
+                        <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                          <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.count")}</p>
                           <div className="grid grid-cols-4 gap-1">
                             {[1, 2, 3, 4].map((count) => (
                               <button
@@ -3869,7 +4013,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                 type="button"
                                 onClick={() => setNumImages(count)}
                                 className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${
-                                  numImages === count ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                  numImages === count ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-panel)] text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"
                                 }`}
                               >
                                 {count}
@@ -3878,13 +4022,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           </div>
                         </div>
                         {provider === "flux-image" || provider === "flux-dev" ? (
-                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.safety")}</p>
+                          <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.safety")}</p>
                             <button
                               type="button"
                               onClick={() => setEnableSafetyChecker((value) => !value)}
                               className={`w-full rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                                enableSafetyChecker ? "bg-[#e8f7ff] text-[#0284c7]" : "bg-white text-[#667085]"
+                                enableSafetyChecker ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "bg-[var(--studio-panel)] text-[var(--studio-muted)]"
                               }`}
                             >
                               {enableSafetyChecker ? st("studio.state.enabled") : st("studio.state.disabled")}
@@ -3892,8 +4036,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           </div>
                         ) : null}
                         {provider === "flux-image" || provider === "flux-dev" ? (
-                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.acceleration")}</p>
+                          <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.acceleration")}</p>
                             <div className="grid grid-cols-3 gap-1">
                               {["none", "regular", "high"].map((item) => (
                                 <button
@@ -3901,7 +4045,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                   type="button"
                                   onClick={() => setAcceleration(item)}
                                   className={`rounded-xl px-2 py-2 text-xs font-semibold capitalize transition ${
-                                    acceleration === item ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                    acceleration === item ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-panel)] text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"
                                   }`}
                                 >
                                   {item}
@@ -3911,8 +4055,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           </div>
                         ) : null}
                         {isNanoBananaProvider(provider) ? (
-                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.safetyTolerance")}</p>
+                          <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.safetyTolerance")}</p>
                             <div className="grid grid-cols-6 gap-1">
                               {["1", "2", "3", "4", "5", "6"].map((item) => (
                                 <button
@@ -3920,7 +4064,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                   type="button"
                                   onClick={() => setSafetyTolerance(item)}
                                   className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${
-                                    safetyTolerance === item ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                    safetyTolerance === item ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-panel)] text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"
                                   }`}
                                 >
                                   {item}
@@ -3930,13 +4074,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           </div>
                         ) : null}
                         {isNanoBananaProvider(provider) ? (
-                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.limitGenerations")}</p>
+                          <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.limitGenerations")}</p>
                             <button
                               type="button"
                               onClick={() => setLimitGenerations((value) => !value)}
                               className={`w-full rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                                limitGenerations ? "bg-[#e8f7ff] text-[#0284c7]" : "bg-white text-[#667085]"
+                                limitGenerations ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "bg-[var(--studio-panel)] text-[var(--studio-muted)]"
                               }`}
                             >
                               {limitGenerations ? st("studio.state.on") : st("studio.state.off")}
@@ -3944,13 +4088,13 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           </div>
                         ) : null}
                         {provider === "nano-banana-image" || provider === "nano-banana-pro" ? (
-                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.webSearch")}</p>
+                          <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.webSearch")}</p>
                             <button
                               type="button"
                               onClick={() => setEnableWebSearch((value) => !value)}
                               className={`w-full rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                                enableWebSearch ? "bg-[#e8f7ff] text-[#0284c7]" : "bg-white text-[#667085]"
+                                enableWebSearch ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "bg-[var(--studio-panel)] text-[var(--studio-muted)]"
                               }`}
                             >
                               {enableWebSearch ? st("studio.state.enabled") : st("studio.state.disabled")}
@@ -3958,8 +4102,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                           </div>
                         ) : null}
                         {provider === "nano-banana-image" || isNanoBananaLiteProvider(provider) ? (
-                          <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.thinking")}</p>
+                          <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.thinking")}</p>
                             <div className="grid grid-cols-3 gap-1">
                               {[
                                 { value: "", label: provider === "nano-banana-image" ? "medium" : st("studio.state.off") },
@@ -3971,7 +4115,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                                   type="button"
                                   onClick={() => setThinkingLevel(item.value)}
                                   className={`rounded-xl px-2 py-2 text-xs font-semibold transition ${
-                                    thinkingLevel === item.value ? "bg-[#202633] text-white" : "bg-white text-[#667085] hover:bg-[#eff6ff]"
+                                    thinkingLevel === item.value ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-panel)] text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"
                                   }`}
                                 >
                                   {item.label}
@@ -3980,26 +4124,26 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                             </div>
                           </div>
                         ) : null}
-                        <div className="rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                          <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.seed")}</p>
+                        <div className="rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                          <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.seed")}</p>
                           <input
                             value={seed}
                             onChange={(e) => setSeed(e.target.value.replace(/[^\d]/g, "").slice(0, 12))}
                             placeholder={st("studio.placeholder.random")}
                             inputMode="numeric"
-                            className="w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-xs font-semibold text-[#202633] outline-none placeholder:text-[#a2aabc]"
+                            className="w-full rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2 text-xs font-semibold text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]"
                           />
                         </div>
                         {isNanoBananaProvider(provider) ? (
-                          <div className="lg:col-span-2 rounded-2xl border border-black/[0.06] bg-[#fbfdff] p-3">
-                            <p className="mb-2 text-xs font-semibold text-[#667085]">{st("studio.field.systemPrompt")}</p>
+                          <div className="lg:col-span-2 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
+                            <p className="mb-2 text-xs font-semibold text-[var(--studio-muted)]">{st("studio.field.systemPrompt")}</p>
                             <textarea
                               dir="auto"
                               rows={2}
                               value={systemPrompt}
                               onChange={(e) => setSystemPrompt(e.target.value)}
                               placeholder={st("studio.placeholder.system")}
-                              className="w-full resize-none rounded-xl border border-black/[0.06] bg-white px-3 py-2 text-xs font-medium leading-5 text-[#202633] outline-none placeholder:text-[#a2aabc]"
+                              className="w-full resize-none rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2 text-xs font-medium leading-5 text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]"
                             />
                           </div>
                         ) : null}
@@ -4042,7 +4186,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                       key={item.prompt}
                       type="button"
                       onClick={() => setPrompt((current) => current || item.prompt)}
-                      className="rounded-full border border-black/[0.06] bg-white/74 px-4 py-2 text-sm font-medium text-[#667085] shadow-sm transition hover:bg-white hover:text-[#202633]"
+                      className="rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-2 text-sm font-medium text-[var(--studio-muted)] shadow-sm transition hover:bg-[var(--studio-panel)] hover:text-[var(--studio-text)]"
                     >
                       {item.label}
                     </button>
@@ -4056,9 +4200,9 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     { title: st("studio.summary.canvas"), body: mode === "image" ? `${selectedImageSize.label} / ${selectedImageSize.dimensions}` : `${duration} / ${ratio === "source" ? st("studio.summary.sourceImage") : ratio}` },
                     { title: st("studio.summary.history"), body: activeTasks.length ? st("studio.summary.runningTasks", { count: activeTasks.length }) : st("studio.summary.savedAutomatically") }
                   ].map((card) => (
-                    <div key={card.title} className="rounded-[1.5rem] border border-black/[0.06] bg-white/62 p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)] backdrop-blur">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#98a2b3]">{card.title}</p>
-                      <p className="mt-3 text-sm font-semibold leading-6 text-[#3d4657]">{card.body}</p>
+                    <div key={card.title} className="rounded-[1.5rem] border border-[var(--studio-border)] bg-[var(--studio-panel)] p-5 shadow-none backdrop-blur">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)]">{card.title}</p>
+                      <p className="mt-3 text-sm font-semibold leading-6 text-[var(--studio-text)]">{card.body}</p>
                     </div>
                   ))}
                 </div>
@@ -4070,6 +4214,8 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                     }}
                   />
                 ) : null}
+                {showImageToImageRedesign ? <ImageTemplateGallery translate={st} locale={studioI18n.locale} /> : null}
+                {mode === "avatar" ? <AvatarLibrary prompt={prompt} locale={studioI18n.locale} userId={userId} accessToken={accessToken} onLogin={() => { saveLoginDraft(false); window.location.href = STUDIO_SIGN_IN_URL; }} onCreate={imageUrl => { setReferenceImagesText(imageUrl); setReferenceImageFiles([]); requestAnimationFrame(() => requestAnimationFrame(() => { const composer=document.querySelector<HTMLElement>('[data-creation-workspace="avatar"]'); composer?.scrollIntoView({block:"start",behavior:"smooth"}); composer?.querySelector<HTMLTextAreaElement>("textarea[dir=auto]")?.focus({preventScroll:true}); })); }} /> : null}
               </div>
             </div>
           </div>
@@ -4082,7 +4228,7 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
                 <button
                   type="button"
                   onClick={() => setPreviewModal(null)}
-                  className="rounded-full border border-white/30 bg-black/40 px-3 py-1 text-sm font-semibold text-white"
+                  className="rounded-full border border-[var(--studio-border)] bg-black/40 px-3 py-1 text-sm font-semibold text-white"
                 >
                   {st("studio.modal.close")}
                 </button>
@@ -4096,14 +4242,15 @@ function StudioContent({ initialLocale }: { initialLocale: Locale }) {
           </div>
         ) : null}
       </div>
+      <StudioScrollToBottom translate={st} routeKey={sp.toString()} />
     </main>
   );
 }
 
-export function StudioPageClient({ initialLocale }: { initialLocale: Locale }) {
+export function StudioPageClient({ initialLocale, initialView }: { initialLocale: Locale; initialView?: "billing" }) {
   return (
     <Suspense fallback={null}>
-      <StudioContent initialLocale={initialLocale} />
+      <StudioContent initialLocale={initialLocale} initialView={initialView} />
     </Suspense>
   );
 }

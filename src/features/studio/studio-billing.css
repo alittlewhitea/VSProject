@@ -1,0 +1,34 @@
+.df-billing-workspace { min-height: 0; width: 100%; padding: 0; background: transparent; color: var(--df-ink); }
+.df-billing-workspace > div:empty { display: none; }
+.df-billing-workspace > section { width: 100%; max-width: none; padding: 0; margin: 0; }
+.df-billing-summary { display: grid; grid-template-columns: minmax(0,1fr) minmax(260px,.42fr); gap: 32px; padding: 28px; background: var(--df-surface-warm); border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); }
+.df-billing-summary h2 { margin-top: 12px; font-size: 32px; line-height: 40px; letter-spacing: -.035em; font-weight: 600; }
+.df-billing-summary > div > p:last-child { margin-top: 12px; max-width: 580px; font-size: 14px; line-height: 22px; color: var(--df-muted); }
+.df-balance-card { background: var(--df-surface); border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); padding: 20px; }
+.df-balance-card > span { font-size: 12px; color: var(--df-muted); }
+.df-balance-card > strong { display: block; margin-top: 10px; font-size: 32px; line-height: 40px; letter-spacing: -.03em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.df-balance-card small { font-size: 12px; line-height: 18px; color: var(--df-muted); font-weight: 400; letter-spacing: 0; }
+.df-balance-card p { font-size: 12px; color: var(--df-muted); margin: 4px 0 16px; }
+.df-billing-workspace [data-credit-packs] { margin-top: 20px; }
+[data-credit-packs][data-appearance="studio"] > article { background: var(--df-surface); color: var(--df-ink); border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); padding: 20px; box-shadow: none; transform: none; text-align: start; }
+[data-credit-packs][data-appearance="studio"] > article[data-recommended="true"] { border-color: var(--df-primary-border); outline: 1px solid var(--df-primary-border); background: var(--df-surface); }
+[data-credit-packs][data-appearance="studio"] > article > div:first-child > span:first-child { color: var(--df-muted); font-size: 12px; font-weight: 400; }
+[data-credit-packs][data-appearance="studio"] h3 { color: var(--df-ink); font-size: 16px; line-height: 24px; font-weight: 600; }
+[data-credit-packs][data-appearance="studio"] [data-pack-price] { color: var(--df-ink); font-size: 32px; line-height: 40px; font-weight: 600; letter-spacing: -.03em; }
+[data-credit-packs][data-appearance="studio"] [data-pack-credits] { color: var(--studio-accent); font-weight: 500; font-size: 16px; }
+[data-credit-packs][data-appearance="studio"] [data-pack-credits] span { font-size: 12px; font-weight: 400; }
+[data-credit-packs][data-appearance="studio"] [data-pack-discount] { color: var(--df-muted); font-size: 12px; font-weight: 400; }
+[data-credit-packs][data-appearance="studio"] [data-pack-details] { border-color: var(--df-border); color: var(--df-muted); font-size: 13px; line-height: 21px; }
+[data-credit-packs][data-appearance="studio"] [data-credit-pack-select] { min-height: 44px; background: var(--df-primary); color: white; font-weight: 500; border-radius: var(--df-radius-button); }
+[data-credit-packs][data-appearance="studio"] [data-credit-pack-select]:hover { background: var(--df-primary-hover); }
+.df-credit-shop-dialog > section { border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); background: var(--df-surface); color: var(--df-ink); box-shadow: var(--df-shadow-overlay); }
+.df-credit-shop-dialog header { background: var(--df-surface-warm); color: var(--df-ink); border-bottom: 1px solid var(--df-border); padding: 24px; }
+.df-credit-shop-dialog header h2 { font-size: 28px; line-height: 36px; font-weight: 600; }
+.df-credit-shop-dialog header :is(p,span) { color: var(--df-muted); }
+.df-credit-shop-dialog > section > button { background: var(--df-surface-soft); color: var(--df-ink); }
+@media(max-width:767px) {
+  .df-billing-summary { grid-template-columns: minmax(0,1fr); gap: 20px; padding: 20px; }
+  .df-billing-summary h2 { font-size: 28px; line-height: 36px; }
+  .df-balance-card { padding: 16px; }
+  [data-credit-packs][data-appearance="studio"] > article { padding: 20px; }
+}

@@ -17,10 +17,6 @@ export function landingMetadata(locale:string,kind:LandingKind):Metadata {
   const content=getLandingData(locale,kind), url=absoluteUrl(siteUrl(),`/${locale}${landingPath(kind)}`);
   return { title:{absolute:content.title}, description:content.description, robots:{index:true,follow:true}, alternates:{canonical:url,languages:landingAlternates(kind)}, openGraph:{type:"website",url,title:content.title,description:content.description,siteName:"DreamFace",locale:locale==="es"?"es_ES":"pt_BR"}, twitter:{card:"summary",title:content.title,description:content.description} };
 }
-export function LandingLanguages({kind}:{kind:LandingKind}) {
-  const path=landingPath(kind);
-  return <nav aria-label="Language" className="mt-5 flex flex-wrap gap-4 text-sm font-semibold text-[#6548d0]"><Link href={path} hrefLang="en">English</Link><Link href={`/es${path}`} hrefLang="es">Español</Link><Link href={`/pt-BR${path}`} hrefLang="pt-BR">Português (Brasil)</Link></nav>;
-}
 export function LocalizedLanding({locale,kind}:{locale:string;kind:LandingKind}) {
   if(!supportedLandingLocale(locale)) notFound();
   const c=getLandingData(locale,kind), path=landingPath(kind);
@@ -33,7 +29,6 @@ export function LocalizedLanding({locale,kind}:{locale:string;kind:LandingKind})
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema).replace(/</g,"\\u003c")}} />
     <div className="mx-auto max-w-7xl px-5 sm:px-8">
       <TopNav />
-      <LandingLanguages kind={kind} />
       <section className="py-16 md:py-24">
         <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7554df]">{c.eyebrow}</p>
         <h1 className="mt-5 max-w-4xl text-4xl font-black leading-tight tracking-tight md:text-6xl">{c.heading}</h1>

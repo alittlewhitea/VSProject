@@ -1,5 +1,7 @@
 # DreamFace 积分购买支付接入说明（中文）
 
+> 2026-11-06：因商户审核问题，Dodo 新支付已暂停。`src/lib/payment-release.ts` 中 `DODO_CHECKOUT_SUSPENDED = true` 同时控制前端 Credit Card 入口与服务端新建订单；保留 PayPal、历史订单、签名回调与补单处理。恢复时将开关改为 `false`，核实商户审核与现有配置后重新构建部署。无需删除或重建支付表，也无需清空密钥。以下内容保留为接入与恢复参考。
+
 本项目使用 Dodo Payments 官方 TypeScript SDK 接入一次性积分购买。前台按钮显示 **Credit Card**，附带 Visa、Mastercard 文字标识，用户不需要了解支付服务商名称。PayPal 作为另一个入口保留。内部订单和统计仍用 `dodo` 标识通道，方便对账。
 
 官方参考：[托管收银台](https://docs.dodopayments.com/developer-resources/checkout-session)、[Webhook 验签](https://docs.dodopayments.com/developer-resources/webhooks)、[信用卡和借记卡](https://docs.dodopayments.com/features/payment-methods/cards)。收银台支持的卡品牌不限于 Visa 和 Mastercard；网站展示这两个常见品牌作为提示。用户在托管收银台选择具体付款方式，网站不接触完整卡号。

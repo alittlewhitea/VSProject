@@ -255,8 +255,11 @@ export async function getFalModelPricing(endpointId: string) {
 
 export async function estimateGenerationCreditsWithLivePricing(input: {
   mode: "image" | "video" | "audio";
+  videoWorkflow?: "text-to-video" | "image-to-video" | "reference-to-video";
   provider: string;
   imageSize?: string | null;
+  imageWidth?: number | null; imageHeight?: number | null; outputFormat?: string | null;
+  imageReasoningEffort?: string | null; frameCount?: number | null; svgModel?: string | null;
   duration?: string | null;
   hasReferences?: boolean;
   referenceCount?: number;
@@ -268,7 +271,8 @@ export async function estimateGenerationCreditsWithLivePricing(input: {
   generateAudio?: boolean | null;
   promptText?: string | null;
 }) {
-  const endpointId = endpointForProvider(input.provider, input.hasReferences);
+  const endpointId = input.provider === "heygen-video" && input.videoWorkflow === "reference-to-video"
+    ? "heygen/heygen-video/reference-to-video" : endpointForProvider(input.provider, input.hasReferences);
   const livePricing = endpointId ? await getFalModelPricing(endpointId) : null;
   return estimateGenerationCredits({
     ...input,

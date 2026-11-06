@@ -1,0 +1,88 @@
+/* DreamFace-DESIGN.md: light editorial shell, independent dark media stage. */
+:root {
+  --df-bg: #f7f7f9;
+  --df-surface: #ffffff;
+  --df-surface-soft: #f0f0f4;
+  --df-surface-warm: #f9f7f4;
+  --df-ink: #20212b;
+  --df-muted: #727586;
+  --df-faint: #9497a6;
+  --df-border: #e6e7ec;
+  --df-primary: #6947e8;
+  --df-accent: #6947e8;
+  --df-primary-hover: #5838cd;
+  --df-primary-soft: #f0ebfe;
+  --df-primary-border: #c9bcf7;
+  --df-success: #13856a;
+  --df-success-soft: #e8f5ef;
+  /* Slightly deeper than the draft palette: readable on the pale error surface. */
+  --df-error: #b83b4e;
+  --df-error-soft: #fff0f1;
+  --df-warning: #94601a;
+  --df-warning-soft: #fff4e3;
+  --df-stage: #111318;
+  --df-stage-elevated: #1c1f27;
+  --df-stage-border: #30343d;
+  --df-stage-text: #f5f6fa;
+  --df-stage-muted: #aaaebb;
+  --df-font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --df-body: 14px;
+  --df-label: 13px;
+  --df-meta: 12px;
+  --df-radius-panel: 14px;
+  --df-radius-input: 12px;
+  --df-radius-button: 10px;
+  --df-space-1: 4px;
+  --df-space-2: 8px;
+  --df-space-3: 12px;
+  --df-space-4: 16px;
+  --df-space-5: 20px;
+  --df-space-6: 24px;
+  --df-space-8: 32px;
+  --df-space-12: 48px;
+  --df-space-16: 64px;
+  --df-shadow-overlay: 0 16px 56px #1113181f;
+  --df-transition: 160ms ease-out;
+  --df-color-scheme: light;
+
+  /* Compatibility aliases keep the other existing workspaces consistent. */
+  --studio-canvas: var(--df-bg);
+  --studio-panel: var(--df-surface);
+  --studio-surface: var(--df-surface-soft);
+  --studio-border: var(--df-border);
+  --studio-text: var(--df-ink);
+  --studio-muted: var(--df-muted);
+  --studio-primary: var(--df-primary);
+  --studio-accent: var(--df-accent);
+  --studio-accent-soft: var(--df-primary-soft);
+  --studio-accent-border: var(--df-primary-border);
+  --studio-success: var(--df-success);
+  --studio-success-soft: var(--df-success-soft);
+  --studio-error: var(--df-error);
+  --studio-error-soft: var(--df-error-soft);
+  --studio-warning: var(--df-warning);
+  --studio-warning-soft: var(--df-warning-soft);
+  --studio-scheme: var(--df-color-scheme);
+}
+html[data-studio-theme="dark"] {
+  --df-bg: #191a1f;
+  --df-surface: #22242b;
+  --df-surface-soft: #2b2d36;
+  --df-surface-warm: #24232a;
+  --df-ink: #f0f1f5;
+  --df-muted: #b0b3c1;
+  --df-faint: #959aab;
+  --df-border: #3a3e49;
+  --df-primary: #6947e8;
+  --df-accent: #bba8ff;
+  --df-primary-hover: #5838cd;
+  --df-primary-soft: #38304c;
+  --df-primary-border: #78699c;
+  --df-success: #78d2b6;
+  --df-success-soft: #203c34;
+  --df-error: #f8a4b1;
+  --df-error-soft: #442d36;
+  --df-warning: #ecc388;
+  --df-warning-soft: #403629;
+  --df-color-scheme: dark;
+}

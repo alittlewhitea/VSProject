@@ -9,15 +9,19 @@ export async function GET(request: Request) {
     const sort = url.searchParams.get("sort") || "featured";
     const query = url.searchParams.get("q")?.trim() || "";
     const limitParam = Number(url.searchParams.get("limit") || "60");
-    const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 120) : 60;
+    const limit = Number.isFinite(limitParam) ? Math.min(Math.max(Math.trunc(limitParam), 1), 120) : 60;
+    const offsetParam = Number(url.searchParams.get("offset") || "0");
+    const offset = Number.isSafeInteger(offsetParam) ? Math.max(0, offsetParam) : 0;
 
     const rows = await listPublishedGalleryRows({
       category: isGalleryCategory(category) && category !== "All" ? toDbGalleryCategory(category) : null,
       sort,
       query,
-      limit
+      limit: limit + 1,
+      offset
     });
-    return NextResponse.json({ items: rows.map(mapGalleryRow) });
+    const hasMore = rows.length > limit;
+    return NextResponse.json({ items: rows.slice(0, limit).map(mapGalleryRow), hasMore, nextOffset: hasMore ? offset + limit : null });
   } catch (error) {
     return NextResponse.json({
       items: [],

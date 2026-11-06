@@ -326,7 +326,7 @@ async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminC
         if (failureInfo) {
           failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
         }
-        const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits) : 0;
+        const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits, task.provider) : 0;
         if (finalStatus === "failed" && refundCreditsAmount > 0) {
           await refundCredits(admin, task.user_id, refundCreditsAmount, "generation_refund", task.id);
         }

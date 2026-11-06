@@ -43,6 +43,7 @@ export async function SiteFooter() {
         </div>
         <div>
           <p className="text-sm font-semibold">Create</p>
+          <Link href={locale === "es" || locale === "pt-BR" ? `/${locale}/video/text-to-video` : "/video/text-to-video"} className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">{locale === "es" ? "Texto a vídeo" : locale === "pt-BR" ? "Texto para vídeo" : "Text to Video"}</Link>
           <Link href="/image/text-to-image" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Text to Image</Link>
           <Link href="/video/image-to-video" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Image to Video</Link>
           <Link href="/video/gemini-omni" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Gemini Omni</Link>

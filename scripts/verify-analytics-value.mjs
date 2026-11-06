@@ -24,7 +24,7 @@ const { trackEvent, trackPurchaseEvent } = loadAnalytics();
 
 // Execute the real billing event payloads for both credit-pack and legacy
 // subscription success. No checkout, network, credentials or database calls.
-const source = ts.createSourceFile('billing.tsx', readFileSync('src/app/billing/page.tsx', 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const source = ts.createSourceFile('billing.tsx', readFileSync('src/features/billing/billing-content.tsx', 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const calls = [];
 function visit(node) {
   if (ts.isCallExpression(node) && node.expression.getText(source) === 'trackEvent' &&

@@ -10,7 +10,7 @@
     "verify:locales": "node scripts/verify-all-locales.mjs",
     "verify:security": "node scripts/verify-security-invariants.mjs",
     "verify:referrals": "node scripts/verify-referrals.mjs",
-    "verify:gpt-image": "node scripts/verify-gpt-image.mjs",
+    "verify:gpt-image": "node scripts/verify-gpt-image.mjs && node scripts/verify-gpt-image-pricing.mjs",
     "verify:payments": "node scripts/verify-paypal-checkout.mjs",
     "verify:wallets": "node scripts/verify-paypal-wallets.mjs",
     "verify:analytics": "node scripts/verify-analytics-value.mjs",
@@ -23,10 +23,15 @@
     "verify:model-upgrades": "node scripts/verify-model-upgrades.mjs",
     "verify:heygen-video": "node scripts/verify-heygen-video.mjs",
     "verify:pricing": "node scripts/verify-cost-tier-pricing.mjs",
+    "verify:gallery": "node scripts/verify-gallery-pagination.mjs",
+    "verify:avatars": "node scripts/verify-avatar-library.mjs",
     "verify:model-suspension": "node scripts/verify-model-suspension.mjs",
     "verify:h3-daily-free": "node scripts/verify-h3-daily-free.mjs",
-    "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run verify:referrals && npm run verify:gpt-image && npm run verify:payments && npm run verify:wallets && npm run verify:analytics && npm run verify:dodo && npm run verify:video-keyframes && npm run verify:model-upgrades && npm run verify:heygen-video && npm run verify:flux3 && npm run verify:model-suspension && npm run verify:h3-daily-free && npm run verify:video-prompt-ai && npm run verify:task-history && npm run verify:studio-performance && npm run verify:studio-inputs && npm run build",
-    "verify:flux3": "node scripts/verify-flux3-max.mjs"
+    "check": "npm run typecheck && npm run verify:locales && npm run verify:security && npm run verify:referrals && npm run verify:gpt-image && npm run verify:payments && npm run verify:wallets && npm run verify:analytics && npm run verify:dodo && npm run verify:video-keyframes && npm run verify:model-upgrades && npm run verify:heygen-video && npm run verify:flux3 && npm run verify:model-suspension && npm run verify:h3-daily-free && npm run verify:video-prompt-ai && npm run verify:avatars && npm run verify:gallery && npm run verify:task-history && npm run verify:studio-performance && npm run verify:studio-inputs && npm run verify:studio-billing && npm run verify:studio-templates && npm run verify:studio-virtual-gallery && npm run build",
+    "verify:flux3": "node scripts/verify-flux3-max.mjs",
+    "verify:studio-billing": "node scripts/verify-studio-billing.mjs",
+    "verify:studio-templates": "node scripts/verify-studio-templates.mjs",
+    "verify:studio-virtual-gallery": "node scripts/verify-studio-virtual-gallery.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

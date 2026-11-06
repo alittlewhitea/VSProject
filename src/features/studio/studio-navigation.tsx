@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "./studio-link";
+import { useEffect, useId, useRef } from "react";
+import { useStudioDialog } from "./use-studio-dialog";
 import {BrandMark} from "../../components/brand-mark";
+import { StudioThemeToggle } from "./studio-theme-toggle";
 import { referralTranslator } from "../../lib/referral-i18n";
 import type { Locale } from "../../i18n/routing";
 
@@ -30,6 +33,8 @@ export type StudioIconName =
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 type NavigationState = {
+  isBillingView?: boolean;
+  billingHref?: string;
   referralsVisible?: boolean;
   isReferralsView?: boolean;
   mode: StudioNavigationMode;
@@ -47,16 +52,16 @@ type NavigationItem = {
 };
 
 function navigationItems(t: Translate, state: NavigationState, homeLabelKey = "studio.nav.home", referralLabel="Invite friends"): NavigationItem[] {
-  const inWorkbench = !state.isAppsHome && !state.isProjectsView;
+  const inWorkbench = !state.isAppsHome && !state.isProjectsView && !state.isBillingView;
   return ([
     { id: "home", label: t(homeLabelKey), href: "/studio?view=home", icon: "home", visualIcon: "✦", active: state.isAppsHome },
-    { id: "avatar", label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=minimax-h3-max-turbo-video", icon: "video", visualIcon: "💬", active: inWorkbench && state.mode === "avatar" },
-    { id: "image", label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image", visualIcon: "🖼️", active: inWorkbench && state.mode === "image" },
+    { id: "avatar", label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=heygen-video", icon: "video", visualIcon: "💬", active: inWorkbench && state.mode === "avatar" },
     { id: "video", label: t("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video", visualIcon: "🎞️", active: inWorkbench && state.mode === "video" },
+    { id: "image", label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image", visualIcon: "🖼️", active: inWorkbench && state.mode === "image" },
     { id: "audio", label: t("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio", visualIcon: "🎵", active: inWorkbench && state.mode === "audio" },
     { id: "projects", label: t("studio.nav.projects"), href: "/studio?view=projects", icon: "projects", visualIcon: "📁", active: state.isProjectsView && !state.isReferralsView },
     { id: "referrals", label: referralLabel, href: "/studio?view=referrals", icon: "sparkles", visualIcon: "🎁", active: Boolean(state.isReferralsView) },
-    { id: "billing", label: t("studio.billing.open"), href: "/billing", icon: "billing", visualIcon: "💳", active: false }
+    { id: "billing", label: t("studio.billing.open"), href: state.billingHref || "/studio?view=billing", icon: "billing", visualIcon: "💳", active: Boolean(state.isBillingView) }
   ] as NavigationItem[]).filter(item => item.id !== "referrals" || state.referralsVisible);
 }
 
@@ -113,55 +118,44 @@ export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = 
   ];
 
   if (videoStudio) {
-    const videoItems: Array<{ label: string; href: string; icon: string; active?: boolean }> = [
-      { label: t("studio.workbench.navStudio"), href: "/studio?view=home", icon: "✦", active: state.isAppsHome },
-      { label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=minimax-h3-max-turbo-video", icon: "💬", active: state.mode === "avatar" && !state.isProjectsView },
-      { label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "🖼️", active: state.mode === "image" && !state.isProjectsView },
-      { label: t("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "🎞️", active: state.mode === "video" && !state.isAppsHome && !state.isProjectsView },
-      { label: t("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "🎵", active: state.mode === "audio" && !state.isProjectsView },
-      { label: t("studio.nav.projects"), href: "/studio?view=projects", icon: "📁", active: state.isProjectsView && !state.isReferralsView },
-      ...(state.referralsVisible ? [{ label: rt("title"), href: "/studio?view=referrals", icon: "🎁", active: state.isReferralsView }] : [])
-    ];
-    videoItems.push({ label: t("studio.billing.open"), href: "/billing", icon: "💳", active: false });
-
     return (
-      <aside className="relative hidden h-screen flex-col border-r border-[#eaecf0] bg-white/90 px-3.5 py-5 backdrop-blur-xl lg:sticky lg:top-0 lg:flex">
+      <aside data-studio-sidebar data-collapsed={collapsed} className="studio-sidebar relative hidden h-screen flex-col border-e border-[var(--studio-border)] bg-[var(--studio-panel)] px-3.5 py-5 md:sticky md:top-0 md:flex">
         <button
           type="button"
           onClick={() => onCollapsedChange?.(!collapsed)}
           aria-label={t(collapsed ? "studio.menu.open" : "studio.menu.close")}
           title={t(collapsed ? "studio.menu.open" : "studio.menu.close")}
-          className="group absolute -end-3 top-1/2 z-30 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[#ded8ff] bg-white text-[#6a5af9] shadow-[0_5px_16px_rgba(73,56,180,0.16)] transition duration-200 hover:scale-110 hover:border-[#bcb1ff] hover:bg-[#f7f5ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a78ff] focus-visible:ring-offset-2"
+          className="group absolute -end-3 top-1/2 z-30 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--studio-accent-border)] bg-[var(--studio-panel)] text-[var(--studio-accent)] shadow-none transition duration-200 hover:scale-110 hover:border-[var(--studio-accent-border)] hover:bg-[var(--studio-accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--studio-accent-border)] focus-visible:ring-offset-2"
         >
           <StudioIcon name={collapsed ? "chevron-right" : "chevron-left"} className="h-3.5 w-3.5" />
-          <span className="pointer-events-none absolute start-full ms-2.5 whitespace-nowrap rounded-lg bg-[#101828] px-2.5 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">{t(collapsed ? "studio.menu.open" : "studio.menu.close")}</span>
+          <span className="pointer-events-none absolute start-full ms-2.5 whitespace-nowrap rounded-lg bg-[var(--studio-primary)] px-2.5 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">{t(collapsed ? "studio.menu.open" : "studio.menu.close")}</span>
         </button>
         <a href="https://dreamface.io" className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-1"}`}>
           <span className="block h-9 w-9 shrink-0 overflow-hidden rounded-xl shadow-sm"><BrandMark alt="" className="h-full w-full object-cover" /></span>
-          {!collapsed ? <span className="min-w-0"><strong className="block text-[17px] font-black leading-none tracking-tight text-[#101828]">DreamFace</strong><span className="mt-1 block text-[11px] text-[#98a2b3]">AI Studio</span></span> : null}
+          {!collapsed ? <span className="min-w-0"><strong className="block text-[17px] font-semibold leading-none tracking-tight text-[var(--studio-text)]">DreamFace</strong><span className="mt-1 block text-[11px] text-[var(--studio-muted)]">AI Studio</span></span> : null}
         </a>
-        <nav className="mt-6 grid gap-1.5">
-          {videoItems.map((item) => <Link key={`${item.label}-${item.href}`} href={item.href} title={collapsed ? item.label : undefined} className={`flex h-11 items-center rounded-[14px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[#f1efff] font-bold text-[#6a5af9]" : "text-[#344054] hover:bg-[#f8f8fb]"}`}><span aria-hidden="true" className={`grid h-5 w-5 shrink-0 place-items-center text-[16px] leading-none ${item.icon === "✦" ? "text-[#7458ff]" : ""}`}>{item.icon}</span>{!collapsed ? <span className="truncate">{item.label}</span> : null}</Link>)}
+        <nav aria-label={t("studio.header.apps")} className="mt-8 grid gap-1.5">
+          {items.map((item) => <Link key={`${item.label}-${item.href}`} href={item.href} title={item.label} aria-current={item.active ? "page" : undefined} className={`df-sidebar-item flex h-11 items-center rounded-[10px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[var(--studio-accent-soft)] font-bold text-[var(--studio-accent)]" : "text-[var(--studio-text)] hover:bg-[var(--studio-surface)]"}`}><StudioIcon name={item.icon} className="h-[18px] w-[18px] shrink-0" />{!collapsed ? <span className="truncate">{item.label}</span> : null}</Link>)}
         </nav>
         <div className="flex-1" />
-        <div className={`mx-[-14px] mb-[-14px] mt-2.5 flex items-center border-t border-[#eaecf0] bg-white/95 px-3.5 py-3 ${collapsed ? "justify-center" : "gap-2.5"}`}>
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,#fde1c8,#b57f63)] text-sm">DF</span>
-          {!collapsed ? <span className="min-w-0"><strong className="block truncate text-[13px] text-[#101828]">{t(signedIn ? "studio.workbench.user" : "studio.workbench.guest")}</strong><span className="mt-1 block text-[11px] text-[#98a2b3]">{creditBalance === null ? "--" : creditBalance.toLocaleString()} {t("studio.common.credits")}</span></span> : null}
+        <div className={`mx-[-14px] mb-[-14px] mt-2.5 flex items-center border-t border-[var(--studio-border)] bg-[var(--studio-panel)] px-3.5 py-3 ${collapsed ? "justify-center" : "gap-2.5"}`}>
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--studio-surface)] text-sm">DF</span>
+          {!collapsed ? <span className="min-w-0"><strong className="block truncate text-[13px] text-[var(--studio-text)]">{t(signedIn ? "studio.workbench.user" : "studio.workbench.guest")}</strong><span className="mt-1 block text-[11px] text-[var(--studio-muted)]">{creditBalance === null ? "--" : creditBalance.toLocaleString()} {t("studio.common.credits")}</span></span> : null}
         </div>
       </aside>
     );
   }
 
   return (
-    <aside className={`hidden border-r lg:flex lg:flex-col lg:items-center ${modern ? "border-[#758bac]/15 bg-[#f5faff]/60 px-3 py-5" : "border-black/[0.06] bg-white/64 px-3 py-5"}`}>
-      <a href="https://dreamface.io" aria-label={t("studio.menu.dreamfaceHome")} className="block h-12 w-12 overflow-hidden rounded-2xl shadow-[0_16px_36px_rgba(16,130,101,0.22)] transition hover:-translate-y-0.5">
+    <aside className={`hidden border-r lg:flex lg:flex-col lg:items-center ${modern ? "border-[var(--studio-border)] bg-[var(--studio-accent-soft)] px-3 py-5" : "border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-5"}`}>
+      <a href="https://dreamface.io" aria-label={t("studio.menu.dreamfaceHome")} className="block h-12 w-12 overflow-hidden rounded-2xl shadow-none transition hover:-translate-y-0.5">
         <BrandMark alt="" width={48} height={48} className="h-full w-full object-cover" />
       </a>
       <nav className={modern ? "mt-[26px] grid w-full gap-2.5" : "mt-9 flex w-full flex-col items-center gap-4"}>
         {items.map((item) => {
           const link = (
-            <Link href={item.href} className={`group flex w-full min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl px-2 py-2 text-[11px] font-semibold transition ${item.active ? "bg-[#e8f7ff] text-[#0ea5e9]" : "text-[#6b7280] hover:bg-black/[0.035] hover:text-[#202633]"}`}>
-              <span className={`grid h-8 w-8 place-items-center rounded-xl border text-sm ${item.active ? "border-[#bae6fd] bg-white text-[#0ea5e9]" : "border-black/[0.06] bg-white/70 text-[#667085]"}`}><StudioIcon name={item.icon} className="h-4 w-4" /></span>
+            <Link href={item.href} className={`group flex w-full min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl px-2 py-2 text-[11px] font-semibold transition ${item.active ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "text-[var(--studio-muted)] hover:bg-black/[0.035] hover:text-[var(--studio-text)]"}`}>
+              <span className={`grid h-8 w-8 place-items-center rounded-xl border text-sm ${item.active ? "border-[var(--studio-accent-border)] bg-[var(--studio-panel)] text-[var(--studio-accent)]" : "border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-muted)]"}`}><StudioIcon name={item.icon} className="h-4 w-4" /></span>
               <span className="block max-w-full text-center leading-tight [overflow-wrap:anywhere]">{item.label}</span>
             </Link>
           );
@@ -170,11 +164,11 @@ export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = 
             <div key={item.id} className="group relative w-full">
               {link}
               <div className="pointer-events-none absolute left-full top-0 z-50 w-64 translate-x-2 pl-3 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100">
-                <div className="rounded-3xl border border-black/[0.06] bg-white/95 p-2 shadow-[0_24px_70px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+                <div className="rounded-3xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-2 shadow-none backdrop-blur-xl">
                   {imageWorkflows.map((workflow) => (
-                    <Link key={workflow.label} href={workflow.href} onClick={() => onImageWorkflowSelected(workflow.label)} className="block rounded-2xl px-4 py-3 text-left transition hover:bg-[#f3f8ff]">
-                      <span className="text-sm font-semibold text-[#202633]">{workflow.label}</span>
-                      <span className="mt-1 block text-xs font-medium text-[#8b95a7]">{workflow.body}</span>
+                    <Link key={workflow.label} href={workflow.href} onClick={() => onImageWorkflowSelected(workflow.label)} className="block rounded-2xl px-4 py-3 text-left transition hover:bg-[var(--studio-accent-soft)]">
+                      <span className="text-sm font-semibold text-[var(--studio-text)]">{workflow.label}</span>
+                      <span className="mt-1 block text-xs font-medium text-[var(--studio-muted)]">{workflow.body}</span>
                     </Link>
                   ))}
                 </div>
@@ -183,25 +177,59 @@ export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = 
           );
         })}
       </nav>
-      <Link href="/billing" className="mt-5 flex w-full items-center justify-center rounded-2xl bg-[#ecfeff] px-2 py-2 text-center text-[11px] font-semibold leading-tight text-[#06b6d4]">{t("studio.billing.open")}</Link>
+      <Link href={state.billingHref || "/studio?view=billing"} className="mt-5 flex w-full items-center justify-center rounded-2xl bg-[var(--studio-accent-soft)] px-2 py-2 text-center text-[11px] font-semibold leading-tight text-[var(--studio-accent)]">{t("studio.billing.open")}</Link>
     </aside>
   );
 }
 
 export function StudioBottomNavigation({ t, ...state }: NavigationState & { t: Translate }) {
-  const itemsById = new Map(navigationItems(t, state).map((item) => [item.id, item]));
-  const items = (["home", "avatar", "image", "video", "audio", "projects"] as const).map((id) => itemsById.get(id)!);
+  const items = navigationItems(t, state).filter(item => ["home", "video", "image", "audio", "avatar", "projects"].includes(item.id));
 
   return (
-    <nav className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 isolate grid grid-cols-6 gap-0.5 rounded-[1.25rem] border border-[#e5e1eb] bg-white p-1 shadow-[0_18px_50px_rgba(15,23,42,0.2)] sm:inset-x-3 sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-1 sm:rounded-[1.4rem] sm:p-1.5 lg:hidden">
+    <nav className="df-mobile-dock fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 isolate grid grid-cols-6 gap-0.5 rounded-[1.25rem] border border-[var(--studio-border)] bg-[var(--studio-panel)] p-1 shadow-none sm:inset-x-3 sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-1 sm:rounded-[1.4rem] sm:p-1.5 md:hidden">
       {items.map((item) => (
-        <Link key={item.id} href={item.href} className={`min-h-12 min-w-0 flex flex-col items-center justify-center gap-1 rounded-[0.9rem] px-0.5 py-1.5 text-[9px] font-semibold transition sm:rounded-[1rem] sm:px-2 sm:text-[11px] ${item.active ? "bg-[#eeeaff] text-[#6955f6] shadow-[inset_0_0_0_1px_#ddd7ff]" : "text-[#667085]"}`}>
-          <span aria-hidden="true" className={`grid h-6 w-6 place-items-center rounded-lg text-[15px] leading-none ${item.active ? "bg-white shadow-sm" : "bg-[#f6f7fa]"}`}>{item.visualIcon}</span>
+        <Link key={item.id} href={item.href} aria-current={item.active ? "page" : undefined} className={`min-h-12 min-w-0 flex flex-col items-center justify-center gap-1 rounded-[0.9rem] px-0.5 py-1.5 text-[9px] font-semibold transition sm:rounded-[1rem] sm:px-2 sm:text-[11px] ${item.active ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)] shadow-none" : "text-[var(--studio-muted)]"}`}>
+          <span aria-hidden="true" className={`grid h-6 w-6 place-items-center rounded-lg text-[15px] leading-none ${item.active ? "bg-[var(--studio-panel)] shadow-sm" : "bg-[var(--studio-surface)]"}`}><StudioIcon name={item.icon} className="h-[18px] w-[18px]" /></span>
           <span className="max-w-full truncate">{item.label}</span>
         </Link>
       ))}
     </nav>
   );
+}
+
+/** A compact workspace menu is integrated into the current mobile page title. */
+export function StudioWorkspaceSwitcher({ t, title, open, onOpenChange, ...state }: NavigationState & {
+  t: Translate; title: string; open: boolean; onOpenChange: (open: boolean) => void;
+}) {
+  const items = navigationItems(t, state).filter(item => ["video", "image", "audio", "avatar"].includes(item.id));
+  const dialogId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const close = () => onOpenChange(false);
+  useStudioDialog(open, dialogRef, { onClose: close, lockScroll: false });
+  useEffect(() => {
+    if (!open) return;
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const resized = () => { if (desktop.matches) onOpenChange(false); };
+    resized(); desktop.addEventListener("change", resized);
+    return () => desktop.removeEventListener("change", resized);
+  }, [open, onOpenChange]);
+  return <div className="df-workspace-switcher">
+    <h1><button type="button" data-workspace-switcher-trigger aria-label={`${title} · ${t("studio.workspace.switch")}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? dialogId : undefined} onClick={() => onOpenChange(!open)}>
+      <span>{title}</span><svg aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    </button></h1>
+    {open ? <>
+      <button type="button" className="df-workspace-backdrop" aria-label={t("studio.menu.close")} onClick={close} />
+      <div id={dialogId} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={t("studio.workspace.switch")} className="df-workspace-menu">
+        <div className="df-workspace-menu-heading"><span>{t("studio.workspace.switch")}</span><button type="button" aria-label={t("studio.menu.close")} onClick={close}><StudioIcon name="x" className="h-4 w-4" /></button></div>
+        <nav aria-label={t("studio.workspace.switch")}>
+          {items.map(item => <Link key={item.id} href={item.href} onClick={close} aria-current={item.active ? "page" : undefined}>
+            <StudioIcon name={item.id === "avatar" ? "user" : item.icon} className="h-[18px] w-[18px] shrink-0" /><span>{item.id === "avatar" ? t("studio.workspace.avatar") : item.label}</span>
+            {item.active ? <span aria-hidden="true" className="df-workspace-check">✓</span> : null}
+          </Link>)}
+        </nav>
+      </div>
+    </> : null}
+  </div>;
 }
 
 type StudioMobileMenuProps = NavigationState & {
@@ -219,32 +247,47 @@ type StudioMobileMenuProps = NavigationState & {
 export function StudioMobileMenu({ t, open, signedIn, signInUrl, locale, locales, localeLabels, onOpenChange, onLocaleChange, ...state }: StudioMobileMenuProps) {
   const rt=referralTranslator(locale);
   const close = () => onOpenChange(false);
+  const menuId = useId();
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  useStudioDialog(open, menuRef, { onClose: close });
+  useEffect(() => {
+    if (!open) return;
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const resized = () => { if (desktop.matches) onOpenChange(false); };
+    resized();
+    desktop.addEventListener("change", resized);
+    return () => desktop.removeEventListener("change", resized);
+  }, [open, onOpenChange]);
   return (
     <div className="relative shrink-0">
-      <button type="button" aria-label={open ? t("studio.menu.close") : t("studio.menu.open")} aria-expanded={open} onClick={() => onOpenChange(!open)} className="relative z-[65] grid h-11 w-11 place-items-center overflow-visible rounded-[14px] border border-[#e3dfff] bg-white text-[#5f4ee9] shadow-[0_7px_20px_rgba(86,68,210,0.12)] transition hover:-translate-y-px hover:border-[#bfb5ff] lg:hidden">
-        {open ? <StudioIcon name="x" className="h-5 w-5" /> : <><BrandMark alt="" className="h-8 w-8 rounded-[10px] object-cover" /><span className="absolute -bottom-1 -end-1 grid h-[18px] w-[18px] place-items-center rounded-full border-2 border-white bg-[linear-gradient(135deg,#7c63ff,#5b4bea)] text-white shadow-sm"><StudioIcon name="menu" className="h-2.5 w-2.5" /></span></>}
+      <button type="button" data-mobile-menu-trigger aria-label={open ? t("studio.menu.close") : t("studio.menu.open")} aria-expanded={open} aria-controls={open ? menuId : undefined} aria-haspopup="dialog" onClick={() => onOpenChange(!open)} className="df-mobile-menu-trigger grid h-11 w-11 place-items-center rounded-[10px] text-[var(--studio-text)] transition hover:bg-[var(--studio-surface)] md:hidden">
+        <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16"/></svg>
       </button>
-      <Link href="/studio?view=home" aria-label={t("studio.menu.studioHome")} className="hidden h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-[#202633] shadow-sm transition hover:bg-[#f8fbff] lg:grid"><StudioIcon name="home" className="h-5 w-5" /></Link>
+      <Link href="/studio?view=home" aria-label={t("studio.menu.studioHome")} className="hidden h-10 w-10 place-items-center rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-text)] shadow-sm transition hover:bg-[var(--studio-accent-soft)] md:grid"><StudioIcon name="home" className="h-5 w-5" /></Link>
       {open ? (
         <>
-          <button type="button" aria-label={t("studio.menu.close")} onClick={close} className="fixed inset-0 z-[55] cursor-default bg-transparent lg:hidden" />
-          <div className="fixed left-4 top-[4.45rem] z-[60] max-h-[calc(100dvh-6rem)] w-[min(17rem,calc(100vw-2rem))] overflow-y-auto rounded-[1.15rem] border border-black/[0.08] bg-white p-1.5 shadow-[0_18px_52px_rgba(15,23,42,0.20)] lg:hidden">
-            <a href="https://dreamface.io/" onClick={close} className="mb-1 flex items-center gap-3 border-b border-black/[0.06] px-2.5 pb-3 pt-1.5 text-base font-black tracking-tight text-[#202633]">
-              <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-[13px] shadow-[0_9px_22px_rgba(16,130,101,0.18)]"><BrandMark alt="" width={40} height={40} className="h-full w-full object-cover" /></span>
+          <button type="button" aria-label={t("studio.menu.close")} onClick={close} className="df-mobile-menu-backdrop fixed inset-0 z-[55] cursor-default bg-black/40 md:hidden" />
+          <div ref={menuRef} id={menuId} data-mobile-menu role="dialog" aria-modal="true" aria-label={t("studio.menu.open")} tabIndex={-1} className="df-mobile-menu fixed start-0 top-0 z-[60] h-dvh w-[min(20rem,calc(100vw-3rem))] overflow-y-auto overscroll-contain border-e border-[var(--studio-border)] bg-[var(--studio-panel)] p-3 shadow-none outline-none md:hidden">
+            <div className="mb-1 flex items-center gap-2 border-b border-[var(--studio-border)] px-2.5 pb-3 pt-1.5">
+            <a href="https://dreamface.io/" onClick={close} className="flex min-w-0 flex-1 items-center gap-3 text-base font-semibold tracking-tight text-[var(--studio-text)]">
+              <span className="block h-10 w-10 shrink-0 overflow-hidden rounded-[13px] shadow-none"><BrandMark alt="" width={40} height={40} className="h-full w-full object-cover" /></span>
               DreamFace
             </a>
+            <button type="button" onClick={close} aria-label={t("studio.menu.close")} className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--studio-muted)] hover:bg-[var(--studio-surface)]"><StudioIcon name="x" className="h-5 w-5" /></button>
+            </div>
             {navigationItems(t, state, "studio.menu.studioHome",rt("title")).map((item) => (
-              <Link key={item.id} href={item.href} onClick={close} className={`flex items-center gap-3 rounded-[1rem] px-2.5 py-2.5 text-sm font-semibold transition ${item.active ? "bg-[#f1efff] text-[#6955f6]" : "text-[#485164] hover:bg-[#f6f5ff] hover:text-[#202633]"}`}>
-                <span className={`grid h-9 w-9 place-items-center rounded-xl border text-base ${item.active ? "border-[#d8d1ff] bg-white shadow-sm" : "border-[#eceaf2] bg-[#faf9fc]"}`}>{item.visualIcon}</span>
+              <Link key={item.id} href={item.href} aria-current={item.active ? "page" : undefined} onClick={close} className={`df-mobile-nav-link flex items-center gap-3 rounded-[1rem] px-2.5 py-2.5 text-sm font-semibold transition ${item.active ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "text-[var(--studio-text)] hover:bg-[var(--studio-accent-soft)] hover:text-[var(--studio-text)]"}`}>
+                <span className={`grid h-9 w-9 place-items-center rounded-xl border text-base ${item.active ? "border-[var(--studio-accent-border)] bg-[var(--studio-panel)] shadow-sm" : "border-[var(--studio-border)] bg-[var(--studio-surface)]"}`}><StudioIcon name={item.icon} className="h-[18px] w-[18px]" /></span>
                 {item.label}
               </Link>
             ))}
-            {!signedIn ? <Link href={signInUrl} onClick={close} className="mt-1 flex items-center justify-center rounded-[1rem] bg-[#202633] px-3 py-3 text-sm font-semibold text-white shadow-sm">{t("studio.auth.signIn")}</Link> : null}
-            <div className="mt-1 border-t border-black/[0.06] px-2 pb-1 pt-3">
-              <div className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold text-[#8b95a7]"><StudioIcon name="globe" className="h-4 w-4" /><span>{t("studio.language")}</span></div>
+            <div className="df-mobile-menu-appearance"><StudioThemeToggle locale={locale} showLabel /></div>
+            {!signedIn ? <Link href={signInUrl} onClick={close} className="mt-1 flex items-center justify-center rounded-[1rem] bg-[var(--studio-primary)] px-3 py-3 text-sm font-semibold text-white shadow-sm">{t("studio.auth.signIn")}</Link> : null}
+            <div className="mt-1 border-t border-[var(--studio-border)] px-2 pb-1 pt-3">
+              <div className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold text-[var(--studio-muted)]"><StudioIcon name="globe" className="h-4 w-4" /><span>{t("studio.language")}</span></div>
               <div className="grid grid-cols-2 gap-1">
                 {locales.map((itemLocale) => (
-                  <button key={itemLocale} type="button" onClick={() => { onLocaleChange(itemLocale); close(); }} className={`min-h-10 rounded-xl px-2 py-2 text-left text-xs font-bold transition ${locale === itemLocale ? "bg-[#e8f7ff] text-[#0284c7]" : "bg-[#f8fafc] text-[#485164] hover:bg-[#f1f5f9]"}`}>{localeLabels[itemLocale]}</button>
+                  <button key={itemLocale} type="button" aria-pressed={locale === itemLocale} onClick={() => { onLocaleChange(itemLocale); close(); }} className={`min-h-10 rounded-xl px-2 py-2 text-start text-xs font-bold transition ${locale === itemLocale ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "bg-[var(--studio-accent-soft)] text-[var(--studio-text)] hover:bg-[var(--studio-accent-soft)]"}`}>{localeLabels[itemLocale]}</button>
                 ))}
               </div>
             </div>

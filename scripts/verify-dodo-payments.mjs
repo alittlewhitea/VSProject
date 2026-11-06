@@ -17,7 +17,14 @@ process.env.DODO_PAYMENTS_API_KEY = 'isolated-test-key';
 process.env.DODO_PAYMENTS_WEBHOOK_KEY = 'whsec_' + Buffer.alloc(32, 7).toString('base64');
 process.env.DODO_PAYMENTS_ENVIRONMENT = 'test_mode';
 for (const key of ['STARTER','CREATOR','STUDIO','PRO_TOPUP']) process.env['DODO_PRODUCT_' + key] = 'pdt_' + key;
-const dodo = load('src/lib/dodo.ts');
+const suspendedRelease = load('src/lib/payment-release.ts');
+assert.equal(suspendedRelease.DODO_CHECKOUT_SUSPENDED, true);
+// Continue testing the retained integration's enabled path with an explicit fixture.
+const enabledRelease = { DODO_CHECKOUT_SUSPENDED: false };
+const pausedDodo = load('src/lib/dodo.ts', { './payment-release': suspendedRelease });
+assert.equal(pausedDodo.isDodoConfigured(), false);
+for (const packId of ['starter','creator','studio','pro-topup']) assert.equal(pausedDodo.isDodoConfigured(packId), false);
+const dodo = load('src/lib/dodo.ts', { './payment-release': enabledRelease });
 assert.equal(dodo.isDodoConfigured(), true);
 process.env.DODO_PAYMENTS_ENVIRONMENT = 'invalid'; assert.equal(dodo.isDodoConfigured(), false);
 process.env.DODO_PAYMENTS_ENVIRONMENT = 'test_mode';
@@ -121,6 +128,7 @@ const checkoutClient = { products: { retrieve: async () => checkoutProduct }, ch
   return { session_id: 'cks_TEST', checkout_url: 'https://test.checkout.dodopayments.com/session/cks_TEST' };
 } } };
 const checkoutHelper = load('src/lib/dodo-credit-checkout.ts', {
+  './payment-release': enabledRelease,
   './billing': { getCreditPack: id => id === 'starter' ? pack : null }, './dodo': { ...dodo, getDodoClient: () => checkoutClient },
   './mysql': { withMysqlTransaction: async fn => fn({ execute: async (sql, params) => {
     if (sql.startsWith('INSERT INTO credit_purchases')) { snapshotCredits = params[3]; snapshotPrice = params[4]; return [{ insertId: 42 }]; }
@@ -136,6 +144,14 @@ assert.match(sessionInput.return_url, /^https:\/\/dreamface.invalid\/billing\?ch
 checkoutProduct = { ...product, is_recurring: true }; stored = false;
 await assert.rejects(checkoutHelper.createDodoCreditCheckout({ id: 'user-test', email: null }, 'starter', 'https://dreamface.invalid'));
 assert.equal(stored, false);
+// Suspension rejects even direct helper calls before product reads, orders or SQL.
+const pausedHelper=load('src/lib/dodo-credit-checkout.ts', {
+ './payment-release': suspendedRelease,
+ './billing': {getCreditPack(){throw new Error('Unexpected catalog access');}},
+ './dodo': {getDodoClient(){throw new Error('Unexpected Dodo access');}},
+ './mysql': {withMysqlTransaction(){throw new Error('Unexpected SQL access');}}
+});
+await assert.rejects(pausedHelper.createDodoCreditCheckout({id:'user-test',email:null},'starter','https://dreamface.invalid'),/temporarily suspended/);
 let authenticated = true, configured = true, allowed = true;
 const checkoutRoute = load('src/app/api/billing/checkout/route.ts', {
   '../../../../lib/server-auth': { getUserFromBearerToken: async () => authenticated ? { id: 'user-test', email: null } : null },
@@ -186,7 +202,45 @@ assert.equal((await syncRoute.POST(syncRequest('pay_untrusted'))).status, 400);
 authenticated = false; assert.equal((await syncRoute.POST(syncRequest(checkoutId))).status, 401); authenticated = true;
 const methods = load('src/app/api/billing/payment-methods/route.ts', { '../../../../lib/dodo': dodo });
 assert.deepEqual((await methods.GET().json()).providers, ['paypal', 'dodo']);
+const pausedMethods=load('src/app/api/billing/payment-methods/route.ts', {'../../../../lib/dodo':pausedDodo});
+assert.deepEqual((await pausedMethods.GET().json()).providers,['paypal']);
+const pausedCheckout=load('src/app/api/billing/checkout/route.ts', {
+ '../../../../lib/server-auth':{getUserFromBearerToken:async()=>({id:'user-test',email:null})},
+ '../../../../lib/billing':{getCreditPack:()=>pack},
+ '../../../../lib/dodo':pausedDodo,
+ '../../../../lib/dodo-credit-checkout':{createDodoCreditCheckout(){throw new Error('Suspended checkout reached provider');}},
+ '../../../../lib/paypal':{isPayPalWebhookConfigured:()=>true},
+ '../../../../lib/paypal-credit-checkout':{createPayPalCreditCheckout:async()=>({provider:'paypal'})},
+ '../../../../lib/request-security':{consumeRateLimit:async()=>({allowed:true}),trustedPublicOrigin:()=> 'https://dreamface.invalid'}
+});
+for(const packId of ['starter','creator','studio','pro-topup'])assert.equal((await pausedCheckout.POST(request({...body,packId}))).status,503);
+assert.equal((await pausedCheckout.POST(request({...body,provider:'paypal'}))).status,200);
+// Existing signed confirmations and owner-only payment recovery still work while paused.
+const pausedService=load('src/lib/dodo-credit-payments.ts', {'./mysql':mysql,'./dodo':{...pausedDodo,getDodoClient:()=>client}});
+state=initial();assert.equal((await pausedService.syncDodoCheckout('user-test',checkoutId)).completed,true);
+const pausedWebhook=load('src/app/api/billing/dodo/webhook/route.ts', {'../../../../../lib/dodo':pausedDodo,'../../../../../lib/dodo-credit-payments':pausedService});
+state=initial();assert.equal((await pausedWebhook.POST(signedRequest(event))).status,200);assert.equal(state.balance,900);
+
+// A stale "dodo available" response/state must not revive the card button.
+const previousDocument=globalThis.document;
+try {
+ globalThis.document={body:{}};
+ for(const suspended of [true,false]){
+  let stateIndex=0;
+  const fakeReact={useRef:value=>({current:value}),useEffect(){},useState:value=>[stateIndex++===2?true:value,()=>{}]};
+  const component=load('src/components/credit-payment-dialog.tsx',{
+   react:fakeReact,'react-dom':{createPortal:node=>node},
+   '../lib/billing':{CREDIT_PACKS:[pack],formatUsd:amount=>'$'+(amount/100).toFixed(2)},
+   '../lib/analytics':{trackEvent(){},trackPurchaseEvent(){}},
+   '../lib/paypal-wallets-client':{mountPayPalWallets(){throw new Error('Unexpected wallet initialization');}},
+   '../lib/payment-release':{DODO_CHECKOUT_SUSPENDED:suspended}
+  }).default;
+  const nodes=elements(component({pack,accessToken:'fixture',t:key=>key,loadingPack:null,onCheckout(){},onClose(){}}));
+  assert.equal(nodes.filter(node=>node.props['data-payment-provider']==='dodo').length,suspended?0:1);
+  assert.equal(nodes.filter(node=>node.props['data-payment-provider']==='paypal').length,1);
+ }
+}finally{globalThis.document=previousDocument;}
 delete process.env.DODO_PRODUCT_STUDIO;
 assert.deepEqual((await methods.GET().json()).providers, ['paypal']);
 
-console.log('Dodo checks passed: server-owned one-time pricing, signed/timestamped webhooks, canonical payment lookup, tax/product/currency validation, atomic rollback, duplicate notifications, concurrent fulfillment, owner-only recovery, failure ordering, early webhook, refund/dispute review, and environment isolation. No real Dodo or database writes.');
+console.log('Dodo checks passed: suspended card UI and order creation, all packs rejected before provider/SQL calls, PayPal retained, signed confirmations and owner-only recovery preserved; retained integration pricing, transactions, retries, refunds and disputes verified. No real Dodo or database writes.');

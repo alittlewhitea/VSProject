@@ -1,8 +1,10 @@
 import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyframes";
+import { HEYGEN_REFERENCE_RATIOS, validateHeygenReferences } from "../../../lib/heygen-reference-video";
+import { heygenAvatarPrompt, heygenAvatarTiming } from "../../../lib/heygen-avatar";
 import { DREAMFACE_IO_SUSPENDED } from "../../../lib/model-release";
 import { createH3DailyFreeTask, h3FreeContext } from "../../../lib/h3-daily-free";
 import { isH3DailyFreeRequest, H3_DAILY_FREE_PROGRAM } from "../../../lib/h3-daily-free-policy";
-import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } from "../../../lib/gpt-image-models";
+import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize, normalizeGptImageProvider, gptImageOptionError, buildGptImageInput } from "../../../lib/gpt-image-models";
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { getUserFromBearerToken } from "../../../lib/server-auth";
@@ -46,14 +48,18 @@ type GenerateRequest = {
   dailyFree?: boolean;
   mode: GenerateMode;
   imageWorkflow?: "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
-  videoWorkflow?: "avatar-video" | "text-to-video" | "image-to-video";
+  videoWorkflow?: "avatar-video" | "text-to-video" | "image-to-video" | "reference-to-video";
   audioWorkflow?: "text-to-audio" | "text-to-music";
   provider: string;
   ratio: string;
   duration: string;
   prompt: string;
   imageSize?: string;
+  imageWidth?: number; imageHeight?: number; background?: string; imageReasoningEffort?: string;
+  outputCompression?: number; frameCount?: number; frameDurationMs?: number; svgModel?: string;
+  maskUrl?: string; markupImageUrl?: string;
   imageUrls?: string[];
+  videoUrls?: string[];
   audioUrl?: string;
   resolution?: string;
   outputFormat?: string;
@@ -146,7 +152,7 @@ function isValidAudioInput(value: unknown) {
 function getModelId(mode: StoredGenerateMode, provider: string, editImage = false): string | null {
   const keyByProvider: Record<string, string | undefined> = {
     "chatgpt-image": gptImageEndpoint("chatgpt-image", editImage),
-    "gpt-image-2.5-sunburst": gptImageEndpoint("gpt-image-2.5-sunburst", editImage),
+    "gpt-image-2.6-sunburst": gptImageEndpoint("gpt-image-2.6-sunburst", editImage),
     "flux-image": process.env.FAL_MODEL_IMAGE_FLUX || "fal-ai/flux/schnell",
     "flux-dev": process.env.FAL_MODEL_IMAGE_FLUX_DEV || "fal-ai/flux/dev",
     "topaz-image": process.env.FAL_MODEL_IMAGE_TOPAZ || "fal-ai/topaz/upscale/image",
@@ -319,7 +325,7 @@ function getFalImageSize(ratio: string, imageSize?: string) {
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
-  if (body.mode === "video" && body.provider === "heygen-video") {
+  if ((body.mode === "video" || body.mode === "avatar") && body.provider === "heygen-video") {
     const seed = optionalSeed(body.seed);
     return {
       prompt,
@@ -327,7 +333,9 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       resolution: body.resolution || "768p",
       prompt_enhancement: "turbo",
       enable_safety_checker: body.enableSafetyChecker === true,
-      ...(body.videoWorkflow === "image-to-video"
+      ...(body.videoWorkflow === "reference-to-video"
+        ? { reference_video_urls: body.videoUrls?.map(url => url.trim()), ...(body.imageUrls?.length ? {reference_image_urls: body.imageUrls.map(url => url.trim())} : {}), aspect_ratio: body.ratio }
+        : body.videoWorkflow === "image-to-video" || body.mode === "avatar"
         ? { image_url: firstInputImage(body) }
         : { aspect_ratio: body.ratio }),
       ...(seed !== undefined && seed <= 4294967295 ? { seed } : {})
@@ -569,15 +577,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
   }
 
   if (isGptImageProvider(body.provider)) {
-    return {
-      prompt,
-      ...(hasReferenceImages(body) ? {image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0,16) : []} : {}),
-      image_size: gptImageSize(body.imageSize),
-      quality: gptImageQuality(body.quality),
-      background: "auto",
-      output_format: body.outputFormat && OUTPUT_FORMATS.has(body.outputFormat) ? body.outputFormat : "png",
-      num_images: clampInt(body.numImages,1,4,1)
-    };
+    return buildGptImageInput(body,prompt);
   }
 
   if (body.provider === "nano-banana-image" || body.provider === "nano-banana-pro" || body.provider === "nano-banana-lite" || body.provider === "nano-banana-2-lite") {
@@ -634,6 +634,8 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     workflow:
       isAvatarRequest(body) || body.mode === "avatar"
         ? "avatar-video"
+        : body.mode === "video" && body.videoWorkflow === "reference-to-video"
+        ? "reference-to-video"
         : body.mode === "image" && body.provider === "bria-background-remove"
         ? "background-remove"
         : body.mode === "image" && imageUrls.length
@@ -649,6 +651,8 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     duration: body.duration,
     image_size: body.imageSize || null,
     image_urls: imageUrls,
+    ...(isGptImageProvider(body.provider) ? {image_width:body.imageWidth ?? null,image_height:body.imageHeight ?? null,background:body.background || "auto",reasoning_effort:body.imageReasoningEffort || "low",output_compression:body.outputCompression ?? null,frame_count:body.frameCount ?? null,frame_duration_ms:body.frameDurationMs ?? null,svg_model:body.svgModel || null,mask_url:body.maskUrl || null,markup_image_url:body.markupImageUrl || null} : {}),
+    ...(body.mode === "video" && body.videoWorkflow === "reference-to-video" ? {video_urls: body.videoUrls?.map(url => url.trim()) || []} : {}),
     audio_url: body.audioUrl || null,
     resolution: body.resolution || null,
     output_format: body.outputFormat || null,
@@ -831,6 +835,7 @@ export async function POST(request: Request) {
     if (!isValidBody(body)) {
       return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
     }
+    body.provider=normalizeGptImageProvider(body.provider);
 
     const isAvatarProvider = isAvatarRequest(body);
     const isH3MaxAvatar = isH3MaxAvatarRequest(body);
@@ -877,15 +882,33 @@ export async function POST(request: Request) {
       body.ratio = "source";
     }
 
-    if (body.mode === "video") {
+    if (body.videoWorkflow === "reference-to-video") {
+      if (body.mode !== "video" || body.provider !== "heygen-video") return NextResponse.json({error:"Reference to Video requires HeyGen Video in the video workspace."},{status:400});
+      const referenceError = validateHeygenReferences(body.videoUrls, body.imageUrls);
+      if (referenceError) return NextResponse.json({error:referenceError},{status:400});
+      if (!process.env.FAL_KEY?.trim()) return NextResponse.json({error:"Video provider is not configured."},{status:503});
+      if (!HEYGEN_REFERENCE_RATIOS.includes(body.ratio as typeof HEYGEN_REFERENCE_RATIOS[number])) return NextResponse.json({error:"Unsupported HeyGen reference aspect ratio."},{status:400});
+    } else if (body.videoUrls !== undefined) {
+      return NextResponse.json({error:"Select Reference to Video to use a video URL."},{status:400});
+    }
+    if (body.mode === "video" && body.videoWorkflow !== "reference-to-video") {
       const imageError = validateVideoImages(body.provider, body.imageUrls);
       if (imageError) return NextResponse.json({ error: imageError }, { status: 400 });
       if (body.videoWorkflow === "text-to-video" && hasInputImages(body)) return NextResponse.json({ error: "Select Image to Video to use images." }, { status: 400 });
     }
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
+    const isHeygenAvatar = body.mode === "avatar" && body.provider === "heygen-video";
+    if (isHeygenAvatar) {
+      if (body.videoWorkflow !== "avatar-video" || imageUrls.length !== 1 || body.audioUrl || body.videoUrls?.length) return NextResponse.json({error:"HeyGen Avatar requires one image and a spoken script."},{status:400});
+      const timing=heygenAvatarTiming(prompt);
+      if (timing.tooLong) return NextResponse.json({error:"Shorten the spoken script to fit a video of up to 15 seconds.",code:"avatar_script_too_long"},{status:400});
+      // Duration is an explicit user choice. Validation and credit estimation
+      // below use this same selected duration before any charge or submission.
+      body.ratio="source";
+    }
     if (body.provider === "heygen-video") {
-      if (body.mode !== "video" || !["text-to-video", "image-to-video"].includes(body.videoWorkflow || "")) {
-        return NextResponse.json({ error: "HeyGen Video requires a text-to-video or image-to-video workflow." }, { status: 400 });
+      if (!isHeygenAvatar && (body.mode !== "video" || !["text-to-video", "image-to-video", "reference-to-video"].includes(body.videoWorkflow || ""))) {
+        return NextResponse.json({ error: "HeyGen Video requires a text-to-video, image-to-video or reference-to-video workflow." }, { status: 400 });
       }
       if (!/^(?:[5-9]|1[0-5])s$/.test(body.duration)) {
         return NextResponse.json({ error: "HeyGen Video supports durations from 5 to 15 seconds." }, { status: 400 });
@@ -907,10 +930,13 @@ export async function POST(request: Request) {
       }
       body.resolution ||= "768p";
     }
-    if(body.mode === "image" && isGptImageProvider(body.provider)) {
+    if(isGptImageProvider(body.provider)) {
+      if(body.mode!=="image") return NextResponse.json({error:"GPT Image requires the image workspace."},{status:400});
+      if(body.imageWorkflow!==undefined&&!["text-to-image","image-to-image"].includes(body.imageWorkflow))return NextResponse.json({error:"GPT Image requires text-to-image or image-to-image."},{status:400});
       if(body.imageWorkflow === "image-to-image" && !imageUrls.length) return NextResponse.json({error:"Image to Image requires at least one reference image."},{status:400});
-      if(imageUrls.length > 16) return NextResponse.json({error:"GPT Image 2.5 supports at most 16 reference images."},{status:400});
-      if(body.quality && !["low","medium","high"].includes(body.quality)) return NextResponse.json({error:"Supported quality levels: low, medium, high."},{status:400});
+      const optionError=gptImageOptionError(body);
+      if(optionError) return NextResponse.json({error:"Invalid GPT Image 2.6 settings.",code:optionError},{status:400});
+      if(!process.env.FAL_KEY?.trim())return NextResponse.json({error:"Image provider is not configured."},{status:503});
       body.quality=gptImageQuality(body.quality);
       body.imageUrls=imageUrls.map(url=>url.trim());
     }
@@ -939,9 +965,12 @@ export async function POST(request: Request) {
           mode: storageMode,
           provider: body.provider,
           imageSize: body.imageSize,
+          imageWidth:body.imageWidth,imageHeight:body.imageHeight,outputFormat:body.outputFormat,
+          imageReasoningEffort:body.imageReasoningEffort,frameCount:body.frameCount,svgModel:body.svgModel,
+          videoWorkflow: body.videoWorkflow === "reference-to-video" ? "reference-to-video" : undefined,
           duration: body.duration,
           hasReferences: imageUrls.length > 0,
-          referenceCount: imageUrls.length,
+          referenceCount: imageUrls.length+Number(isGptImageProvider(body.provider)&&Boolean(body.maskUrl||body.markupImageUrl)),
           resolution: body.resolution,
           quality: body.quality,
           numImages: body.numImages,
@@ -950,6 +979,7 @@ export async function POST(request: Request) {
           generateAudio: body.generateAudio,
           promptText: prompt
         });
+    if(isGptImageProvider(body.provider)&&body.expectedCredits!==undefined&&body.expectedCredits!==baseEstimatedCredits) return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"generation_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
     if (body.provider === "flux-3-max-video" && body.mode !== "video") {
       return NextResponse.json({error:"FLUX 3 Max is only available for video generation."},{status:400});
     }
@@ -994,7 +1024,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "DreamFace IO Video 2.5 Flash currently supports 5 or 10 second generations." }, { status: 400 });
     }
     const falKey = process.env.FAL_KEY;
-    const modelId = isDreamfaceIo ? DREAMFACE_IO_MODEL : getModelId(storageMode, body.provider, hasInputImages(body));
+    const modelId = isDreamfaceIo ? DREAMFACE_IO_MODEL : body.videoWorkflow === "reference-to-video"
+      ? "heygen/heygen-video/reference-to-video" : getModelId(storageMode, body.provider, hasInputImages(body));
     const taskId = generationTaskId(body.idempotencyKey);
     const submittedPrompt = isDreamfaceIo
       ? enhanceDreamfaceIoPrompt(prompt, {
@@ -1002,7 +1033,7 @@ export async function POST(request: Request) {
           talkingAvatar: isDreamfaceIoTalkingAvatar,
           duration: body.duration
         })
-      : prompt;
+      : isHeygenAvatar ? heygenAvatarPrompt(prompt) : prompt;
 
     const admin = createSupabaseAdminClient();
     if (!admin) {
@@ -1063,7 +1094,7 @@ export async function POST(request: Request) {
           model: typeof body.promptEnhancement.model === "string" ? body.promptEnhancement.model.slice(0, 120) : null
         }
       } : {}),
-      ...(isDreamfaceIo ? { submitted_prompt: submittedPrompt } : {}),
+      ...(isDreamfaceIo || isHeygenAvatar ? { submitted_prompt: submittedPrompt } : {}),
       billing_source: billingSource,
       free_units_used: freeUnitsUsed,
       ...(body.dailyFree === true ? { free_program: H3_DAILY_FREE_PROGRAM } : {})
@@ -1246,7 +1277,7 @@ export async function POST(request: Request) {
           .eq("user_id", user.id);
       }
       if (!isDreamfaceIo) {
-        submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(body, prompt));
+        submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(body, isHeygenAvatar ? submittedPrompt : prompt));
       }
     } catch (networkError) {
       if (isDreamfaceIo) {
@@ -1279,7 +1310,7 @@ export async function POST(request: Request) {
         );
       }
       const failureInfo = falFailureInfoFromError(networkError);
-      const refundedCredits = falRefundCreditsFromCost(failureInfo.costUsd, estimatedCredits);
+      const refundedCredits = falRefundCreditsFromCost(failureInfo.costUsd, estimatedCredits, body.provider);
       const balance =
         refundedCredits > 0
           ? await refundCredits(admin, user.id, refundedCredits, "generation_refund", taskId)

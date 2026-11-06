@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "5c8a57f4-8339-5570-bb75-c68c722890a8",
+      "title": "Chilled Can",
+      "categories": [
+        "product-shot"
+      ],
+      "imageUrl": "https://cdn.higgsfield.ai/cdn-cgi/image/width=1080,quality=80,format=auto/marketing-studio-v2-product-shots-people/834bb6b2-3a9b-48dd-9889-6934c765ccc2.webp",
+      "width": 1080,
+      "height": 1620,
+      "sourceUrl": "https://higgsfield.ai/marketing-studio/preset/chilled-can-5c8a57f4-8339-5570-bb75-c68c722890a8",
+      "category": "product-shot",
+      "label": "Product shot"
+    },
+    {
+      "id": "6089a97b-4e49-43ed-9338-09a9c63e2783",
+      "title": "Green Tea Macro",
+      "categories": [
+        "motion"
+      ],
+      "videoUrl": "https://cdn.higgsfield.ai/marketing-studio-motion-preview/68a696dc-2c2e-43b1-b285-511c8783db1f.mp4",
+      "posterUrl": "https://cdn.higgsfield.ai/cdn-cgi/image/width=1080,quality=80,format=auto/marketing-studio-motion-preview/eb685bb2-9aa9-42e1-bd9f-3296a5b7eae9.webp",
+      "width": 600,
+      "height": 1066,
+      "sourceUrl": "https://higgsfield.ai/marketing-studio/preset/green-tea-macro-6089a97b-4e49-43ed-9338-09a9c63e2783",
+      "category": "motion",
+      "label": "Motion"
+    },
+    {
+      "id": "c9f0c947-946a-4e15-b124-b7031b432434",
+      "title": "Giant Figure",
+      "categories": [
+        "ugc"
+      ],
+      "videoUrl": "https://d29nkk4626dxhc.cloudfront.net/marketing_studio_video_preset/c9f0c947-946a-4e15-b124-b7031b432434-983df3ca6a193776.mp4",
+      "posterUrl": "https://cdn.higgsfield.ai/cdn-cgi/image/width=1080,quality=80,format=auto/user_3Cfdr00kbZ1hJCLpPQkaicInqxv/hf_20260603_150008_ee9cf142-7741-40e9-8076-897fb0947742_thumbnail.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/marketing-studio/preset/giant-figure-c9f0c947-946a-4e15-b124-b7031b432434",
+      "category": "ugc",
+      "label": "UGC"
+    },
+    {
+      "id": "a9af9e6c-f2ca-4bc6-8681-bb8e132a0af3",
+      "title": "This Gadget Saved Me",
+      "categories": [
+        "tiktok"
+      ],
+      "videoUrl": "https://d29nkk4626dxhc.cloudfront.net/marketing_studio_video_preset/a9af9e6c-f2ca-4bc6-8681-bb8e132a0af3-90973eabda978417.mp4",
+      "posterUrl": "https://d29nkk4626dxhc.cloudfront.net/marketing_studio_preset_thumbnails/a9af9e6c-f2ca-4bc6-8681-bb8e132a0af3-685ceb1fb93b1eee.jpg",
+      "width": 1080,
+      "height": 1440,
+      "sourceUrl": "https://higgsfield.ai/marketing-studio/preset/this-gadget-saved-me-a9af9e6c-f2ca-4bc6-8681-bb8e132a0af3",
+      "category": "tiktok",
+      "label": "TikTok"
+    },
+    {
+      "id": "a7959412-402f-50a6-8388-675b190e4f71",
+      "title": "Plush Paw",
+      "categories": [
+        "ads"
+      ],
+      "imageUrl": "https://cdn.higgsfield.ai/cdn-cgi/image/width=1080,quality=80,format=auto/marketing-studio-v2-ad/bfb667bd-81ee-464f-badb-3c03eacc6d2d.webp",
+      "width": 1080,
+      "height": 1446,
+      "sourceUrl": "https://higgsfield.ai/marketing-studio/preset/plush-paw-a7959412-402f-50a6-8388-675b190e4f71",
+      "category": "ads",
+      "label": "Ads"
+    },
+    {
+      "id": "3e34adf9-05aa-5196-9bd5-1828f143a5c5",
+      "title": "Recipe Platter",
+      "categories": [
+        "posters"
+      ],
+      "imageUrl": "https://cdn.higgsfield.ai/cdn-cgi/image/width=1080,quality=80,format=auto/marketing-studio-v2-poster/a223a91f-71ac-4877-820f-3aed5159c7e8.webp",
+      "width": 1080,
+      "height": 1446,
+      "sourceUrl": "https://higgsfield.ai/marketing-studio/preset/recipe-platter-3e34adf9-05aa-5196-9bd5-1828f143a5c5",
+      "category": "posters",
+      "label": "Posters"
+    },
+    {
+      "id": "580b26c1-9f92-57a2-b8b7-749043a43931",
+      "title": "Blush Gloss Smear",
+      "categories": [
+        "marketplace"
+      ],
+      "imageUrl": "https://cdn.higgsfield.ai/cdn-cgi/image/width=1080,quality=80,format=auto/marketing-studio-v2-ad/e0d40df7-359b-47fa-817f-7dd9e59d52e4.webp",
+      "width": 1080,
+      "height": 1446,
+      "sourceUrl": "https://higgsfield.ai/marketing-studio/preset/blush-gloss-smear-580b26c1-9f92-57a2-b8b7-749043a43931",
+      "category": "marketplace",
+      "label": "Marketplace"
+    }
+  ]
+}

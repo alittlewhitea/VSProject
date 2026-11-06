@@ -12,6 +12,7 @@ function loader(overrides={}) {
     const code=ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
     new Function('require','module','exports',code)(id=>{
       if(overrides[id])return overrides[id];
+      if(id.endsWith('.module.css'))return new Proxy({},{get:(_target,key)=>String(key)});
       if(!id.startsWith('.'))return native(id);
       const target=resolve(dirname(path),id);
       return load(existsSync(target+'.ts')?target+'.ts':target+'.tsx');
@@ -43,7 +44,7 @@ function context(mode,workflow) {
     navigateStudio(href){c.sp=new URL(href,'https://studio.test').searchParams;},
     FileReader:class{readAsDataURL(file){this.result=file.dataUrl;queueMicrotask(()=>this.onload());}}
   };
-  Object.defineProperty(c,'referenceImageUrls',{get:()=>[...c.referenceImagesText.split(/\r?\n|,/).filter(Boolean),...c.referenceImageFiles]});
+  Object.defineProperty(c,'referenceImageUrls',{get:()=>[...policy.parseStudioReferenceImages(c.referenceImagesText),...c.referenceImageFiles]});
   for(const [setter,field] of Object.entries({setReferenceImagesText:'referenceImagesText',setReferenceImageFiles:'referenceImageFiles',setPrompt:'prompt',setProvider:'provider',setImageWorkflow:'imageWorkflow',setVideoWorkflow:'videoWorkflow',setDuration:'duration',setRatio:'ratio',setVideoResolution:'videoResolution',setImageSize:'imageSize',setImageQuality:'imageQuality',setStatusTone:'statusTone',setStatusText:'statusText',setAvatarAudioUrl:'avatarAudioUrl'}))c[setter]=value=>{c[field]=typeof value==='function'?value(c[field]):value;};
   for(const name of ['isAvatarProvider','isH3MaxProvider','isH3VideoProvider','isSamplePrompt','isProviderDefaultPrompt','promptForProviderChange','defaultPromptForProvider','isModelSampleReference'])c[name]=executeFunction(name,c);
   c.applyProvider=executeFunction('applyProvider',c);c.upload=executeFunction('handleReferenceFiles',c);
@@ -54,10 +55,24 @@ const image=context('image','image-to-image');
 image.referenceImagesText=gpt.GPT_IMAGE_EXAMPLE_REFERENCES.slice(0,2).join('\n');
 await image.upload([file]);
 assert.equal(image.referenceImagesText,'');assert.deepEqual(image.referenceImageFiles,[file.dataUrl]);
-for(const provider of ['nano-banana-image','nano-banana-pro','nano-banana-lite','gpt-image-2.5-sunburst','chatgpt-image']) {
+for(const provider of ['nano-banana-image','nano-banana-pro','nano-banana-lite','gpt-image-2.6-sunburst','chatgpt-image']) {
   image.applyProvider(provider);assert.deepEqual(image.referenceImageFiles,[file.dataUrl],provider+' must retain uploaded image');assert.deepEqual(image.referenceImageUrls,[file.dataUrl]);
 }
 image.referenceImagesText='https://user.test/custom.png';image.applyProvider('nano-banana-image');assert.equal(image.referenceImagesText,'https://user.test/custom.png');
+const templateCatalog=JSON.parse(readFileSync('public/data/studio-image-templates.json','utf8'));
+for(const template of templateCatalog.items)assert.deepEqual(policy.parseStudioReferenceImages(template.imageUrl),[template.imageUrl],'Do not split public CDN transformation commas');
+const templateUrl=templateCatalog.items[0].imageUrl;
+assert.deepEqual(policy.parseStudioReferenceImages(`${templateUrl}, https://user.test/custom.png`),[templateUrl,'https://user.test/custom.png']);
+assert.deepEqual(policy.parseStudioReferenceImages('data:image/png;base64,IMAGE_DATA'),['data:image/png;base64,IMAGE_DATA']);
+const templateImage=context('image','image-to-image');templateImage.referenceImagesText=templateUrl;
+await templateImage.upload([file]);assert.deepEqual(templateImage.referenceImageUrls,[templateUrl,file.dataUrl]);
+for(const provider of ['nano-banana-image','nano-banana-pro','nano-banana-lite','gpt-image-2.6-sunburst','chatgpt-image']){
+  templateImage.applyProvider(provider);assert.deepEqual(templateImage.referenceImageUrls,[templateUrl,file.dataUrl],'Template must remain image 1, user upload image 2 across model changes');
+}
+const templateLinks=load('src/features/studio/studio-image-template-link.ts');
+const templateHref=new URL(templateLinks.studioImageTemplateHref({id:'template-test',imageUrl:templateUrl},'Use the first image as a style template.'),'https://studio.test');
+assert.equal(templateHref.pathname,'/studio');assert.equal(templateHref.searchParams.get('workflow'),'image-to-image');assert.equal(templateHref.searchParams.get('reference'),templateUrl);assert.equal(templateHref.searchParams.get('templateId'),'template-test');
+assert.equal(templateHref.searchParams.get('prompt'),'Use the first image as a style template.');
 const video=context('video','image-to-video');await video.upload([file],0);
 for(const provider of Object.values(models.VIDEO_MODEL_CONFIGS).filter(config=>config.workflows['image-to-video']).map(config=>config.id)) {
   video.applyProvider(provider);assert.deepEqual(video.referenceImageFiles,[file.dataUrl],provider+' must retain start frame');assert.deepEqual(video.referenceImageUrls,[file.dataUrl]);
@@ -85,7 +100,7 @@ for(const provider of ['minimax-h3-max-video','minimax-h3-max-turbo-video','klin
 const effect=findNode(node=>ts.isCallExpression(node)&&node.expression.getText(ast)==='useEffect'&&node.arguments[0]?.getText(ast).includes('const promptParam = sp.get("prompt")'));
 const effectCode=ts.transpileModule('const apply = '+effect.arguments[0].getText(ast)+';', {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
 const initialReferences=findNode(node=>ts.isVariableDeclaration(node)&&node.name.getText(ast)==='[referenceImagesText, setReferenceImagesText]').initializer.arguments[0].getText(ast);
-for(const workflow of ['text-to-image','image-to-image']) for(const provider of ['chatgpt-image','gpt-image-2.5-sunburst','nano-banana-image','nano-banana-pro','nano-banana-lite','flux-image','flux-dev']) {
+for(const workflow of ['text-to-image','image-to-image']) for(const provider of ['chatgpt-image','gpt-image-2.6-sunburst','nano-banana-image','nano-banana-pro','nano-banana-lite','flux-image','flux-dev']) {
   const image=context('image',workflow);
   Object.assign(image,{initialProvider:provider,initialWorkflow:workflow,initialVideoWorkflow:'text-to-video',initialReferenceUrl:null});
   assert.equal(image.defaultPromptForProvider(provider,workflow),'');
@@ -116,24 +131,37 @@ applyUrl();await url.upload([file],0);url.prompt='Edited after upload.';url.sp.s
 assert.equal(url.referenceImagesText,'');assert.deepEqual(url.referenceImageFiles,[file.dataUrl]);assert.equal(url.prompt,'Edited after upload.');
 url.sp.set('reference','https://user.test/new.png');applyUrl();assert.equal(url.referenceImagesText,'https://user.test/new.png');
 
-// Render the actual preview component and trigger explicit media clicks/play.
+// Render the creation form after removing its side preview; exercise retained controls.
 let cursor=0,cells=[],applied=[];
-const react={useEffect(){},useMemo:fn=>fn(),useRef:value=>({current:value}),useState:value=>{const i=cursor++;if(!(i in cells))cells[i]=value;return[cells[i],next=>cells[i]=next];}};
-const Settings=loader({react,'./video-settings.module.css':{default:{}},'./studio-link':{default:()=>null},'./model-picker':{ModelPicker:()=>null},'./generation-cost-summary':{GenerationCostSummary:()=>null}})('src/features/studio/video-settings.tsx').VideoSettings;
-const showcases=[{prompt:'Prompt for preview one.',duration:'5s',videoUrl:'https://video.test/one.mp4',posterUrl:'one.png'},{prompt:'Prompt for preview two.',duration:'10s',videoUrl:'https://video.test/two.mp4',posterUrl:'two.png'}];
-const showcaseAttribute=findNode(node=>ts.isJsxAttribute(node)&&node.name.getText(ast)==='onUsePromptShowcase');
-const callbackCode=ts.transpileModule('const select = '+showcaseAttribute.initializer.expression.getText(ast)+';', {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
-const selection=context('video','image-to-video');selection.provider='minimax-h3-max-video';selection.referenceImageFiles=[file.dataUrl];selection.videoResolution='768p';selection.videoPromptAI={reset:value=>selection.prompt=value};selection.window={scrollTo(){}};
-new Function('context',`with(context){${callbackCode};return select;}`)(selection)(showcases[1]);
-assert.equal(selection.provider,'minimax-h3-max-video');assert.deepEqual(selection.referenceImageFiles,[file.dataUrl]);assert.equal(selection.videoResolution,'768p');assert.equal(selection.prompt,showcases[1].prompt);
-const props={workflow:'text-to-video',prompt:'',referenceImageUrls:[],provider:'minimax-h3-max-video',providerOptions:[],duration:'5s',durationOptions:['5s'],ratio:'16:9',ratioOptions:['16:9'],resolution:'480p',resolutionOptions:['480p'],estimatedCredits:10,recentTasks:[],promptShowcases:showcases,translate:key=>key,promptAI:{enabled:true,busy:false},onUsePromptShowcase:showcase=>applied.push(showcase.prompt)};
+const react={useEffect(){},useMemo:fn=>fn(),useRef:value=>({current:value}),useState:value=>{const i=cursor++;if(!(i in cells))cells[i]=value;return[cells[i],next=>cells[i]=typeof next==='function'?next(cells[i]):next];}};
+const Settings=loader({react,'./video-settings.module.css':{default:{}},'./studio-link':{default:()=>null},'./studio-navigation':{StudioIcon:()=>null},'./model-picker':{ModelPicker:()=>null},'./generation-cost-summary':{GenerationCostSummary:()=>null}})('src/features/studio/video-settings.tsx').VideoSettings;
+const props={workflow:'text-to-video',prompt:'My real prompt',referenceImageUrls:[],referenceVideoUrl:'https://video.test/reference.mp4',provider:'heygen-video',providerOptions:[],duration:'5s',durationOptions:['5s','10s'],ratio:'16:9',ratioOptions:['16:9','9:16'],showResolutionControl:true,resolution:'768p',resolutionOptions:['768p','1080p'],estimatedCredits:18,creditBalance:1000,generateDisabled:false,isSubmitting:false,isAuthenticated:true,translate:key=>key,promptAI:{enabled:true,busy:false,edit(){},reset(){},setEnabled(){}},onPromptChange:value=>applied.push(['prompt',value]),onGenerate:()=>applied.push(['generate']),onDurationChange:value=>applied.push(['duration',value]),onRatioChange:value=>applied.push(['ratio',value]),onResolutionChange:value=>applied.push(['resolution',value]),onReferenceFiles:async(files,index)=>applied.push(['file',files,index]),onFileError(){}};
 function render(){cursor=0;return Settings(props);}
-function elements(node,result=[]){if(!node)return result;if(Array.isArray(node)){for(const child of node)elements(child,result);}else if(node.props){result.push(node);elements(node.props.children,result);}return result;}
-let tree=render();assert.deepEqual(applied,[]);
-let media=elements(tree).find(node=>node.type==='video'&&node.props.controls);media.props.onClick();assert.deepEqual(applied,[showcases[0].prompt]);
-applied=[];props.prompt='';media.props.onPlay();assert.deepEqual(applied,[showcases[0].prompt]);
-applied=[];const second=elements(tree).find(node=>node.type==='button'&&node.props['aria-label']==='studio.workbench.sampleVideo 2');second.props.onClick();assert.deepEqual(applied,[showcases[1].prompt]);
-tree=render();assert.equal(elements(tree).find(node=>node.type==='video'&&node.props.controls).props.src,showcases[1].videoUrl);
-props.dailyFreeLabel='Free today: 480p / 5s';props.estimatedCredits=0;tree=render();
-assert.equal(elements(tree).find(node=>node.props.role==='status'&&node.props.children===props.dailyFreeLabel)?.props.children,props.dailyFreeLabel);
-console.log('Studio input tests passed: uploaded images survive all image-edit/video model switches, start frame retained when removing unsupported end frame, H3 defaults empty, custom prompts preserved, URL inputs do not overwrite edits/uploads on model change, explicit preview click/play/selection supplies matching prompt. No database or paid calls.');
+function elements(node,result=[]){if(!node)return result;if(node.type?.name==="StudioComposerGenerate")return elements(node.type(node.props),result);if(Array.isArray(node)){for(const child of node)elements(child,result);}else if(node.props){result.push(node);elements(node.props.children,result);}return result;}
+for(const workflow of ['text-to-video','image-to-video','reference-to-video']) {
+ cells=[];applied=[];props.workflow=workflow;props.referenceImageUrls=['data:image/png;base64,fixture'];
+ let tree=render(),nodes=elements(tree);
+ assert.equal(nodes.find(node=>node.props['data-video-workspace']).props['data-video-workspace'],workflow);
+ assert.equal(nodes.some(node=>node.props['data-video-prompt-section']!==undefined),true);
+ assert.equal(nodes.some(node=>node.props['data-video-config']!==undefined),true);
+ assert.equal(nodes.some(node=>node.type==='video'||String(node.props.className||'').includes('df-preview-stage')),false,'Removed side preview must not mount media');
+ assert.equal(nodes.find(node=>node.type==='textarea').props.value,props.prompt);
+ nodes.find(node=>node.type==='textarea').props.onChange({target:{value:'Keep this revised prompt'}});
+ for(const [label,value] of [['duration','10s'],['aspectRatio','9:16'],['resolution','1080p']])nodes.find(node=>node.props.label==='studio.field.'+label).props.onValueChange(value);
+ const action=nodes.find(node=>node.props['data-video-action-bar']!==undefined);
+ elements(action).find(node=>node.type==='button').props.onClick();
+ assert.deepEqual(applied.slice(0,4),[['prompt','Keep this revised prompt'],['duration','10s'],['ratio','9:16'],['resolution','1080p']]);
+ assert.ok(applied.some(item=>item[0]==='generate'));
+ if(workflow==='image-to-video') {
+  const fileInput=nodes.find(node=>node.type==='input'&&node.props.type==='file');
+  await fileInput.props.onChange({target:{files:['fixture-file'],value:'fixture'}});
+  assert.ok(applied.some(item=>item[0]==='file'&&item[2]===0));
+ }
+ if(workflow==='reference-to-video')assert.ok(nodes.some(node=>node.props.videoUrl===props.referenceVideoUrl&&node.props.images===props.referenceImageUrls));
+ nodes.find(node=>node.props['data-video-advanced-trigger']!==undefined).props.onClick();tree=render();nodes=elements(tree);
+ assert.equal(nodes.find(node=>node.props['data-video-advanced-trigger']!==undefined).props['aria-expanded'],true);
+ props.dailyFreeLabel='Free today: 480p / 5s';tree=render();
+ assert.ok(elements(tree).some(node=>node.props.role==='status'&&node.props.children===props.dailyFreeLabel));
+ props.dailyFreeLabel=undefined;
+}
+console.log('Studio input tests passed: cross-mode/model transitions retain user inputs; video creation has no side preview in all three workflows, while prompt, uploads, model parameters, advanced settings, free allowance and generation callbacks remain intact. No database or paid calls.');

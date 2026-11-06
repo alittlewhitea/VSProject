@@ -42,5 +42,46 @@ try{
  now=pricing.HEYGEN_PROMOTION_END;
  response=await route.POST(request({dailyFree:true}));assert.equal(response.status,409);assert.equal(response.body.estimatedCredits,18);assert.equal(submissions.length,2);assert.deepEqual(spends,[9,81]);
  response=await route.POST(request({expectedCredits:18}));assert.equal(response.status,200);assert.deepEqual(spends,[9,81,18]);
- console.log('HeyGen Video passed: default model and settings, 4 resolutions, both API payloads, safety toggle, seed, input validation, promo expiry, stale price protection, no paid calls or database.');
+ // Reference workflow uses the same billing and queue lifecycle, with separate video/image inputs.
+ const videoUrl='https://cdn.example.test/ref.mp4?token=a,b&version=2';
+ const reference=(extra={})=>request({videoWorkflow:'reference-to-video',videoUrls:[videoUrl],ratio:'adaptive',expectedCredits:18,...extra});
+ response=await route.POST(reference());assert.equal(response.status,200);assert.equal(response.body.estimatedCredits,18);
+ assert.equal(submissions.at(-1).url,'https://queue.fal.run/heygen/heygen-video/reference-to-video');
+ assert.deepEqual(submissions.at(-1).input,{prompt:'A peaceful landscape.',duration:5,resolution:'768p',prompt_enhancement:'turbo',enable_safety_checker:false,reference_video_urls:[videoUrl],aspect_ratio:'adaptive'});
+ const record=Object.values(records).at(-1);assert.equal(record.request_settings.workflow,'reference-to-video');assert.deepEqual(record.request_settings.video_urls,[videoUrl]);
+ const refImages=['https://cdn.example.test/product.png','data:image/png;base64,aGVsbG8='];
+ response=await route.POST(reference({imageUrls:refImages,ratio:'9:16',resolution:'2k',duration:'15s',expectedCredits:162,seed:0,enableSafetyChecker:true}));
+ assert.equal(response.status,200);assert.equal(response.body.estimatedCredits,162);
+ assert.deepEqual(submissions.at(-1).input,{prompt:'A peaceful landscape.',duration:15,resolution:'2k',prompt_enhancement:'turbo',enable_safety_checker:true,reference_video_urls:[videoUrl],reference_image_urls:refImages,aspect_ratio:'9:16',seed:0});
+ const count=submissions.length,charged=[...spends];
+ for(const extra of [{videoUrls:[]},{videoUrls:'wrong'},{videoUrls:[videoUrl,videoUrl]},{videoUrls:['javascript:alert(1)']},{videoUrls:['http://127.0.0.1/a.mp4']},{videoUrls:['https://user:password@host.test/a.mp4']},{videoUrls:['https://192.168.0.1/a.mp4']},{videoUrls:['https://[::1]/a.mp4']},{imageUrls:[...refImages,...refImages,...refImages]},{imageUrls:['data:image/gif;base64,aGVsbG8=']},{imageUrls:'wrong'},{ratio:'source'},{resolution:'720p'},{provider:'grok-video'},{mode:'image'},{duration:'16s'}]) {
+  response=await route.POST(reference(extra));assert.equal(response.status,400,JSON.stringify(extra));
+ }
+ response=await route.POST(request({videoUrls:[videoUrl],expectedCredits:18}));assert.equal(response.status,400);
+ response=await route.POST(reference({expectedCredits:9}));assert.equal(response.status,409);
+ assert.deepEqual(spends,charged);assert.equal(submissions.length,count);
+ delete process.env.FAL_KEY;response=await route.POST(reference());assert.equal(response.status,503);assert.deepEqual(spends,charged);
+ process.env.FAL_KEY='fixture-no-network';
+ const configRef=models.VIDEO_PROVIDERS_BY_WORKFLOW['reference-to-video'];assert.deepEqual(configRef,['heygen-video']);
+ assert.deepEqual(models.videoModelRatios('heygen-video','reference-to-video'),['adaptive','21:9','16:9','4:3','1:1','3:4','9:16']);
+ const links=load('src/features/studio/studio-video-template-link.ts');
+ const linked=new URL(links.studioVideoTemplateHref({id:'template-id',videoUrl},'Keep my product.'),'https://dreamface.io');
+ assert.equal(linked.searchParams.get('referenceVideo'),videoUrl);assert.equal(linked.searchParams.get('workflow'),'reference-to-video');assert.equal(linked.searchParams.get('prompt'),'Keep my product.');
+ const avatarTools=load('src/lib/heygen-avatar.ts');
+ const avatarRequest=(extra={})=>request({mode:'avatar',videoWorkflow:'avatar-video',imageUrls:['https://example.invalid/avatar.jpg'],ratio:'source',prompt:'Hello, welcome to our studio.',expectedCredits:18,...extra});
+ response=await route.POST(avatarRequest());assert.equal(response.status,200,JSON.stringify(response));
+ assert.equal(submissions.at(-1).url,'https://queue.fal.run/heygen/heygen-video/image-to-video');
+ assert.deepEqual(submissions.at(-1).input,{prompt:avatarTools.heygenAvatarPrompt('Hello, welcome to our studio.'),duration:5,resolution:'768p',prompt_enhancement:'turbo',enable_safety_checker:false,image_url:'https://example.invalid/avatar.jpg'});
+ const avatarRecord=Object.values(records).at(-1);assert.equal(avatarRecord.prompt,'Hello, welcome to our studio.');assert.equal(avatarRecord.request_settings.workflow,'avatar-video');assert.equal(avatarRecord.request_settings.submitted_prompt,submissions.at(-1).input.prompt);
+ const avatarCount=submissions.length,avatarSpends=[...spends];
+ for(const extra of [{imageUrls:[]},{imageUrls:['one','two']},{prompt:'word '.repeat(80)},{prompt:'\u4f60'.repeat(100)},{audioUrl:'https://example.invalid/speech.mp3'},{videoWorkflow:'image-to-video'},{videoUrls:['https://example.invalid/video.mp4']}]){response=await route.POST(avatarRequest(extra));assert.equal(response.status,400,JSON.stringify(extra));}
+ for(const duration of ['4s','16s']){response=await route.POST(avatarRequest({duration}));assert.equal(response.status,400);}
+ response=await route.POST(avatarRequest({duration:'15s',expectedCredits:18}));assert.equal(response.status,409);assert.equal(response.body.estimatedCredits,54);
+ assert.equal(submissions.length,avatarCount);assert.deepEqual(spends,avatarSpends);
+ for(const [duration,credits] of [['5s',18],['10s',36],['15s',54]]) {
+  response=await route.POST(avatarRequest({duration,expectedCredits:credits}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.duration,parseInt(duration,10));assert.equal(spends.at(-1),credits);
+ }
+ const longScript=Array.from({length:18},()=> 'hello').join(' ');
+ response=await route.POST(avatarRequest({prompt:longScript,duration:'10s',expectedCredits:36}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.duration,10);
+ console.log('HeyGen Video passed: existing T2V/I2V/reference workflows; Avatar native-speech I2V, exact dialogue/metadata, manual 5/10/15-second duration and quote, stale-credit rejection, invalid scripts/images before spending, stale quotes and provider configuration. No paid calls or database.');
 }finally{Date.now=oldNow;globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.FAL_KEY;else process.env.FAL_KEY=oldKey;}

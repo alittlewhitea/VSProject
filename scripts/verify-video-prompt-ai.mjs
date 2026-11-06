@@ -21,6 +21,10 @@ const core = load('src/lib/video-prompt-enhancement.ts');
 const models = load('src/features/studio/video-models.ts').VIDEO_MODEL_CONFIGS;
 const base = { mode: 'text-to-video', model: 'kling-video', prompt: 'An orange cat drinks coffee in a café.', duration: '5s', aspectRatio: '16:9' };
 for (const config of Object.values(models)) for (const [mode, capabilities] of Object.entries(config.workflows)) {
+  if(mode==='reference-to-video') {
+    assert.throws(()=>core.validatePromptContext({...base,model:config.id,mode}));
+    continue; // Reference generation uses HeyGen's native prompt enhancement.
+  }
   const context = { ...base, model: config.id, mode, duration: config.defaultDuration, aspectRatio: capabilities.ratios[0], resolution: config.resolutions[0], imageUrls: mode === 'image-to-video' ? ['https://example.com/start.png'] : undefined };
   const snapshot = JSON.stringify(context);
   const validated = core.validatePromptContext(context);

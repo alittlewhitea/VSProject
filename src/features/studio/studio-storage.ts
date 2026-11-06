@@ -1,4 +1,5 @@
 import type { AcceptedPrompt } from "./use-video-prompt-enhancement";
+import type { GptImageOptions, GptImageQuality } from "../../lib/gpt-image-models";
 
 export type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
 
@@ -17,6 +18,7 @@ export type TaskItem = {
   statusUrl?: string | null;
   responseUrl?: string | null;
   mediaUrl?: string | null;
+  mediaUrls?: string[];
   updatedAt?: string | null;
   settings?: Record<string, unknown> | null;
   chargedCredits?: number;
@@ -43,6 +45,7 @@ export type StudioLoginDraft<
   imageSize: string;
   referenceImagesText: string;
   referenceImageFiles: string[];
+  referenceVideoUrl?: string;
   avatarAudioUrl?: string;
   editResolution: string;
   videoResolution: string;
@@ -63,7 +66,8 @@ export type StudioLoginDraft<
   outputFormat: string;
   duration: string;
   prompt: string;
-  imageQuality?: "auto" | "low" | "medium" | "high";
+  imageQuality?: GptImageQuality;
+  gptImageOptions?: GptImageOptions;
   numImages?: number;
   guidanceScale?: number;
   numInferenceSteps?: number;
@@ -147,6 +151,7 @@ function compactTaskForCache(task: TaskItem): TaskItem {
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
     mediaUrl: truncateCacheValue(task.mediaUrl, 900),
+    mediaUrls: task.mediaUrls?.filter(url=>/^https?:\/\//i.test(url)&&url.length<=8192).slice(0,10),
     chargedCredits: task.chargedCredits,
     refundedCredits: task.refundedCredits,
     refundStatus: task.refundStatus,
@@ -231,6 +236,13 @@ export function mergeTasks(remoteTasks: TaskItem[], sessionTasks: TaskItem[]) {
     seen.add(task.id);
     return true;
   });
+}
+
+export function pickImageOutputUrls(result: unknown): string[] {
+  if(!result||typeof result!=="object")return [];
+  const images=(result as Record<string,unknown>).images;
+  if(!Array.isArray(images))return [];
+  return images.slice(0,10).map(image=>image&&typeof image==="object"?(image as Record<string,unknown>).url:null).filter((url):url is string=>typeof url==="string"&&Boolean(url));
 }
 
 export function pickMediaUrl(result: unknown): string | null {

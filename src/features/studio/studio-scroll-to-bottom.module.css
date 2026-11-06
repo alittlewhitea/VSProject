@@ -1,0 +1,12 @@
+.button { position: fixed; inset-inline-end: 24px; bottom: max(20px,calc(env(safe-area-inset-bottom) + 12px)); z-index: 45; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--df-border); border-radius: 50%; background: var(--df-surface); color: var(--df-muted); box-shadow: 0 4px 16px #11131814; cursor: pointer; }
+.button[hidden] { display: none; }
+.button > svg { width: 22px; height: 22px; }
+.button:hover { border-color: var(--df-primary-border); color: var(--studio-accent); }
+.button > span { position: absolute; inset-inline-end: calc(100% + 8px); padding: 6px 9px; border: 1px solid var(--df-border); border-radius: 8px; background: var(--df-surface); color: var(--df-ink); white-space: nowrap; font-size: 12px; line-height: 18px; opacity: 0; pointer-events: none; }
+.button:focus-visible { outline: 2px solid var(--studio-accent); outline-offset: 3px; }
+.button:focus-visible > span { opacity: 1; }
+.announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:global(body:has([role="dialog"][aria-modal="true"])) .button,
+:global(body:has(:fullscreen)) .button { display: none; }
+@media(hover:hover) { .button:hover > span { opacity: 1; } }
+@media(max-width:767px) { .button { inset-inline-end: 16px; } }

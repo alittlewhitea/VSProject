@@ -15,6 +15,8 @@ function getExtFromContentType(contentType: string | null): string {
   if (contentType.includes("image/png")) return "png";
   if (contentType.includes("image/jpeg")) return "jpg";
   if (contentType.includes("image/webp")) return "webp";
+  if (contentType.includes("image/gif")) return "gif";
+  if (contentType.includes("image/svg+xml")) return "svg";
   if (contentType.includes("video/mp4")) return "mp4";
   if (contentType.includes("video/webm")) return "webm";
   if (contentType.includes("audio/mpeg") || contentType.includes("audio/mp3")) return "mp3";
@@ -90,6 +92,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get("taskId")?.trim() || "";
     const name = searchParams.get("name") || "generated";
+    const indexParam=searchParams.get("index");
+    if(indexParam!==null&&!/^[0-9]$/.test(indexParam))return NextResponse.json({error:"Invalid output index."},{status:400});
+    const index=indexParam===null?0:Number(indexParam);
     if (!/^tsk_[a-zA-Z0-9_-]{8,84}$/.test(taskId)) {
       return NextResponse.json({ error: "Invalid taskId." }, { status: 400 });
     }
@@ -111,7 +116,10 @@ export async function GET(request: Request) {
     }
 
     const taskRecord = task as { output_url?: unknown; raw_result?: unknown };
-    const url = typeof taskRecord.output_url === "string" ? taskRecord.output_url : extractMediaUrl(taskRecord.raw_result);
+    const outputs=taskRecord.raw_result&&typeof taskRecord.raw_result==="object"?(taskRecord.raw_result as Record<string,unknown>).images:null;
+    const selectedOutput=Array.isArray(outputs)?outputs[index]:null;
+    const selectedUrl=selectedOutput&&typeof selectedOutput==="object"?(selectedOutput as Record<string,unknown>).url:null;
+    const url=index>0 ? typeof selectedUrl==="string"?selectedUrl:null : typeof taskRecord.output_url === "string" ? taskRecord.output_url : extractMediaUrl(taskRecord.raw_result);
     if (!url) {
       return NextResponse.json({ error: "Task has no downloadable asset." }, { status: 404 });
     }

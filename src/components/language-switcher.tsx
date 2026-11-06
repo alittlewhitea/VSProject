@@ -19,6 +19,8 @@ export function LanguageSwitcher() {
   const searchParams = useSearchParams();
   const activeLocale = getLocaleFromPathname(pathname) || defaultLocale;
   const cleanPathname = stripLocaleFromPathname(pathname);
+  const isFeatureLanding = ["/image/text-to-image", "/video/image-to-video", "/video/text-to-video"].includes(cleanPathname);
+  const availableLocales = isFeatureLanding ? locales.filter((locale) => locale === "en" || locale === "es" || locale === "pt-BR") : locales;
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +47,7 @@ export function LanguageSwitcher() {
     };
   }, [open]);
 
-  if (!isLocalizedMarketingPath(cleanPathname)) {
+  if (!isLocalizedMarketingPath(cleanPathname) && !isFeatureLanding) {
     return null;
   }
 
@@ -53,7 +55,7 @@ export function LanguageSwitcher() {
   const hash = typeof window !== "undefined" ? window.location.hash : "";
 
   const localeHref = (locale: (typeof locales)[number]) =>
-    `${withLocalePrefix(locale, cleanPathname)}${query ? `?${query}` : ""}${hash}`;
+    `${isFeatureLanding && locale === "en" ? cleanPathname : withLocalePrefix(locale, cleanPathname)}${query ? `?${query}` : ""}${hash}`;
 
   return (
     <div ref={menuRef} className="relative">
@@ -76,7 +78,7 @@ export function LanguageSwitcher() {
 
       {open ? (
         <div role="menu" className="absolute right-0 top-12 z-50 w-48 overflow-hidden rounded-2xl border border-black/10 bg-white p-1.5 shadow-[0_18px_52px_rgba(15,23,42,0.20)]">
-          {locales.map((locale) => (
+          {availableLocales.map((locale) => (
             <Link
               key={locale}
               role="menuitem"

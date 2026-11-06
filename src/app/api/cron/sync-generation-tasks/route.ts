@@ -217,7 +217,7 @@ async function syncTask(task: PendingTaskRow, falKey: string) {
   if (failureInfo) {
     failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
   }
-  const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits) : 0;
+  const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits, task.provider) : 0;
   if (finalStatus === "failed") {
     await refundTaskCredits({ ...task, estimated_credits: refundCreditsAmount });
   }

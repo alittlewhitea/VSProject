@@ -358,14 +358,14 @@ export async function GET(request: Request) {
         responseStatus = normalized.toUpperCase();
 
         try {
-          let taskForRefund: { estimated_credits?: number; created_at?: string; provider_request_id?: string | null } | null = null;
+          let taskForRefund: { estimated_credits?: number; created_at?: string; provider_request_id?: string | null; provider?: string } | null = null;
           const { data: task } = await admin
             .from("generation_tasks")
-            .select("estimated_credits, created_at, provider_request_id")
+            .select("estimated_credits, created_at, provider_request_id, provider")
             .eq("id", taskId)
             .eq("user_id", user.id)
             .maybeSingle();
-          taskForRefund = task as { estimated_credits?: number; created_at?: string; provider_request_id?: string | null } | null;
+          taskForRefund = task as { estimated_credits?: number; created_at?: string; provider_request_id?: string | null; provider?: string } | null;
 
           if (
             taskForRefund?.created_at &&
@@ -413,7 +413,7 @@ export async function GET(request: Request) {
               ? parseFalFailure(completedFailurePayload)
               : responseFailureInfo || parseFalFailure(result || statusPayload);
             failureInfo.costUsd = await resolveFalCostUsd(falKey, taskForRefund?.provider_request_id, failureInfo.costUsd);
-            const refundCredits = falRefundCreditsFromCost(failureInfo.costUsd, estimatedCredits);
+            const refundCredits = falRefundCreditsFromCost(failureInfo.costUsd, estimatedCredits, taskForRefund?.provider);
             refund = await refundAndReadLedger(admin, user.id, taskId, refundCredits);
             failureCode = failureInfo.code || "provider_failed";
             failureReason = formatFalFailureReason(failureInfo, estimatedCredits, refundCredits);

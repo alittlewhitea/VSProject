@@ -262,7 +262,7 @@ async function syncProviderTask(
       ? parseFalFailure(completedFailurePayload)
       : responseFailureInfo || parseFalFailure(result || statusPayload);
     failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
-    const refundCreditsAmount = falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits);
+    const refundCreditsAmount = falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits, task.provider);
     failureCode = failureInfo.code || "provider_failed";
     failureReason = formatFalFailureReason(failureInfo, task.estimated_credits, refundCreditsAmount);
   }
@@ -278,7 +278,7 @@ async function syncProviderTask(
       failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
     }
     const refundCreditsAmount = failureInfo
-      ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits)
+      ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits, task.provider)
       : task.estimated_credits;
     if (refundCreditsAmount > 0) {
       await refundCredits(admin, task.user_id, refundCreditsAmount, "generation_refund", task.id);

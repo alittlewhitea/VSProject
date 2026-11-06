@@ -18,6 +18,7 @@ export async function listPublishedGalleryRows(options: {
   sort?: string | null;
   query?: string | null;
   limit?: number;
+  offset?: number;
   featuredFirst?: boolean;
 } = {}) {
   const filters = ["is_published = 1"];
@@ -32,14 +33,15 @@ export async function listPublishedGalleryRows(options: {
     filters.push("(title like ? or prompt like ? or author_name like ? or author_handle like ? or model like ?)");
     params.push(like, like, like, like, like);
   }
-  const limit = Math.min(Math.max(Number(options.limit || 24), 1), 200);
+  const limit = Number.isFinite(options.limit) ? Math.min(Math.max(Math.trunc(options.limit!), 1), 200) : 24;
+  const offset = Number.isSafeInteger(options.offset) ? Math.max(0, options.offset!) : 0;
   const order =
     options.featuredFirst === false || options.sort === "latest"
-      ? "published_at desc, created_at desc"
-      : "is_featured desc, published_at desc";
+      ? "published_at desc, created_at desc, id desc"
+      : "is_featured desc, published_at desc, created_at desc, id desc";
   const rows = await mysqlExecute<RowDataPacket[]>(
-    `select ${SELECT_COLUMNS} from public_gallery_items where ${filters.join(" and ")} order by ${order} limit ?`,
-    [...params, limit]
+    `select ${SELECT_COLUMNS} from public_gallery_items where ${filters.join(" and ")} order by ${order} limit ? offset ?`,
+    [...params, limit, offset]
   );
   return rows.map(mapRow);
 }

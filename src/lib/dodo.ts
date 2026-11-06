@@ -1,6 +1,7 @@
 import DodoPayments from "dodopayments";
 import type { Product } from "dodopayments/resources/products/products";
 import type { CreditPack } from "./billing";
+import { DODO_CHECKOUT_SUSPENDED } from "./payment-release";
 
 export const DODO_PRODUCT_ENVS: Record<string, string> = {
   starter: "DODO_PRODUCT_STARTER", creator: "DODO_PRODUCT_CREATOR",
@@ -15,6 +16,7 @@ export function dodoProductId(packId: string) {
   return process.env[DODO_PRODUCT_ENVS[packId] || ""]?.trim() || null;
 }
 export function isDodoConfigured(packId?: string) {
+  if (DODO_CHECKOUT_SUSPENDED) return false;
   try {
     dodoEnvironment();
     return Boolean(process.env.DODO_PAYMENTS_API_KEY?.trim() && process.env.DODO_PAYMENTS_WEBHOOK_KEY?.trim() &&

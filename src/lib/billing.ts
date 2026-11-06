@@ -1,4 +1,5 @@
 import { estimateGenerationCredits } from "./model-pricing";
+import { CREDIT_PACK_PRICES } from "./credit-pack-prices";
 
 export type CreditPack = {
   id: string;
@@ -91,7 +92,7 @@ export function creditUsageCapacity(credits: number) {
 // Token-priced examples are allowances; actual prompts and references can vary.
 function creditPackExamples(credits: number): CreditPack["examples"] {
   const samples = [
-    {label: "GPT Image 2.5 Flare", input: {mode:"image",provider:"chatgpt-image",quality:"low"}, note:"Low quality image allowance; prompt and reference costs vary"},
+    {label: "GPT Image 2.6 Flare", input: {mode:"image",provider:"chatgpt-image",quality:"low"}, note:"Low quality image allowance; prompt and reference costs vary"},
     {label: "Nano Banana 2.1", input: {mode:"image",provider:"nano-banana-image",resolution:"1K"}, note:"1K image allowance; token costs vary"},
     {label: "Nano Banana Pro", input: {mode:"image",provider:"nano-banana-pro",resolution:"1K"}, note:"1K images"},
     {label: "FLUX Schnell", input: {mode:"image",provider:"flux-image",imageSize:"landscape_16_9"}, note:"1024 × 576 image drafts"},
@@ -109,38 +110,34 @@ export const CREDIT_PACKS: CreditPack[] = [
   {
     id: "starter",
     name: "Starter Pack",
-    credits: 800,
-    amountCents: 499,
+    ...CREDIT_PACK_PRICES["starter"],
     description: "A friendly starter balance for testing prompts, polishing images, and creating a few short clips.",
     idealFor: "Great for exploring the studio across image, audio, and light video workflows.",
-    examples: creditPackExamples(800)
+    examples: creditPackExamples(CREDIT_PACK_PRICES["starter"].credits)
   },
   {
     id: "creator",
     name: "Creator Pack",
-    credits: 1800,
-    amountCents: 999,
+    ...CREDIT_PACK_PRICES["creator"],
     description: "A comfortable working balance for weekly creative batches, variations, and mixed media tests.",
     idealFor: "Best for creators making several visual directions before choosing the final output.",
-    examples: creditPackExamples(1800)
+    examples: creditPackExamples(CREDIT_PACK_PRICES["creator"].credits)
   },
   {
     id: "studio",
     name: "Studio Pack",
-    credits: 4800,
-    amountCents: 2499,
+    ...CREDIT_PACK_PRICES["studio"],
     description: "The most flexible pack for campaigns, prompt libraries, enhancement passes, and video experiments.",
     idealFor: "Best value when you want room for images, audio, and multiple short video drafts.",
-    examples: creditPackExamples(4800)
+    examples: creditPackExamples(CREDIT_PACK_PRICES["studio"].credits)
   },
   {
     id: "pro-topup",
     name: "Pro Pack",
-    credits: 11000,
-    amountCents: 4999,
+    ...CREDIT_PACK_PRICES["pro-topup"],
     description: "A larger one-time credit pack for high-volume creative work. No subscription required.",
     idealFor: "For teams and creators producing larger batches of images, video, avatars and audio.",
-    examples: creditPackExamples(11000)
+    examples: creditPackExamples(CREDIT_PACK_PRICES["pro-topup"].credits)
   }
 ];
 

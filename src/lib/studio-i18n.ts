@@ -1,6 +1,7 @@
 "use client";
 
 import { studioPromptAiMessages } from "./studio-i18n-prompt-ai";
+import { studioPolishMessages } from "./studio-i18n-polish";
 import { studioFlux3Messages } from "./studio-i18n-flux3";
 import { studioH3FreeMessages } from "./studio-i18n-h3-free";
 
@@ -1038,6 +1039,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
 
   function t(key: string, values?: Record<string, string | number | null | undefined>) {
     let template =
+      studioPolishMessages[locale]?.[key] ||
       studioFlux3Messages[locale]?.[key] ||
       studioH3FreeMessages[locale]?.[key] ||
       studioPromptAiMessages[locale]?.[key] ||
@@ -1076,6 +1078,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
       studioGeminiOmniMessages[defaultLocale]?.[key] ||
       studioCostMessages[defaultLocale]?.[key] ||
       studioWorkbenchUiMessages[defaultLocale]?.[key] ||
+      studioPolishMessages[defaultLocale]?.[key] ||
       key;
     if (values) {
       for (const [name, value] of Object.entries(values)) {

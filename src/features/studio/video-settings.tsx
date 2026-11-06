@@ -1,34 +1,30 @@
 "use client";
 
-import Link from "./studio-link";
+import type { ReactNode } from "react";
+import { StudioPanel, StudioSelectField, StudioStatusNotice, type StudioStatusTone } from "./studio-primitives";
 import type { useVideoPromptEnhancement } from "./use-video-prompt-enhancement";
 import styles from "./video-settings.module.css";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { formatApproximateCreditValue } from "../../lib/billing";
+import { StudioVideoReferencePanel } from "./studio-video-reference-panel";
+import { useEffect, useState } from "react";
+import { StudioComposerGenerate } from "./studio-composer-controls";
 import { GenerationCostSummary } from "./generation-cost-summary";
-import type { TaskItem } from "./studio-storage";
 import type { StudioVideoWorkflow } from "./video-models";
 import { ModelPicker, type ModelPickerOption } from "./model-picker";
 
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
 
-export type PromptShowcase = {
-  videoUrl: string;
-  posterUrl: string;
-  prompt: string;
-  duration: string;
-  provider?: string;
-  ratio?: string;
-  resolution?: string;
-};
-
 type VideoSettingsProps = {
+  workflowTabs?: ReactNode;
+  statusMessage?: string;
+  statusTone?: StudioStatusTone;
   dailyFreeLabel?: string;
   promptAI: ReturnType<typeof useVideoPromptEnhancement>;
   workflow: StudioVideoWorkflow;
   prompt: string;
   referenceImageUrls: string[];
+  referenceVideoUrl: string;
+  onReferenceVideoUrlChange: (value: string) => void;
   provider: string;
   providerOptions: ModelPickerOption[];
   duration: string;
@@ -51,8 +47,6 @@ type VideoSettingsProps = {
   generateDisabled: boolean;
   isSubmitting: boolean;
   isAuthenticated: boolean;
-  promptShowcases: PromptShowcase[];
-  recentTasks: TaskItem[];
   translate: Translate;
   onPromptChange: (value: string) => void;
   onReferenceClear: () => void;
@@ -65,7 +59,6 @@ type VideoSettingsProps = {
   onResolutionChange: (value: string) => void;
   onGenerateAudioChange: (value: boolean) => void;
   onSeedChange: (value: string) => void;
-  onUsePromptShowcase: (showcase: PromptShowcase) => void;
   onGenerate: () => void;
 };
 
@@ -77,35 +70,18 @@ const PRESETS = [
   { id: "minimal", label: "Minimal", icon: "\u2728", ratio: "16:9", showcaseIndex: 0, title: "Nature Escape", prompt: "A quiet mountain landscape with a lone figure, clean composition, slow aerial drift, soft clouds, muted color palette, minimal framing, serene mood, highly realistic environmental detail." }
 ] as const;
 
-function formatTaskDate(value?: string) {
-  if (!value) return "Recently";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Recently";
-  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
-}
-
-function taskDuration(task: TaskItem, fallback: string) {
-  const value = task.settings?.duration;
-  return typeof value === "string" ? value : fallback;
-}
-
 export function VideoSettings({
-  dailyFreeLabel,
-  promptAI, workflow, prompt, referenceImageUrls, provider, providerOptions, duration, durationOptions, ratio, ratioOptions,
+  dailyFreeLabel, workflowTabs, statusMessage, statusTone,
+  promptAI, workflow, prompt, referenceImageUrls, referenceVideoUrl, onReferenceVideoUrlChange, provider, providerOptions, duration, durationOptions, ratio, ratioOptions,
   ratioDisabled, showResolutionControl, resolution, resolutionOptions, showAudioControl, generateAudio, seed,
   enableSafetyChecker, onEnableSafetyCheckerChange, reasoningLevel, onReasoningLevelChange,
-  estimatedCredits, creditBalance, generateDisabled, isSubmitting, isAuthenticated, promptShowcases, recentTasks, translate,
+  estimatedCredits, creditBalance, generateDisabled, isSubmitting, isAuthenticated, translate,
   onPromptChange, onReferenceClear, onReferenceFiles, onReferenceRemove, onFileError, onProviderChange,
   onDurationChange, onRatioChange, onResolutionChange, onGenerateAudioChange, onSeedChange,
-  onUsePromptShowcase, onGenerate
+  onGenerate
 }: VideoSettingsProps) {
   const [activePreset, setActivePreset] = useState("cinematic");
-  const [selectedShowcaseIndex, setSelectedShowcaseIndex] = useState(0);
   const [moreSettingsOpen, setMoreSettingsOpen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const selectedShowcase = promptShowcases[selectedShowcaseIndex] || promptShowcases[0];
-  const videoTasks = useMemo(() => recentTasks.filter((task) => task.type === "Video").slice(0, 5), [recentTasks]);
-
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if (!window.matchMedia("(min-width: 1024px)").matches || event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey || event.isComposing || event.repeat) return;
@@ -122,42 +98,40 @@ export function VideoSettings({
     setActivePreset(preset.id);
     promptAI.reset(preset.prompt);
     if (!ratioDisabled && ratioOptions.includes(preset.ratio)) onRatioChange(preset.ratio);
-    if (promptShowcases.length) setSelectedShowcaseIndex(preset.showcaseIndex % promptShowcases.length);
-  };
-  const useShowcase = (showcase: PromptShowcase, index: number) => {
-    setSelectedShowcaseIndex(index);
-    if (prompt !== showcase.prompt) onUsePromptShowcase(showcase);
   };
   const inspire = () => {
+    if (workflow === "reference-to-video") { promptAI.reset(translate("studio.referenceVideo.templatePrompt")); return; }
     const currentIndex = PRESETS.findIndex((preset) => preset.id === activePreset);
     applyPreset(PRESETS[(currentIndex + 1) % PRESETS.length]);
   };
 
   return (
-    <div className={`${styles.workbench} w-full max-w-full text-start`}>
-      <div className={`${styles.columns} grid min-w-0 grid-cols-1 gap-[14px] xl:grid-cols-[minmax(450px,0.84fr)_minmax(520px,1.16fr)]`}>
-        <section className={`${styles.editor} flex min-h-[550px] min-w-0 flex-col rounded-[20px] border border-[#eaecf0] bg-white/95 p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)]`}>
-          <fieldset disabled={isSubmitting || promptAI.busy} className={styles.editorScroll} data-video-editor-scroll>
-          <div className="mb-2.5 flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2.5"><label htmlFor="video-studio-prompt" className="shrink-0 text-sm font-bold text-[#101828]">{translate("studio.field.prompt")}</label><span className="truncate text-xs text-[#667085]">{translate("studio.workbench.promptDetail")}</span></div>
-            <span className="shrink-0 text-xs tabular-nums text-[#98a2b3]">{translate("studio.workbench.characters", { count: prompt.length.toLocaleString() })}</span>
+    <div className={`${styles.workbench} df-compact-composer df-premium-composer text-start`} data-premium-workspace="video" data-video-workspace={workflow}>
+        <StudioPanel className={`${styles.editor} df-premium-panel`} header={workflowTabs}>
+          <div className={styles.editorScroll} data-video-editor-scroll>
+          <fieldset disabled={isSubmitting || promptAI.busy} className={styles.formGrid}>
+          <div className={styles.content} data-video-prompt-section>
+          {workflow === "reference-to-video" ? <StudioVideoReferencePanel compact videoUrl={referenceVideoUrl} images={referenceImageUrls} translate={translate} onVideoUrlChange={onReferenceVideoUrlChange} onFiles={onReferenceFiles} onRemove={onReferenceRemove} onFileError={onFileError} /> : null}
+          <div className="df-composer-prompt-label mb-2.5 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5"><label htmlFor="video-studio-prompt" className="shrink-0 text-sm font-medium text-[var(--studio-text)]">{translate("studio.field.prompt")}</label></div>
+            <span className="shrink-0 text-xs tabular-nums text-[var(--studio-muted)]">{translate("studio.workbench.characters", { count: prompt.length.toLocaleString() })}</span>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-[#eaecf0] bg-white">
-            <textarea id="video-studio-prompt" value={prompt} onChange={(event) => onPromptChange(event.target.value)} onKeyDown={(event) => { if (window.matchMedia("(min-width: 1024px)").matches && (event.ctrlKey || event.metaKey)) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onGenerate(); } }} placeholder={translate(workflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")} className="h-[150px] w-full resize-none border-0 bg-transparent p-4 text-[15px] leading-[1.55] text-[#101828] outline-none placeholder:text-[#98a2b3]" />
+          <div className="df-video-composer-input">
+            <textarea dir="auto" id="video-studio-prompt" value={prompt} onChange={(event) => onPromptChange(event.target.value)} onKeyDown={(event) => { if (window.matchMedia("(min-width: 1024px)").matches && (event.ctrlKey || event.metaKey)) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onGenerate(); } }} placeholder={translate(workflow === "reference-to-video" ? "studio.referenceVideo.placeholder" : workflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")} className="h-[150px] w-full resize-none border-0 bg-transparent p-4 text-[15px] leading-[1.55] text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />
             {workflow === "image-to-video" ? (
               <div className="mx-3 mb-3" data-video-keyframes>
-                <p className="mb-2 text-xs text-[#667085]">{translate(videoSupportsEndFrame(provider) ? "studio.videoWorkbench.keyframeHint" : "studio.videoWorkbench.singleFrameHint")}</p>
-                <div className="grid grid-cols-2 gap-2">
+                <p className="mb-2 text-xs text-[var(--studio-muted)]">{translate(videoSupportsEndFrame(provider) ? "studio.videoWorkbench.keyframeHint" : "studio.videoWorkbench.singleFrameHint")}</p>
+                <div className={`grid gap-2 ${videoSupportsEndFrame(provider) ? "grid-cols-2" : "grid-cols-1"}`}>
                   {Array.from({ length: videoSupportsEndFrame(provider) ? 2 : 1 }, (_, index) => (
-                    <div key={index} className="min-w-0 rounded-xl border border-[#e4dfff] bg-[#faf9ff] p-2" data-frame-index={index}>
-                      <p className="mb-2 text-xs font-bold text-[#475467]">{translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame")}</p>
+                    <div key={index} className="min-w-0 rounded-xl border border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] p-2" data-frame-index={index}>
+                      <p className="mb-2 text-xs font-medium text-[var(--studio-text)]">{translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame")}</p>
                       {referenceImageUrls[index] ? <img src={referenceImageUrls[index]} alt={translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame")} className="mb-2 h-24 w-full rounded-lg object-contain" /> : null}
-                      <label className={`block cursor-pointer rounded-lg bg-white p-2 text-center text-xs font-bold text-[#5f4de4] ${index === 1 && !referenceImageUrls[0] ? "opacity-40" : ""}`}>
-                        {translate("studio.action.chooseImage")}
-                        <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={index === 1 && !referenceImageUrls[0]} onChange={event => { void onReferenceFiles(event.target.files, index).catch(onFileError); event.target.value = ""; }} />
+                      <label className={`df-reference-upload block cursor-pointer rounded-lg bg-[var(--studio-panel)] p-2 text-center text-xs font-medium text-[var(--studio-accent)] ${index === 1 && !referenceImageUrls[0] ? "opacity-40" : ""}`}>
+                        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>{translate("studio.action.chooseImage")}
+                        <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame")} className="sr-only" disabled={index === 1 && !referenceImageUrls[0]} onChange={event => { void onReferenceFiles(event.target.files, index).catch(onFileError); event.target.value = ""; }} />
                       </label>
-                      {referenceImageUrls[index] ? <button type="button" onClick={() => onReferenceRemove(index)} className="mt-1 min-h-9 w-full text-xs text-[#667085]">{translate("studio.action.clear")}</button> : null}
+                      {referenceImageUrls[index] ? <button type="button" onClick={() => onReferenceRemove(index)} className="mt-1 min-h-9 w-full text-xs text-[var(--studio-muted)]">{translate("studio.action.clear")}</button> : null}
                     </div>
                   ))}
                 </div>
@@ -165,65 +139,52 @@ export function VideoSettings({
             ) : null}
           </div>
           <div className={`${styles.promptActions} mt-3 flex flex-wrap items-center gap-2`}>
-            <button type="button" role="switch" data-video-ai-enhance aria-label={translate("studio.promptAI.enhance")} aria-checked={promptAI.enabled} onClick={() => promptAI.setEnabled(!promptAI.enabled)} className="inline-flex min-h-10 items-center gap-2 rounded-[10px] px-1 text-xs font-semibold text-[#475467] outline-none focus-visible:ring-2 focus-visible:ring-[#8f80ff] focus-visible:ring-offset-2 disabled:opacity-50">
+            {workflow !== "reference-to-video" ? <button type="button" role="switch" data-video-ai-enhance aria-label={translate("studio.promptAI.enhance")} aria-checked={promptAI.enabled} onClick={() => promptAI.setEnabled(!promptAI.enabled)} className="inline-flex min-h-10 items-center gap-2 rounded-[10px] px-1 text-xs font-semibold text-[var(--studio-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--studio-accent-border)] focus-visible:ring-offset-2 disabled:opacity-50">
               <span>{translate("studio.promptAI.enhance")}</span>
-              <span aria-hidden="true" className={`relative inline-block h-5 w-9 shrink-0 rounded-full transition-colors ${promptAI.enabled ? "bg-[#7561ee]" : "bg-[#d0d5dd]"}`}>
+              <span aria-hidden="true" className={`relative inline-block h-5 w-9 shrink-0 rounded-full transition-colors ${promptAI.enabled ? "bg-[var(--studio-primary)]" : "bg-[var(--studio-surface)]"}`}>
                 <span className={`absolute start-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${promptAI.enabled ? "translate-x-4 rtl:-translate-x-4" : "translate-x-0"}`} />
               </span>
-            </button>
-              <button type="button" onClick={inspire} className="min-h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-xs font-semibold text-[#344054] transition hover:bg-[#fafafb]">{"\uD83D\uDCA1"} {translate("studio.workbench.inspire")}</button>
-              <button type="button" onClick={() => onPromptChange("")} disabled={!prompt.length} className="min-h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-xs font-semibold text-[#667085] transition hover:border-[#d8d2ff] hover:bg-[#faf9ff] hover:text-[#6651ee] disabled:cursor-not-allowed disabled:opacity-45"><span aria-hidden="true">{"\u21ba"}</span> {translate("studio.action.clear")}</button>
+            </button> : null}
+              <button type="button" onClick={inspire} className="min-h-10 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-xs font-semibold text-[var(--studio-text)] transition hover:bg-[var(--studio-surface)]">{"\uD83D\uDCA1"} {translate("studio.workbench.inspire")}</button>
+              <button type="button" onClick={() => onPromptChange("")} disabled={!prompt.length} className="min-h-10 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-xs font-semibold text-[var(--studio-muted)] transition hover:border-[var(--studio-accent-border)] hover:bg-[var(--studio-accent-soft)] hover:text-[var(--studio-accent)] disabled:cursor-not-allowed disabled:opacity-45"><span aria-hidden="true">{"\u21ba"}</span> {translate("studio.action.clear")}</button>
           </div>
-          {(promptAI.notice && promptAI.notice !== "login") || promptAI.busy ? <p role="status" aria-live="polite" className="mt-2 text-xs leading-5 text-[#667085]">{translate(`studio.promptAI.${promptAI.busy ? "optimizing" : promptAI.notice}`)}</p> : null}
-          {promptAI.current ? <div className="mt-2 flex flex-wrap items-start justify-between gap-2"><details className="min-w-0 flex-1 text-xs text-[#667085]"><summary className="min-h-9 cursor-pointer">{translate("studio.promptAI.original")}</summary><p dir="auto" className="mt-1 whitespace-pre-wrap break-words">{promptAI.current.original}</p></details><button type="button" onClick={promptAI.restore} className="min-h-9 rounded-lg border border-[#eaecf0] px-3 text-xs font-semibold text-[#344054]">{translate("studio.promptAI.restore")}</button></div> : null}
+          {workflow !== "reference-to-video" && ((promptAI.notice && promptAI.notice !== "login") || promptAI.busy) ? <p role="status" aria-live="polite" className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate(`studio.promptAI.${promptAI.busy ? "optimizing" : promptAI.notice}`)}</p> : null}
+          {workflow !== "reference-to-video" && promptAI.current ? <div className="mt-2 flex flex-wrap items-start justify-between gap-2"><details className="min-w-0 flex-1 text-xs text-[var(--studio-muted)]"><summary className="min-h-9 cursor-pointer">{translate("studio.promptAI.original")}</summary><p dir="auto" className="mt-1 whitespace-pre-wrap break-words">{promptAI.current.original}</p></details><button type="button" onClick={promptAI.restore} className="min-h-9 rounded-lg border border-[var(--studio-border)] px-3 text-xs font-semibold text-[var(--studio-text)]">{translate("studio.promptAI.restore")}</button></div> : null}
 
-          <div className="my-3.5 h-px bg-[#f1f3f7]" /><div className="mb-2.5 flex items-center justify-between gap-3"><span className="text-xs font-bold text-[#475467]">{translate("studio.workbench.settings")}</span><span className="text-[10px] font-bold text-[#8f80ff]">{translate("studio.workbench.exploreModels")}</span></div>
-          <ModelPicker value={provider} options={providerOptions} translate={translate} onChange={onProviderChange} />
-          <div className={styles.parameters}>
-          <div className={`${styles.parameterGroup} border-b border-[#f1f3f7]`}>
-            <label className="mt-3 block min-w-0 pb-3"><span className="mb-1.5 block text-[10px] text-[#667085]">{translate("studio.field.duration")}</span><select value={duration} onChange={(event) => onDurationChange(event.target.value)} className="min-h-10 w-full border-0 bg-transparent text-[13px] font-bold text-[#101828] outline-none">{durationOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-            <label className="block min-w-0 border-t border-[#f1f3f7] py-3">
-              <span className="mb-1.5 block text-[10px] text-[#667085]">{translate("studio.field.aspectRatio")}</span>
-              <select value={ratio} disabled={ratioDisabled} onChange={(event) => onRatioChange(event.target.value)} className="min-h-10 w-full border-0 bg-transparent text-[13px] font-bold text-[#101828] outline-none disabled:opacity-50">
-                {ratioOptions.map((item) => <option key={item} value={item}>{item === "source" ? translate("studio.option.sourceImage") : item}</option>)}
-              </select>
+          </div>
+          <div className={`${styles.configuration} df-premium-config`} data-video-config>
+          <div className={styles.toolbar}>
+          <ModelPicker inline value={provider} options={providerOptions} translate={translate} onChange={onProviderChange} />
+          <div className={styles.parameters} data-video-parameters>
+            <StudioSelectField icon="duration" label={translate("studio.field.duration")} value={duration} options={durationOptions.map(value => ({ value, label: value }))} onValueChange={onDurationChange} />
+            <StudioSelectField icon="ratio" label={translate("studio.field.aspectRatio")} value={ratio} disabled={ratioDisabled} options={ratioOptions.map(value => ({ value, label: value === "source" ? translate("studio.option.sourceImage") : value === "adaptive" ? translate("studio.option.automatic") : value }))} onValueChange={onRatioChange} />
+            <StudioSelectField icon="resolution" label={translate("studio.field.resolution")} value={resolution || "auto"} disabled={!showResolutionControl} options={showResolutionControl ? resolutionOptions.map(value => ({ value, label: value })) : [{ value: resolution || "auto", label: resolution || translate("studio.option.automatic") }]} onValueChange={onResolutionChange} />
+            <button type="button" data-video-advanced-trigger aria-expanded={moreSettingsOpen} onClick={() => setMoreSettingsOpen(value => !value)} className={`${styles.advancedButton} df-composer-more`}>{translate(moreSettingsOpen ? "studio.workbench.lessSettings" : "studio.workbench.moreSettings")}</button>
+          </div>
+
+          <div className={styles.actionBar} data-video-action-bar>
+            <StudioComposerGenerate disabled={generateDisabled} submitting={isSubmitting} authenticated={isAuthenticated} credits={estimatedCredits} translate={translate} onGenerate={onGenerate}/>
+          </div>
+          </div>
+          {dailyFreeLabel ? <p role="status" className="df-composer-daily">{dailyFreeLabel}</p> : null}
+          <GenerationCostSummary compact estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate}/>
+
+          {moreSettingsOpen ? <div data-video-advanced className={`mt-3 grid gap-3 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3 ${showAudioControl ? "sm:grid-cols-2" : ""}`}>
+            {provider === "flux-3-max-video" ? <label className="min-w-0 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2"><span className="mb-1 block text-xs text-[var(--studio-muted)]">{translate("studio.flux3.reasoning")}</span><select data-flux3-reasoning value={reasoningLevel} onChange={event=>onReasoningLevelChange(event.target.value as "low"|"high")} className="min-h-8 w-full border-0 bg-transparent text-[13px] font-medium text-[var(--studio-text)] outline-none"><option value="low">{translate("studio.flux3.low")}</option><option value="high">{translate("studio.flux3.high")}</option></select></label> : null}
+            {provider === "heygen-video" || provider === "grok-video" || provider === "happy-horse-video" ? <button type="button" role="switch" data-video-safety-checker aria-checked={enableSafetyChecker} onClick={() => onEnableSafetyCheckerChange(!enableSafetyChecker)} className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-[10px] border px-3 text-xs font-semibold ${enableSafetyChecker ? "border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-text)]"}`}><span>{translate("studio.field.safety")}</span><span>{translate(enableSafetyChecker ? "studio.state.on" : "studio.state.off")}</span></button> : null}
+            <label className="min-w-0 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2">
+              <span className="mb-1 block text-xs text-[var(--studio-muted)]">{translate("studio.field.seed")}</span>
+              <input value={seed} onChange={(event) => onSeedChange(event.target.value.replace(/[^\d]/g, "").slice(0, 12))} placeholder={translate("studio.placeholder.random")} inputMode="numeric" className="min-h-8 w-full border-0 bg-transparent text-[13px] font-medium text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />
             </label>
-          </div>
-
-          <div className={`${styles.parameterGroup} mt-2.5 grid grid-cols-2 gap-y-3`}>
-            <label className="min-w-0 border-e border-[#f1f3f7] pe-3"><span className="mb-1.5 block text-[10px] text-[#667085]">{translate("studio.field.quality")}</span>{showResolutionControl ? <select value={resolution} onChange={(event) => onResolutionChange(event.target.value)} className="min-h-10 w-full border-0 bg-transparent text-[13px] font-bold text-[#101828] outline-none">{resolutionOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select> : <span className="inline-flex min-h-10 items-center text-[13px] font-bold text-[#101828]">{resolution || translate("studio.option.automatic")}</span>}</label>
-            <div className="flex min-w-0 items-end ps-3"><button type="button" data-video-advanced-trigger aria-expanded={moreSettingsOpen} onClick={() => setMoreSettingsOpen((value) => !value)} className="min-h-11 w-full rounded-[10px] border border-[#eaecf0] bg-white px-2 text-xs font-semibold text-[#344054]">{"\u2637"} &nbsp; {translate(moreSettingsOpen ? "studio.workbench.hideAdvancedSettings" : "studio.workbench.advancedSettings")}</button></div>
-          </div>
-
-          </div>
-
-          {moreSettingsOpen ? <div className={`mt-3 grid gap-3 rounded-xl border border-[#eaecf0] bg-[#fcfcfe] p-3 ${showAudioControl ? "sm:grid-cols-2" : ""}`}>
-            {provider === "flux-3-max-video" ? <label className="min-w-0 rounded-[10px] border border-[#eaecf0] bg-white px-3 py-2"><span className="mb-1 block text-[10px] text-[#667085]">{translate("studio.flux3.reasoning")}</span><select data-flux3-reasoning value={reasoningLevel} onChange={event=>onReasoningLevelChange(event.target.value as "low"|"high")} className="min-h-8 w-full border-0 bg-transparent text-[13px] font-bold text-[#101828] outline-none"><option value="low">{translate("studio.flux3.low")}</option><option value="high">{translate("studio.flux3.high")}</option></select></label> : null}
-            {provider === "heygen-video" || provider === "grok-video" || provider === "happy-horse-video" ? <button type="button" role="switch" data-video-safety-checker aria-checked={enableSafetyChecker} onClick={() => onEnableSafetyCheckerChange(!enableSafetyChecker)} className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-[10px] border px-3 text-xs font-semibold ${enableSafetyChecker ? "border-[#cfc9ff] bg-[#f3f0ff] text-[#6a5af9]" : "border-[#eaecf0] bg-white text-[#475467]"}`}><span>{translate("studio.field.safety")}</span><span>{translate(enableSafetyChecker ? "studio.state.on" : "studio.state.off")}</span></button> : null}
-            <label className="min-w-0 rounded-[10px] border border-[#eaecf0] bg-white px-3 py-2">
-              <span className="mb-1 block text-[10px] text-[#667085]">{translate("studio.field.seed")}</span>
-              <input value={seed} onChange={(event) => onSeedChange(event.target.value.replace(/[^\d]/g, "").slice(0, 12))} placeholder={translate("studio.placeholder.random")} inputMode="numeric" className="min-h-8 w-full border-0 bg-transparent text-[13px] font-bold text-[#101828] outline-none placeholder:text-[#98a2b3]" />
-            </label>
-            {showAudioControl ? <button type="button" onClick={() => onGenerateAudioChange(!generateAudio)} className={`flex min-h-11 w-full items-center justify-between rounded-[10px] border px-3 text-xs font-semibold ${generateAudio ? "border-[#cfc9ff] bg-[#f3f0ff] text-[#6a5af9]" : "border-[#eaecf0] bg-white text-[#475467]"}`}><span>{translate("studio.field.nativeAudio")}</span><span>{translate(generateAudio ? "studio.state.on" : "studio.state.off")}</span></button> : null}
+            {showAudioControl ? <button type="button" onClick={() => onGenerateAudioChange(!generateAudio)} className={`flex min-h-11 w-full items-center justify-between rounded-[10px] border px-3 text-xs font-semibold ${generateAudio ? "border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-text)]"}`}><span>{translate("studio.field.nativeAudio")}</span><span>{translate(generateAudio ? "studio.state.on" : "studio.state.off")}</span></button> : null}
           </div> : null}
 
+          <StudioStatusNotice message={statusMessage} tone={statusTone} />
+
+          </div>
           </fieldset>
-          <div className={`${styles.actionBar} relative mt-auto pt-4`} data-video-action-bar>{dailyFreeLabel ? <p role="status" className="mb-2 text-xs font-semibold text-emerald-700">{dailyFreeLabel}</p> : null}<button type="button" onClick={onGenerate} disabled={generateDisabled} className="flex min-h-[48px] w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(90deg,#744bfb,#6757f6_55%,#7d53ff)] text-[15px] font-extrabold text-white shadow-[0_10px_24px_rgba(106,90,249,0.2)] transition hover:-translate-y-px hover:brightness-[1.02] disabled:cursor-not-allowed disabled:opacity-55"><span>{"\u2723"}</span><span>{isSubmitting ? translate("studio.generate.creating") : isAuthenticated ? translate("studio.generate.button") : translate("studio.auth.signInToGenerate")}</span><span className="inline-flex h-6 items-center rounded-full bg-white/20 px-2.5 text-[11px] font-bold">{estimatedCredits} {translate("studio.common.credits")} · ≈{formatApproximateCreditValue(estimatedCredits)}</span><kbd className={styles.shortcut}>Ctrl + Enter <span> / ⌘ Enter</span></kbd></button><span className={`${styles.legacyShortcut} pointer-events-none absolute end-3 top-[29px] hidden text-[11px] font-semibold text-white/70 sm:block`}>Enter {"\u21B5"}</span><GenerationCostSummary estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate} /></div>
-        </section>
-
-        <section className={`${styles.preview} min-h-[550px] min-w-0 overflow-hidden rounded-[20px] border border-[#eaecf0] bg-white/95 p-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)]`}>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5"><div className="flex items-center gap-2 text-xs font-bold text-[#667085]"><span>{selectedShowcase?.duration || duration}</span><span className="text-[#c0c4ce]">{"\u2022"}</span><span>{selectedShowcase?.ratio || (ratio === "source" ? translate("studio.option.sourceImage") : ratio)}</span></div><div className="flex gap-1.5 sm:gap-2">{selectedShowcase ? <a href={selectedShowcase.videoUrl} target="_blank" rel="noreferrer" aria-label={translate("studio.workbench.openPreview")} className="inline-flex h-11 items-center gap-1 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-xs font-bold text-[#344054]">{"\u2197"}<span className="hidden sm:inline">{translate("studio.workbench.openPreview")}</span></a> : null}<button type="button" aria-label={translate("studio.workbench.fullscreen")} onClick={() => videoRef.current?.requestFullscreen?.().catch(() => null)} className="grid h-11 min-w-11 place-items-center rounded-[10px] border border-[#eaecf0] bg-white px-2 text-sm text-[#344054]">{"\u26F6"}</button></div></div>
-          {selectedShowcase ? <video ref={videoRef} key={selectedShowcase.videoUrl} src={selectedShowcase.videoUrl} poster={selectedShowcase.posterUrl} onClick={() => useShowcase(selectedShowcase, selectedShowcaseIndex)} onPlay={() => useShowcase(selectedShowcase, selectedShowcaseIndex)} controls muted playsInline preload="none" className="aspect-video w-full rounded-xl border border-[#191919] bg-[#121212] object-cover sm:aspect-[16/8.1] sm:rounded-2xl" /> : <div className="grid aspect-video place-items-center rounded-xl bg-[#121212] text-sm font-semibold text-white/65 sm:aspect-[16/8.1] sm:rounded-2xl">{translate("studio.workbench.videoPreview")}</div>}
-          {promptShowcases.length > 1 ? <div data-video-showcases className="mt-3 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-1.5 sm:gap-2.5"><button type="button" aria-label={translate("studio.workbench.previous")} onClick={() => { const nextIndex = (selectedShowcaseIndex - 1 + promptShowcases.length) % promptShowcases.length; useShowcase(promptShowcases[nextIndex], nextIndex); }} className="h-11 w-11 rounded-full border border-[#eaecf0] bg-white text-[#475467]">{"\u2039"}</button><div className="grid min-w-0 grid-cols-3 gap-1.5 p-0.5 sm:flex sm:gap-2.5 sm:overflow-x-auto">{promptShowcases.map((showcase, index) => <button key={showcase.videoUrl} type="button" aria-label={`${translate("studio.workbench.sampleVideo")} ${index + 1}`} aria-pressed={selectedShowcaseIndex === index} onClick={() => useShowcase(showcase, index)} className={`relative aspect-video min-w-0 w-full overflow-hidden rounded-[8px] border bg-[#f6f7fb] transition hover:-translate-y-px sm:min-w-[128px] sm:flex-1 sm:rounded-[10px] ${selectedShowcaseIndex === index ? "border-white shadow-[0_0_0_2px_#7a6cff]" : "border-[#eaecf0]"}`}><img src={showcase.posterUrl} alt="" className="h-full w-full object-cover" /><span className="absolute start-1 top-1 rounded-md bg-white/90 px-1 py-0.5 text-[8px] font-extrabold text-[#344054] sm:start-1.5 sm:top-1.5 sm:px-1.5 sm:py-1 sm:text-[9px]">{showcase.duration}</span></button>)}</div><button type="button" aria-label={translate("studio.workbench.next")} onClick={() => { const nextIndex = (selectedShowcaseIndex + 1) % promptShowcases.length; useShowcase(promptShowcases[nextIndex], nextIndex); }} className="h-11 w-11 rounded-full border border-[#eaecf0] bg-white text-[#475467]">{"\u203A"}</button></div> : null}
-        </section>
-      </div>
-
-      <section className="mt-4 rounded-[20px] border border-[#eaecf0] bg-white/95 p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.035)]">
-        <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 flex-1 items-center gap-2.5"><strong className="shrink-0 text-[15px] text-[#101828]">{translate("studio.workbench.recent")}</strong><span className="truncate text-xs text-[#667085]">{translate("studio.workbench.latest")}</span></div><Link href="/studio?view=projects" className="inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-[10px] border border-[#eaecf0] bg-white px-3 text-xs font-bold text-[#344054]">{translate("studio.workbench.allProjects")} {"\u2304"}</Link></div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {videoTasks.length ? videoTasks.map((task) => <Link key={task.id} href={`/studio?view=projects&taskId=${encodeURIComponent(task.id)}`} className="min-w-0"><div className="relative aspect-video overflow-hidden rounded-xl border border-[#eaecf0] bg-[#f6f7fb]">{task.mediaUrl ? <video src={task.mediaUrl} muted playsInline preload="none" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-xs font-semibold text-[#98a2b3]">{translate(`studio.task.${task.status.toLowerCase()}`)}</div>}<span className="absolute start-2.5 top-2 inline-flex h-[22px] items-center rounded-lg bg-white/90 px-2 text-[10px] font-extrabold text-[#344054]">{taskDuration(task, duration)}</span><span className="absolute bottom-3 start-3 grid h-[30px] w-[30px] place-items-center rounded-full bg-black/55 text-[11px] text-white">{"\u25B6"}</span></div><div className="mt-2 text-[13px] font-bold text-[#101828]"><span className="block truncate">{task.title || task.prompt || "AI Video"}</span></div><div className="mt-1 text-[11px] text-[#98a2b3]">{formatTaskDate(task.createdAt)}</div></Link>) : promptShowcases.map((showcase, index) => { return <button key={showcase.videoUrl} type="button" onClick={() => useShowcase(showcase, index)} className="min-w-0 text-start"><div className="relative aspect-video overflow-hidden rounded-xl border border-[#eaecf0] bg-[#f6f7fb]">{showcase ? <img src={showcase.posterUrl} alt="" className="h-full w-full object-cover" /> : null}<span className="absolute start-2.5 top-2 inline-flex h-[22px] items-center rounded-lg bg-white/90 px-2 text-[10px] font-extrabold text-[#344054]">{showcase.duration}</span><span className="absolute bottom-3 start-3 grid h-[30px] w-[30px] place-items-center rounded-full bg-black/55 text-[11px] text-white">{"\u25B6"}</span></div><div className="mt-2 text-[13px] font-bold text-[#101828]"><span className="block truncate">{translate("studio.workbench.sampleVideo")} {index + 1}</span></div><div className="mt-1 text-[11px] text-[#98a2b3]">{translate("studio.workbench.sampleVideo")}</div></button>; })}
-        </div>
-      </section>
+          </div>
+        </StudioPanel>
     </div>
   );
 }

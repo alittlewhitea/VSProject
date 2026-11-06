@@ -3,8 +3,10 @@ import type { ResultSetHeader } from "mysql2/promise";
 import { getCreditPack } from "./billing";
 import { dodoEnvironment, dodoProductId, getDodoClient, validateDodoProduct } from "./dodo";
 import { mysqlExecute, withMysqlTransaction } from "./mysql";
+import { DODO_CHECKOUT_SUSPENDED } from "./payment-release";
 
 export async function createDodoCreditCheckout(user: { id: string; email: string | null }, packId: string, origin: string) {
+  if (DODO_CHECKOUT_SUSPENDED) throw new Error("Dodo checkout is temporarily suspended.");
   const pack = getCreditPack(packId), productId = dodoProductId(packId);
   if (!pack || !productId) throw new Error("Dodo credit pack is not configured.");
   const client = getDodoClient();

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { isGptImageProvider, GPT_IMAGE_QUALITIES } from "../../lib/gpt-image-models";
-import { formatApproximateCreditValue } from "../../lib/billing";
+import { StudioSelectField } from "./studio-primitives";
+import { isGptImageProvider, GPT_IMAGE_SIZES, type GptImageOptions, type GptImageQuality } from "../../lib/gpt-image-models";
+import { GptImageControls } from "./gpt-image-controls";
+import { StudioComposerGenerate } from "./studio-composer-controls";
 import { GenerationCostSummary } from "./generation-cost-summary";
 import { ModelPicker, type ModelPickerOption } from "./model-picker";
 
@@ -12,10 +14,14 @@ type Translate = (
 ) => string;
 
 type ImageSizePreset = { value: string; label: string };
-type ImageQuality = "auto" | "low" | "medium" | "high";
+type ImageQuality = GptImageQuality;
 
 type ImageSettingsProps = {
   provider: string;
+  gptOptions: GptImageOptions;
+  referenceImageUrls: string[];
+  onGptOptionsChange: (value:GptImageOptions)=>void;
+  gptValidationError?: string | null;
   providerOptions: ModelPickerOption[];
   utilityWorkflow: "enhance-cleanup" | "background-remove" | null;
   isImageToImage: boolean;
@@ -77,8 +83,8 @@ function SettingCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-xl border border-[#eaecf0] bg-white p-3 ${className}`}>
-      <div className="mb-2 flex items-center justify-between text-[10px] font-bold text-[#667085]">
+    <div className={`rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-3 ${className}`}>
+      <div className="mb-2 flex items-center justify-between text-[10px] font-bold text-[var(--studio-muted)]">
         <span>{label}</span>
         <span>{value}</span>
       </div>
@@ -109,8 +115,8 @@ function ChoiceButtons({
           onClick={() => onChange(item.value)}
           className={`min-h-10 min-w-0 rounded-[8px] px-1 text-[10px] font-bold transition ${uppercase ? "uppercase" : ""} ${
             selected === item.value
-              ? "bg-[#f1efff] text-[#6a5af9] shadow-[inset_0_0_0_1px_#d7d1ff]"
-              : "bg-[#f8f8fb] text-[#667085] hover:bg-[#f3f1ff]"
+              ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)] shadow-none"
+              : "bg-[var(--studio-surface)] text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)]"
           }`}
         >
           {item.label ?? item.value}
@@ -122,6 +128,7 @@ function ChoiceButtons({
 
 export function ImageSettings({
   provider,
+  gptOptions, referenceImageUrls, onGptOptionsChange, gptValidationError,
   providerOptions,
   utilityWorkflow,
   isImageToImage,
@@ -173,45 +180,30 @@ export function ImageSettings({
   const isUtility = utilityWorkflow !== null;
   const isFlux = provider === "flux-image" || provider === "flux-dev";
   const [moreSettingsOpen, setMoreSettingsOpen] = useState(false);
+  const [gptGuideBusy,setGptGuideBusy]=useState(false);
 
   return (
-    <div className="bg-white px-4 py-4 text-start">
-      <ModelPicker value={provider} options={providerOptions} translate={translate} onChange={onProviderChange} />
-      <div className="mb-3 grid gap-2">
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+    <div className="df-image-settings df-composer-settings" data-utility-workflow={utilityWorkflow || undefined}>
+      <div className="df-composer-toolbar">
+      {!isUtility || providerOptions.length > 1 ? <ModelPicker inline value={provider} options={providerOptions} translate={translate} onChange={onProviderChange} /> : null}
+        <div className="df-composer-parameters" data-image-parameters>
           {utilityWorkflow === "enhance-cleanup" ? (
-            <>
-              <span className="inline-flex h-10 items-center rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054]">Standard V2 / 2x</span>
-              <select value={outputFormat === "png" ? "png" : "jpeg"} onChange={(event) => onOutputFormatChange(event.target.value)} className="h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold uppercase text-[#344054] outline-none" aria-label={translate("studio.field.outputFormat")}>
-                <option value="jpeg">JPEG</option>
-                <option value="png">PNG</option>
-              </select>
-            </>
+            <StudioSelectField icon="format" label={translate("studio.field.outputFormat")} value={outputFormat === "png" ? "png" : "jpeg"} options={[{ value: "jpeg", label: "JPEG" }, { value: "png", label: "PNG" }]} onValueChange={onOutputFormatChange} />
           ) : !isUtility && isNanoBanana ? (
-            <select value={ratio} onChange={(event) => onRatioChange(event.target.value)} className="h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054] outline-none">
-              {ratioOptions.map((item) => <option key={item} value={item}>{item === "auto" ? translate("studio.option.autoRatio") : item}</option>)}
-            </select>
+            <StudioSelectField icon="ratio" label={translate("studio.field.aspectRatio")} value={ratio} options={ratioOptions.map(value => ({ value, label: value === "auto" ? translate("studio.option.autoRatio") : value }))} onValueChange={onRatioChange} />
           ) : !isUtility ? (
-            <select value={imageSize} onChange={(event) => onImageSizeChange(event.target.value)} className="h-10 rounded-[10px] border border-[#eaecf0] bg-white px-3 text-[13px] font-bold text-[#344054] outline-none">
-              {imageSizePresets.map((preset) => <option key={preset.value} value={preset.value}>{preset.label}</option>)}
-            </select>
+            <StudioSelectField icon="resolution" label={translate("studio.field.resolution")} value={imageSize} options={isGptImageProvider(provider)?[...GPT_IMAGE_SIZES,{value:"auto",label:translate("studio.option.automatic")},{value:"custom",label:translate("studio.gpt26.customSize")}]:imageSizePresets} onValueChange={value=>{onImageSizeChange(value);if(value==="custom")setMoreSettingsOpen(true);}} />
           ) : null}
         </div>
 
-        <button type="button" onClick={onGenerate} disabled={generateDisabled} className="inline-flex h-[46px] w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(90deg,#744bfb,#6757f6_55%,#7d53ff)] px-5 text-[15px] font-extrabold text-white shadow-[0_10px_24px_rgba(106,90,249,0.2)] transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-55">
-          <span>{isSubmitting ? translate("studio.generate.creating") : isAuthenticated ? translate("studio.generate.button") : translate("studio.auth.signInToGenerate")}</span>
-          {isAuthenticated ? <span className="inline-flex h-8 items-center rounded-full border border-white/25 bg-white/20 px-3 text-xs font-black text-white/95 backdrop-blur">{estimatedCredits} {translate("studio.common.credits")} · ≈{formatApproximateCreditValue(estimatedCredits)}</span> : null}
-          <span className="grid h-7 w-7 place-items-center rounded-full border border-white/20 bg-white/20">-&gt;</span>
-        </button>
-        <GenerationCostSummary estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate} />
+      {!isUtility ? <button type="button" onClick={() => setMoreSettingsOpen((value) => !value)} data-image-advanced-trigger aria-expanded={moreSettingsOpen} className="df-composer-more">{"\u2637"} &nbsp; {translate(moreSettingsOpen ? "studio.workbench.lessSettings" : "studio.workbench.moreSettings")}</button> : null}
+        <StudioComposerGenerate disabled={generateDisabled||gptGuideBusy} submitting={isSubmitting} authenticated={isAuthenticated} credits={estimatedCredits} translate={translate} onGenerate={onGenerate}/>
       </div>
-
-      {!isUtility ? <button type="button" onClick={() => setMoreSettingsOpen((value) => !value)} className="mb-2 min-h-11 w-full rounded-[10px] border border-[#eaecf0] bg-white text-xs font-semibold text-[#344054]">{"\u2637"} &nbsp; {translate(moreSettingsOpen ? "studio.workbench.lessSettings" : "studio.workbench.moreSettings")}</button> : null}
-      {!isUtility && moreSettingsOpen ? <div className="grid gap-2 sm:grid-cols-2">
+      <GenerationCostSummary compact estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate}/>
+      {gptValidationError?<p role="alert" data-gpt-validation className="df-composer-validation">{translate(gptValidationError)}</p>:null}
+      {!isUtility && moreSettingsOpen ? <div data-image-advanced className="df-composer-advanced grid gap-2 sm:grid-cols-2">
         {isGptImageProvider(provider) ? (
-          <SettingCard label={translate("studio.field.quality")} value={translate("studio.textImage.costOptimized")}>
-            <ChoiceButtons values={GPT_IMAGE_QUALITIES.map((value) => ({ value }))} selected={imageQuality} columns={3} onChange={(value) => onImageQualityChange(value as ImageQuality)} />
-          </SettingCard>
+          <GptImageControls options={gptOptions} onChange={onGptOptionsChange} imageSize={imageSize} imageQuality={imageQuality} onQualityChange={onImageQualityChange} outputFormat={outputFormat} onFormatChange={onOutputFormatChange} numImages={numImages} onCountChange={onNumImagesChange} isEdit={isImageToImage} references={referenceImageUrls} translate={translate} onBusyChange={setGptGuideBusy} />
         ) : null}
 
         {(provider === "nano-banana-image" || provider === "nano-banana-edit" || provider === "nano-banana-pro") ? (
@@ -226,25 +218,25 @@ export function ImageSettings({
               <ChoiceButtons values={(provider === "flux-image" ? [1, 2, 4, 8, 12] : [4, 8, 16, 28, 50]).map((value) => ({ value: String(value) }))} selected={String(numInferenceSteps)} columns={5} onChange={(value) => onNumInferenceStepsChange(Number(value))} />
             </SettingCard>
             <SettingCard label={translate("studio.field.guidance")} value={guidanceScale}>
-              <input type="range" min="1" max="20" step="0.5" value={guidanceScale} onChange={(event) => onGuidanceScaleChange(Number(event.target.value))} className="w-full accent-[#151b2a]" />
+              <input type="range" min="1" max="20" step="0.5" value={guidanceScale} onChange={(event) => onGuidanceScaleChange(Number(event.target.value))} className="w-full accent-[var(--studio-primary)]" />
             </SettingCard>
           </>
         ) : null}
 
-        <SettingCard label={translate("studio.field.output")} value={translate("studio.field.outputFormat")}>
+        {!isGptImageProvider(provider)?<SettingCard label={translate("studio.field.output")} value={translate("studio.field.outputFormat")}>
           <ChoiceButtons values={(isFlux ? ["jpeg", "png"] : ["png", "jpeg", "webp"]).map((value) => ({ value }))} selected={outputFormat} columns={3} uppercase onChange={onOutputFormatChange} />
-        </SettingCard>
-        <SettingCard label={translate("studio.field.count")} value={translate("studio.textImage.images")}>
+        </SettingCard>:null}
+        {!isGptImageProvider(provider)?<SettingCard label={translate("studio.field.count")} value={translate("studio.textImage.images")}>
           <ChoiceButtons values={[1, 2, 3, 4].map((value) => ({ value: String(value) }))} selected={String(numImages)} columns={4} onChange={(value) => onNumImagesChange(Number(value))} />
-        </SettingCard>
+        </SettingCard>:null}
         {!isGptImageProvider(provider) ? <SettingCard label={translate("studio.field.seed")} value={translate("studio.textImage.optional")}>
-          <input value={seed} onChange={(event) => onSeedChange(event.target.value.replace(/[^\d]/g, "").slice(0, 12))} placeholder={translate("studio.placeholder.random")} inputMode="numeric" className="h-10 w-full rounded-[0.9rem] border border-black/[0.06] bg-[#fbfcfe] px-3 text-sm font-black text-[#66758b] outline-none placeholder:text-[#8b98ad]" />
+          <input value={seed} onChange={(event) => onSeedChange(event.target.value.replace(/[^\d]/g, "").slice(0, 12))} placeholder={translate("studio.placeholder.random")} inputMode="numeric" className="h-10 w-full rounded-[0.9rem] border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] px-3 text-sm font-semibold text-[var(--studio-muted)] outline-none placeholder:text-[var(--studio-muted)]" />
         </SettingCard> : null}
 
         {isFlux ? (
           <>
             <SettingCard label={translate("studio.field.safety")} value={translate(enableSafetyChecker ? "studio.state.enabled" : "studio.state.disabled")}>
-              <button type="button" onClick={() => onEnableSafetyCheckerChange(!enableSafetyChecker)} className={`h-10 w-full rounded-[0.9rem] text-xs font-black transition ${enableSafetyChecker ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>{translate(enableSafetyChecker ? "studio.state.enabled" : "studio.state.disabled")}</button>
+              <button type="button" onClick={() => onEnableSafetyCheckerChange(!enableSafetyChecker)} className={`h-10 w-full rounded-[0.9rem] text-xs font-semibold transition ${enableSafetyChecker ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-accent-soft)] text-[var(--studio-muted)] hover:bg-[var(--studio-panel)]"}`}>{translate(enableSafetyChecker ? "studio.state.enabled" : "studio.state.disabled")}</button>
             </SettingCard>
             <SettingCard label={translate("studio.field.acceleration")} value={acceleration}>
               <ChoiceButtons values={["none", "regular", "high"].map((value) => ({ value }))} selected={acceleration} columns={3} onChange={onAccelerationChange} />
@@ -258,14 +250,14 @@ export function ImageSettings({
               <ChoiceButtons values={["1", "2", "3", "4", "5", "6"].map((value) => ({ value }))} selected={safetyTolerance} columns={6} onChange={onSafetyToleranceChange} />
             </SettingCard>
             <SettingCard label={translate("studio.field.limitGenerations")} value={translate(limitGenerations ? "studio.state.on" : "studio.state.off")}>
-              <button type="button" onClick={() => onLimitGenerationsChange(!limitGenerations)} className={`h-10 w-full rounded-[0.9rem] text-xs font-black transition ${limitGenerations ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>{translate(limitGenerations ? "studio.state.on" : "studio.state.off")}</button>
+              <button type="button" onClick={() => onLimitGenerationsChange(!limitGenerations)} className={`h-10 w-full rounded-[0.9rem] text-xs font-semibold transition ${limitGenerations ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-accent-soft)] text-[var(--studio-muted)] hover:bg-[var(--studio-panel)]"}`}>{translate(limitGenerations ? "studio.state.on" : "studio.state.off")}</button>
             </SettingCard>
           </>
         ) : null}
 
         {(provider === "nano-banana-image" || provider === "nano-banana-edit" || provider === "nano-banana-pro") ? (
           <SettingCard label={translate("studio.field.webSearch")} value={translate(enableWebSearch ? "studio.state.enabled" : "studio.state.disabled")}>
-            <button type="button" onClick={() => onEnableWebSearchChange(!enableWebSearch)} className={`h-10 w-full rounded-[0.9rem] text-xs font-black transition ${enableWebSearch ? "bg-[#151b2a] text-white" : "bg-[#f8fafd] text-[#758399] hover:bg-white"}`}>{translate(enableWebSearch ? "studio.state.enabled" : "studio.state.disabled")}</button>
+            <button type="button" onClick={() => onEnableWebSearchChange(!enableWebSearch)} className={`h-10 w-full rounded-[0.9rem] text-xs font-semibold transition ${enableWebSearch ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-accent-soft)] text-[var(--studio-muted)] hover:bg-[var(--studio-panel)]"}`}>{translate(enableWebSearch ? "studio.state.enabled" : "studio.state.disabled")}</button>
           </SettingCard>
         ) : null}
 
@@ -277,7 +269,7 @@ export function ImageSettings({
 
         {isImageToImage && isNanoBanana ? (
           <SettingCard label={translate("studio.field.systemPrompt")} value={translate("studio.textImage.optional")} className="lg:col-span-2">
-            <textarea dir="auto" rows={2} value={systemPrompt} onChange={(event) => onSystemPromptChange(event.target.value)} placeholder={translate("studio.placeholder.system")} className="w-full resize-none rounded-[0.9rem] border border-black/[0.06] bg-[#fbfcfe] px-3 py-2 text-sm font-bold leading-5 text-[#66758b] outline-none placeholder:text-[#8b98ad]" />
+            <textarea dir="auto" rows={2} value={systemPrompt} onChange={(event) => onSystemPromptChange(event.target.value)} placeholder={translate("studio.placeholder.system")} className="w-full resize-none rounded-[0.9rem] border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] px-3 py-2 text-sm font-bold leading-5 text-[var(--studio-muted)] outline-none placeholder:text-[var(--studio-muted)]" />
           </SettingCard>
         ) : null}
       </div> : null}
@@ -288,9 +280,9 @@ export function ImageSettings({
           { icon: "@", title: translate(isUtility ? "studio.utilityImage.hintReferenceTitle" : "studio.textImage.hintPromptTitle"), body: translate(isUtility ? "studio.utilityImage.hintReferenceBody" : "studio.textImage.hintPromptBody") },
           { icon: "*", title: translate(isUtility ? "studio.utilityImage.hintOutputTitle" : "studio.textImage.hintPaidTitle"), body: translate(isUtility ? "studio.utilityImage.hintOutputBody" : "studio.textImage.hintPaidBody") }
         ].map((card) => (
-          <div key={card.title} className="grid min-h-[74px] grid-cols-[36px_1fr] items-start gap-3 rounded-[22px] border border-[#758bac]/15 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(248,251,255,0.86))] p-3.5 shadow-[0_8px_18px_rgba(35,58,97,0.045)]">
-            <span className="grid h-9 w-9 place-items-center rounded-[14px] bg-[linear-gradient(135deg,rgba(255,138,0,0.13),rgba(255,61,129,0.13))]">{card.icon}</span>
-            <span><strong className="block text-[13px] font-black text-[#33405a]">{card.title}</strong><span className="mt-1 block text-xs font-bold leading-[1.35] text-[#8390a6]">{card.body}</span></span>
+          <div key={card.title} className="grid min-h-[74px] grid-cols-[36px_1fr] items-start gap-3 rounded-[22px] border border-[var(--studio-border)] bg-[var(--studio-surface)] p-3.5 shadow-none">
+            <span className="grid h-9 w-9 place-items-center rounded-[14px] bg-[var(--studio-primary)]">{card.icon}</span>
+            <span><strong className="block text-[13px] font-semibold text-[var(--studio-text)]">{card.title}</strong><span className="mt-1 block text-xs font-bold leading-[1.35] text-[var(--studio-muted)]">{card.body}</span></span>
           </div>
         ))}
       </div>
