@@ -61,6 +61,9 @@ try {
   assert.equal(calls.at(-1).event, 'SIGNED_IN');
   browser.notifyAuthChange(); await new Promise(resolve => setTimeout(resolve, 0));
   assert.ok(writes.length); assert.ok(writes.every(item => !item.value.includes(session.access_token)), 'Cross-tab notifications carry no credentials');
+  const beforePageShow=reads;
+  window.dispatchEvent(new Event('pageshow'));await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(reads,beforePageShow+1,'Restoring a mobile page refreshes its authenticated session');
   await client.auth.signOut(); await new Promise(resolve => setTimeout(resolve, 0)); assert.equal(calls.at(-1).event, 'SIGNED_OUT');
   subscription.data.subscription.unsubscribe(); const before = reads;
   window.dispatchEvent(new Event('focus')); await new Promise(resolve => setTimeout(resolve, 0)); assert.equal(reads, before);
@@ -87,6 +90,18 @@ try {
   link.props.onClick({button:0,preventDefault(){this.defaultPrevented=true;}});
   assert.equal(requests.at(-1).next,'/studio?view=home','Dialog preserves the explicit destination from its link');
   assert.equal(requests.at(-1).redirectOnSuccess,true);
+  const homeStorage=new Map();
+  window.sessionStorage={getItem:key=>homeStorage.get(key)||null,setItem:(key,value)=>homeStorage.set(key,value),removeItem:key=>homeStorage.delete(key)};
+  window.location.pathname='/en';window.location.search='';
+  navigation.requestSignIn({next:'/studio?view=home',redirectOnSuccess:true});
+  assert.equal(navigation.pendingHomeLogin().next,'/studio?view=home');
+  assert.equal(loader()('src/lib/auth-navigation.ts').pendingHomeLogin().next,'/studio?view=home','The same tab restores its pending destination after a module reload');
+  navigation.clearPendingHomeLogin();assert.equal(navigation.pendingHomeLogin(),null);
+  homeStorage.set('dreamface_pending_home_login',JSON.stringify({next:'/studio',expires:Date.now()-1}));
+  assert.equal(navigation.pendingHomeLogin(),null,'Expired intents cannot redirect later homepage visits');
+  navigation.requestSignIn({next:'/studio?view=home',onSuccess:()=>{}});
+  assert.equal(navigation.pendingHomeLogin(),null,'Resuming a workspace action never creates a homepage redirect');
+  window.location.pathname='/studio';window.location.search='?mode=avatar';
   let emailRequests=0;
   globalThis.fetch=async(url,options)=>{assert.equal(url,'/api/auth/verify');assert.equal(options.method,'POST');assert.equal(options.credentials,'include');emailRequests++;return Response.json({ok:true});};
   const verifications=await Promise.all([browser.completeEmailSignIn(),browser.completeEmailSignIn()]);

@@ -279,9 +279,25 @@ try {
   await send('Target.closeTarget',{targetId:homeEmail.targetId});
   assert.equal(loginEvents.filter(event=>event.method==='email').length,2);
   assert.equal(emailVerifications.length,4,'Two successful and two rejected links use one POST each');
+  // Mobile browsers can discard the original tab while Google is foregrounded.
+  // The reloaded tab has no dialog state, but keeps its tab-scoped destination.
+  authenticated=false;await navigate('/en');
+  await waitFor("Object.keys(document.querySelector('[data-home-google-sign-in]')||{}).some(key=>key.startsWith('__reactProps'))&&!!document.querySelector('header a[href*=\"/auth?next\"]')");
+  await evaluate("window.open=()=>({closed:false,close(){}});document.querySelector('[data-home-google-sign-in]').click()");
+  await waitFor("!!document.querySelector('[data-auth-dialog]')&&!!sessionStorage.getItem('dreamface_pending_home_login')");
+  await send('Page.reload',{},page.sessionId);
+  await waitFor("Object.keys(document.querySelector('[data-home-google-sign-in]')||{}).some(key=>key.startsWith('__reactProps'))&&!document.querySelector('[data-auth-dialog]')");
+  assert.equal(await evaluate('location.pathname'),'/en','A pending guest does not redirect before authentication');
+  authenticated=true;loginEvent={id:randomUUID(),method:'google'};
+  await evaluate("window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}))");
+  await waitFor("location.pathname==='/studio'&&new URLSearchParams(location.search).get('view')==='home'");
+  await waitLoginCount(9);
+  assert.equal(await evaluate("sessionStorage.getItem('dreamface_pending_home_login')"),null,'The restored navigation is consumed once');
+  await navigate('/en');await waitFor("!!document.querySelector('header button')");
+  assert.equal(await evaluate('location.pathname'),'/en','An ordinary later homepage visit stays on the homepage');
   assert.deepEqual(errors, []);
-  writeFileSync('outputs/auth-dialog/browser-regression.json', JSON.stringify({ passed: true, loginSuccessEvents:loginEvents.length, uniqueLoginRecords:claimedLoginIds.size, loginMethods:loginEvents.map(event=>event.method), emails: emails.length, generations: generations.length, favorites: favoriteWrites.length, checkouts: checkouts.length, assertions: ['existing session produces no login event', 'eight real authentications produce eight login events', 'homepage hero, header and email enter Studio automatically', 'email verifies with one POST', 'expired and used links explain recovery', 'reload/focus/embedded billing cannot duplicate', 'same account can log in again', 'no generic login mirror', 'desktop/mobile', 'visible mobile login at 320/390/430px', 'four mobile workspaces', 'shared Google button style', 'homepage one-click Google OAuth', 'homepage Google blocked fallback', 'Try DreamFace chooser preserved', 'exact copy', 'same-page URL', 'keyboard close', 'portrait/script preserved', 'popup blocked fallback', 'Google error recovery', 'email cross-tab sync', 'one generation after Google login', 'payment chooser resumes', 'Avatar favorite resumes', 'website login opens in place'], errors }, null, 2));
-  console.log('Auth UI passed: eight Google/email authentications produce eight login_success events; homepage hero, header and email enter Studio automatically. Email uses one POST, expired/used links explain recovery, and restoration/reload/focus/billing do not add events. All previous desktop/mobile draft, generation, checkout and favorite flows remain intact. APIs and GTM delivery mocked.');
+  writeFileSync('outputs/auth-dialog/browser-regression.json', JSON.stringify({ passed: true, loginSuccessEvents:loginEvents.length, uniqueLoginRecords:claimedLoginIds.size, loginMethods:loginEvents.map(event=>event.method), emails: emails.length, generations: generations.length, favorites: favoriteWrites.length, checkouts: checkouts.length, assertions: ['existing session produces no login event', 'nine real authentications produce nine login events', 'mobile background reload restores pending navigation', 'persisted pageshow refreshes authentication', 'later homepage visits stay in place', 'homepage hero, header and email enter Studio automatically', 'email verifies with one POST', 'expired and used links explain recovery', 'reload/focus/embedded billing cannot duplicate', 'same account can log in again', 'no generic login mirror', 'desktop/mobile', 'visible mobile login at 320/390/430px', 'four mobile workspaces', 'shared Google button style', 'homepage one-click Google OAuth', 'homepage Google blocked fallback', 'Try DreamFace chooser preserved', 'exact copy', 'same-page URL', 'keyboard close', 'portrait/script preserved', 'popup blocked fallback', 'Google error recovery', 'email cross-tab sync', 'one generation after Google login', 'payment chooser resumes', 'Avatar favorite resumes', 'website login opens in place'], errors }, null, 2));
+  console.log('Auth UI passed: nine authentications produce nine login_success events. Mobile tab reload and persisted pageshow restore the pending Studio navigation once; ordinary homepage visits remain in place. Homepage Google/email, link errors and all existing desktop/mobile workspace flows pass. APIs and GTM delivery mocked.');
 } catch (error) {
   if (page) { await screenshot('failure').catch(() => {}); console.log(await evaluate("JSON.stringify({url:location.href,body:document.body.innerText.slice(-1600)})").catch(() => 'No diagnostic page')); }
   console.log('Browser errors:', errors, 'Auth trace:', authTrace.slice(-15));

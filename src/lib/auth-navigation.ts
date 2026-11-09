@@ -4,6 +4,8 @@ import { locales } from "../i18n/routing";
 export const AUTH_DIALOG_EVENT = "dreamface-open-auth";
 export const AUTH_RESULT_EVENT = "dreamface-auth-result";
 export const AUTH_REDIRECT_EVENT = "dreamface-auth-before-redirect";
+const PENDING_LOGIN_KEY = "dreamface_pending_home_login";
+const PENDING_LOGIN_MS = 10 * 60 * 1000;
 
 export type SignInRequest = {
   next?: string;
@@ -39,10 +41,28 @@ export function authPostLoginPath(value: unknown) {
   for (let depth = 0; depth < 3; depth++) {
     const url = new URL(path, "https://dreamface.invalid");
     if (url.pathname === "/auth/complete") { path = authReturnPath(url.searchParams.get("next")); continue; }
-    if (url.pathname === "/" || locales.some(locale => url.pathname === `/${locale}` || url.pathname === `/${locale}/`)) return "/studio?view=home";
+    if (isMarketingHomePath(url.pathname)) return "/studio?view=home";
     return path;
   }
   return "/studio?view=home";
+}
+
+export function isMarketingHomePath(pathname: string) {
+  return pathname === "/" || locales.some(locale => pathname === `/${locale}` || pathname === `/${locale}/`);
+}
+
+export function clearPendingHomeLogin() {
+  try { window.sessionStorage.removeItem(PENDING_LOGIN_KEY); } catch { /* Optional browser storage. */ }
+}
+
+export function pendingHomeLogin(): { next: string; expires: number } | null {
+  try {
+    const value = JSON.parse(window.sessionStorage.getItem(PENDING_LOGIN_KEY) || "null") as { next?: unknown; expires?: number } | null;
+    if (!value || typeof value.expires !== "number" || !Number.isFinite(value.expires) || value.expires <= Date.now() || value.expires > Date.now() + PENDING_LOGIN_MS) {
+      clearPendingHomeLogin(); return null;
+    }
+    return { next: authReturnPath(value.next), expires: value.expires };
+  } catch { clearPendingHomeLogin(); return null; }
 }
 
 export function authFailurePath(next: string, error: string) {
@@ -54,11 +74,16 @@ export function authFailurePath(next: string, error: string) {
 /** Open in place; callers opt into navigation after success or resume an action. */
 export function requestSignIn(options: SignInRequest = {}) {
   if (typeof window === "undefined") return;
+  const next = authReturnPath(options.next || `${window.location.pathname}${window.location.search}${window.location.hash}`);
+  if (options.redirectOnSuccess && !options.onSuccess && isMarketingHomePath(window.location.pathname)) {
+    // Session storage belongs to this tab and survives mobile background reloads.
+    try { window.sessionStorage.setItem(PENDING_LOGIN_KEY, JSON.stringify({ next, expires: Date.now() + PENDING_LOGIN_MS })); } catch { /* In-memory dialog flow remains available. */ }
+  }
   window.dispatchEvent(new CustomEvent<SignInRequest>(AUTH_DIALOG_EVENT, {
     detail: {
       ...options,
       onBeforeRedirect: options.onBeforeRedirect || (() => window.dispatchEvent(new Event(AUTH_REDIRECT_EVENT, { cancelable: true }))),
-      next: authReturnPath(options.next || `${window.location.pathname}${window.location.search}${window.location.hash}`)
+      next
     }
   }));
 }

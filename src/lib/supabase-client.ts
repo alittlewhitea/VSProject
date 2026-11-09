@@ -86,6 +86,7 @@ function makeClient() {
         window.addEventListener(AUTH_EVENT, listener);
         window.addEventListener("storage", storage);
         window.addEventListener("focus", listener);
+        window.addEventListener("pageshow", listener);
         document.addEventListener("visibilitychange", visible);
         listener();
         return {
@@ -96,6 +97,7 @@ function makeClient() {
                 window.removeEventListener(AUTH_EVENT, listener);
                 window.removeEventListener("storage", storage);
                 window.removeEventListener("focus", listener);
+                window.removeEventListener("pageshow", listener);
                 document.removeEventListener("visibilitychange", visible);
               }
             }

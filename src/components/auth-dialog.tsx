@@ -14,7 +14,7 @@ import styles from "./auth-dialog.module.css";
 import { GoogleIcon } from "./google-icon";
 import googleStyles from "./google-sign-in.module.css";
 
-export default function AuthDialog({ request, onClose }: { request: SignInRequest; onClose: () => void }) {
+export default function AuthDialog({ request, onClose }: { request: SignInRequest; onClose: (signedIn?: boolean) => void }) {
   const router = useRouter();
   const [locale] = useState<Locale>(() => isLocale(document.documentElement.lang) ? document.documentElement.lang : "en");
   const copy = authDialogCopy(locale);
@@ -43,8 +43,8 @@ export default function AuthDialog({ request, onClose }: { request: SignInReques
       if (completed.current) return;
       completed.current = true;
       notifyAuthChange();
-      popup.current?.close();
-      latest.current.onClose();
+      try { popup.current?.close(); } catch { /* Mobile OAuth may isolate the other tab. */ }
+      latest.current.onClose(true);
       latest.current.request.onSuccess?.(session);
       if (latest.current.request.redirectOnSuccess && !latest.current.request.onSuccess) router.push(next);
     }
@@ -58,7 +58,7 @@ export default function AuthDialog({ request, onClose }: { request: SignInReques
     return () => {
       data.subscription.unsubscribe(); window.removeEventListener("message", message);
       // Strict Mode replays setup/cleanup when the dialog mounts in development.
-      popupCloseTimer.current = setTimeout(() => popup.current?.close(), 0);
+      popupCloseTimer.current = setTimeout(() => { try { popup.current?.close(); } catch { /* Isolated mobile OAuth tab. */ } }, 0);
     };
   }, [next, copy.error, router]);
 
@@ -109,7 +109,7 @@ export default function AuthDialog({ request, onClose }: { request: SignInReques
   const remaining = Math.max(0, Math.ceil((retryAt - now) / 1000));
   return createPortal(<div className={styles.backdrop} data-auth-dialog-backdrop onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
     <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="auth-dialog-title" aria-describedby="auth-dialog-description" tabIndex={-1} className={styles.dialog} dir={isRtlLocale(locale) ? "rtl" : "ltr"} data-auth-dialog>
-      <button type="button" className={styles.close} aria-label={copy.close} onClick={onClose}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
+      <button type="button" className={styles.close} aria-label={copy.close} onClick={() => onClose()}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
       <h2 id="auth-dialog-title">{sent ? copy.inbox : copy.title}</h2>
       <p id="auth-dialog-description" className={styles.description}>{sent ? copy.sent.replace("{email}", email) : copy.subtitle}</p>
       {sent ? <div className={styles.sent}>
