@@ -553,7 +553,9 @@ export default function AdminHomePage() {
   }
 
   const summary = payload?.summary || {};
-  const users = payload?.users || [];
+  const users = useMemo(() => [...(payload?.users || [])].sort((a, b) =>
+    (b.createdAt ? new Date(b.createdAt).getTime() : 0) - (a.createdAt ? new Date(a.createdAt).getTime() : 0)
+  ), [payload?.users]);
   const accounts = payload?.accounts || [];
   const ledger = payload?.ledger || [];
   const purchases = payload?.purchases || [];
@@ -985,9 +987,10 @@ export default function AdminHomePage() {
 
         <section className="mt-6 grid gap-6 xl:grid-cols-2">
           <Panel id="users" title="Users" count={users.length} className="xl:col-span-2">
+            {(limit) => <>
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <p className="text-sm text-[#6e6e73]">
-                Default {USERS_PER_PAGE} per page. Includes auth profile, country signal, balance, spending, purchases, tasks, and latest subscription.
+                Latest registrations first. Expand to browse {USERS_PER_PAGE} users per page.
               </p>
               <div className="flex flex-wrap gap-2">
                 <AppButton variant="secondary" onClick={() => downloadUsersCsv(users)} disabled={!users.length}>
@@ -996,22 +999,22 @@ export default function AdminHomePage() {
                 <AppButton
                   variant="secondary"
                   onClick={() => setUserPage((page) => Math.max(1, page - 1))}
-                  disabled={userPage <= 1}
+                  disabled={limit < USERS_PER_PAGE || userPage <= 1}
                 >
                   Previous
                 </AppButton>
                 <AppButton
                   variant="secondary"
                   onClick={() => setUserPage((page) => Math.min(userPageCount, page + 1))}
-                  disabled={userPage >= userPageCount}
+                  disabled={limit < USERS_PER_PAGE || userPage >= userPageCount}
                 >
                   Next
                 </AppButton>
               </div>
             </div>
-            <div className="mb-3 text-xs font-semibold text-[#86868b]">
+            {limit >= USERS_PER_PAGE ? <div className="mb-3 text-xs font-semibold text-[#86868b]">
               Page {userPage} / {userPageCount}
-            </div>
+            </div> : null}
             {users.length ? (
               <div className="overflow-x-auto rounded-2xl border border-black/10">
                 <div className="min-w-[1200px]">
@@ -1025,7 +1028,7 @@ export default function AdminHomePage() {
                   <span>Paid</span>
                 </div>
                 <div className="divide-y divide-black/10">
-                  {visibleUsers.map((user) => (
+                  {(limit < USERS_PER_PAGE ? users.slice(0, limit) : visibleUsers).map((user) => (
                     <button
                       key={user.id}
                       type="button"
@@ -1072,6 +1075,7 @@ export default function AdminHomePage() {
             ) : (
               <Empty loading={loading} />
             )}
+            </>}
           </Panel>
 
           <Panel id="countries" title="User Countries" count={countries.length}>
@@ -1101,8 +1105,9 @@ export default function AdminHomePage() {
           </Panel>
 
           <Panel id="credit-ledger" title="Credit Ledger" count={ledger.length}>
+            {(limit) =>
             <div className="divide-y divide-black/10">
-              {ledger.slice(0, 30).map((entry) => (
+              {ledger.slice(0, limit).map((entry) => (
                 <div key={entry.id} className="grid gap-2 py-3 md:grid-cols-[0.8fr_0.7fr_1fr]">
                   <div className="min-w-0">
                     <p className={`text-sm font-semibold ${amountClass(entry.amount)}`}>
@@ -1119,6 +1124,7 @@ export default function AdminHomePage() {
               ))}
               {!ledger.length ? <Empty loading={loading} /> : null}
             </div>
+            }
           </Panel>
 
           <Panel id="purchases" title="Purchases" count={purchases.length}>
@@ -1212,16 +1218,17 @@ export default function AdminHomePage() {
           </Panel>
 
           <Panel id="tasks" title="Generation Tasks" count={tasks.length}>
-            <TaskList tasks={tasks.slice(0, 30)} loading={loading} />
+            {(limit) => <TaskList tasks={tasks.slice(0, limit)} loading={loading} />}
           </Panel>
 
           <Panel id="failed-tasks" title="Failed Tasks" count={failedTasks.length}>
-            <TaskList tasks={failedTasks.slice(0, 30)} loading={loading} failures />
+            {(limit) => <TaskList tasks={failedTasks.slice(0, limit)} loading={loading} failures />}
           </Panel>
 
           <Panel id="events" title="Recent Analytics Events" count={analytics?.recentEvents?.length || 0}>
+            {(limit) =>
             <div className="divide-y divide-black/10">
-              {(analytics?.recentEvents || []).slice(0, 30).map((event, index) => (
+              {(analytics?.recentEvents || []).slice(0, limit).map((event, index) => (
                 <div key={`${event.event_name}-${event.created_at}-${index}`} className="grid gap-2 py-3 md:grid-cols-[0.6fr_1fr_1fr]">
                   <div>
                     <p className="text-sm font-semibold">{event.event_name}</p>
@@ -1235,6 +1242,7 @@ export default function AdminHomePage() {
               ))}
               {!analytics?.recentEvents?.length ? <Empty loading={loading} /> : null}
             </div>
+            }
           </Panel>
         </section>
       </div>
@@ -1263,14 +1271,34 @@ function AnalyticsBreakdown({ title, values }: { title: string; values: Record<s
   );
 }
 
-function Panel({ id, title, count, className = "", children }: { id?: string; title: string; count: number; className?: string; children: ReactNode }) {
+function Panel({ id, title, count, className = "", children }: { id?: string; title: string; count: number; className?: string; children: ReactNode | ((limit: number) => ReactNode) }) {
+  const [expanded, setExpanded] = useState(false);
+  const collapsible = typeof children === "function";
+  const limit = expanded ? USERS_PER_PAGE : 3;
   return (
     <article id={id} className={`scroll-mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)] ${className}`}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
         <span className="rounded-full bg-[#f5f5f7] px-3 py-1 text-xs font-semibold text-[#6e6e73]">{count}</span>
       </div>
-      {children}
+      <div id={id ? `${id}-records` : undefined}>
+        {typeof children === "function" ? children(limit) : children}
+      </div>
+      {collapsible && count > 3 ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-4">
+          <span className="text-xs text-[#86868b]">Showing up to {Math.min(count, limit)} of {count} records</span>
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={id ? `${id}-records` : undefined}
+            onClick={() => setExpanded((value) => !value)}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#f5f5f7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+          >
+            {expanded ? "Show fewer" : `Show ${Math.min(count, USERS_PER_PAGE)}`}
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+        </div>
+      ) : null}
     </article>
   );
 }

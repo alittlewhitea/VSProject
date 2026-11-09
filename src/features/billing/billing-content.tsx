@@ -15,6 +15,7 @@ import { CreditPackGrid } from "../../components/credit-pack-grid";
 import { TopNav } from "../../components/top-nav";
 import { trackEvent, trackPurchaseEvent } from "../../lib/analytics";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
+import { requestSignIn } from "../../lib/auth-navigation";
 
 type LedgerEntry = {
   id: number | string;
@@ -132,7 +133,6 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
   const [loadingPack, setLoadingPack] = useState<string | null>(null);
   const [refreshingCredits, setRefreshingCredits] = useState(false);
   const [pricingRows, setPricingRows] = useState<PricingGuideRow[]>(MODEL_PRICING_ROWS);
-  const trackedLoginSuccessRef = useRef<string | null>(null);
   const trackedCheckoutSuccessRef = useRef<string | null>(null);
   const trackedSubscriptionSuccessRef = useRef<string | null>(null);
   const capturingPayPalOrderRef = useRef<string | null>(null);
@@ -149,19 +149,20 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
-    supabase.auth.getSession().then(({ data }) => {
-      const token = data.session?.access_token || null;
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      const token = session?.access_token || null;
       if (!token) {
+        setAccessToken(null);
+        setBalance(null);
+        setLedger([]);
+        setPurchases([]);
+        setSubscriptions([]);
         trackEvent("billing_view", { checkout: checkoutState || "none", authenticated: false });
         return;
       }
-      const userId = data.session?.user.id || null;
-      if (userId && trackedLoginSuccessRef.current !== userId) {
-        trackedLoginSuccessRef.current = userId;
-        trackEvent("login_success", { surface: "billing" }, token);
-      }
       setAccessToken(token);
     });
+    return () => data.subscription.unsubscribe();
   }, [checkoutState]);
 
 
@@ -484,11 +485,12 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
   useEffect(() => { if (embedded && accessToken && typeof balance === "number") onBalanceChange?.(balance); }, [accessToken, balance, embedded, onBalanceChange]);
 
   const lowBalance = typeof balance === "number" && balance < CREDIT_LOW_BALANCE_THRESHOLD;
-  async function startCheckout(packId: string, paymentProvider: "paypal" | "dodo") {
-    if (!accessToken) {
+  async function startCheckout(packId: string, paymentProvider: "paypal" | "dodo", loginToken?: string) {
+    const checkoutToken = loginToken || accessToken;
+    if (!checkoutToken) {
       trackEvent("checkout_login_required", { pack_id: packId });
       const nextPath = typeof window !== "undefined" ? billingNavigationUrl(window.location.pathname, embedded ? window.location.search : "", embedded) : "/price";
-      router.push(`/auth?next=${encodeURIComponent(nextPath)}`);
+      requestSignIn({ next: nextPath, onSuccess: session => { void startCheckout(packId, paymentProvider, session.access_token); } });
       return;
     }
     setLoadingPack(`${packId}:${paymentProvider}`);
@@ -504,7 +506,7 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`
+          Authorization: `Bearer ${checkoutToken}`
         },
         body: JSON.stringify({ type: "credits", packId, provider: paymentProvider })
       });
@@ -517,9 +519,10 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
     }
   }
 
-  async function openBillingPortal() {
-    if (!accessToken) {
-      router.push(`/auth?next=${encodeURIComponent(embedded ? "/studio?view=billing" : "/billing")}`);
+  async function openBillingPortal(loginToken?: string) {
+    const portalToken = loginToken || accessToken;
+    if (!portalToken) {
+      requestSignIn({ onSuccess: session => { void openBillingPortal(session.access_token); } });
       return;
     }
     setMessage("");
@@ -527,7 +530,7 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
       const response = await fetch("/api/billing/portal", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${accessToken}`
+          Authorization: `Bearer ${portalToken}`
         }
       });
       const payload = (await response.json()) as {
@@ -551,12 +554,12 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
         if (!window.confirm(t("billing.subscription.cancelConfirm"))) return;
         const cancelResponse = await fetch("/api/billing/subscription/cancel", {
           method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}` }
+          headers: { Authorization: `Bearer ${portalToken}` }
         });
         const cancelPayload = (await cancelResponse.json()) as { error?: string };
         if (!cancelResponse.ok) throw new Error(cancelPayload.error || t("billing.message.unablePortal"));
         setMessage(t("billing.subscription.cancelled"));
-        await loadCredits(accessToken);
+        await loadCredits(portalToken);
         return;
       }
       throw new Error(payload.error || t("billing.message.unablePortal"));
@@ -577,7 +580,7 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
           <section className="df-billing-summary">
             <div><p className="df-eyebrow">{t("creditShop.eyebrow")}</p><h2>{t("billing.title")}</h2><p>{t("creditShop.subtitle")}</p></div>
             <div className="df-balance-card"><span>{t("billing.currentBalance")}</span><strong>{balance === null ? "--" : balance.toLocaleString()} <small>{t("creditShop.credits")}</small></strong><p>{t("billing.creditsAvailable")}</p>
-              <button type="button" onClick={() => { trackEvent("balance_refreshed", { surface: "billing" }, accessToken); accessToken ? loadCredits(accessToken) : router.push(`/auth?next=${encodeURIComponent(embedded ? "/studio?view=billing" : "/billing")}`); }} disabled={refreshingCredits} className="df-button df-button--secondary">{refreshingCredits ? t("pricing.refreshing") : accessToken ? t("billing.refreshBalance") : t("billing.signInToView")}</button>
+              <button type="button" onClick={() => { trackEvent("balance_refreshed", { surface: "billing" }, accessToken); accessToken ? loadCredits(accessToken) : requestSignIn({ onSuccess: session => { void loadCredits(session.access_token); } }); }} disabled={refreshingCredits} className="df-button df-button--secondary">{refreshingCredits ? t("pricing.refreshing") : accessToken ? t("billing.refreshBalance") : t("billing.signInToView")}</button>
             </div>
           </section>
 
@@ -614,7 +617,7 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
               </div>
               <button
                 type="button"
-                onClick={openBillingPortal}
+                onClick={() => void openBillingPortal()}
                 disabled={!currentSubscription?.provider_subscription_id && !currentSubscription?.stripe_customer_id}
                 className="min-h-11 rounded-xl border border-[var(--df-primary-border)] bg-[var(--df-primary-soft)] px-5 text-sm font-semibold text-[var(--studio-accent)] transition hover:bg-[var(--df-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50"
               >

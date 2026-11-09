@@ -1,5 +1,7 @@
 "use client";
 
+import { AuthLink } from "../../components/auth-link";
+
 import Link from "./studio-link";
 import { StudioButton, StudioActionLink } from "./studio-primitives";
 import { StudioThemeToggle } from "./studio-theme-toggle";
@@ -80,12 +82,12 @@ export function StudioHeader({
           <h1 className="df-desktop-workspace-title">{copy.title}</h1>
         </div>
         <h1 className="df-mobile-workspace-title" title={workspaceTitle}>{workspaceTitle}</h1>
-        <div className="df-header-actions">
+        <div className="df-header-actions" data-signed-in={signedIn}>
           <StudioThemeToggle locale={locale} />
           <StudioButton variant="ghost" className="df-credit-balance" onClick={() => onBillingOpen("balance")}><span className="df-credit-dot" aria-hidden="true" /><span>{creditBalance === null ? "--" : creditBalance.toLocaleString()} {t("studio.common.credits")}</span></StudioButton>
           <StudioButton className="df-buy-credits" onClick={() => onBillingOpen("vip_badge")} aria-label={t("creditShop.buy")}><StudioIcon name="billing" className="h-4 w-4" /><span>{t("creditShop.buy")}</span></StudioButton>
           <label className="df-language-select"><StudioIcon name="globe" className="h-4 w-4" /><span className="sr-only">{t("studio.language")}</span><select value={locale} onChange={event => onLocaleChange(event.target.value as Locale)}>{locales.map(item => <option key={item} value={item}>{localeLabels[item]}</option>)}</select></label>
-          {signedIn ? <StudioActionLink variant="ghost" className="df-account" href="/studio?view=projects" aria-label={t("studio.nav.projects")}><StudioIcon name="user" className="h-[18px] w-[18px]" /></StudioActionLink> : <StudioActionLink className="df-sign-in" href={signInUrl}>{t("studio.auth.signIn")}</StudioActionLink>}
+          {signedIn ? <StudioActionLink variant="ghost" className="df-account" href="/studio?view=projects" aria-label={t("studio.nav.projects")}><StudioIcon name="user" className="h-[18px] w-[18px]" /></StudioActionLink> : <AuthLink className="df-button df-button--secondary df-sign-in" href={signInUrl}><span>{t("studio.auth.signIn")}</span></AuthLink>}
         </div>
       </header>
     );
@@ -135,7 +137,7 @@ export function StudioHeader({
         ) : mode === "audio" ? (
           <button type="button" onClick={() => onAudioWorkflowSelect(audioWorkflow)} className="rounded-full border border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] px-4 py-2 text-sm font-semibold text-[var(--studio-accent)] shadow-sm">{t(`studio.workflow.${audioWorkflow}`)}</button>
         ) : (
-          <Link href={signInUrl} className="hidden rounded-full bg-[var(--studio-primary)] px-3 py-2 text-xs font-semibold text-white shadow-none sm:inline-flex md:rounded-2xl md:px-4 md:text-sm">{t("studio.auth.signIn")}</Link>
+          <AuthLink href={signInUrl} className="hidden rounded-full bg-[var(--studio-primary)] px-3 py-2 text-xs font-semibold text-white shadow-none sm:inline-flex md:rounded-2xl md:px-4 md:text-sm">{t("studio.auth.signIn")}</AuthLink>
         )}
       </div>
     </div>

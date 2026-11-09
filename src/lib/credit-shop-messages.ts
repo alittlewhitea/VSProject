@@ -18,6 +18,9 @@ const paymentMessages = {
 // Keep purchase copy shared between the marketing page and studio locale system.
 export const creditShopMessages: Record<Locale, Record<string, string>> = {
   "en": {
+    "creditShop.walletPreparing": "Preparing…",
+    "creditShop.walletLoadFailed": "Could not load this payment method.",
+    "creditShop.walletLoadRetry": "Reload",
     ...paymentMessages,
     "creditShop.eyebrow": "PAY AS YOU GO",
     "creditShop.title": "Credits for your next idea",
@@ -42,6 +45,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Payment is not confirmed yet. Refresh later or contact support with your order reference."
   },
   "zh-CN": {
+    "creditShop.walletPreparing": "准备中…",
+    "creditShop.walletLoadFailed": "暂时无法加载此支付方式。",
+    "creditShop.walletLoadRetry": "重新加载",
     ...paymentMessages,
     "creditShop.paymentTitle": "确认购买",
     "creditShop.total": "合计",
@@ -78,6 +84,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "付款尚未确认，请稍后刷新，或提供订单编号联系客服。"
   },
   "zh-TW": {
+    "creditShop.walletPreparing": "準備中…",
+    "creditShop.walletLoadFailed": "暫時無法載入此付款方式。",
+    "creditShop.walletLoadRetry": "重新載入",
     ...paymentMessages,
     "creditShop.paymentTitle": "確認購買",
     "creditShop.total": "合計",
@@ -114,6 +123,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "付款尚未確認，請稍後重新整理，或提供訂單編號聯絡客服。"
   },
   "pt-BR": {
+    "creditShop.walletPreparing": "Preparando…",
+    "creditShop.walletLoadFailed": "Não foi possível carregar esta forma de pagamento.",
+    "creditShop.walletLoadRetry": "Recarregar",
     ...paymentMessages,
     "creditShop.eyebrow": "PAGUE CONFORME O USO",
     "creditShop.title": "Créditos para sua próxima ideia",
@@ -138,6 +150,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Pagamento ainda não confirmado. Atualize mais tarde ou contate o suporte com a referência do pedido."
   },
   "ru": {
+    "creditShop.walletPreparing": "Подготовка…",
+    "creditShop.walletLoadFailed": "Не удалось загрузить способ оплаты.",
+    "creditShop.walletLoadRetry": "Повторить",
     ...paymentMessages,
     "creditShop.eyebrow": "ОПЛАТА ПО МЕРЕ ИСПОЛЬЗОВАНИЯ",
     "creditShop.title": "Кредиты для вашей следующей идеи",
@@ -162,6 +177,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Платёж пока не подтверждён. Обновите страницу позже или сообщите номер заказа поддержке."
   },
   "vi": {
+    "creditShop.walletPreparing": "Đang chuẩn bị…",
+    "creditShop.walletLoadFailed": "Không tải được phương thức thanh toán này.",
+    "creditShop.walletLoadRetry": "Tải lại",
     ...paymentMessages,
     "creditShop.eyebrow": "TRẢ THEO NHU CẦU",
     "creditShop.title": "Credit cho ý tưởng tiếp theo",
@@ -186,6 +204,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Chưa xác nhận thanh toán. Hãy tải lại sau hoặc gửi mã đơn hàng cho hỗ trợ."
   },
   "de": {
+    "creditShop.walletPreparing": "Wird vorbereitet…",
+    "creditShop.walletLoadFailed": "Diese Zahlungsmethode konnte nicht geladen werden.",
+    "creditShop.walletLoadRetry": "Neu laden",
     ...paymentMessages,
     "creditShop.eyebrow": "NACH BEDARF BEZAHLEN",
     "creditShop.title": "Credits für deine nächste Idee",
@@ -210,6 +231,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Zahlung noch nicht bestätigt. Lade später neu oder kontaktiere den Support mit der Bestellreferenz."
   },
   "fr": {
+    "creditShop.walletPreparing": "Préparation…",
+    "creditShop.walletLoadFailed": "Impossible de charger ce mode de paiement.",
+    "creditShop.walletLoadRetry": "Recharger",
     ...paymentMessages,
     "creditShop.eyebrow": "PAYEZ À L’USAGE",
     "creditShop.title": "Des crédits pour votre prochaine idée",
@@ -234,6 +258,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Paiement non confirmé. Actualisez plus tard ou contactez le support avec la référence de commande."
   },
   "ja": {
+    "creditShop.walletPreparing": "準備中…",
+    "creditShop.walletLoadFailed": "このお支払い方法を読み込めませんでした。",
+    "creditShop.walletLoadRetry": "再読み込み",
     ...paymentMessages,
     "creditShop.eyebrow": "必要な分だけ購入",
     "creditShop.title": "次のアイデアにクレジットを",
@@ -258,6 +285,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "お支払いは未確認です。後で再読み込みするか、注文番号を添えてお問い合わせください。"
   },
   "th": {
+    "creditShop.walletPreparing": "กำลังเตรียม…",
+    "creditShop.walletLoadFailed": "โหลดวิธีชำระเงินนี้ไม่สำเร็จ",
+    "creditShop.walletLoadRetry": "โหลดใหม่",
     ...paymentMessages,
     "creditShop.eyebrow": "จ่ายตามการใช้งาน",
     "creditShop.title": "เครดิตสำหรับไอเดียถัดไป",
@@ -282,6 +312,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "ยังไม่ยืนยันการชำระเงิน โปรดรีเฟรชภายหลังหรือติดต่อฝ่ายสนับสนุนพร้อมหมายเลขคำสั่งซื้อ"
   },
   "nl": {
+    "creditShop.walletPreparing": "Voorbereiden…",
+    "creditShop.walletLoadFailed": "Deze betaalmethode kon niet worden geladen.",
+    "creditShop.walletLoadRetry": "Opnieuw laden",
     ...paymentMessages,
     "creditShop.eyebrow": "BETAAL NAAR GEBRUIK",
     "creditShop.title": "Credits voor je volgende idee",
@@ -306,6 +339,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Betaling nog niet bevestigd. Vernieuw later of geef je bestelreferentie door aan support."
   },
   "he": {
+    "creditShop.walletPreparing": "בהכנה…",
+    "creditShop.walletLoadFailed": "לא ניתן לטעון את אמצעי התשלום.",
+    "creditShop.walletLoadRetry": "טעינה מחדש",
     ...paymentMessages,
     "creditShop.eyebrow": "תשלום לפי שימוש",
     "creditShop.title": "קרדיטים לרעיון הבא שלך",
@@ -330,6 +366,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "התשלום טרם אושר. רעננו בהמשך או פנו לתמיכה עם מספר ההזמנה."
   },
   "ko": {
+    "creditShop.walletPreparing": "준비 중…",
+    "creditShop.walletLoadFailed": "이 결제 수단을 불러오지 못했습니다.",
+    "creditShop.walletLoadRetry": "다시 불러오기",
     ...paymentMessages,
     "creditShop.eyebrow": "필요한 만큼 구매",
     "creditShop.title": "다음 아이디어를 위한 크레딧",
@@ -354,6 +393,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "결제가 아직 확인되지 않았습니다. 나중에 새로고침하거나 주문 번호로 문의하세요."
   },
   "es": {
+    "creditShop.walletPreparing": "Preparando…",
+    "creditShop.walletLoadFailed": "No se pudo cargar este método de pago.",
+    "creditShop.walletLoadRetry": "Volver a cargar",
     ...paymentMessages,
     "creditShop.eyebrow": "PAGA POR USO",
     "creditShop.title": "Créditos para tu próxima idea",
@@ -378,6 +420,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Pago aún no confirmado. Actualiza más tarde o contacta con soporte con la referencia del pedido."
   },
   "it": {
+    "creditShop.walletPreparing": "Preparazione…",
+    "creditShop.walletLoadFailed": "Impossibile caricare questo metodo di pagamento.",
+    "creditShop.walletLoadRetry": "Ricarica",
     ...paymentMessages,
     "creditShop.eyebrow": "PAGA IN BASE ALL’USO",
     "creditShop.title": "Crediti per la tua prossima idea",
@@ -402,6 +447,9 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "Pagamento non ancora confermato. Riprova più tardi o contatta l’assistenza con il riferimento dell’ordine."
   },
   "ar": {
+    "creditShop.walletPreparing": "جارٍ التحضير…",
+    "creditShop.walletLoadFailed": "تعذر تحميل طريقة الدفع هذه.",
+    "creditShop.walletLoadRetry": "إعادة التحميل",
     ...paymentMessages,
     "creditShop.eyebrow": "ادفع حسب الاستخدام",
     "creditShop.title": "رصيد لفكرتك القادمة",

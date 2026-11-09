@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CREDIT_PACKS, formatUsd, type CreditPack, type CreditPaymentProvider } from "../lib/billing";
 import { trackEvent, trackPurchaseEvent } from "../lib/analytics";
-import { mountPayPalWallets, type WalletConfig, type WalletReceipt, type Wallet, type WalletCallbacks } from "../lib/paypal-wallets-client";
+import { getPayPalWalletConfig, mountPayPalWallets, type WalletController, type WalletStatus, type WalletReceipt, type Wallet, type WalletCallbacks } from "../lib/paypal-wallets-client";
 import { DODO_CHECKOUT_SUSPENDED } from "../lib/payment-release";
 type Translate=(key:string,values?:Record<string,string|number>)=>string;
 const PENDING_KEY="dreamface_wallet_pending_order";
@@ -13,7 +13,10 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
   onCheckout:(id:string,provider:CreditPaymentProvider)=>void|Promise<void>;onClose:()=>void;
 }) {
   const dialog=useRef<HTMLDivElement>(null),apple=useRef<HTMLDivElement>(null),google=useRef<HTMLDivElement>(null);
-  const [walletBusy,setWalletBusy]=useState(false),[walletLoading,setWalletLoading]=useState(true);
+  const [walletBusy,setWalletBusy]=useState(false);
+  const [walletStates,setWalletStates]=useState<Record<Wallet,WalletStatus>>({applepay:"loading",googlepay:"loading"});
+  const [walletAttempt,setWalletAttempt]=useState(0);
+  const walletController=useRef<WalletController|null>(null);
   const [card,setCard]=useState(false),[error,setError]=useState(false),[redirectAttempted,setRedirectAttempted]=useState(false);
   const [paid,setPaid]=useState<WalletReceipt|null>(null),[pending,setPending]=useState<Pending|null>(null);
   const operation=useRef(false),pendingRef=useRef<Pending|null>(null),alive=useRef(true);
@@ -86,25 +89,31 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
     return ()=>{alive.current=false;document.body.style.overflow=overflow;document.removeEventListener("keydown",keydown,true);if(previous?.isConnected)previous.focus();};
   },[]);
   useEffect(()=>{
-    let cancelled=false,controller:Awaited<ReturnType<typeof mountPayPalWallets>>|null=null;
+    let cancelled=false;
+    walletController.current=null;
+    setWalletStates({applepay:"loading",googlepay:"loading"});
     const sdkAbort=new AbortController();
     const signal=AbortSignal.timeout(15000);
     if(!DODO_CHECKOUT_SUSPENDED) void fetch("/api/billing/payment-methods",{signal}).then(response=>response.json()).then(data=>{if(!cancelled)setCard(Array.isArray(data.providers)&&data.providers.includes("dodo"));}).catch(()=>undefined);
     void (async()=>{
       try {
-        const response=await fetch("/api/billing/paypal/wallet-config",{signal,cache:"no-store"});
-        if(!response.ok)return;
-        const config=await response.json() as WalletConfig;
+        const config=await getPayPalWalletConfig(walletAttempt>0);
         if(cancelled||!apple.current||!google.current)return;
-        controller=await mountPayPalWallets(config,{amountCents:pack.amountCents,appleContainer:apple.current,googleContainer:google.current,signal:sdkAbort.signal,callbacks:{
+        const controller=await mountPayPalWallets(config,{amountCents:pack.amountCents,appleContainer:apple.current,googleContainer:google.current,signal:sdkAbort.signal,
+          onController:value=>{if(cancelled)value.destroy();else walletController.current=value;},
+          onStatus:(wallet,status)=>{if(!cancelled)setWalletStates(current=>({...current,[wallet]:status}));},callbacks:{
           canStart:()=>callbacks.current.canStart(),createOrder:wallet=>callbacks.current.createOrder(wallet),capture:id=>callbacks.current.capture(id),onBusy:value=>callbacks.current.onBusy(value),onAuthorized:id=>callbacks.current.onAuthorized(id),onSuccess:receipt=>callbacks.current.onSuccess(receipt),onError:()=>callbacks.current.onError()
         }});
         if(cancelled)controller.destroy();
-      }catch{/* Available redirect methods remain usable if wallet SDKs are unavailable. */}
-      finally{if(!cancelled)setWalletLoading(false);}
+      }catch{if(!cancelled)setWalletStates({applepay:"error",googlepay:"error"});}
     })();
-    return ()=>{cancelled=true;sdkAbort.abort();controller?.destroy();};
-  },[pack.id,accessToken]);
+    return ()=>{cancelled=true;sdkAbort.abort();walletController.current?.destroy();};
+  },[pack.id,accessToken,walletAttempt]);
+  function retryWallet(wallet:Wallet) {
+    if(operation.current||busy||pendingRef.current||paid)return;
+    if(walletController.current)void walletController.current.retry(wallet);
+    else setWalletAttempt(value=>value+1);
+  }
   async function retry() {
     if(operation.current||!pendingRef.current)return;
     operation.current=true;setWalletBusy(true);setError(false);
@@ -136,10 +145,18 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
         {paid ? <p role="status" className="rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{t("creditShop.paid")}</p> : <>
           <p className="mb-3 text-sm font-bold text-[#5e4a78]">{t("creditShop.chooseMethod")}</p>
           <div inert={disabled||undefined} className={disabled?"pointer-events-none opacity-50":""}>
-            <div ref={apple} data-wallet-container="applepay" className="mb-2 empty:mb-0" />
-            <div ref={google} data-wallet-container="googlepay" className="mb-2 min-w-0 empty:mb-0" />
+            {(["applepay","googlepay"] as const).map(wallet=><div key={wallet} data-wallet-slot={wallet} data-wallet-status={walletStates[wallet]} hidden={walletStates[wallet]==="unavailable"} className="mb-2 min-h-12 min-w-0">
+              <div ref={wallet==="applepay"?apple:google} data-wallet-container={wallet} hidden={walletStates[wallet]!=="ready"} />
+              {walletStates[wallet]==="loading"?<div role="status" className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-[#e8e0f7] bg-[#f7f5fa] px-4 py-3 text-sm" aria-label={`${wallet==="applepay"?"Apple Pay":"Google Pay"}: ${t("creditShop.walletLoading")}`}>
+                <span className="font-semibold text-[#5e4a78]">{wallet==="applepay"?"Apple Pay":"Google Pay"}</span>
+                <span className="flex items-center gap-2 text-xs text-[#82758f]"><span className="h-3.5 w-3.5 rounded-full border-2 border-[#d8ceeb] border-t-[#7554e8] motion-safe:animate-spin" aria-hidden="true"/>{t("creditShop.walletPreparing")}</span>
+              </div>:null}
+              {walletStates[wallet]==="error"?<div role="status" className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-[#e8e0f7] bg-[#faf7ff] px-4 py-2 text-sm">
+                <div><span className="font-semibold text-[#5e4a78]">{wallet==="applepay"?"Apple Pay":"Google Pay"}</span><p className="text-xs text-[#82758f]">{t("creditShop.walletLoadFailed")}</p></div>
+                <button type="button" data-wallet-load-retry={wallet} onClick={()=>retryWallet(wallet)} disabled={disabled} className="min-h-11 shrink-0 px-2 text-xs font-semibold text-[#7554e8] disabled:opacity-40">{t("creditShop.walletLoadRetry")}</button>
+              </div>:null}
+            </div>)}
           </div>
-          {walletLoading?<p role="status" className="mb-3 text-xs text-[#82758f]">{t("creditShop.walletLoading")}</p>:null}
           <div className="grid gap-2">
             <button type="button" data-payment-provider="paypal" disabled={disabled} onClick={()=>void redirect("paypal")} className="min-h-12 rounded-xl bg-[#ffc439] px-4 text-sm font-black text-[#003087] disabled:opacity-40">PayPal</button>
             {card&&!DODO_CHECKOUT_SUSPENDED?<button type="button" data-payment-provider="dodo" disabled={disabled} onClick={()=>void redirect("dodo")} className="min-h-12 rounded-xl bg-[#7554e8] px-4 text-sm font-black text-white disabled:opacity-40">Credit Card</button>:null}

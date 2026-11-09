@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import { heygenAvatarTiming } from "../../lib/heygen-avatar";
 
 import Link from "../../features/studio/studio-link";
+import { AuthLink } from "../../components/auth-link";
+import { AUTH_REDIRECT_EVENT, requestSignIn } from "../../lib/auth-navigation";
 import { navigateStudio } from "../../lib/studio-navigation";
 import { parseStudioReferenceImages, referenceTextWithoutExamples, shouldApplyUrlInput, type AppliedUrlInput } from "../../lib/studio-workspace-inputs";
 import { useVideoPromptEnhancement } from "../../features/studio/use-video-prompt-enhancement";
@@ -104,7 +106,7 @@ type StudioWorkflow = ImageWorkflow | VideoWorkflow | AudioWorkflow;
 const SESSION_CREDIT_BALANCE_KEY = "nova_session_credit_balance";
 const LAST_MODEL_STORAGE_PREFIX = "dreamface_studio_last_model_v1";
 const TEXT_IMAGE_PAGE_INNER_CLASS = "mx-auto w-full max-w-[1220px]";
-const STUDIO_SIGN_IN_URL = "/en/auth?next=%2Fstudio%3Fview%3Dhome";
+const STUDIO_SIGN_IN_URL = "/auth";
 
 const VideoTemplateGallery = dynamic(() => import("../../features/studio/studio-video-template-gallery"), { ssr: false });
 const ImageTemplateGallery = dynamic(() => import("../../features/studio/studio-image-template-gallery"), { ssr: false });
@@ -747,6 +749,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
       : ""
   );
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
+  const referenceUploadScopeRef = useRef(0);
   const [referenceVideoUrl, setReferenceVideoUrl] = useState(sp.get("referenceVideo") || "");
   const lastAppliedVideoUrlRef = useRef<AppliedUrlInput | null>(null);
   const previousReferenceWorkflow = useRef(initialWorkflow === "reference-to-video");
@@ -899,7 +902,6 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
   const trackedStudioViewRef = useRef("");
-  const trackedLoginSuccessRef = useRef<string | null>(null);
   const lastLocalizedMusicPromptRef = useRef(st("studio.music.defaultPrompt"));
 
   useEffect(() => {
@@ -960,10 +962,6 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
         safeRemoveLocalStorage("nova_access_token");
       }
       if (!token) setCreditNote(st("studio.status.signInCredit"));
-      if (token && nextUserId && trackedLoginSuccessRef.current !== nextUserId) {
-        trackedLoginSuccessRef.current = nextUserId;
-        trackEvent("login_success", { surface: "studio", mode, provider }, token);
-      }
       setAuthReady(true);
     });
     const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -977,10 +975,6 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
       }
       if (typeof window !== "undefined") {
         safeRemoveLocalStorage("nova_access_token");
-      }
-      if (token && nextUserId && trackedLoginSuccessRef.current !== nextUserId) {
-        trackedLoginSuccessRef.current = nextUserId;
-        trackEvent("login_success", { surface: "studio", mode, provider }, token);
       }
       setAuthReady(true);
     });
@@ -1000,8 +994,16 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
   useEffect(() => {
     const workflowParam = workflowForMode(mode, sp.get("workflow"));
     const providerParam = sp.get("provider");
-    const modeChanged = lastStudioModeRef.current !== mode;
+    const previousMode = lastStudioModeRef.current;
+    const modeChanged = previousMode !== mode;
     lastStudioModeRef.current = mode;
+    if (modeChanged) referenceUploadScopeRef.current += 1;
+    // Avatar portraits belong to that workspace, independently of its script.
+    // The URL-input effect below still applies explicitly supplied references.
+    if (modeChanged && (previousMode === "avatar" || mode === "avatar")) {
+      setReferenceImagesText("");
+      setReferenceImageFiles([]);
+    }
     setImageWorkflow(
       mode === "image" && (workflowParam === "image-to-image" || workflowParam === "enhance-cleanup" || workflowParam === "background-remove")
         ? workflowParam
@@ -1672,7 +1674,11 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
       setImageQuality(current=>isGptImageProvider(nextProvider)?isGptImageProvider(provider)?gptImageQuality(current):"low":"high");
     } else if (nextMode === "video" || nextMode === "avatar") {
       setVideoWorkflow(nextWorkflow as VideoWorkflow);
-      if (nextWorkflow === "text-to-video") {
+      if (nextMode !== mode && (mode === "avatar" || nextMode === "avatar")) {
+        setReferenceImagesText("");
+        setReferenceImageFiles([]);
+        setAvatarAudioUrl("");
+      } else if (nextWorkflow === "text-to-video") {
         setReferenceImagesText("");
         setReferenceImageFiles([]);
         setAvatarAudioUrl("");
@@ -1723,6 +1729,11 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     trackEvent("studio_workflow_selected", { mode: nextMode, workflow: nextWorkflow, provider: nextProvider }, accessToken);
     const params = new URLSearchParams(sp.toString());
     params.set("mode", nextMode);
+    if (nextMode !== mode && (mode === "avatar" || nextMode === "avatar")) {
+      params.delete("reference");
+      params.delete("templateId");
+      params.delete("audioUrl");
+    }
     if (nextWorkflow !== "reference-to-video") params.delete("referenceVideo");
     if (nextWorkflow === "reference-to-video" || activeWorkflow === "reference-to-video") { params.delete("reference"); params.delete("templateId"); }
     params.set("workflow", nextWorkflow);
@@ -1852,6 +1863,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
 
   async function handleReferenceFiles(files: FileList | null, frameIndex?: number) {
     if (!files?.length) return;
+    const uploadScope = referenceUploadScopeRef.current;
     if (mode === "video" && videoWorkflow === "reference-to-video") {
       const selected = Array.from(files);
       if (selected.length + referenceImageUrls.length > HEYGEN_REFERENCE_IMAGE_LIMIT || selected.some(file => !["image/jpeg","image/png","image/webp"].includes(file.type) || file.size > 30*1024*1024)) {
@@ -1860,6 +1872,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
       const uploaded = await Promise.all(selected.map(file => new Promise<string>((resolve,reject) => {
         const reader = new FileReader(); reader.onload=()=>resolve(String(reader.result)); reader.onerror=()=>reject(new Error("Image file could not be read.")); reader.readAsDataURL(file);
       })));
+      if (uploadScope !== referenceUploadScopeRef.current) return;
       setReferenceImageFiles(current => [...current,...uploaded].slice(0,HEYGEN_REFERENCE_IMAGE_LIMIT));
       return;
     }
@@ -1878,6 +1891,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
         reader.onerror = () => reject(new Error("Image file could not be read."));
         reader.readAsDataURL(file);
       })));
+      if (uploadScope !== referenceUploadScopeRef.current) return;
       const next = frameIndex === undefined ? uploaded : referenceImageUrls.slice(0, limit);
       if (frameIndex !== undefined) next[frameIndex] = uploaded[0];
       setReferenceImagesText("");
@@ -1900,6 +1914,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
             })
         )
     );
+    if (uploadScope !== referenceUploadScopeRef.current) return;
     if (mode === "video" || mode === "avatar") {
       setReferenceImagesText("");
     } else if (mode === "image" && nextFiles.length) {
@@ -2063,6 +2078,14 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     });
   }
 
+  const saveLoginDraftRef = useRef(saveLoginDraft);
+  saveLoginDraftRef.current = saveLoginDraft;
+  useEffect(() => {
+    const save = (event: Event) => { if (!saveLoginDraftRef.current(false)) event.preventDefault(); };
+    window.addEventListener(AUTH_REDIRECT_EVENT, save);
+    return () => window.removeEventListener(AUTH_REDIRECT_EVENT, save);
+  }, []);
+
   useEffect(() => {
     if (!authReady || !accessToken || restoredLoginDraftRef.current) return;
     const draft = readStudioLoginDraft<ImageWorkflow, VideoWorkflow, AudioWorkflow>();
@@ -2183,15 +2206,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
           { mode, provider, workflow: activeWorkflow },
           accessToken
         );
-        const next = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?mode=image&workflow=text-to-image";
-        const saved = saveLoginDraft(true);
-        setStatusTone(saved ? "idle" : "error");
-        setStatusText(
-          saved
-            ? st("studio.status.savedLoginDraft")
-            : st("studio.status.draftSaveFailed")
-        );
-        router.push(`/auth?next=${encodeURIComponent(next)}`);
+        openGenerationSignIn();
         return;
       }
 
@@ -2538,14 +2553,20 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     }
   }
 
+  function openGenerationSignIn() {
+    requestSignIn({
+      onBeforeRedirect: () => saveLoginDraft(true),
+      onSuccess: () => {
+        autoSubmitLoginDraftRef.current = true;
+        setLoginDraftNonce(value => value + 1);
+      }
+    });
+  }
+
   function handleGenerateClick() {
     if (!accessToken) {
       trackEvent("generate_login_required", { mode, provider, workflow: activeWorkflow }, accessToken);
-      if (typeof window !== "undefined") {
-        if (!saveLoginDraft(true)) { setStatusTone("error"); setStatusText(st("studio.status.draftSaveFailed")); return; }
-        const next = `${window.location.pathname}${window.location.search}`;
-        window.location.href = `/${studioI18n.locale}/auth?next=${encodeURIComponent(next)}`;
-      }
+      openGenerationSignIn();
       return;
     }
     handleGenerate();
@@ -2553,8 +2574,8 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
 
   useEffect(() => {
     if (!authReady || !accessToken || !autoSubmitLoginDraftRef.current || isSubmitting || !isPromptValid || h3FreeLoading) return;
-    autoSubmitLoginDraftRef.current = false;
     const timer = window.setTimeout(() => {
+      autoSubmitLoginDraftRef.current = false;
       handleGenerate();
     }, 150);
     return () => window.clearTimeout(timer);
@@ -2619,12 +2640,12 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     trackEvent("studio_prompt_improved", { mode, provider, workflow: activeWorkflow }, accessToken);
   }
 
-  async function startStudioCreditCheckout(packId: string, paymentProvider: "paypal" | "dodo") {
+  async function startStudioCreditCheckout(packId: string, paymentProvider: "paypal" | "dodo", loginToken?: string) {
+    const checkoutToken = loginToken || accessToken;
     const checkoutSurface = billingGenerationContext ? "generation_insufficient_modal" : "studio_modal";
-    if (!accessToken) {
+    if (!checkoutToken) {
       trackEvent("checkout_login_required", { pack_id: packId, surface: checkoutSurface });
-      const nextPath = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/studio?view=home";
-      router.push(`/auth?next=${encodeURIComponent(nextPath)}`);
+      requestSignIn({ onBeforeRedirect: () => saveLoginDraft(false), onSuccess: session => { void startStudioCreditCheckout(packId, paymentProvider, session.access_token); } });
       return;
     }
 
@@ -2642,7 +2663,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`
+          Authorization: `Bearer ${checkoutToken}`
         },
         body: JSON.stringify({ type: "credits", packId, provider: paymentProvider })
       });
@@ -2889,9 +2910,9 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
                 <p className="mt-3 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-3 text-xs font-semibold text-[var(--studio-muted)] shadow-sm">
                   {!accessToken && creditNote === st("studio.status.signInCredit") ? (
                     <>
-                      <Link href={STUDIO_SIGN_IN_URL} className="font-semibold text-[var(--studio-accent)] underline-offset-4 hover:underline">
+                      <AuthLink href={STUDIO_SIGN_IN_URL} authOptions={{ onBeforeRedirect: () => saveLoginDraft(false) }} className="font-semibold text-[var(--studio-accent)] underline-offset-4 hover:underline">
                         {st("studio.auth.signIn")}
-                      </Link>
+                      </AuthLink>
                       {creditNote.replace(st("studio.auth.signIn"), "")}
                     </>
                   ) : (
@@ -4215,7 +4236,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
                   />
                 ) : null}
                 {showImageToImageRedesign ? <ImageTemplateGallery translate={st} locale={studioI18n.locale} /> : null}
-                {mode === "avatar" ? <AvatarLibrary prompt={prompt} locale={studioI18n.locale} userId={userId} accessToken={accessToken} onLogin={() => { saveLoginDraft(false); window.location.href = STUDIO_SIGN_IN_URL; }} onCreate={imageUrl => { setReferenceImagesText(imageUrl); setReferenceImageFiles([]); requestAnimationFrame(() => requestAnimationFrame(() => { const composer=document.querySelector<HTMLElement>('[data-creation-workspace="avatar"]'); composer?.scrollIntoView({block:"start",behavior:"smooth"}); composer?.querySelector<HTMLTextAreaElement>("textarea[dir=auto]")?.focus({preventScroll:true}); })); }} /> : null}
+                {mode === "avatar" ? <AvatarLibrary prompt={prompt} locale={studioI18n.locale} userId={userId} accessToken={accessToken} onLogin={onSuccess => requestSignIn({ onSuccess, onBeforeRedirect: () => saveLoginDraft(false) })} onCreate={imageUrl => { setReferenceImagesText(imageUrl); setReferenceImageFiles([]); requestAnimationFrame(() => requestAnimationFrame(() => { const composer=document.querySelector<HTMLElement>('[data-creation-workspace="avatar"]'); composer?.scrollIntoView({block:"start",behavior:"smooth"}); composer?.querySelector<HTMLTextAreaElement>("textarea[dir=auto]")?.focus({preventScroll:true}); })); }} /> : null}
               </div>
             </div>
           </div>

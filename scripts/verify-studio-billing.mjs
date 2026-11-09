@@ -20,17 +20,21 @@ const tree=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,ts.Script
 let checkout;
 function visit(node){if(ts.isFunctionDeclaration(node)&&node.name?.text==='startCheckout')checkout=node.getText(tree);ts.forEachChild(node,visit);}
 visit(tree);assert.ok(checkout);
-const pushes=[],requests=[],messages=[];
+const pushes=[],requests=[],messages=[],logins=[];
 globalThis.window={location:{pathname:'/studio',search:'?mode=image&workflow=text-to-image&view=billing',href:''}};
-const dependencies=['accessToken','embedded','router','setLoadingPack','setMessage','trackEvent','CREDIT_PACKS','fetch','billingNavigationUrl','t'];
+const dependencies=['accessToken','embedded','router','setLoadingPack','setMessage','trackEvent','CREDIT_PACKS','fetch','billingNavigationUrl','t','requestSignIn'];
 const createCheckout = (...args) => new Function(...dependencies,compile(checkout)+';return startCheckout;')(...args);
-const common=[true,{push:url=>pushes.push(url)},()=>{},message=>messages.push(message),()=>{},[{id:'starter',credits:800,amountCents:499}],async(url,options)=>{requests.push({url,...options});return {ok:false,json:async()=>({error:'Local rejected checkout'})};},billingNavigationUrl,key=>key];
+const common=[true,{push:url=>pushes.push(url)},()=>{},message=>messages.push(message),()=>{},[{id:'starter',credits:800,amountCents:499}],async(url,options)=>{requests.push({url,...options});return {ok:false,json:async()=>({error:'Local rejected checkout'})};},billingNavigationUrl,key=>key,options=>logins.push(options)];
 await createCheckout(null,...common)('starter','paypal');
 assert.equal(requests.length,0,'Unauthenticated checkout must not make a payment request');
-const login=new URL(pushes[0],'https://dreamface.test');
-const returnTo=new URL(login.searchParams.get('next'),'https://dreamface.test');
+assert.equal(pushes.length,0,'Login opens in place');
+const returnTo=new URL(logins[0].next,'https://dreamface.test');
 assert.equal(returnTo.searchParams.get('view'),'billing');
 assert.equal(returnTo.searchParams.get('mode'),'image');
+logins[0].onSuccess({access_token:'resumed-session'});
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(requests[0].headers.Authorization,'Bearer resumed-session');
+requests.length=0;
 await createCheckout('fixture-session',...common)('starter','paypal');
 assert.equal(requests[0].url,'/api/billing/checkout');
 assert.equal(requests[0].headers.Authorization,'Bearer fixture-session');

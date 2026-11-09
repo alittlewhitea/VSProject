@@ -1,16 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { requestSignIn } from "../lib/auth-navigation";
+import { preloadPayPalWallets } from "../lib/paypal-wallets-client";
 import { CREDIT_PACKS, CREDIT_USAGE_REFERENCE, creditUsageCapacity, formatUsd, type CreditPaymentProvider } from "../lib/billing";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
-const PaymentDialog = dynamic(() => import("./credit-payment-dialog"), { ssr: false });
+const loadPaymentDialog = () => import("./credit-payment-dialog");
+const PaymentDialog = dynamic(loadPaymentDialog, { ssr: false });
+function preparePayment() {
+  void loadPaymentDialog().catch(() => undefined);
+  void preloadPayPalWallets().catch(() => undefined);
+}
 export function CreditPackGrid({ t, loadingPack, onCheckout, shortfall = 0, accessToken, message, appearance = "default" }: {
   t: Translate; loadingPack: string | null; onCheckout: (id: string, provider: CreditPaymentProvider) => void | Promise<void>; shortfall?: number;
   appearance?: "default" | "studio"; accessToken?: string | null; message?: string;
 }) {
   const [selectedPack, setSelectedPack] = useState<string | null>(null);
+  useEffect(() => { if (accessToken) preparePayment(); }, [accessToken]);
   const recommended = shortfall > 0 ? CREDIT_PACKS.find(pack => pack.credits >= shortfall)?.id : "creator";
   const starter = CREDIT_PACKS.find(pack => pack.id === "starter")!;
   return (
@@ -35,7 +43,7 @@ export function CreditPackGrid({ t, loadingPack, onCheckout, shortfall = 0, acce
               <p>{t("creditShop.shared")}</p>
               <p className="mt-2 text-xs">{t("creditShop.example", { images: capacity.images.toLocaleString(), videos: capacity.videos.toLocaleString(), videoSpec: `${CREDIT_USAGE_REFERENCE.video.model} · ${CREDIT_USAGE_REFERENCE.video.seconds}s · ${CREDIT_USAGE_REFERENCE.video.resolution}` })}</p>
             </div>
-            <button type="button" data-credit-pack-select={pack.id} aria-label={`${t("creditShop.buy")} — ${pack.name}`} disabled={Boolean(loadingPack)} onClick={() => accessToken ? setSelectedPack(pack.id) : onCheckout(pack.id,"paypal")}
+            <button type="button" data-credit-pack-select={pack.id} aria-label={`${t("creditShop.buy")} — ${pack.name}`} disabled={Boolean(loadingPack)} onClick={() => accessToken ? setSelectedPack(pack.id) : requestSignIn({ onSuccess: () => setSelectedPack(pack.id) })}
               className="mt-auto min-h-12 rounded-xl bg-[#7554e8] px-4 py-3 text-sm font-black text-white transition hover:bg-[#6544d8] disabled:opacity-50">{t("creditShop.buy")}</button>
           </article>
         );

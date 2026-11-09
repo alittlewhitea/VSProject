@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { newAuthToken } from "../../../../../lib/server-auth";
 import { safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
 import { captureReferralAuth } from "../../../../../lib/referrals";
+import { authCompletionPath } from "../../../../../lib/auth-navigation";
 
 const STATE_COOKIE = "dreamface_google_state";
 
@@ -14,14 +15,14 @@ function callbackUrl(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
-  if (!clientId) return NextResponse.redirect(new URL("/auth?error=google_not_configured", request.url));
-
   const next = request.nextUrl.searchParams.get("next") || "/studio";
   const safeNext = safeInternalPath(next);
+  const popup = request.nextUrl.searchParams.get("popup") === "1";
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  if (!clientId) return NextResponse.redirect(new URL(popup ? authCompletionPath(safeNext, "google_not_configured") : "/auth?error=google_not_configured", request.url));
   const csrf = newAuthToken();
   await captureReferralAuth(csrf,request.headers);
-  const state = Buffer.from(JSON.stringify({ csrf, next: safeNext })).toString("base64url");
+  const state = Buffer.from(JSON.stringify({ csrf, next: safeNext, popup })).toString("base64url");
   (await cookies()).set(STATE_COOKIE, csrf, {
     httpOnly: true,
     sameSite: "lax",

@@ -1,5 +1,7 @@
 "use client";
 
+import type { LoginSuccessEvent } from "./login-success-receipt";
+
 type AnalyticsProperties = Record<string, string | number | boolean | null | undefined>;
 
 type PurchaseItem = {
@@ -27,6 +29,9 @@ const ANON_ID_KEY = "dreamface_analytics_anonymous_id";
 const SESSION_ID_KEY = "dreamface_analytics_session_id";
 const PURCHASE_KEY_PREFIX = "dreamface_analytics_purchase:";
 const reportedPurchases = new Set<string>();
+const LOGIN_KEY_PREFIX = "dreamface_analytics_login:";
+const reportedLogins = new Set<string>();
+const loginReports = new Map<string, Promise<void>>();
 
 function claimPurchase(transactionId: string) {
   if (reportedPurchases.has(transactionId)) return false;
@@ -119,11 +124,7 @@ function mirrorEvent(eventName: string, payload: ReturnType<typeof analyticsPayl
   }).catch(() => null);
 }
 
-export function trackEvent(eventName: string, properties: AnalyticsProperties = {}, accessToken?: string | null) {
-  if (typeof window === "undefined" || !eventName) return;
-
-  const payload = analyticsPayload(eventName, properties);
-
+function pushEvent(eventName: string, payload: ReturnType<typeof analyticsPayload>) {
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({
     event: eventName,
@@ -138,9 +139,44 @@ export function trackEvent(eventName: string, properties: AnalyticsProperties = 
     page_path: payload.pagePath,
     ...payload.eventProperties
   });
+}
 
+export function trackEvent(eventName: string, properties: AnalyticsProperties = {}, accessToken?: string | null) {
+  if (typeof window === "undefined" || !eventName || eventName === "login_success") return;
+  const payload = analyticsPayload(eventName, properties);
+  pushEvent(eventName, payload);
   mirrorEvent(eventName, payload, accessToken);
 }
+
+/** A confirmed authentication receipt is the only source of login_success. */
+export function trackLoginSuccess(receipt: LoginSuccessEvent): Promise<void> {
+  if (typeof window === "undefined" || !receipt?.id || !["google", "email"].includes(receipt.method)) return Promise.resolve();
+  if (reportedLogins.has(receipt.id)) return Promise.resolve();
+  try {
+    if (window.localStorage.getItem(`${LOGIN_KEY_PREFIX}${receipt.id}`) === "1") { reportedLogins.add(receipt.id); return Promise.resolve(); }
+  } catch { /* The server's unique event ID also covers restricted browser storage. */ }
+  const existing = loginReports.get(receipt.id);
+  if (existing) return existing;
+  const report = (async () => {
+    const payload = analyticsPayload("login_success", { method: receipt.method, login_event_id: receipt.id });
+    const response = await fetch("/api/analytics/login-success", {
+      method: "POST", credentials: "include", keepalive: true, signal: AbortSignal.timeout(5000),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ loginEventId: receipt.id, anonymousId: payload.anonymousId, sessionId: payload.sessionId, pagePath: payload.pagePath, referrer: payload.referrer })
+    });
+    if (!response.ok) return;
+    const result = await response.json() as { claimed: boolean; event: (LoginSuccessEvent & { surface: string }) | null };
+    if (!result.event || result.event.id !== receipt.id || result.event.method !== receipt.method) return;
+    reportedLogins.add(receipt.id);
+    try { window.localStorage.setItem(`${LOGIN_KEY_PREFIX}${receipt.id}`, "1"); } catch { /* Optional cache. */ }
+    // The claiming endpoint already wrote the internal event atomically.
+    if (result.claimed) pushEvent("login_success", { ...payload, eventProperties: { ...payload.eventProperties, surface: result.event.surface } });
+  })().catch(() => undefined).finally(() => { loginReports.delete(receipt.id); });
+  loginReports.set(receipt.id, report);
+  return report;
+}
+
+export async function flushLoginSuccessTracking() { await Promise.all([...loginReports.values()]); }
 
 export function trackPurchaseEvent(
   properties: PurchaseProperties,

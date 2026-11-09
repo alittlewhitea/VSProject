@@ -15,6 +15,7 @@ export function useStudioDialog(open: boolean, dialogRef: RefObject<HTMLElement 
     if (lockScroll) document.body.style.overflow = "hidden";
     dialogRef.current?.focus();
     const keydown = (event: KeyboardEvent) => {
+      if (document.querySelector("[data-auth-dialog]") && !dialogRef.current?.hasAttribute("data-auth-dialog")) return;
       if (latest.current.suspended()) return;
       const dialog = dialogRef.current;
       if (!dialog) return;

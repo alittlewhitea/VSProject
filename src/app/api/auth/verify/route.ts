@@ -7,6 +7,8 @@ import { ensureSignupCreditAccount, getRequestCountryCode } from "../../../../li
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { safeInternalPath, trustedPublicOrigin } from "../../../../lib/request-security";
 import { completeReferralAuth } from "../../../../lib/referrals";
+import { authFailurePath } from "../../../../lib/auth-navigation";
+import { setLoginSuccessReceipt } from "../../../../lib/login-success-receipt";
 
 function publicBaseUrl(request: NextRequest) {
   return trustedPublicOrigin(request.url);
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
   const next = request.nextUrl.searchParams.get("next") || "/studio";
   const redirectTo = safeInternalPath(next);
 
-  if (!token) return NextResponse.redirect(redirectUrl(request, "/auth?error=invalid_link"));
+  if (!token) return NextResponse.redirect(redirectUrl(request, authFailurePath(redirectTo, "invalid_link")));
 
   const hash = hashAuthToken(token);
   const [rows] = await getMysqlPool().execute<RowDataPacket[]>(
@@ -37,7 +39,7 @@ export async function GET(request: NextRequest) {
   );
   const row = rows[0];
   if (!row?.email || row.consumed_at || mysqlDateToUtcTime(row.expires_at) <= Date.now()) {
-    return NextResponse.redirect(redirectUrl(request, "/auth?error=expired_link"));
+    return NextResponse.redirect(redirectUrl(request, authFailurePath(redirectTo, "expired_link")));
   }
 
   const [consumeResult] = await getMysqlPool().execute<ResultSetHeader>(
@@ -45,7 +47,7 @@ export async function GET(request: NextRequest) {
     [toMysqlDate(new Date()), row.id]
   );
   if (consumeResult.affectedRows !== 1) {
-    return NextResponse.redirect(redirectUrl(request, "/auth?error=expired_link"));
+    return NextResponse.redirect(redirectUrl(request, authFailurePath(redirectTo, "expired_link")));
   }
   const user = await upsertEmailUser(String(row.email), { countryCode: getRequestCountryCode(request.headers) });
   const admin = createSupabaseAdminClient();
@@ -54,13 +56,15 @@ export async function GET(request: NextRequest) {
   }
   const session = await createSession(user);
   await completeReferralAuth(user,user.isNew,true,hash,request.headers);
-  (await cookies()).set(SESSION_COOKIE_NAME, session.access_token, {
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE_NAME, session.access_token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     expires: new Date(session.expires_at)
   });
+  setLoginSuccessReceipt(cookieStore, session, "email");
 
   return NextResponse.redirect(redirectUrl(request, redirectTo));
 }

@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { loadMessages } from "../i18n/messages";
 import { defaultLocale, isLocale, isRtlLocale } from "../i18n/routing";
+import { AuthDialogHost } from "../components/auth-dialog-host";
 
 export const metadata: Metadata = {
   title: {
@@ -71,6 +72,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </noscript>
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
+          <AuthDialogHost />
         </NextIntlClientProvider>
       </body>
     </html>

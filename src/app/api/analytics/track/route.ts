@@ -87,6 +87,8 @@ export async function POST(request: Request) {
   if (!eventName || !ALLOWED_EVENTS.has(eventName)) {
     return NextResponse.json({ ok: false, error: "Unsupported analytics event." }, { status: 400 });
   }
+  // Old page bundles cannot add duplicate login records via the generic mirror.
+  if (eventName === "login_success") return NextResponse.json({ ok: true, ignored: true });
 
   const admin = createSupabaseAdminClient();
   if (!admin) {

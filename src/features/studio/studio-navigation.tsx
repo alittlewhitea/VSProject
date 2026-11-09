@@ -1,5 +1,7 @@
 "use client";
 
+import { AuthLink } from "../../components/auth-link";
+
 import Link from "./studio-link";
 import { useEffect, useId, useRef } from "react";
 import { useStudioDialog } from "./use-studio-dialog";
@@ -282,7 +284,7 @@ export function StudioMobileMenu({ t, open, signedIn, signInUrl, locale, locales
               </Link>
             ))}
             <div className="df-mobile-menu-appearance"><StudioThemeToggle locale={locale} showLabel /></div>
-            {!signedIn ? <Link href={signInUrl} onClick={close} className="mt-1 flex items-center justify-center rounded-[1rem] bg-[var(--studio-primary)] px-3 py-3 text-sm font-semibold text-white shadow-sm">{t("studio.auth.signIn")}</Link> : null}
+            {!signedIn ? <AuthLink href={signInUrl} onClick={close} className="mt-1 flex items-center justify-center rounded-[1rem] bg-[var(--studio-primary)] px-3 py-3 text-sm font-semibold text-white shadow-sm">{t("studio.auth.signIn")}</AuthLink> : null}
             <div className="mt-1 border-t border-[var(--studio-border)] px-2 pb-1 pt-3">
               <div className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold text-[var(--studio-muted)]"><StudioIcon name="globe" className="h-4 w-4" /><span>{t("studio.language")}</span></div>
               <div className="grid grid-cols-2 gap-1">

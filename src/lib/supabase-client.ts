@@ -1,6 +1,9 @@
 "use client";
 
-type AuthSession = {
+import { trackLoginSuccess } from "./analytics";
+import type { LoginSuccessEvent } from "./login-success-receipt";
+
+export type AuthSession = {
   access_token: string;
   expires_at: string;
   user: { id: string; email: string | null };
@@ -9,21 +12,32 @@ type AuthSession = {
 type AuthCallback = (event: string, session: AuthSession | null) => void;
 
 const AUTH_EVENT = "dreamface-auth-change";
+const AUTH_STORAGE_KEY = "dreamface-auth-updated";
 let browserClient: ReturnType<typeof makeClient> | null = null;
+let sessionRead: Promise<AuthSession | null> | null = null;
 
 function authUrl(path: string) {
   return path;
 }
 
-async function readSession() {
-  const res = await fetch(authUrl("/api/auth/session"), { cache: "no-store", credentials: "include" });
-  if (!res.ok) return null;
-  const payload = (await res.json().catch(() => null)) as { session?: AuthSession | null } | null;
-  return payload?.session || null;
+function readSession(): Promise<AuthSession | null> {
+  if (!sessionRead) sessionRead = (async () => {
+    const res = await fetch(authUrl("/api/auth/session"), { cache: "no-store", credentials: "include" });
+    if (!res.ok) throw new Error("Unable to read session.");
+    const payload = (await res.json()) as { session?: AuthSession | null; loginEvent?: LoginSuccessEvent };
+    // A Google popup leaves reporting to its live parent, which stays open after
+    // auth completes. All other pages can claim; the server arbitrates tabs.
+    const googlePopup = window.name === "dreamface-google-login" && window.opener && !window.opener.closed;
+    if (payload.session && payload.loginEvent && !googlePopup) void trackLoginSuccess(payload.loginEvent);
+    return payload?.session || null;
+  })().finally(() => { sessionRead = null; });
+  return sessionRead;
 }
 
-function emitAuthChange() {
+export function notifyAuthChange() {
   window.dispatchEvent(new Event(AUTH_EVENT));
+  // A notification only: every tab confirms the actual session with the server.
+  try { window.localStorage.setItem(AUTH_STORAGE_KEY, `${Date.now()}:${Math.random()}`); } catch { /* Focus refresh remains available. */ }
 }
 
 function pathFromRedirect(value: string | undefined, fallback = "/studio") {
@@ -51,10 +65,17 @@ function makeClient() {
       onAuthStateChange(callback: AuthCallback) {
         let active = true;
         const listener = async () => {
-          const session = await readSession();
-          if (active) callback(session ? "SIGNED_IN" : "SIGNED_OUT", session);
+          try {
+            const session = await readSession();
+            if (active) callback(session ? "SIGNED_IN" : "SIGNED_OUT", session);
+          } catch { /* A network failure does not sign the user out. */ }
         };
+        const storage = (event: StorageEvent) => { if (event.key === AUTH_STORAGE_KEY) void listener(); };
+        const visible = () => { if (document.visibilityState === "visible") void listener(); };
         window.addEventListener(AUTH_EVENT, listener);
+        window.addEventListener("storage", storage);
+        window.addEventListener("focus", listener);
+        document.addEventListener("visibilitychange", visible);
         listener();
         return {
           data: {
@@ -62,6 +83,9 @@ function makeClient() {
               unsubscribe() {
                 active = false;
                 window.removeEventListener(AUTH_EVENT, listener);
+                window.removeEventListener("storage", storage);
+                window.removeEventListener("focus", listener);
+                document.removeEventListener("visibilitychange", visible);
               }
             }
           }
@@ -69,7 +93,7 @@ function makeClient() {
       },
       async signOut() {
         await fetch(authUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
-        emitAuthChange();
+        notifyAuthChange();
         return { error: null };
       },
       async signInWithOtp(input: { email: string; options?: { emailRedirectTo?: string } }) {

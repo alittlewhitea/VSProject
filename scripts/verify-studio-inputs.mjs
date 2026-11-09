@@ -26,8 +26,10 @@ const source=readFileSync('src/app/studio/studio-client.tsx','utf8');
 const ast=ts.createSourceFile('studio-client.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
 function findNode(predicate){let found;function visit(node){if(!found&&predicate(node))found=node;if(!found)ts.forEachChild(node,visit);}visit(ast);assert.ok(found,'Source node not found');return found;}
 function executeFunction(name,context){const node=findNode(node=>ts.isFunctionDeclaration(node)&&node.name?.text===name);const compiled=ts.transpileModule(node.getText(ast),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;return new Function('context',`with(context){${compiled};return ${name};}`)(context);}
+const workflowMeta=findNode(node=>ts.isVariableDeclaration(node)&&node.name.getText(ast)==='WORKFLOW_META');
+const WORKFLOW_META=new Function('VIDEO_PROVIDERS_BY_WORKFLOW',`return (${workflowMeta.initializer.getText(ast)});`)(models.VIDEO_PROVIDERS_BY_WORKFLOW);
 function context(mode,workflow) {
-  const c={...models,...gpt,...frames,...policy,mode,activeWorkflow:workflow,imageWorkflow:workflow,videoWorkflow:workflow,
+  const c={...models,...gpt,...frames,...policy,WORKFLOW_META,mode,activeWorkflow:workflow,imageWorkflow:workflow,videoWorkflow:workflow,
     provider:mode==='image'?'chatgpt-image':'minimax-h3-max-turbo-video',prompt:'',referenceImagesText:'',referenceImageFiles:[],
     duration:'5s',ratio:mode==='image'?'auto':'source',videoResolution:'480p',imageSize:'square',hasCompletedCreation:false,accessToken:null,isPromptlessImageWorkflow:false,
     sp:new URLSearchParams({mode,workflow}),MINIMAX_MUSIC_DEFAULT_PROMPT:'music-default',KLING_AVATAR_DEFAULT_SCRIPT:'avatar-script',
@@ -39,15 +41,18 @@ function context(mode,workflow) {
     modelSampleReferenceForProvider:provider=>models.videoExampleSourceFor(provider),
     stripAvatarDefaultReferences:value=>policy.referenceTextWithoutExamples(value),
     lastAppliedPromptUrlRef:{current:null},lastAppliedReferenceUrlRef:{current:null},
+    lastStudioModeRef:{current:mode},referenceUploadScopeRef:{current:0},previousReferenceWorkflow:{current:workflow==='reference-to-video'},
+    initialProvider:mode==='image'?'chatgpt-image':'minimax-h3-max-turbo-video',selectedProvider:mode==='image'?'chatgpt-image':'minimax-h3-max-turbo-video',
+    readRememberedModel:()=>null,
     workflowForMode:(_mode,workflow)=>workflow,isKnownVideoDuration:()=>true,isKnownVideoResolution:()=>true,isKnownVideoRatio:()=>false,
     IMAGE_SIZE_PRESETS:[],isProviderAllowedForMode:()=>true,
     navigateStudio(href){c.sp=new URL(href,'https://studio.test').searchParams;},
     FileReader:class{readAsDataURL(file){this.result=file.dataUrl;queueMicrotask(()=>this.onload());}}
   };
   Object.defineProperty(c,'referenceImageUrls',{get:()=>[...policy.parseStudioReferenceImages(c.referenceImagesText),...c.referenceImageFiles]});
-  for(const [setter,field] of Object.entries({setReferenceImagesText:'referenceImagesText',setReferenceImageFiles:'referenceImageFiles',setPrompt:'prompt',setProvider:'provider',setImageWorkflow:'imageWorkflow',setVideoWorkflow:'videoWorkflow',setDuration:'duration',setRatio:'ratio',setVideoResolution:'videoResolution',setImageSize:'imageSize',setImageQuality:'imageQuality',setStatusTone:'statusTone',setStatusText:'statusText',setAvatarAudioUrl:'avatarAudioUrl'}))c[setter]=value=>{c[field]=typeof value==='function'?value(c[field]):value;};
-  for(const name of ['isAvatarProvider','isH3MaxProvider','isH3VideoProvider','isSamplePrompt','isProviderDefaultPrompt','promptForProviderChange','defaultPromptForProvider','isModelSampleReference'])c[name]=executeFunction(name,c);
-  c.applyProvider=executeFunction('applyProvider',c);c.upload=executeFunction('handleReferenceFiles',c);
+  for(const [setter,field] of Object.entries({setReferenceImagesText:'referenceImagesText',setReferenceImageFiles:'referenceImageFiles',setPrompt:'prompt',setProvider:'provider',setImageWorkflow:'imageWorkflow',setVideoWorkflow:'videoWorkflow',setAudioWorkflow:'audioWorkflow',setDuration:'duration',setRatio:'ratio',setVideoResolution:'videoResolution',setImageSize:'imageSize',setImageQuality:'imageQuality',setStatusTone:'statusTone',setStatusText:'statusText',setAvatarAudioUrl:'avatarAudioUrl'}))c[setter]=value=>{c[field]=typeof value==='function'?value(c[field]):value;};
+  for(const name of ['isAvatarProvider','isH3MaxProvider','isH3VideoProvider','isNanoBananaProvider','isSamplePrompt','isProviderDefaultPrompt','promptForProviderChange','defaultPromptForProvider','isModelSampleReference','workflowForMode','providerForWorkflow'])c[name]=executeFunction(name,c);
+  c.applyProvider=executeFunction('applyProvider',c);c.applyWorkflow=executeFunction('applyWorkflow',c);c.upload=executeFunction('handleReferenceFiles',c);
   return c;
 }
 const file={type:'image/jpeg',size:1000,dataUrl:'data:image/jpeg;base64,USER_UPLOADED_IMAGE'};
@@ -131,6 +136,51 @@ applyUrl();await url.upload([file],0);url.prompt='Edited after upload.';url.sp.s
 assert.equal(url.referenceImagesText,'');assert.deepEqual(url.referenceImageFiles,[file.dataUrl]);assert.equal(url.prompt,'Edited after upload.');
 url.sp.set('reference','https://user.test/new.png');applyUrl();assert.equal(url.referenceImagesText,'https://user.test/new.png');
 
+// Run real route effects: Avatar images cannot leak across workspace boundaries.
+const routeEffect=findNode(node=>ts.isCallExpression(node)&&node.expression.getText(ast)==='useEffect'&&node.arguments[0]?.getText(ast).includes('const workflowParam = workflowForMode'));
+const routeEffectCode=ts.transpileModule('const apply = '+routeEffect.arguments[0].getText(ast)+';', {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+function applyRoute(c, mode, workflow, params={}) {
+  c.mode=mode;c.activeWorkflow=workflow;c.sp=new URLSearchParams({mode,workflow,...params});
+  new Function('context',`with(context){${routeEffectCode};apply();}`)(c);
+  new Function('context',`with(context){${effectCode};apply();}`)(c);
+}
+for(const script of ['', 'My own speaking script']) for(const reference of ['upload','url']) {
+  const avatar=context('avatar','avatar-video');avatar.prompt=script;
+  if(reference==='upload')await avatar.upload([file]);else avatar.referenceImagesText='https://user.test/portrait.png';
+  applyRoute(avatar,'video','image-to-video');
+  assert.deepEqual(avatar.referenceImageUrls,[],'Avatar portrait must not become the video start frame, with or without a script');
+  applyRoute(avatar,'avatar','avatar-video');
+  assert.deepEqual(avatar.referenceImageUrls,[],'Returning to Avatar must not resurrect a cleared portrait');
+}
+const explicit=context('avatar','avatar-video');await explicit.upload([file]);
+applyRoute(explicit,'video','image-to-video',{reference:'https://user.test/new-video-frame.png'});
+assert.deepEqual(explicit.referenceImageUrls,['https://user.test/new-video-frame.png'],'Destination URL reference must replace the previous workspace upload');
+const reverse=context('video','image-to-video');await reverse.upload([file],0);
+applyRoute(reverse,'avatar','avatar-video');assert.deepEqual(reverse.referenceImageUrls,[]);
+const sameWorkspace=context('avatar','avatar-video');await sameWorkspace.upload([file]);
+applyRoute(sameWorkspace,'avatar','avatar-video',{provider:'kling-avatar-pro'});
+assert.deepEqual(sameWorkspace.referenceImageUrls,[file.dataUrl],'Changing the Avatar model must retain its portrait');
+for(const [mode,workflow,nextWorkflow] of [['avatar','avatar-video','image-to-video'],['video','image-to-video','avatar-video']]) {
+  const c=context(mode,workflow);c.referenceImagesText='https://user.test/portrait.png';c.referenceImageFiles=[file.dataUrl];
+  c.sp.set('reference',c.referenceImagesText);c.sp.set('templateId','old-template');
+  c.applyWorkflow(nextWorkflow);
+  assert.deepEqual(c.referenceImageUrls,[],'Workflow action must clear the previous workspace references');
+  assert.equal(c.sp.has('reference'),false,'Copied URL must not reapply the old portrait');
+  assert.equal(c.sp.has('templateId'),false);
+  applyRoute(c,nextWorkflow==='avatar-video'?'avatar':'video',nextWorkflow,Object.fromEntries(c.sp));
+  assert.deepEqual(c.referenceImageUrls,[]);
+}
+for(const [mode,workflow] of [['avatar','avatar-video'],['video','image-to-video'],['video','reference-to-video']]) {
+  const c=context(mode,workflow);c.HEYGEN_REFERENCE_IMAGE_LIMIT=4;
+  let finishRead;
+  c.FileReader=class{readAsDataURL(file){finishRead=()=>{this.result=file.dataUrl;this.onload();};}};
+  const pending=c.upload([file]);
+  applyRoute(c,mode==='avatar'?'video':'avatar',mode==='avatar'?'image-to-video':'avatar-video');
+  c.referenceImageFiles=['data:image/png;base64,DESTINATION_IMAGE'];
+  finishRead();await pending;
+  assert.deepEqual(c.referenceImageUrls,['data:image/png;base64,DESTINATION_IMAGE'],'A late upload must not overwrite destination images');
+}
+
 // Render the creation form after removing its side preview; exercise retained controls.
 let cursor=0,cells=[],applied=[];
 const react={useEffect(){},useMemo:fn=>fn(),useRef:value=>({current:value}),useState:value=>{const i=cursor++;if(!(i in cells))cells[i]=value;return[cells[i],next=>cells[i]=typeof next==='function'?next(cells[i]):next];}};
@@ -164,4 +214,4 @@ for(const workflow of ['text-to-video','image-to-video','reference-to-video']) {
  assert.ok(elements(tree).some(node=>node.props.role==='status'&&node.props.children===props.dailyFreeLabel));
  props.dailyFreeLabel=undefined;
 }
-console.log('Studio input tests passed: cross-mode/model transitions retain user inputs; video creation has no side preview in all three workflows, while prompt, uploads, model parameters, advanced settings, free allowance and generation callbacks remain intact. No database or paid calls.');
+console.log('Studio input tests passed: Avatar workspace images are isolated across navigation, explicit URL references work, stale uploads are ignored, and model changes retain user inputs. Video controls remain intact. No database or paid calls.');

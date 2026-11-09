@@ -5,6 +5,8 @@ import { ensureSignupCreditAccount, getRequestCountryCode } from "../../../../..
 import { createSupabaseAdminClient } from "../../../../../lib/supabase-admin";
 import { safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
 import { completeReferralAuth } from "../../../../../lib/referrals";
+import { authCompletionPath } from "../../../../../lib/auth-navigation";
+import { setLoginSuccessReceipt } from "../../../../../lib/login-success-receipt";
 
 const STATE_COOKIE = "dreamface_google_state";
 
@@ -26,7 +28,7 @@ function redirectUrl(request: NextRequest, path: string) {
 function decodeState(value: string | null) {
   try {
     if (!value) return null;
-    return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as { csrf?: string; next?: string };
+    return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as { csrf?: string; next?: string; popup?: boolean };
   } catch {
     return null;
   }
@@ -35,17 +37,18 @@ function decodeState(value: string | null) {
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = decodeState(request.nextUrl.searchParams.get("state"));
+  const fail = (error: string) => NextResponse.redirect(redirectUrl(request, state?.popup ? authCompletionPath(safeInternalPath(state.next), error) : `/auth?${new URLSearchParams({ error, next: safeInternalPath(state?.next) })}`));
   const cookieStore = await cookies();
   const expectedCsrf = cookieStore.get(STATE_COOKIE)?.value;
   cookieStore.delete(STATE_COOKIE);
 
   if (!code || !state?.csrf || state.csrf !== expectedCsrf) {
-    return NextResponse.redirect(redirectUrl(request, "/auth?error=google_state"));
+    return fail("google_state");
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-  if (!clientId || !clientSecret) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_not_configured"));
+  if (!clientId || !clientSecret) return fail("google_not_configured");
 
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -59,15 +62,15 @@ export async function GET(request: NextRequest) {
     }),
     cache: "no-store"
   });
-  if (!tokenRes.ok) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_token"));
+  if (!tokenRes.ok) return fail("google_token");
   const tokenPayload = (await tokenRes.json()) as { access_token?: string };
-  if (!tokenPayload.access_token) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_token"));
+  if (!tokenPayload.access_token) return fail("google_token");
 
   const userRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
     headers: { Authorization: `Bearer ${tokenPayload.access_token}` },
     cache: "no-store"
   });
-  if (!userRes.ok) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_user"));
+  if (!userRes.ok) return fail("google_user");
   const profile = (await userRes.json()) as {
     sub?: string;
     email?: string;
@@ -75,7 +78,7 @@ export async function GET(request: NextRequest) {
     picture?: string;
     email_verified?: boolean;
   };
-  if (!profile.sub) return NextResponse.redirect(redirectUrl(request, "/auth?error=google_user"));
+  if (!profile.sub) return fail("google_user");
 
   const user = await upsertGoogleUser({
     googleSub: profile.sub,
@@ -98,7 +101,8 @@ export async function GET(request: NextRequest) {
     path: "/",
     expires: new Date(session.expires_at)
   });
+  setLoginSuccessReceipt(cookieStore, session, "google");
 
   const next = safeInternalPath(state.next);
-  return NextResponse.redirect(redirectUrl(request, next));
+  return NextResponse.redirect(redirectUrl(request, state.popup ? authCompletionPath(next) : next));
 }

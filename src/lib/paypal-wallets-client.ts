@@ -1,6 +1,8 @@
-// Browser-only SDK boundary. SDKs are loaded only when the payment dialog opens.
+// Browser-only SDK boundary. Public resources can warm while credit packs are shown.
 export type Wallet = "applepay" | "googlepay";
 export type WalletConfig = { enabled: boolean; clientId: string | null; environment: "PRODUCTION" | "TEST"; merchantCountry: string | null };
+export type WalletStatus = "loading" | "ready" | "unavailable" | "error";
+export type WalletController = { destroy: () => void; apple: boolean; google: boolean; retry: (wallet: Wallet) => Promise<void> };
 export type WalletReceipt = { completed: boolean; orderId: string; transactionId: string; packId: string; credits: number; amountCents: number; currency: string };
 export type WalletCallbacks = {
   canStart?: () => boolean;
@@ -12,6 +14,41 @@ export type WalletCallbacks = {
   onError: () => void;
 };
 const scripts = new Map<string,Promise<void>>();
+const APPLE_SDK = "https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js";
+const GOOGLE_SDK = "https://pay.google.com/gp/p/js/pay.js";
+let configCache: { value: WalletConfig; expires: number } | null = null;
+let configRequest: Promise<WalletConfig> | null = null;
+
+/** Cache only public merchant settings, never a token, order or payment quote. */
+export function getPayPalWalletConfig(refresh = false): Promise<WalletConfig> {
+  if (configRequest) return configRequest;
+  if (!refresh && configCache && configCache.expires > Date.now()) return Promise.resolve(configCache.value);
+  configRequest = (async () => {
+    const response = await fetch("/api/billing/paypal/wallet-config", { cache: "no-store", signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error("Wallet configuration unavailable");
+    const value = await response.json() as WalletConfig;
+    if (typeof value.enabled !== "boolean" || !["TEST", "PRODUCTION"].includes(value.environment) || (value.enabled && !value.clientId)) throw new Error("Invalid wallet configuration");
+    configCache = { value, expires: Date.now() + 5 * 60 * 1000 };
+    return value;
+  })().finally(() => { configRequest = null; });
+  return configRequest;
+}
+
+function walletScripts(config: WalletConfig) {
+  const sdk = new URL("https://www.paypal.com/sdk/js");
+  sdk.search = new URLSearchParams({ "client-id": config.clientId || "", components: "applepay,googlepay", currency: "USD", intent: "capture", commit: "true" }).toString();
+  // All three downloads start together; one failed wallet must not block the other.
+  const resources = { paypal: loadScript(sdk.toString()), apple: loadScript(APPLE_SDK), google: loadScript(GOOGLE_SDK) };
+  for (const promise of Object.values(resources)) void promise.catch(() => undefined);
+  return resources;
+}
+
+export async function preloadPayPalWallets() {
+  const config = await getPayPalWalletConfig();
+  if (!config.enabled || !config.clientId) return;
+  await Promise.allSettled(Object.values(walletScripts(config)));
+}
+
 function loadScript(src: string) {
   if (scripts.has(src)) return scripts.get(src)!;
   const promise = new Promise<void>((resolve,reject)=>{
@@ -37,7 +74,9 @@ function deadline<T>(promise:Promise<T>,milliseconds=10000):Promise<T> {
 }
 export async function mountPayPalWallets(config: WalletConfig, input: {
   amountCents: number; appleContainer: HTMLElement; googleContainer: HTMLElement; callbacks: WalletCallbacks; signal?: AbortSignal;
-}) {
+  onStatus?: (wallet: Wallet, status: WalletStatus) => void;
+  onController?: (controller: WalletController) => void;
+}): Promise<WalletController> {
   const callbacks=input.callbacks;
   let destroyed=false,busy=false,authorized=false;
   let appleSession: ExternalSdk=null;
@@ -54,15 +93,20 @@ export async function mountPayPalWallets(config: WalletConfig, input: {
   const setBusy=(value:boolean)=>{busy=value;if(!destroyed)callbacks.onBusy(value);};
   const success=(receipt:WalletReceipt)=>{if(!destroyed){try{callbacks.onSuccess(receipt);}catch{/* payment is already captured */}}};
   const error=()=>{if(!destroyed)callbacks.onError();};
-  const sdk=new URL("https://www.paypal.com/sdk/js");
-  sdk.search=new URLSearchParams({"client-id":config.clientId || "",components:"applepay,googlepay",currency:"USD",intent:"capture",commit:"true"}).toString();
-  if (!config.enabled || !config.clientId || destroyed) return {destroy,apple:false,google:false};
-  await loadScript(sdk.toString());
+  const states: Record<Wallet, WalletStatus> = { applepay: "loading", googlepay: "loading" };
+  const report = (wallet: Wallet, status: WalletStatus) => { states[wallet] = status; if (!destroyed) input.onStatus?.(wallet, status); };
+  const empty: WalletController = { destroy, apple: false, google: false, retry: async () => {} };
+  if (!config.enabled || !config.clientId || destroyed) {
+    report("applepay", "unavailable"); report("googlepay", "unavailable"); return empty;
+  }
+  const resources = walletScripts(config);
+  await resources.paypal;
+  if (destroyed) return empty;
   const paypal=sdkWindow.dreamfacePayPal;
   if(!paypal)throw new Error("PayPal SDK unavailable");
   const amount=(input.amountCents/100).toFixed(2);
-  const setupApple=async()=>{
-    await loadScript("https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js");
+  const setupApple=async(retry=false)=>{
+    await (retry ? loadScript(APPLE_SDK) : resources.apple);
     const Apple=sdkWindow.ApplePaySession;
     if(!Apple || !Apple.canMakePayments() || !paypal.Applepay)return false;
     const api=paypal.Applepay();const appleConfig:ExternalSdk=await deadline(api.config());
@@ -103,9 +147,9 @@ export async function mountPayPalWallets(config: WalletConfig, input: {
     if(!destroyed)input.appleContainer.replaceChildren(button);
     return true;
   };
-  const setupGoogle=async()=>{
+  const setupGoogle=async(retry=false)=>{
     if(!config.merchantCountry || !paypal.Googlepay)return false;
-    await loadScript("https://pay.google.com/gp/p/js/pay.js");
+    await (retry ? loadScript(GOOGLE_SDK) : resources.google);
     const api=paypal.Googlepay();const googleConfig:ExternalSdk=await deadline(api.config());
     if(googleConfig.isEligible===false || !googleConfig.allowedPaymentMethods?.length)return false;
     let processing:Promise<ExternalSdk>|null=null;
@@ -142,10 +186,19 @@ export async function mountPayPalWallets(config: WalletConfig, input: {
     if(!destroyed)input.googleContainer.replaceChildren(button);
     return true;
   };
-  const results=await Promise.allSettled([setupApple(),setupGoogle()]);
-  return {
-    apple:results[0].status==="fulfilled"&&results[0].value,
-    google:results[1].status==="fulfilled"&&results[1].value,
-    destroy
+  const controller: WalletController = {
+    apple: false, google: false, destroy,
+    retry: async wallet => { if (!destroyed && !busy && states[wallet] === "error") await run(wallet, true); }
   };
+  async function run(wallet: Wallet, retry=false) {
+    report(wallet, "loading");
+    try {
+      const available = await (wallet === "applepay" ? setupApple(retry) : setupGoogle(retry));
+      if (wallet === "applepay") controller.apple = available; else controller.google = available;
+      report(wallet, available ? "ready" : "unavailable");
+    } catch { report(wallet, "error"); }
+  }
+  input.onController?.(controller);
+  await Promise.all([run("applepay"), run("googlepay")]);
+  return controller;
 }

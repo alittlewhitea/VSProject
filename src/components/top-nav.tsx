@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { AuthLink } from "./auth-link";
 import Link from "next/link";
 import {BrandMark} from "./brand-mark";
 import { usePathname } from "next/navigation";
@@ -215,9 +216,9 @@ export function TopNav() {
           ) : (
             <>
               <LanguageSwitcher />
-              <Link href={localizedHref("/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image")} onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex">
+              <AuthLink href={localizedHref("/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image")} onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="inline-flex rounded-full border border-black/10 px-3 py-2 text-xs font-bold text-[#1d1d1f] sm:px-4 sm:text-sm">
                 {t("nav.login")}
-              </Link>
+              </AuthLink>
               <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="inline-flex items-center gap-2 rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
                 <span className="sm:hidden">{t("nav.studio")}</span>
                 <span className="hidden sm:inline">{t("nav.openStudio")}</span>

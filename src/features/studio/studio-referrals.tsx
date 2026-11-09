@@ -1,5 +1,6 @@
 "use client";
-import Link from "next/link";
+import { AuthLink } from "../../components/auth-link";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { referralTranslator } from "../../lib/referral-i18n";
 
@@ -39,7 +40,7 @@ export function StudioReferrals({accessToken,locale,previewData}:{accessToken:st
     <div className="df-referral-intro rounded-3xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-6 sm:p-8">
       <p className="text-3xl" aria-hidden="true">🎁</p><h1 className="mt-3 text-2xl font-semibold text-[var(--studio-text)]">{t("title")}</h1>
       <p className="mt-3 text-sm leading-6 text-[var(--studio-muted)]">{t("intro",{inviter:data?.settings?.inviterCredits??100,invitee:data?.settings?.inviteeCredits??100})}</p>
-      {!accessToken ? <Link className="mt-5 inline-block rounded-xl bg-[var(--studio-primary)] px-5 py-3 font-bold text-white" href="/auth?next=%2Fstudio%3Fview%3Dreferrals">{t("signIn")}</Link> : null}
+      {!accessToken ? <AuthLink className="mt-5 inline-block rounded-xl bg-[var(--studio-primary)] px-5 py-3 font-bold text-white" href="/auth?next=%2Fstudio%3Fview%3Dreferrals">{t("signIn")}</AuthLink> : null}
       {accessToken && data && !data.enabled ? <p className="mt-4 rounded-xl bg-[var(--studio-panel)] p-4 text-sm">{t("disabled")}</p> : null}
       {data?.enabled ? <>
         {!data.eligible ? <p className="mt-4 text-sm text-amber-800">{t("ineligible")}</p> : null}
