@@ -1,3 +1,5 @@
+import { GEMINI_OMNI_RESOLUTIONS } from "../../lib/gemini-omni";
+
 export type StudioVideoWorkflow = "text-to-video" | "image-to-video" | "reference-to-video";
 export type VideoModelGroup = "freeDraft" | "betterQuality" | "premium";
 export type VideoModelBadge = "free" | "recommended" | "pro" | "premium";
@@ -223,13 +225,14 @@ export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
   },
   "gemini-omni-flash-video": {
     id: "gemini-omni-flash-video",
-    meta: { label: "Gemini Omni Flash", shortLabel: "Gemini Omni", speed: "Fast", quality: "Synchronized audio", bestFor: "Fast 720p text-to-video and image-to-video with motion, speech, and ambient audio" },
+    meta: { label: "Gemini Omni Flash 1.2", shortLabel: "Gemini Omni 1.2", speed: "Fast", quality: "Synchronized audio", bestFor: "Text-to-video and image-to-video with native audio, 360p to 4K, and optional start/end frames" },
     group: "betterQuality",
     workflows: { "text-to-video": { ratios: ["16:9", "9:16"] }, "image-to-video": { ratios: ["16:9", "9:16"] } },
-    durations: VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) <= 10),
-    resolutions: ["720p"],
+    durations: VIDEO_DURATION_OPTIONS,
+    resolutions: GEMINI_OMNI_RESOLUTIONS,
     defaultDuration: "8s",
     defaultResolution: "720p",
+    showResolutionControl: true,
     examples: {
       "text-to-video": { provider: "gemini-omni-flash-video", workflow: "text-to-video", modelLabel: "Gemini Omni Flash", prompts: [GEMINI_TEXT_PROMPT], videoUrl: "https://v3b.fal.media/files/b/0aa06549/SqtFBfF9UAqFt1vfdpHIN_a7c736c69b4f4c0486dbef648a7fa496.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aa06549%2FSqtFBfF9UAqFt1vfdpHIN_a7c736c69b4f4c0486dbef648a7fa496.mp4/tr:so-0,w-1024,q-80/SqtFBfF9UAqFt1vfdpHIN_a7c736c69b4f4c0486dbef648a7fa496.webp", badgeParts: ["720p"], badgeHasAudio: true, settings: { duration: "8s", ratio: "16:9" } },
       "image-to-video": { provider: "gemini-omni-flash-video", workflow: "image-to-video", modelLabel: "Gemini Omni Flash", prompts: [GEMINI_IMAGE_PROMPT], videoUrl: "https://v3b.fal.media/files/b/0aa064fd/Vzo9a0G9fkd2RRZwAQDx5_aa98f069192f4c9c9d59a16962d0929d.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aa064fd%2FVzo9a0G9fkd2RRZwAQDx5_aa98f069192f4c9c9d59a16962d0929d.mp4/tr:so-0,w-1024,q-80/Vzo9a0G9fkd2RRZwAQDx5_aa98f069192f4c9c9d59a16962d0929d.webp", sourceImageUrl: GEMINI_IMAGE_URL, sourceImageShape: "landscape", badgeParts: ["720p"], badgeHasAudio: true, settings: { duration: "8s", ratio: "16:9" } }
@@ -366,8 +369,9 @@ export function videoModelRatios(provider: string, workflow: StudioVideoWorkflow
   return [...(VIDEO_MODEL_CONFIGS[provider]?.workflows[workflow]?.ratios || DEFAULT_VIDEO_RATIOS)];
 }
 
-export function videoModelDurations(provider: string) {
-  return [...(VIDEO_MODEL_CONFIGS[provider]?.durations || VIDEO_DURATION_OPTIONS)];
+export function videoModelDurations(provider: string, referenceCount = 0) {
+  const durations = [...(VIDEO_MODEL_CONFIGS[provider]?.durations || VIDEO_DURATION_OPTIONS)];
+  return provider === "gemini-omni-flash-video" && referenceCount > 1 ? durations.filter(value => Number.parseInt(value, 10) <= 10) : durations;
 }
 
 export function videoModelResolutions(provider: string) {

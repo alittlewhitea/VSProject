@@ -1,4 +1,5 @@
 import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyframes";
+import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution } from "../../../lib/gemini-omni";
 import { HEYGEN_REFERENCE_RATIOS, validateHeygenReferences } from "../../../lib/heygen-reference-video";
 import { heygenAvatarPrompt, heygenAvatarTiming } from "../../../lib/heygen-avatar";
 import { DREAMFACE_IO_SUSPENDED } from "../../../lib/model-release";
@@ -200,8 +201,8 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
       ? process.env.FAL_MODEL_VIDEO_HAPPY_HORSE_I2V || "alibaba/happy-horse/v1.1/image-to-video"
       : process.env.FAL_MODEL_VIDEO_HAPPY_HORSE || "alibaba/happy-horse/v1.1/text-to-video",
     "gemini-omni-flash-video": editImage
-      ? process.env.FAL_MODEL_VIDEO_GEMINI_OMNI_I2V || "google/gemini-omni-flash/v1.1/image-to-video"
-      : process.env.FAL_MODEL_VIDEO_GEMINI_OMNI || "google/gemini-omni-flash",
+      ? process.env.FAL_MODEL_VIDEO_GEMINI_OMNI_I2V || GEMINI_OMNI_IMAGE_MODEL
+      : process.env.FAL_MODEL_VIDEO_GEMINI_OMNI || GEMINI_OMNI_TEXT_MODEL,
     "elevenlabs-tts": "elevenlabs/tts/eleven-v4-turbo",
     "minimax-music-2.6": process.env.FAL_MODEL_AUDIO_MINIMAX_26 || "fal-ai/minimax-music/v2.6"
   };
@@ -426,12 +427,12 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
   }
 
   if (body.mode === "video" && body.provider === "gemini-omni-flash-video") {
-    const duration = clampInt(body.duration, 3, 10, 8);
     return {
       prompt,
       aspect_ratio: GEMINI_OMNI_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
-      duration,
-      ...(hasInputImages(body) ? { image_url: firstInputImage(body), resolution: "720p", ...videoEndFrameInput(body.provider, body.imageUrls) } : {})
+      duration: geminiOmniDuration(body.duration, Boolean(body.imageUrls?.[1])),
+      resolution: geminiOmniResolution(body.resolution),
+      ...(hasInputImages(body) ? { image_url: firstInputImage(body), ...videoEndFrameInput(body.provider, body.imageUrls) } : {})
     };
   }
 
@@ -897,6 +898,13 @@ export async function POST(request: Request) {
       if (body.videoWorkflow === "text-to-video" && hasInputImages(body)) return NextResponse.json({ error: "Select Image to Video to use images." }, { status: 400 });
     }
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
+    if (body.provider === "gemini-omni-flash-video") {
+      if (body.mode !== "video") return NextResponse.json({ error: "Gemini Omni Flash 1.2 requires the video workspace." }, { status: 400 });
+      // Quote, stored settings and payload use the same normalized parameters.
+      body.duration = `${geminiOmniDuration(body.duration, imageUrls.length > 1)}s`;
+      body.resolution = geminiOmniResolution(body.resolution);
+      body.generateAudio = true;
+    }
     const isHeygenAvatar = body.mode === "avatar" && body.provider === "heygen-video";
     if (isHeygenAvatar) {
       if (body.videoWorkflow !== "avatar-video" || imageUrls.length !== 1 || body.audioUrl || body.videoUrls?.length) return NextResponse.json({error:"HeyGen Avatar requires one image and a spoken script."},{status:400});
@@ -986,7 +994,7 @@ export async function POST(request: Request) {
     if (body.mode === "video" && body.provider === "flux-3-max-video" && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
       return NextResponse.json({error:"FLUX 3 Max image-to-video requires a start frame."},{status:400});
     }
-    if (["heygen-video", "flux-3-max-video", "minimax-h3-max-video", "minimax-h3-max-turbo-video"].includes(body.provider) && (body.provider === "heygen-video" || body.dailyFree !== true) && body.expectedCredits !== undefined && body.expectedCredits !== baseEstimatedCredits) {
+    if (["heygen-video", "flux-3-max-video", "minimax-h3-max-video", "minimax-h3-max-turbo-video", "gemini-omni-flash-video"].includes(body.provider) && (body.provider === "heygen-video" || body.provider === "gemini-omni-flash-video" || body.dailyFree !== true) && body.expectedCredits !== undefined && body.expectedCredits !== baseEstimatedCredits) {
       return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"video_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
     }
     if (body.mode === "image" && body.provider === "nano-banana-edit") {

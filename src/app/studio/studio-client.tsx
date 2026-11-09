@@ -1574,7 +1574,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     : videoModelRatios(provider, configuredVideoWorkflow);
   const videoDurationOptions = isAvatarProvider(provider)
     ? Array.from({ length: 13 }, (_, index) => `${index + 3}s`)
-    : videoModelDurations(provider);
+    : videoModelDurations(provider, videoWorkflow === "image-to-video" ? referenceImageUrls.length : 0);
   const videoResolutionOptions = videoModelResolutions(provider);
   const showDreamfaceTalkingVideoControls = mode === "avatar" && provider === "dreamface-io-video";
   const showVideoResolutionControl = (mode === "video" || isH3MaxAvatar || isHeygenAvatar) && Boolean(selectedVideoModelConfig?.showResolutionControl);
@@ -2241,12 +2241,12 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
         resolution:
           mode === "image"
             ? editResolution
-            : (mode === "video" || isH3MaxAvatar || isHeygenAvatar) && (provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
+            : (mode === "video" || isH3MaxAvatar || isHeygenAvatar) && (provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "gemini-omni-flash-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
-        generateAudio: mode === "video" || isHeygenAvatar ? provider === "heygen-video" || generateAudio : undefined,
+        generateAudio: mode === "video" || isHeygenAvatar ? provider === "heygen-video" || provider === "gemini-omni-flash-video" || generateAudio : undefined,
         reasoningLevel: provider === "flux-3-max-video" ? reasoningLevel : undefined,
-        expectedCredits: isGptImageProvider(provider) || provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) ? estCredits : undefined,
+        expectedCredits: isGptImageProvider(provider) || provider === "heygen-video" || provider === "flux-3-max-video" || provider === "gemini-omni-flash-video" || isH3VideoProvider(provider) ? estCredits : undefined,
         outputFormat: mode === "image" && provider !== "bria-background-remove" ? outputFormat : undefined,
         quality: mode === "image" && !isPromptlessImageWorkflow ? imageQuality : undefined,
         ...(mode==="image"&&isGptImageProvider(provider)?{...gptRequestOptions,enableSafetyChecker:gptImageOptions.enableSafetyChecker}:{}),

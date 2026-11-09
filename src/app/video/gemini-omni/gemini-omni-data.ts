@@ -146,6 +146,6 @@ export const geminiOmniFaq = [
   {
     question: "Is Gemini Omni available on Dreamface?",
     answer:
-      "Yes. Gemini Omni Flash is available as a selectable model in Dreamface's AI Video workspace for text-to-video and image-to-video workflows. Model availability can change, so open the generator to see the latest supported options."
+      "Yes. Gemini Omni Flash 1.2 is available in Dreamface's AI Video workspace for text-to-video and image-to-video, with native audio, 360p to 4K output and 3–15 second clips. Adding an end frame limits image-to-video generation to 10 seconds."
   }
 ] as const;

@@ -5,10 +5,13 @@ const compile = source => ts.transpileModule(source, { compilerOptions: { module
 const module = { exports: {} };
 new Function('module', 'exports', compile(readFileSync('src/lib/video-keyframes.ts', 'utf8')))(module, module.exports);
 const frames = module.exports;
+const omniModule = { exports: {} };
+new Function('module','exports',compile(readFileSync('src/lib/gemini-omni.ts','utf8')))(omniModule,omniModule.exports);
+const omni = omniModule.exports;
 const route = readFileSync('src/app/api/generate/route.ts', 'utf8');
 // Execute the actual endpoint selection/payload builders without loading any external clients.
 const source = route.slice(route.indexOf('function isValidBody'), route.indexOf('function buildRequestSettings'));
-const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused');
+const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', ...Object.keys(omni), compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused', ...Object.values(omni));
 const start = 'https://example.invalid/start.png', end = 'https://example.invalid/end.png';
 for(const resolution of ['720p','1080p']) for(const imageUrls of [[],[start],[start,end]]) {
  for(const reasoningLevel of [undefined,'low','high']) for(const generateAudio of [undefined,false,true]) {
@@ -64,8 +67,8 @@ for (const provider of ['grok-video', 'seedance-mini-video', 'kling-video', 'unk
   assert.deepEqual(frames.videoEndFrameInput(provider, [start, end]), {});
 }
 for (const bad of [null, 'url', [null], [''], [123]]) assert.ok(frames.validateVideoImages('seedance-video', bad));
-assert.equal(builders.getModelId('video', 'gemini-omni-flash-video', true), 'google/gemini-omni-flash/v1.1/image-to-video');
-assert.equal(builders.getModelId('video', 'gemini-omni-flash-video', false), 'google/gemini-omni-flash');
+assert.equal(builders.getModelId('video', 'gemini-omni-flash-video', true), 'google/gemini-omni-flash/v1.2/image-to-video');
+assert.equal(builders.getModelId('video', 'gemini-omni-flash-video', false), 'google/gemini-omni-flash/v1.2/text-to-video');
 const avatar = builders.buildFalInput({ mode: 'avatar', provider: 'minimax-h3-max-turbo-video', imageUrls: [start], duration: '5s', ratio: '16:9' }, 'Speak');
 assert.equal(avatar.image_url, start); assert.equal(avatar.end_image_url, undefined);
-console.log('Video keyframe checks passed: actual payloads, frame ordering, single-image restrictions, Gemini 1.1 endpoint and unchanged H3 safety/Avatar. No paid calls.');
+console.log('Video keyframe checks passed: actual payloads, frame ordering, single-image restrictions, Gemini 1.2 endpoints and unchanged H3 safety/Avatar. No paid calls.');

@@ -1,6 +1,7 @@
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } from "./gpt-image-models";
 import { flux3MaxDuration, flux3MaxSecondPrice } from "./flux3-max";
 import { lowestPaidCreditPriceUsd } from "./credit-pack-prices";
+import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution, geminiOmniSecondPrice } from "./gemini-omni";
 export type PricingMode = "image" | "video" | "audio";
 
 export type GenerationEstimateInput = {
@@ -151,7 +152,7 @@ export function creditsFromFalUsd(amountUsd: number, minimumCredits = 1, markup 
 }
 
 export function generationPricingMultiplier(input: GenerationEstimateInput) {
-  const resolution = input.resolution?.toLowerCase();
+  const resolution = input.provider === "gemini-omni-flash-video" ? geminiOmniResolution(input.resolution) : input.resolution?.toLowerCase();
   if (input.mode === "audio") return CREDIT_MARKUP_MULTIPLIER;
   if (input.mode === "image") {
     if(isGptImageProvider(input.provider)) {
@@ -209,7 +210,7 @@ export function estimateGenerationCostUsd(input: GenerationEstimateInput): numbe
   if (input.provider === "heygen-video") return Math.min(15, Math.max(5, seconds)) * heygenSecondPrice(input.resolution, input.pricingTime);
   if (input.provider === "flux-3-max-video") return flux3MaxSecondPrice(input.resolution, input.pricingTime) * flux3MaxDuration(input.duration);
   if (input.provider === "minimax-h3-max-turbo-video" || input.provider === "minimax-h3-max-video") return seconds * h3SupplierSecondPrice(input);
-  if (input.provider === "gemini-omni-flash-video") return Math.min(10, Math.max(3, seconds)) * (input.hasReferences ? 0.10 : 0.125);
+  if (input.provider === "gemini-omni-flash-video") return geminiOmniDuration(input.duration, Boolean(input.hasReferences && (input.referenceCount || 0) > 1)) * geminiOmniSecondPrice(input.resolution);
   if (input.provider === "seedance-video") return seconds * (resolution === "4k" ? 1.5552 : resolution === "1080p" ? 0.682 : resolution === "480p" || !resolution ? 0.1407 : 0.3034);
   if (input.provider === "seedance-mini-video") return seconds * (resolution === "480p" || !resolution ? 0.0721 : 0.1547);
   if (input.provider === "happy-horse-video") return seconds * (resolution === "1080p" ? 0.18 : 0.14);
@@ -306,22 +307,22 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
   {
     referenceDuration: "8s", referenceResolution: "720p",
     provider: "gemini-omni-flash-video",
-    label: "Gemini Omni Flash",
+    label: "Gemini Omni Flash 1.2",
     mode: "video",
     workflow: "Text to Video",
-    endpointId: "google/gemini-omni-flash",
-    falBasis: "fal lists Gemini Omni Flash text-to-video at approximately $0.125 per second for 720p video with audio.",
+    endpointId: GEMINI_OMNI_TEXT_MODEL,
+    falBasis: "Gemini Omni Flash 1.2 includes audio: $0.0273/s at 360p, $0.0819/s at 720p, $0.1229/s at 1080p, and $0.2457/s at 4K; 3-15 seconds.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "gemini-omni-flash-video", duration: "8s" }),
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   },
   {
     referenceDuration: "8s", referenceResolution: "720p",
     provider: "gemini-omni-flash-video",
-    label: "Gemini Omni Flash I2V",
+    label: "Gemini Omni Flash 1.2 I2V",
     mode: "video",
     workflow: "Image to Video",
-    endpointId: "google/gemini-omni-flash/v1.1/image-to-video",
-    falBasis: "The supplied Gemini Omni Flash 1.1 documentation lists 720p image-to-video with audio at $0.10 per second.",
+    endpointId: GEMINI_OMNI_IMAGE_MODEL,
+    falBasis: "Gemini Omni Flash 1.2 includes audio and input images: $0.0273/s at 360p, $0.0819/s at 720p, $0.1229/s at 1080p, and $0.2457/s at 4K. End-frame interpolation is capped at 10 seconds.",
     typicalCredits: estimateGenerationCredits({ mode: "video", provider: "gemini-omni-flash-video", duration: "8s", hasReferences: true }),
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   },

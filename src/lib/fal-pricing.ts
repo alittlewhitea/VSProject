@@ -1,4 +1,5 @@
 import { MODEL_PRICING_ROWS, estimateGenerationCredits } from "./model-pricing";
+import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL } from "./gemini-omni";
 import { isGptImageProvider, gptImageEndpoint } from "./gpt-image-models";
 
 type FalPricingResponse = {
@@ -68,7 +69,7 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "heygen-video") return hasReferences ? "heygen/heygen-video/image-to-video" : "heygen/heygen-video/text-to-video";
   if (provider === "flux-3-max-video") return hasReferences ? "blackforestlabs/flux-3-max/image-to-video" : "blackforestlabs/flux-3-max/text-to-video";
   if (provider === "grok-video") return hasReferences ? "xai/grok-imagine-video/v1.5/lite/image-to-video" : "xai/grok-imagine-video/v1.5/lite/text-to-video";
-  if (provider === "gemini-omni-flash-video") return hasReferences ? "google/gemini-omni-flash/v1.1/image-to-video" : "google/gemini-omni-flash";
+  if (provider === "gemini-omni-flash-video") return hasReferences ? GEMINI_OMNI_IMAGE_MODEL : GEMINI_OMNI_TEXT_MODEL;
   if (provider === "minimax-h3-max-video") return hasReferences ? "minimax/h3-max/image-to-video" : "minimax/h3-max/text-to-video";
   if (provider === "minimax-h3-max-turbo-video") return hasReferences ? "minimax/h3-max-turbo/image-to-video" : "minimax/h3-max-turbo/text-to-video";
   if (provider === "minimax-music-2.6") return "fal-ai/minimax-music/v2.6";
