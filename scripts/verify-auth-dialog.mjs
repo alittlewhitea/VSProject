@@ -27,6 +27,9 @@ const navigation = load('src/lib/auth-navigation.ts');
 for (const path of ['https://evil.test', '//evil.test', '/\\evil.test', '/\n/evil', null]) assert.equal(navigation.authReturnPath(path), '/studio?view=home');
 const destination = '/studio?mode=avatar&workflow=avatar-video';
 assert.equal(navigation.authReturnPath(destination), destination);
+for (const home of ['/', '/en', '/zh-CN/', '/en?source=email']) assert.equal(navigation.authPostLoginPath(home), '/studio?view=home');
+assert.equal(navigation.authPostLoginPath(navigation.authCompletionPath('/en')), '/studio?view=home');
+assert.equal(navigation.authPostLoginPath(destination), destination);
 const completion = new URL(navigation.authCompletionPath(destination), 'https://fixture.invalid');
 assert.equal(completion.searchParams.get('next'), destination);
 const failure = new URL(navigation.authFailurePath(completion.pathname + completion.search, 'expired_link'), completion);
@@ -78,17 +81,29 @@ try {
   assert.equal(new URL(googleSteps[0], window.location.origin).searchParams.get('next'), '/studio?mode=avatar');
   window.open = () => null;
   navigation.requestGoogleSignIn(); assert.equal(requests.at(-1).googlePopup, null, 'A blocked direct Google popup is passed to the fallback dialog');
+  const linkLoader=loader({'next/link':()=>null});
+  const {AuthLink}=linkLoader('src/components/auth-link.tsx');
+  const link=AuthLink({href:'/en/auth?next=%2Fstudio%3Fview%3Dhome',authOptions:{redirectOnSuccess:true}});
+  link.props.onClick({button:0,preventDefault(){this.defaultPrevented=true;}});
+  assert.equal(requests.at(-1).next,'/studio?view=home','Dialog preserves the explicit destination from its link');
+  assert.equal(requests.at(-1).redirectOnSuccess,true);
+  let emailRequests=0;
+  globalThis.fetch=async(url,options)=>{assert.equal(url,'/api/auth/verify');assert.equal(options.method,'POST');assert.equal(options.credentials,'include');emailRequests++;return Response.json({ok:true});};
+  const verifications=await Promise.all([browser.completeEmailSignIn(),browser.completeEmailSignIn()]);
+  assert.equal(emailRequests,1,'Strict Mode completion effects share a single consuming request');assert.ok(verifications.every(result=>result.ok));
 
   // Exercise the actual OAuth routes, with all upstream and database writes stubbed.
   const cookieValues = new Map(), cookiesWritten = [];
   const cookieStore = { get: key => cookieValues.has(key) ? { value: cookieValues.get(key) } : undefined,
     set(key, value, options) { cookieValues.set(key, value); cookiesWritten.push({ key, value, options }); },
     delete: key => cookieValues.delete(key) };
-  let sessionsCreated = 0, consumed = 0;
-  let emailRow = { id: 1, email: 'owner@example.invalid', expires_at: '2099-01-01 00:00:00', consumed_at: null };
+  let sessionsCreated = 0, consumed = 0, existingEmailSession = null;
+  const utcDate = value => value.toISOString().slice(0, 19).replace('T', ' ');
+  let emailRow = { id: 1, email: 'owner@example.invalid', expires_at: utcDate(new Date(Date.now()+600000)), consumed_at: null };
   const security = { safeInternalPath: navigation.authReturnPath, trustedPublicOrigin: () => 'https://fixture.invalid' };
   const auth = { newAuthToken: () => 'csrf-fixture', SESSION_COOKIE_NAME: 'fixture-session', hashAuthToken: value => 'hash:' + value,
     createSession: async () => { sessionsCreated++; return { access_token: 'server-only-fixture', expires_at: '2099-01-01' }; },
+    getSessionFromToken: async () => existingEmailSession,
     upsertGoogleUser: async () => ({ id: 'owner', isNew: true }), upsertEmailUser: async () => ({ id: 'owner', isNew: true }) };
   const mocks = { 'next/headers': { cookies: async () => cookieStore } };
   for (const prefix of ['../../../../../lib/', '../../../../lib/']) {
@@ -97,10 +112,13 @@ try {
     mocks[prefix + 'credits'] = { ensureSignupCreditAccount: async () => {}, getRequestCountryCode: () => null };
     mocks[prefix + 'supabase-admin'] = { createSupabaseAdminClient: () => null };
     mocks[prefix + 'referrals'] = { captureReferralAuth: async () => {}, completeReferralAuth: async () => {} };
-    mocks[prefix + 'mysql'] = { getMysqlPool: () => ({ execute: async sql => {
+    mocks[prefix + 'mysql'] = { getMysqlPool: () => ({ execute: async (sql, params) => {
       if (sql.startsWith('select')) return [[emailRow]];
+      assert.ok(!sql.includes('now(6)'), 'OTP expiration cannot depend on the database session timezone');
+      assert.equal(params[0], params[2]);
+      assert.ok(params[2] < emailRow.expires_at, 'UTC cutoff accepts a new ten-minute link even when database NOW is UTC+8');
       consumed++; return [{ affectedRows: 1 }];
-    } }), toMysqlDate: value => value };
+    } }), toMysqlDate: utcDate };
   }
   const routes = loader(mocks), { NextRequest } = native('next/server');
   const start = routes('src/app/api/auth/google/start/route.ts');
@@ -135,14 +153,31 @@ try {
   assert.equal(cookieValues.get(loginReceipts.LOGIN_SUCCESS_COOKIE),priorReceipt,'An unsuccessful OAuth attempt cannot mint login_success');
   const verify = routes('src/app/api/auth/verify/route.ts');
   const emailNext = navigation.authCompletionPath(destination);
-  let emailResult = await verify.GET(new NextRequest(`https://fixture.invalid/api/auth/verify?${new URLSearchParams({ token: 'email-fixture', next: emailNext })}`));
-  assert.equal(new URL(emailResult.headers.get('location')).pathname, '/auth/complete'); assert.equal(consumed, 1);
+  const emailToken='a'.repeat(64);
+  const getEmail=()=>verify.GET(new NextRequest(`https://fixture.invalid/api/auth/verify?${new URLSearchParams({token:emailToken,next:emailNext})}`));
+  let emailResult=await getEmail();
+  const emailTarget=new URL(emailResult.headers.get('location'));
+  assert.equal(emailTarget.pathname,'/auth/complete');assert.equal(emailTarget.searchParams.get('email'),'1');
+  assert.equal(emailTarget.searchParams.get('next'),destination);assert.equal(emailTarget.searchParams.has('token'),false);
+  assert.equal(emailResult.cookies.get('dreamface_email_signin').httpOnly,true);
+  assert.equal(emailResult.cookies.get('dreamface_email_signin').path,'/api/auth/verify');
+  await getEmail();await verify.HEAD();assert.equal(consumed,0,'GET previews and HEAD never consume a login link');
+  cookieValues.set('dreamface_email_signin',emailToken);
+  const postEmail=(origin='https://fixture.invalid')=>verify.POST(new NextRequest('https://fixture.invalid/api/auth/verify',{method:'POST',headers:{origin}}));
+  assert.equal((await postEmail('https://evil.invalid')).status,403);assert.equal(consumed,0);
+  emailResult=await postEmail();assert.equal((await emailResult.json()).ok,true);assert.equal(consumed,1);
   const emailReceipt=loginReceipts.readLoginSuccessReceipt(cookieValues.get(loginReceipts.LOGIN_SUCCESS_COOKIE),{access_token:'server-only-fixture'});
   assert.equal(emailReceipt.method,'email');assert.equal(loginIds.has(emailReceipt.id),false);
   emailRow = { ...emailRow, consumed_at: '2026-01-01' };
-  emailResult = await verify.GET(new NextRequest(`https://fixture.invalid/api/auth/verify?${new URLSearchParams({ token: 'email-fixture', next: emailNext })}`));
-  assert.equal(new URL(emailResult.headers.get('location')).searchParams.get('error'), 'expired_link'); assert.equal(consumed, 1);
+  cookieValues.set('dreamface_email_signin',emailToken);
+  emailResult=await postEmail();assert.equal((await emailResult.json()).error,'used_link');assert.equal(consumed,1);
   assert.equal(loginReceipts.readLoginSuccessReceipt(cookieValues.get(loginReceipts.LOGIN_SUCCESS_COOKIE),{access_token:'server-only-fixture'}).id,emailReceipt.id,'An expired email link cannot mint another login event');
+  existingEmailSession={user:{email:'owner@example.invalid'}};
+  const beforeRetrySessions=sessionsCreated;
+  emailResult=await postEmail();assert.equal((await emailResult.json()).ok,true);assert.equal(sessionsCreated,beforeRetrySessions,'Retry after a successful response cannot mint another session or login event');
+  cookieValues.set('dreamface_email_signin',emailToken);
+  emailRow={...emailRow,consumed_at:null,expires_at:utcDate(new Date(Date.now()-60000))};
+  emailResult=await postEmail();assert.equal((await emailResult.json()).error,'expired_link');assert.equal(consumed,1);
 
   const { authDialogCopy } = load('src/components/auth-dialog-copy.ts');
   for (const locale of load('src/i18n/routing.ts').locales) assert.ok(Object.values(authDialogCopy(locale)).every(value => typeof value === 'string' && value.length > 0), locale);

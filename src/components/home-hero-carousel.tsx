@@ -48,6 +48,7 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
           <div className="mt-7 grid gap-3 sm:mt-8 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
             <AuthLink
               provider="google"
+              authOptions={{ redirectOnSuccess: true }}
               data-home-google-sign-in
               href={localizedHref("/auth?provider=google&next=%2Fstudio%3Fview%3Dhome")}
               onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/auth", item: "google_signup" })}
@@ -58,6 +59,7 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
             </AuthLink>
             <AuthLink
               href={localizedHref("/auth?next=%2Fstudio%3Fview%3Dhome")}
+              authOptions={{ redirectOnSuccess: true }}
               onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/auth", item: "get_started" })}
               className="inline-flex h-[52px] items-center justify-center gap-3 rounded-xl bg-[#08bdf2] px-7 py-3 text-sm font-black text-[#08232d] shadow-[0_18px_38px_rgba(8,189,242,0.22)] transition hover:-translate-y-0.5 hover:bg-[#15c8fa] sm:h-14 sm:justify-start sm:text-base"
             >

@@ -13,6 +13,6 @@ export function AuthLink({ onClick, authOptions, provider, ...props }: Component
     event.preventDefault();
     const url = new URL(String(props.href), window.location.origin);
     const open = provider === "google" ? requestGoogleSignIn : requestSignIn;
-    open({ referral: url.searchParams.get("referral"), ...authOptions });
+    open({ next: url.searchParams.get("next") || undefined, referral: url.searchParams.get("referral"), ...authOptions });
   }} />;
 }

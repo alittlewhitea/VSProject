@@ -20,6 +20,26 @@ const translations: Record<Locale, string[]> = {
   ar: ["مرحبًا بك في Dreamface", "سجّل وأنشئ مجانًا", "المتابعة باستخدام Google", "أو", "البريد الإلكتروني", "متابعة", "تحقق من بريدك", "أرسلنا رابط الدخول إلى {email}. تنتهي صلاحيته خلال 10 دقائق.", "إعادة إرسال الرابط", "استخدام بريد آخر", "بانتظار تسجيل الدخول…", "حظر المتصفح نافذة تسجيل الدخول إلى Google.", "متابعة الدخول باستخدام Google", "تعذر تسجيل الدخول. حاول مرة أخرى.", "تم تسجيل الدخول", "متابعة", "إغلاق", "أدخل عنوان بريد إلكتروني صالحًا."]
 };
 
+const completionErrors: Record<Locale, [string, string, string]> = {
+  en: ["This sign-in link has expired. Request a new link.", "This sign-in link has already been used. Request a new link.", "Your browser could not save the sign-in session. Open the link in your main browser and try again."],
+  "zh-CN": ["登录链接已过期，请重新获取链接。", "此登录链接已使用，请重新获取链接。", "浏览器未能保存登录状态，请在常用浏览器中打开链接重试。"],
+  "zh-TW": ["登入連結已過期，請重新取得連結。", "此登入連結已使用，請重新取得連結。", "瀏覽器未能儲存登入狀態，請在常用瀏覽器中開啟連結重試。"],
+  "pt-BR": ["Este link expirou. Solicite um novo link.", "Este link já foi usado. Solicite um novo link.", "Seu navegador não salvou a sessão. Abra o link no navegador principal e tente novamente."],
+  ru: ["Срок действия ссылки истёк. Запросите новую.", "Эта ссылка уже использована. Запросите новую.", "Браузер не сохранил сеанс. Откройте ссылку в основном браузере и повторите попытку."],
+  vi: ["Liên kết đăng nhập đã hết hạn. Hãy yêu cầu liên kết mới.", "Liên kết này đã được sử dụng. Hãy yêu cầu liên kết mới.", "Trình duyệt không lưu được phiên đăng nhập. Hãy mở liên kết trong trình duyệt chính và thử lại."],
+  de: ["Dieser Anmeldelink ist abgelaufen. Fordere einen neuen an.", "Dieser Anmeldelink wurde bereits verwendet. Fordere einen neuen an.", "Dein Browser konnte die Sitzung nicht speichern. Öffne den Link im Hauptbrowser und versuche es erneut."],
+  fr: ["Ce lien a expiré. Demandez un nouveau lien.", "Ce lien a déjà été utilisé. Demandez un nouveau lien.", "Votre navigateur n’a pas enregistré la session. Ouvrez le lien dans votre navigateur principal et réessayez."],
+  ja: ["ログインリンクの有効期限が切れています。新しいリンクを取得してください。", "このログインリンクは使用済みです。新しいリンクを取得してください。", "ログイン状態を保存できませんでした。普段お使いのブラウザでリンクを開き、もう一度お試しください。"],
+  th: ["ลิงก์เข้าสู่ระบบหมดอายุแล้ว โปรดขอลิงก์ใหม่", "ลิงก์นี้ถูกใช้แล้ว โปรดขอลิงก์ใหม่", "เบราว์เซอร์บันทึกเซสชันไม่ได้ โปรดเปิดลิงก์ในเบราว์เซอร์หลักแล้วลองอีกครั้ง"],
+  nl: ["Deze inloglink is verlopen. Vraag een nieuwe aan.", "Deze inloglink is al gebruikt. Vraag een nieuwe aan.", "Je browser kon de sessie niet opslaan. Open de link in je hoofdbrowser en probeer opnieuw."],
+  he: ["תוקף קישור ההתחברות פג. יש לבקש קישור חדש.", "כבר נעשה שימוש בקישור הזה. יש לבקש קישור חדש.", "הדפדפן לא הצליח לשמור את ההתחברות. יש לפתוח את הקישור בדפדפן הראשי ולנסות שוב."],
+  ko: ["로그인 링크가 만료되었습니다. 새 링크를 요청하세요.", "이미 사용한 로그인 링크입니다. 새 링크를 요청하세요.", "브라우저가 로그인 상태를 저장하지 못했습니다. 기본 브라우저에서 링크를 열고 다시 시도하세요."],
+  es: ["Este enlace ha caducado. Solicita uno nuevo.", "Este enlace ya se ha utilizado. Solicita uno nuevo.", "Tu navegador no pudo guardar la sesión. Abre el enlace en tu navegador principal e inténtalo de nuevo."],
+  it: ["Questo link è scaduto. Richiedine uno nuovo.", "Questo link è già stato utilizzato. Richiedine uno nuovo.", "Il browser non ha salvato la sessione. Apri il link nel browser principale e riprova."],
+  ar: ["انتهت صلاحية رابط الدخول. اطلب رابطًا جديدًا.", "تم استخدام هذا الرابط بالفعل. اطلب رابطًا جديدًا.", "تعذر على المتصفح حفظ جلسة الدخول. افتح الرابط في متصفحك الرئيسي وحاول مجددًا."]
+};
+
 export function authDialogCopy(locale: Locale) {
-  return Object.fromEntries(keys.map((key, index) => [key, translations[locale][index]])) as Record<typeof keys[number], string>;
+  const [expiredLink, usedLink, sessionMissing] = completionErrors[locale];
+  return { ...Object.fromEntries(keys.map((key, index) => [key, translations[locale][index]])) as Record<typeof keys[number], string>, expiredLink, usedLink, sessionMissing };
 }

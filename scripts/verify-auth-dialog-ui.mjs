@@ -8,6 +8,8 @@ const socket = new WebSocket(version.webSocketDebuggerUrl);
 await new Promise((resolve, reject) => { socket.addEventListener('open', resolve, { once: true }); socket.addEventListener('error', reject, { once: true }); });
 let sequence = 0, authenticated = false, googleFailure = false;
 let loginEvent = null;
+let emailFailure = null;
+const emailVerifications = [];
 const claimedLoginIds = new Set(), loginClaims = [], loginEvents = [], analyticsMirrors = [];
 const pending = new Map(), sessions = new Map(), errors = [], generations = [], emails = [], checkouts = [];
 const authTrace = [];
@@ -50,6 +52,18 @@ socket.addEventListener('message', event => {
       else {const claimed=!claimedLoginIds.has(loginEvent.id);claimedLoginIds.add(loginEvent.id);body={claimed,event:{...loginEvent,surface:'fixture'}};}
     }
     if (path === '/api/auth/email/start') { emails.push(JSON.parse(request.postData)); body = { ok: true }; }
+    if (path === '/api/auth/verify' && request.method === 'GET') {
+      const complete = new URL('/auth/complete', origin);
+      const wrapped = new URL(url.searchParams.get('next') || '/studio?view=home', origin);
+      complete.searchParams.set('next', wrapped.pathname === '/auth/complete' ? wrapped.searchParams.get('next') : wrapped.pathname + wrapped.search);
+      complete.searchParams.set('email', '1');
+      responseCode = 302; headers.push({ name: 'Location', value: complete.href });
+    }
+    if (path === '/api/auth/verify' && request.method === 'POST') {
+      emailVerifications.push(request);
+      if (emailFailure) { responseCode = emailFailure === 'used_link' ? 409 : 410; body = { error: emailFailure }; }
+      else { authenticated = true; loginEvent = { id: randomUUID(), method: 'email' }; body = { ok: true }; }
+    }
     if (path === '/api/auth/google/start') {
       authTrace.push({ path, next: url.searchParams.get('next') });
       if (!googleFailure) { authenticated = true; loginEvent = { id: randomUUID(), method: 'google' }; }
@@ -82,7 +96,7 @@ async function target(url = 'about:blank') {
 }
 let page;
 async function evaluate(expression, id = page.sessionId) { const value = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true, userGesture: true }, id); if (value.exceptionDetails) throw new Error(value.exceptionDetails.exception?.description || value.exceptionDetails.text); return value.result.value; }
-async function waitFor(expression) { for (let i = 0; i < 180; i++) { if (await evaluate(expression)) return; await pause(150); } throw new Error('UI condition failed: ' + expression); }
+async function waitFor(expression, id = page.sessionId) { for (let i = 0; i < 180; i++) { if (await evaluate(expression, id)) return; await pause(150); } throw new Error('UI condition failed: ' + expression); }
 async function navigate(path) { await send('Page.navigate', { url: origin + path }, page.sessionId); }
 async function field(selector, value) { await evaluate(`(() => {const input=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input),'value').set.call(input,${JSON.stringify(value)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`); }
 async function openLogin() { await evaluate("document.querySelector('a.df-sign-in').click()"); await waitFor("!!document.querySelector('[data-auth-dialog]')"); }
@@ -138,14 +152,15 @@ try {
   await waitFor("document.querySelector('#auth-dialog-title').textContent==='Check your inbox'");
   assert.equal(emails.length, 1); assert.ok(emails[0].next.startsWith('/auth/complete?'));
   assert.equal(await evaluate("[...document.querySelectorAll('[data-auth-dialog] button')].find(x=>x.innerText.includes('Resend')).disabled"), true);
-  authenticated = true; loginEvent = { id: randomUUID(), method: 'email' };
-  const emailTab = await target(origin + emails[0].next);
+  const emailTab = await target(origin + '/api/auth/verify?' + new URLSearchParams({ token: 'a'.repeat(64), next: emails[0].next }));
   await waitFor("!document.querySelector('[data-auth-dialog]') && !document.querySelector('a.df-sign-in')");
   assert.equal(await evaluate('location.href'), initialUrl);
   assert.equal(await evaluate("document.querySelector('.df-avatar-subject img').src"), portrait);
   assert.equal(await evaluate("document.querySelector('#avatar-spoken-script').value"), 'Welcome! This script must stay exactly where I left it.');
   assert.equal(generations.length, 0, 'Ordinary login cannot start generation');
   await waitLoginCount(1);
+  await waitFor("location.pathname==='/studio'&&!location.href.includes('token=')", emailTab.sessionId);
+  assert.equal(emailVerifications.length, 1, 'One browser POST verifies the email link');
   await send('Target.closeTarget', { targetId: emailTab.targetId });
 
   // Generation-triggered login resumes exactly once after Google popup authentication.
@@ -225,7 +240,7 @@ try {
   await evaluate("document.querySelector('[data-home-google-sign-in]').click()");
   await waitFor("!document.querySelector('[data-auth-dialog]')&&!document.querySelector('header a[href*=\"/auth?next\"]')");
   assert.equal(authTrace.filter(entry=>entry.path==='/api/auth/google/start').length, googleBeforeTry + 1, 'Homepage Google action starts OAuth on its first click');
-  assert.equal(await evaluate('location.pathname'), '/en');
+  await waitFor("location.pathname==='/studio'&&new URLSearchParams(location.search).get('view')==='home'");
   await waitLoginCount(5);
   await navigate('/studio?view=billing');
   await waitFor("Object.keys(document.querySelector('[data-credit-pack-select]')||{}).some(key=>key.startsWith('__reactProps'))&&!document.querySelector('a.df-sign-in')");
@@ -243,9 +258,30 @@ try {
   assert.equal(new Set(loginEvents.map(event=>event.login_event_id)).size,6);
   assert.equal(analyticsMirrors.filter(event=>event.eventName==='login_success').length,0,'No duplicate generic login mirror');
   assert.ok(loginEvents.every(event=>!JSON.stringify(event).includes(fixture.access_token)));
+  for (const failure of ['expired_link', 'used_link']) {
+    emailFailure=failure;authenticated=false;
+    const failedEmail=await target(origin+'/api/auth/verify?'+new URLSearchParams({token:'b'.repeat(64),next:'/auth/complete?next=%2Fen'}));
+    await waitFor(`document.body?.textContent.includes('${failure==='expired_link'?'has expired':'already been used'}')`,failedEmail.sessionId);
+    assert.ok((await evaluate("document.querySelector('a').href",failedEmail.sessionId)).includes('next=%2Fstudio%3Fview%3Dhome'));
+    await send('Target.closeTarget',{targetId:failedEmail.targetId});
+  }
+  emailFailure=null;await waitLoginCount(6);
+  await navigate('/en');await waitFor("Object.keys(document.querySelector('header a[href*=\"/auth?next\"]')||{}).some(key=>key.startsWith('__reactProps'))");
+  await evaluate("document.querySelector('header a[href*=\"/auth?next\"]').click()");await waitFor("!!document.querySelector('[data-auth-dialog]')");
+  await evaluate("[...document.querySelectorAll('[data-auth-dialog] button')].find(x=>x.innerText==='Continue with Google').click()");
+  await waitFor("location.pathname==='/studio'&&new URLSearchParams(location.search).get('view')==='home'");await waitLoginCount(7);
+  authenticated=false;await navigate('/en');await waitFor("Object.keys(document.querySelector('[data-home-google-sign-in]')||{}).some(key=>key.startsWith('__reactProps'))");
+  await evaluate("document.querySelector('[data-home-google-sign-in]').parentElement.querySelector('a:not([data-home-google-sign-in])').click()");await waitFor("!!document.querySelector('[data-auth-dialog]')");
+  await field('#auth-dialog-email','home@example.invalid');await evaluate("document.querySelector('[data-auth-dialog] form').requestSubmit()");await waitFor("document.querySelector('#auth-dialog-title').textContent==='Check your inbox'");
+  const homeEmail=await target(origin+'/api/auth/verify?'+new URLSearchParams({token:'c'.repeat(64),next:emails.at(-1).next}));
+  await waitFor("location.pathname==='/studio'&&new URLSearchParams(location.search).get('view')==='home'");
+  await waitFor("location.pathname==='/studio'&&new URLSearchParams(location.search).get('view')==='home'",homeEmail.sessionId);await waitLoginCount(8);
+  await send('Target.closeTarget',{targetId:homeEmail.targetId});
+  assert.equal(loginEvents.filter(event=>event.method==='email').length,2);
+  assert.equal(emailVerifications.length,4,'Two successful and two rejected links use one POST each');
   assert.deepEqual(errors, []);
-  writeFileSync('outputs/auth-dialog/browser-regression.json', JSON.stringify({ passed: true, loginSuccessEvents:loginEvents.length, uniqueLoginRecords:claimedLoginIds.size, loginMethods:loginEvents.map(event=>event.method), emails: emails.length, generations: generations.length, favorites: favoriteWrites.length, checkouts: checkouts.length, assertions: ['existing session produces no login event', 'six real authentications produce six login events', 'homepage success counted', 'reload/focus/embedded billing cannot duplicate', 'same account can log in again', 'no generic login mirror', 'desktop/mobile', 'visible mobile login at 320/390/430px', 'four mobile workspaces', 'shared Google button style', 'homepage one-click Google OAuth', 'homepage Google blocked fallback', 'Try DreamFace chooser preserved', 'exact copy', 'same-page URL', 'keyboard close', 'portrait/script preserved', 'popup blocked fallback', 'Google error recovery', 'email cross-tab sync', 'one generation after Google login', 'payment chooser resumes', 'Avatar favorite resumes', 'website login opens in place'], errors }, null, 2));
-  console.log('Auth UI passed: six Google/email authentications produce six login_success events; restoration, reload, focus and embedded billing do not add events. Homepage, popup and email tabs count correctly; all previous desktop/mobile auth flows remain intact. All APIs and GTM delivery mocked.');
+  writeFileSync('outputs/auth-dialog/browser-regression.json', JSON.stringify({ passed: true, loginSuccessEvents:loginEvents.length, uniqueLoginRecords:claimedLoginIds.size, loginMethods:loginEvents.map(event=>event.method), emails: emails.length, generations: generations.length, favorites: favoriteWrites.length, checkouts: checkouts.length, assertions: ['existing session produces no login event', 'eight real authentications produce eight login events', 'homepage hero, header and email enter Studio automatically', 'email verifies with one POST', 'expired and used links explain recovery', 'reload/focus/embedded billing cannot duplicate', 'same account can log in again', 'no generic login mirror', 'desktop/mobile', 'visible mobile login at 320/390/430px', 'four mobile workspaces', 'shared Google button style', 'homepage one-click Google OAuth', 'homepage Google blocked fallback', 'Try DreamFace chooser preserved', 'exact copy', 'same-page URL', 'keyboard close', 'portrait/script preserved', 'popup blocked fallback', 'Google error recovery', 'email cross-tab sync', 'one generation after Google login', 'payment chooser resumes', 'Avatar favorite resumes', 'website login opens in place'], errors }, null, 2));
+  console.log('Auth UI passed: eight Google/email authentications produce eight login_success events; homepage hero, header and email enter Studio automatically. Email uses one POST, expired/used links explain recovery, and restoration/reload/focus/billing do not add events. All previous desktop/mobile draft, generation, checkout and favorite flows remain intact. APIs and GTM delivery mocked.');
 } catch (error) {
   if (page) { await screenshot('failure').catch(() => {}); console.log(await evaluate("JSON.stringify({url:location.href,body:document.body.innerText.slice(-1600)})").catch(() => 'No diagnostic page')); }
   console.log('Browser errors:', errors, 'Auth trace:', authTrace.slice(-15));

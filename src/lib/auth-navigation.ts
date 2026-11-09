@@ -1,4 +1,5 @@
 import type { AuthSession } from "./supabase-client";
+import { locales } from "../i18n/routing";
 
 export const AUTH_DIALOG_EVENT = "dreamface-open-auth";
 export const AUTH_RESULT_EVENT = "dreamface-auth-result";
@@ -10,6 +11,7 @@ export type SignInRequest = {
   onSuccess?: (session: AuthSession) => void;
   onBeforeRedirect?: () => boolean | void;
   googlePopup?: Window | null;
+  redirectOnSuccess?: boolean;
 };
 
 /** Both Google entry points open during the user's click, before async work. */
@@ -31,13 +33,25 @@ export function authCompletionPath(next: string, error?: string) {
   return `/auth/complete?${params}`;
 }
 
+/** Old email links may wrap the destination in a completion URL or point home. */
+export function authPostLoginPath(value: unknown) {
+  let path = authReturnPath(value);
+  for (let depth = 0; depth < 3; depth++) {
+    const url = new URL(path, "https://dreamface.invalid");
+    if (url.pathname === "/auth/complete") { path = authReturnPath(url.searchParams.get("next")); continue; }
+    if (url.pathname === "/" || locales.some(locale => url.pathname === `/${locale}` || url.pathname === `/${locale}/`)) return "/studio?view=home";
+    return path;
+  }
+  return "/studio?view=home";
+}
+
 export function authFailurePath(next: string, error: string) {
   const url = new URL(authReturnPath(next), "https://dreamface.invalid");
   if (url.pathname === "/auth/complete") return authCompletionPath(url.searchParams.get("next") || "/studio", error);
   return `/auth?${new URLSearchParams({ error, next: authReturnPath(next) })}`;
 }
 
-/** Open in place; next is only used if authentication requires a full redirect. */
+/** Open in place; callers opt into navigation after success or resume an action. */
 export function requestSignIn(options: SignInRequest = {}) {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent<SignInRequest>(AUTH_DIALOG_EVENT, {

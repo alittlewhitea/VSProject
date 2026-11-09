@@ -15,6 +15,17 @@ const AUTH_EVENT = "dreamface-auth-change";
 const AUTH_STORAGE_KEY = "dreamface-auth-updated";
 let browserClient: ReturnType<typeof makeClient> | null = null;
 let sessionRead: Promise<AuthSession | null> | null = null;
+let emailVerification: Promise<{ ok: boolean; error?: string }> | null = null;
+
+/** Strict Mode and concurrent completion renders share one consuming request. */
+export function completeEmailSignIn() {
+  if (!emailVerification) emailVerification = (async () => {
+    const response = await fetch("/api/auth/verify", { method: "POST", credentials: "include", cache: "no-store" });
+    const body = await response.json() as { ok?: boolean; error?: string };
+    return { ok: response.ok && body.ok === true, error: body.error || (response.ok ? undefined : "signin_failed") };
+  })().finally(() => { emailVerification = null; });
+  return emailVerification;
+}
 
 function authUrl(path: string) {
   return path;

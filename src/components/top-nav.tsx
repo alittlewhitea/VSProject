@@ -216,7 +216,7 @@ export function TopNav() {
           ) : (
             <>
               <LanguageSwitcher />
-              <AuthLink href={localizedHref("/auth?next=%2Fstudio%3Fmode%3Dimage%26workflow%3Dtext-to-image")} onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="inline-flex rounded-full border border-black/10 px-3 py-2 text-xs font-bold text-[#1d1d1f] sm:px-4 sm:text-sm">
+              <AuthLink href={localizedHref("/auth?next=%2Fstudio%3Fview%3Dhome")} authOptions={{ redirectOnSuccess: cleanPathname === "/" }} onClick={() => trackEvent("nav_clicked", { item: "sign_in", target: "/auth" })} className="inline-flex rounded-full border border-black/10 px-3 py-2 text-xs font-bold text-[#1d1d1f] sm:px-4 sm:text-sm">
                 {t("nav.login")}
               </AuthLink>
               <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="inline-flex items-center gap-2 rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">

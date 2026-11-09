@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { isLocale, isRtlLocale, type Locale } from "../i18n/routing";
 import { AUTH_RESULT_EVENT, authCompletionPath, authReturnPath, openGoogleSignInPopup, type SignInRequest } from "../lib/auth-navigation";
 import { createBrowserSupabaseClient, notifyAuthChange, type AuthSession } from "../lib/supabase-client";
@@ -14,6 +15,7 @@ import { GoogleIcon } from "./google-icon";
 import googleStyles from "./google-sign-in.module.css";
 
 export default function AuthDialog({ request, onClose }: { request: SignInRequest; onClose: () => void }) {
+  const router = useRouter();
   const [locale] = useState<Locale>(() => isLocale(document.documentElement.lang) ? document.documentElement.lang : "en");
   const copy = authDialogCopy(locale);
   const [email, setEmail] = useState("");
@@ -44,6 +46,7 @@ export default function AuthDialog({ request, onClose }: { request: SignInReques
       popup.current?.close();
       latest.current.onClose();
       latest.current.request.onSuccess?.(session);
+      if (latest.current.request.redirectOnSuccess && !latest.current.request.onSuccess) router.push(next);
     }
     const { data } = client.auth.onAuthStateChange((_event, session) => { if (session) finish(session); });
     const message = (event: MessageEvent) => {
@@ -57,7 +60,7 @@ export default function AuthDialog({ request, onClose }: { request: SignInReques
       // Strict Mode replays setup/cleanup when the dialog mounts in development.
       popupCloseTimer.current = setTimeout(() => popup.current?.close(), 0);
     };
-  }, [next, copy.error]);
+  }, [next, copy.error, router]);
 
   useEffect(() => {
     if (!sent && busy !== "google" && !retryAt) return;
