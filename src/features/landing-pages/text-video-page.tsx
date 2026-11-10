@@ -7,6 +7,7 @@ import { absoluteUrl, siteUrl } from "../../lib/site-url";
 import { LocalizedStudioLink } from "./localized-studio-link";
 import { textVideoCopy, type TextVideoLocale } from "./text-video-data";
 import { textVideoMedia, type TextVideoMedia } from "./text-video-media";
+import { VideoEvidence } from "./video-evidence";
 
 const path = "/video/text-to-video";
 const studioHref = "/studio?mode=video&workflow=text-to-video";
@@ -59,6 +60,7 @@ export function TextVideoPage({ locale }: { locale: string }) {
         <div><p className="text-xs font-black uppercase tracking-[0.16em] text-[#7554df]">{c.eyebrow}</p><h1 className="mt-5 text-4xl font-black leading-[1.08] tracking-tight sm:text-5xl md:text-6xl">{c.heading}</h1><p className="mt-6 text-lg leading-8 text-[#596579]">{c.intro}</p><div className="mt-8 flex flex-wrap gap-3"><LocalizedStudioLink locale={locale} href={studioHref} className={primary}>{c.create}</LocalizedStudioLink><Link href={`/${locale}/price`} className="rounded-xl border border-[#ddd6f5] bg-white px-6 py-4 text-sm font-bold text-[#5542a4]">{c.pricing}</Link></div><p className="mt-4 text-sm text-[#667084]">{c.note}</p></div>
         <div className="overflow-hidden rounded-3xl border border-black/5 shadow-[0_24px_70px_-30px_#56359166]"><Media media={textVideoMedia.hero} title={c.preview} note={c.previewNote} /></div>
       </section>
+      {locale === "en" ? <VideoEvidence workflow="text-to-video" /> : null}
       <section className="border-t border-[#e8e6f0] py-14"><div className="max-w-3xl"><h2 className="text-3xl font-black tracking-tight md:text-4xl">{c.examples}</h2><p className="mt-4 leading-8 text-[#596579]">{examplesIntro}</p></div>
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">{caseIds.map((id, i) => {
           const media = textVideoMedia[id];

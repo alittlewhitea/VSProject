@@ -2,8 +2,17 @@ import { NextResponse } from "next/server";
 import { createHmac, randomUUID } from "node:crypto";
 import { getUserFromBearerToken } from "../../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
+import { cookies } from "next/headers";
+import { captureGrowthTouch, readGrowthTouch, growthProperties, GROWTH_COOKIE } from "../../../../lib/growth-attribution";
+import { publicLandingPath } from "../../../../lib/growth-policy";
+import { siteUrl } from "../../../../lib/site-url";
 
 const ALLOWED_EVENTS = new Set([
+  "landing_view",
+  "landing_cta_clicked",
+  "generation_insufficient_credits_shown",
+  "studio_prompt_improved",
+  "gallery_prompt_copied",
   "home_view",
   "home_cta_clicked",
   "hero_slide_clicked",
@@ -89,6 +98,8 @@ export async function POST(request: Request) {
   }
   // Old page bundles cannot add duplicate login records via the generic mirror.
   if (eventName === "login_success") return NextResponse.json({ ok: true, ignored: true });
+  const isLandingEvent = eventName === "landing_view" || eventName === "landing_cta_clicked";
+  if (isLandingEvent && /bot\b|spider|crawler|slurp/i.test(request.headers.get("user-agent") || "")) return NextResponse.json({ ok: true, ignored: true });
 
   const admin = createSupabaseAdminClient();
   if (!admin) {
@@ -100,6 +111,12 @@ export async function POST(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip");
   const countryCode = requestCountryCode(request.headers);
   const properties = cleanProperties(body?.properties);
+  // Browser-supplied properties cannot forge the signed attribution fields.
+  for (const key of ["attribution_id", "first_landing_path", "first_seen_at", "acquisition_channel", "acquisition_source", "acquisition_medium", "acquisition_campaign"]) delete properties[key];
+  const store = await cookies();
+  const landing = publicLandingPath(body?.pagePath);
+  if ((eventName === "landing_view" || eventName === "landing_cta_clicked") && !landing) return NextResponse.json({ ok: false, error: "Not a public landing page." }, { status: 400 });
+  const touch = eventName === "landing_view" ? captureGrowthTouch(store, body || {}, new URL(siteUrl()).hostname) : readGrowthTouch(store.get(GROWTH_COOKIE)?.value);
 
   const { error } = await admin.from("analytics_events").insert({
     id: randomUUID(),
@@ -107,11 +124,11 @@ export async function POST(request: Request) {
     anonymous_id: cleanText(body?.anonymousId, 120),
     session_id: cleanText(body?.sessionId, 120),
     event_name: eventName,
-    page_path: cleanText(body?.pagePath, 700),
-    referrer: cleanText(body?.referrer, 700),
+    page_path: isLandingEvent ? landing : cleanText(body?.pagePath, 700),
+    referrer: isLandingEvent ? touch?.referrerHost || null : cleanText(body?.referrer, 700),
     user_agent: cleanText(userAgent, 500),
     ip_hash: hashIp(forwardedFor),
-    properties: countryCode ? { ...properties, countryCode } : properties
+    properties: { ...properties, ...growthProperties(touch), ...(landing && eventName.startsWith("landing_") ? { landing_path: landing } : {}), ...(countryCode ? { countryCode } : {}) }
   });
 
   if (error) {

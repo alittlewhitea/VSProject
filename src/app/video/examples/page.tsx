@@ -1,0 +1,19 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { TopNav } from "../../../components/top-nav";
+import { SiteFooter } from "../../../components/site-footer";
+import { VideoEvidence, CONTENT_REVIEWED_AT } from "../../../features/landing-pages/video-evidence";
+import { absoluteUrl, siteUrl } from "../../../lib/site-url";
+const path = "/video/examples", title = "AI Video Examples, Prompts & Credit Estimates | DreamFace";
+const description = "Explore text-to-video and image-to-video examples with source links, original prompts, model settings and current DreamFace credit estimates.";
+export const metadata: Metadata = { title: { absolute: title }, description, alternates: { canonical: absoluteUrl(siteUrl(), path) }, robots: { index: true, follow: true }, openGraph: { title, description, url: absoluteUrl(siteUrl(), path), type: "website" } };
+export default function VideoExamplesPage() {
+  const schema = [
+    { "@context": "https://schema.org", "@type": "CollectionPage", name: title, description, url: absoluteUrl(siteUrl(), path), dateModified: CONTENT_REVIEWED_AT },
+    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+      { "@type": "ListItem", position: 1, name: "DreamFace", item: absoluteUrl(siteUrl(), "/en") },
+      { "@type": "ListItem", position: 2, name: "AI Video Examples", item: absoluteUrl(siteUrl(), path) }
+    ] }
+  ];
+  return <main className="min-h-screen bg-[#f8faff] text-[#1f2430]"><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} /><div className="mx-auto max-w-7xl px-5 sm:px-8"><TopNav /><section className="py-14 md:py-20"><p className="text-xs font-bold uppercase tracking-widest text-[#7554df]">Video creation field notes</p><h1 className="mt-5 max-w-4xl text-4xl font-black leading-tight sm:text-5xl">Watch the example. Read the prompt. Explore the settings.</h1><p className="mt-6 max-w-3xl text-lg leading-8 text-[#596579]">See how published supplier examples connect an input, a prompt and model settings. Use these as starting points for your own scenes.</p><p className="mt-4 text-sm leading-7 text-[#667084]">Reviewed {CONTENT_REVIEWED_AT}. These are existing supplier demonstrations, not new DreamFace benchmark runs. We do not have matching-scene test results, generation latency measurements or a measured cost per usable clip for these examples.</p><div className="mt-6 flex flex-wrap gap-4"><a href="#text-to-video-examples" className="min-h-11 py-3 font-semibold text-[#6548d0] underline">Text-to-video examples</a><a href="#image-to-video-examples" className="min-h-11 py-3 font-semibold text-[#6548d0] underline">Image-to-video examples</a></div></section><VideoEvidence workflow="text-to-video" /><VideoEvidence workflow="image-to-video" /><section className="border-t py-12"><h2 className="text-2xl font-bold">How to compare your own results</h2><p className="mt-4 max-w-3xl leading-8 text-[#596579]">Use a source image you own, the same prompt, aspect ratio and duration across supported models. Save every attempt, including failures, and record the credits spent. Judge the clips against your actual goal: subject consistency, readable product details, camera movement or spoken delivery. Calculate the cost of accepted clips after including retries.</p><div className="mt-5 flex flex-wrap gap-5"><Link href="/video/text-to-video" className="min-h-11 py-3 font-semibold text-[#6548d0] underline">Text-to-video guide</Link><Link href="/video/image-to-video" className="min-h-11 py-3 font-semibold text-[#6548d0] underline">Image-to-video guide</Link><Link href="/avatar/ai-avatar-generator" className="min-h-11 py-3 font-semibold text-[#6548d0] underline">Talking avatar videos</Link></div></section><SiteFooter /></div></main>;
+}

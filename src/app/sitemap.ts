@@ -57,9 +57,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   const staticUrls: MetadataRoute.Sitemap = [
+    ...["/avatar/ai-avatar-generator", "/video/examples"].map(path => ({ url: absoluteUrl(baseUrl, path), lastModified: "2026-11-10", changeFrequency: "monthly" as const, priority: 0.85 })),
     ...["", "/es", "/pt-BR"].map((prefix) => ({
       url: absoluteUrl(baseUrl, `${prefix}/video/text-to-video`),
-      lastModified: "2026-10-29",
+      lastModified: prefix ? "2026-10-29" : "2026-11-10",
       changeFrequency: "monthly" as const,
       priority: 0.85,
       alternates: { languages: {
@@ -83,7 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: absoluteUrl(baseUrl, "/video/image-to-video"),
-      lastModified: "2026-10-27",
+      lastModified: "2026-11-10",
       changeFrequency: "monthly",
       priority: 0.85
     },
@@ -99,7 +100,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: absoluteUrl(baseUrl, "/video/gemini-omni"),
-      lastModified: "2026-07-16",
+      lastModified: "2026-11-10",
       changeFrequency: "monthly",
       priority: 0.85
     },

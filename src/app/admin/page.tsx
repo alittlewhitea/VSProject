@@ -622,6 +622,7 @@ export default function AdminHomePage() {
             <div className="flex flex-wrap gap-3">
               <Link href="/admin/gallery"><AppButton variant="secondary">Gallery</AppButton></Link>
               <Link href="/admin/tasks"><AppButton variant="secondary">Task Detail</AppButton></Link>
+              <Link href="/admin/growth"><AppButton variant="secondary">Growth</AppButton></Link>
               <AppButton onClick={() => loadOps()} disabled={loading}>{loading ? "Refreshing..." : "Refresh"}</AppButton>
             </div>
           </div>

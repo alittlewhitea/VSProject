@@ -13,7 +13,7 @@
     "verify:gpt-image": "node scripts/verify-gpt-image.mjs && node scripts/verify-gpt-image-pricing.mjs",
     "verify:payments": "node scripts/verify-paypal-checkout.mjs",
     "verify:wallets": "node scripts/verify-paypal-wallets.mjs && node scripts/verify-wallet-loading.mjs",
-    "verify:analytics": "node scripts/verify-analytics-value.mjs && node scripts/verify-login-success.mjs",
+    "verify:analytics": "node scripts/verify-analytics-value.mjs && node scripts/verify-login-success.mjs && node scripts/verify-growth.mjs",
     "verify:dodo": "node scripts/verify-dodo-payments.mjs",
     "verify:video-prompt-ai": "node scripts/verify-video-prompt-ai.mjs",
     "verify:task-history": "node scripts/verify-task-history.mjs",

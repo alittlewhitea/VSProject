@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { hasOnlyTrackingParameters, type SearchParameters } from "../../lib/search-url-policy";
 import { absoluteUrl, siteUrl } from "../../lib/site-url";
 import GalleryPageClient from "./gallery-client";
+import { listPublishedGalleryRows } from "../../lib/gallery-db";
+import { isGalleryCategory, mapGalleryRow, toDbGalleryCategory } from "../../lib/gallery";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParameters> }): Promise<Metadata> {
   const params = await searchParams;
@@ -15,6 +17,16 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   };
 }
 
-export default function GalleryPage() {
-  return <GalleryPageClient />;
+export default async function GalleryPage({ searchParams }: { searchParams: Promise<SearchParameters> }) {
+  const params = await searchParams;
+  const category = typeof params.category === "string" && isGalleryCategory(params.category) ? params.category : "All";
+  const sort = params.sort === "latest" ? "latest" : "featured";
+  const query = typeof params.q === "string" ? params.q.trim().slice(0, 300) : "";
+  const initialKey = JSON.stringify([category, sort, query]);
+  try {
+    const rows = await listPublishedGalleryRows({ category: toDbGalleryCategory(category), sort, query, limit: 80 });
+    return <GalleryPageClient initialItems={rows.map(mapGalleryRow)} initialLoaded initialKey={initialKey} />;
+  } catch {
+    return <GalleryPageClient initialItems={[]} initialLoaded={false} initialKey={initialKey} />;
+  }
 }

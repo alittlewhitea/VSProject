@@ -9,6 +9,7 @@ import { safeInternalPath, trustedPublicOrigin } from "../../../../lib/request-s
 import { completeReferralAuth } from "../../../../lib/referrals";
 import { authCompletionPath, authFailurePath, authPostLoginPath } from "../../../../lib/auth-navigation";
 import { setLoginSuccessReceipt } from "../../../../lib/login-success-receipt";
+import { GROWTH_COOKIE, recordSignupAttribution } from "../../../../lib/growth-attribution";
 
 function publicBaseUrl(request: NextRequest) {
   return trustedPublicOrigin(request.url);
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
   );
   if (consumeResult.affectedRows !== 1) return fail("used_link", 409);
   const user = await upsertEmailUser(String(row.email), { countryCode: getRequestCountryCode(request.headers) });
+  await recordSignupAttribution(user.id, user.isNew, cookieStore.get(GROWTH_COOKIE)?.value).catch(() => false);
   const admin = createSupabaseAdminClient();
   if (admin) {
     await ensureSignupCreditAccount(admin, user.id, request.headers);

@@ -121,7 +121,8 @@ const apiResponse = await api.POST(request(base)); assert.equal(apiResponse.stat
 const route = readFileSync('src/app/api/generate/route.ts', 'utf8');
 assert.match(route, /prompt_enhancement/); assert.match(route, /final_prompt: prompt/);
 const studio = readFileSync('src/app/studio/studio-client.tsx', 'utf8').replaceAll('\r\n', '\n');
-assert.match(studio, /STUDIO_SIGN_IN_URL = "\/en\/auth/);
+assert.match(studio, /STUDIO_SIGN_IN_URL = "\/auth/);
+assert.match(studio, /<AuthLink href=\{STUDIO_SIGN_IN_URL\}/);
 const generation = studio.slice(studio.indexOf('  async function handleGenerate()'), studio.indexOf('  function handleGenerateClick()'));
 const cleanupStart = generation.lastIndexOf('} finally {') + '} finally {'.length;
 const cleanupEnd = generation.indexOf('\n    }\n  }', cleanupStart);

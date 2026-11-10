@@ -1,0 +1,11 @@
+question_id,topic,language,question,platform,region,web_search_enabled,run_number,observed_at_utc,brand_mentioned,clickable_site_citation,cited_url,facts_correct,raw_answer_path,status
+G01,avatar,en,"Which AI tools turn a portrait photo and a short script into a talking avatar video?",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,not_tested
+G02,avatar,en,"What should I check before choosing an AI avatar video generator for product introductions?",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,not_tested
+G03,talking_photo,en,"How can I make a photo speak without recording a new video?",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,not_tested
+G04,avatar_pricing,en,"How do I compare the credit cost of a 5-second and a 15-second AI presenter clip?",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,not_tested
+G05,image_to_video,en,"Which image-to-video tools support a starting image and an optional end frame?",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,not_tested
+G06,image_to_video,en,"What causes faces or product details to change when an AI model animates a photo?",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,not_tested
+G07,text_to_video,en,"Which AI video tools offer text-to-video and image-to-video with credit estimates before generation?",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,not_tested
+G08,video_examples,en,"Where can I see AI video examples together with prompts and model settings?",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,not_tested
+G09,gemini_omni,en,"What video resolutions and duration limits does Gemini Omni Flash 1.2 support?",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,not_tested
+G10,pay_as_you_go,en,"Which AI video platforms let occasional creators buy credits without a recurring subscription?",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,not_tested

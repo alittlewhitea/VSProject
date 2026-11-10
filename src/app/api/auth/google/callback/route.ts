@@ -7,6 +7,7 @@ import { safeInternalPath, trustedPublicOrigin } from "../../../../../lib/reques
 import { completeReferralAuth } from "../../../../../lib/referrals";
 import { authCompletionPath } from "../../../../../lib/auth-navigation";
 import { setLoginSuccessReceipt } from "../../../../../lib/login-success-receipt";
+import { GROWTH_COOKIE, recordSignupAttribution } from "../../../../../lib/growth-attribution";
 
 const STATE_COOKIE = "dreamface_google_state";
 
@@ -88,6 +89,7 @@ export async function GET(request: NextRequest) {
     countryCode: getRequestCountryCode(request.headers),
     raw: profile
   });
+  await recordSignupAttribution(user.id, user.isNew, cookieStore.get(GROWTH_COOKIE)?.value).catch(() => false);
   const admin = createSupabaseAdminClient();
   if (admin) {
     await ensureSignupCreditAccount(admin, user.id, request.headers);

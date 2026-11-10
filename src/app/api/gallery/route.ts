@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const category = url.searchParams.get("category") || "All";
     const sort = url.searchParams.get("sort") || "featured";
-    const query = url.searchParams.get("q")?.trim() || "";
+    const query = url.searchParams.get("q")?.trim().slice(0, 300) || "";
     const limitParam = Number(url.searchParams.get("limit") || "60");
     const limit = Number.isFinite(limitParam) ? Math.min(Math.max(Math.trunc(limitParam), 1), 120) : 60;
     const offsetParam = Number(url.searchParams.get("offset") || "0");

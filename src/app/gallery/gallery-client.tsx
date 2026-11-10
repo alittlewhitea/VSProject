@@ -17,7 +17,8 @@ function sourceLabel(item: GalleryItem) {
   return [item.sourcePlatform || (handle ? "Source" : "DreamFace"), handle].filter(Boolean).join(" / ");
 }
 
-function GalleryContent() {
+type InitialGallery = { initialItems?: GalleryItem[]; initialLoaded?: boolean; initialKey?: string };
+function GalleryContent({ initialItems = [], initialLoaded = false, initialKey }: InitialGallery) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category") || "All";
@@ -25,9 +26,9 @@ function GalleryContent() {
   const queryParam = searchParams.get("q") || "";
   const activeCategory: GalleryCategory = isGalleryCategory(categoryParam) ? categoryParam : "All";
   const activeSort: GallerySort = sortParam;
-  const activeQuery = queryParam.trim();
-  const [items, setItems] = useState<GalleryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const activeQuery = queryParam.trim().slice(0, 300);
+  const [items, setItems] = useState<GalleryItem[]>(initialItems);
+  const [loading, setLoading] = useState(!initialLoaded);
   const [note, setNote] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState(activeQuery);
@@ -48,6 +49,7 @@ function GalleryContent() {
     });
     if (activeQuery) params.set("q", activeQuery);
     const fallbackItems = filterFallbackGalleryItems(activeCategory, activeQuery);
+    const publishedSnapshot = JSON.stringify([activeCategory, activeSort, activeQuery]) === initialKey ? initialItems : [];
 
     fetch(`/api/gallery?${params.toString()}`)
       .then(async (response) => {
@@ -55,13 +57,13 @@ function GalleryContent() {
         if (!response.ok) throw new Error(payload.storageWarning || "Gallery could not be loaded.");
         if (!cancelled) {
           const apiItems = Array.isArray(payload.items) ? payload.items : [];
-          setItems(apiItems.length ? apiItems : fallbackItems);
+          setItems(apiItems.length ? apiItems : payload.storageWarning && publishedSnapshot.length ? publishedSnapshot : fallbackItems);
           setNote(payload.storageWarning ? "Showing built-in examples while the live gallery reconnects." : !apiItems.length && fallbackItems.length ? "Showing built-in examples while the live gallery reconnects." : "");
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setItems(fallbackItems);
+          setItems(publishedSnapshot.length ? publishedSnapshot : fallbackItems);
           setNote(fallbackItems.length ? "Showing built-in examples while the live gallery reconnects." : "Gallery could not be loaded.");
         }
       })
@@ -232,7 +234,7 @@ function GalleryContent() {
           </p>
         ) : null}
 
-        {loading ? (
+        {loading && !items.length ? (
           <section className="mt-6 columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
             {Array.from({ length: 12 }).map((_, index) => (
               <div
@@ -312,10 +314,10 @@ function GalleryContent() {
   );
 }
 
-export default function GalleryPage() {
+export default function GalleryPage(props: InitialGallery) {
   return (
     <Suspense fallback={null}>
-      <GalleryContent />
+      <GalleryContent {...props} />
     </Suspense>
   );
 }

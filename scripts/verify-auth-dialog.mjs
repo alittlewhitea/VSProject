@@ -112,7 +112,7 @@ try {
   const cookieStore = { get: key => cookieValues.has(key) ? { value: cookieValues.get(key) } : undefined,
     set(key, value, options) { cookieValues.set(key, value); cookiesWritten.push({ key, value, options }); },
     delete: key => cookieValues.delete(key) };
-  let sessionsCreated = 0, consumed = 0, existingEmailSession = null;
+  let sessionsCreated = 0, consumed = 0, existingEmailSession = null, attributionFailure = false;
   const utcDate = value => value.toISOString().slice(0, 19).replace('T', ' ');
   let emailRow = { id: 1, email: 'owner@example.invalid', expires_at: utcDate(new Date(Date.now()+600000)), consumed_at: null };
   const security = { safeInternalPath: navigation.authReturnPath, trustedPublicOrigin: () => 'https://fixture.invalid' };
@@ -127,6 +127,7 @@ try {
     mocks[prefix + 'credits'] = { ensureSignupCreditAccount: async () => {}, getRequestCountryCode: () => null };
     mocks[prefix + 'supabase-admin'] = { createSupabaseAdminClient: () => null };
     mocks[prefix + 'referrals'] = { captureReferralAuth: async () => {}, completeReferralAuth: async () => {} };
+    mocks[prefix + 'growth-attribution'] = { GROWTH_COOKIE: 'fixture-touch', recordSignupAttribution: async () => { if (attributionFailure) throw new Error('Fixture analytics storage unavailable'); } };
     mocks[prefix + 'mysql'] = { getMysqlPool: () => ({ execute: async (sql, params) => {
       if (sql.startsWith('select')) return [[emailRow]];
       assert.ok(!sql.includes('now(6)'), 'OTP expiration cannot depend on the database session timezone');
@@ -193,6 +194,9 @@ try {
   cookieValues.set('dreamface_email_signin',emailToken);
   emailRow={...emailRow,consumed_at:null,expires_at:utcDate(new Date(Date.now()-60000))};
   emailResult=await postEmail();assert.equal((await emailResult.json()).error,'expired_link');assert.equal(consumed,1);
+  attributionFailure=true;cookieValues.set('dreamface_email_signin',emailToken);
+  emailRow={...emailRow,consumed_at:null,expires_at:utcDate(new Date(Date.now()+600000))};
+  emailResult=await postEmail();assert.equal((await emailResult.json()).ok,true,'Attribution failure cannot block a valid email login');
 
   const { authDialogCopy } = load('src/components/auth-dialog-copy.ts');
   for (const locale of load('src/i18n/routing.ts').locales) assert.ok(Object.values(authDialogCopy(locale)).every(value => typeof value === 'string' && value.length > 0), locale);

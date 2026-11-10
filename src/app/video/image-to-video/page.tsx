@@ -5,6 +5,7 @@ import { SiteFooter } from "../../../components/site-footer";
 import { TopNav } from "../../../components/top-nav";
 import { absoluteUrl, siteUrl } from "../../../lib/site-url";
 import { DREAMFACE_CREDIT_SUMMARY } from "../../compare/dreamface-credit-packs";
+import { VideoEvidence } from "../../../features/landing-pages/video-evidence";
 
 const pagePath = "/video/image-to-video";
 const studioHref = "/studio?mode=video&workflow=image-to-video";
@@ -60,6 +61,7 @@ export default function ImageToVideoPage() {
           <div className="mt-8 flex flex-wrap gap-3"><Link href={studioHref} className="rounded-xl bg-[#7554df] px-6 py-4 text-sm font-bold text-white">Create image to video</Link><Link href="/price" className="rounded-xl border border-[#ddd6f5] bg-white px-6 py-4 text-sm font-bold text-[#5542a4]">See credit packs</Link></div>
           <p className="mt-4 text-sm text-[#667084]">Review the estimated credit cost in Studio before you generate.</p>
         </section>
+        <VideoEvidence workflow="image-to-video" />
         <section className="border-t border-[#e8e6f0] py-14">
           <h2 className="text-3xl font-black">How to animate an image</h2>
           <div className="mt-7 grid gap-4 md:grid-cols-3">{steps.map(([number, name, detail]) => <div key={number} className="rounded-2xl border border-[#e8e6f0] bg-white p-6"><p className="text-sm font-black text-[#7554df]">{number}</p><h3 className="mt-3 text-xl font-bold">{name}</h3><p className="mt-3 text-sm leading-7 text-[#596579]">{detail}</p></div>)}</div>

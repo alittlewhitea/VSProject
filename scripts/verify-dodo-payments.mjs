@@ -173,9 +173,11 @@ assert.equal((await checkoutRoute.POST(request({ ...body, packId: 'unknown' })))
 
 // Shared pack selection opens one payment dialog; Dodo remains its Credit Card action.
 let cells = [], cursor = 0, selected;
-const react = {useState(initialValue){const i=cursor++;if(!(i in cells))cells[i]=initialValue;return[cells[i],value=>cells[i]=value];}};
+const react = {useEffect(){},useState(initialValue){const i=cursor++;if(!(i in cells))cells[i]=initialValue;return[cells[i],value=>cells[i]=value];}};
 const PaymentDialog=()=>null;
 const grid=load('src/components/credit-pack-grid.tsx',{
+ '../lib/auth-navigation':{requestSignIn:()=>{throw new Error('Authenticated pack fixture must not request login');}},
+ '../lib/paypal-wallets-client':{preloadPayPalWallets:async()=>{}},
  react,'next/dynamic':{default:()=>PaymentDialog},'../lib/billing':{
  CREDIT_PACKS:[pack],CREDIT_USAGE_REFERENCE:{video:{model:'Test',seconds:5,resolution:'480p'}},
  creditUsageCapacity:()=>({images:1,videos:1}),formatUsd:amount=>'$'+(amount/100).toFixed(2)
@@ -227,7 +229,7 @@ try {
  globalThis.document={body:{}};
  for(const suspended of [true,false]){
   let stateIndex=0;
-  const fakeReact={useRef:value=>({current:value}),useEffect(){},useState:value=>[stateIndex++===2?true:value,()=>{}]};
+  const fakeReact={useRef:value=>({current:value}),useEffect(){},useState:value=>[stateIndex++===3?true:value,()=>{}]};
   const component=load('src/components/credit-payment-dialog.tsx',{
    react:fakeReact,'react-dom':{createPortal:node=>node},
    '../lib/billing':{CREDIT_PACKS:[pack],formatUsd:amount=>'$'+(amount/100).toFixed(2)},
