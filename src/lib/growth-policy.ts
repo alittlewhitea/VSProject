@@ -16,7 +16,7 @@ export function publicLandingPath(value: unknown): string | null {
       if (locale === "en" && base === "/video/text-to-video") return base;
       return null;
     }
-    if (["/", "/price", "/about", "/gallery", "/compare", "/image/text-to-image", "/video/text-to-video", "/video/image-to-video", "/video/gemini-omni", "/video/seedance-2", "/video/examples", "/avatar/ai-avatar-generator"].includes(base) || /^\/(?:compare|gallery)\/[a-zA-Z0-9-]{1,180}$/.test(base)) return path === "/" ? "/en" : path;
+    if (["/", "/price", "/about", "/gallery", "/compare", "/image/text-to-image", "/video/text-to-video", "/video/image-to-video", "/video/gemini-omni", "/video/mischief-1", "/video/seedance-2", "/video/examples", "/avatar/ai-avatar-generator"].includes(base) || /^\/(?:compare|gallery)\/[a-zA-Z0-9-]{1,180}$/.test(base)) return path === "/" ? "/en" : path;
   } catch { /* Invalid URLs are never attribution entry points. */ }
   return null;
 }

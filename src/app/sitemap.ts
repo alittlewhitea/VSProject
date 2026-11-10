@@ -57,7 +57,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   const staticUrls: MetadataRoute.Sitemap = [
-    ...["/avatar/ai-avatar-generator", "/video/examples"].map(path => ({ url: absoluteUrl(baseUrl, path), lastModified: "2026-11-10", changeFrequency: "monthly" as const, priority: 0.85 })),
+    ...["/avatar/ai-avatar-generator", "/video/examples", "/video/mischief-1"].map(path => ({ url: absoluteUrl(baseUrl, path), lastModified: "2026-11-10", changeFrequency: "monthly" as const, priority: 0.85 })),
     ...["", "/es", "/pt-BR"].map((prefix) => ({
       url: absoluteUrl(baseUrl, `${prefix}/video/text-to-video`),
       lastModified: prefix ? "2026-10-29" : "2026-11-10",

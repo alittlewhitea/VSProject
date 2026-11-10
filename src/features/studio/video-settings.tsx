@@ -168,6 +168,7 @@ export function VideoSettings({
           </div>
           {dailyFreeLabel ? <p role="status" className="df-composer-daily">{dailyFreeLabel}</p> : null}
           <GenerationCostSummary compact estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate}/>
+          {provider === "mischief-video" ? <p data-mischief-notice className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate("studio.model.mischief-video")}</p> : null}
 
           {moreSettingsOpen ? <div data-video-advanced className={`mt-3 grid gap-3 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3 ${showAudioControl ? "sm:grid-cols-2" : ""}`}>
             {provider === "flux-3-max-video" ? <label className="min-w-0 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2"><span className="mb-1 block text-xs text-[var(--studio-muted)]">{translate("studio.flux3.reasoning")}</span><select data-flux3-reasoning value={reasoningLevel} onChange={event=>onReasoningLevelChange(event.target.value as "low"|"high")} className="min-h-8 w-full border-0 bg-transparent text-[13px] font-medium text-[var(--studio-text)] outline-none"><option value="low">{translate("studio.flux3.low")}</option><option value="high">{translate("studio.flux3.high")}</option></select></label> : null}

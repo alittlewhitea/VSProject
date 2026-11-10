@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { TopNav } from "../../components/top-nav";
 import { AppButton } from "../../components/ui/button";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
@@ -31,9 +31,6 @@ type AdminUser = {
   runningTasks: number;
   lastTaskAt: string | null;
   hasSpentCredits: boolean;
-  subscriptionPlan: string | null;
-  subscriptionCycle: string | null;
-  subscriptionStatus: string | null;
 };
 
 type Account = {
@@ -66,26 +63,6 @@ type Purchase = {
   amount_cents: number;
   currency: string;
   status: string;
-  created_at: string;
-  updated_at: string;
-};
-
-type Subscription = {
-  id: number | string;
-  user_id: string;
-  payment_provider: "stripe" | "paypal" | "kyrenpay";
-  provider_customer_id: string | null;
-  provider_subscription_id: string | null;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  plan_id: string;
-  cycle: string;
-  credits_per_cycle: number;
-  status: string;
-  cancel_at_period_end: boolean;
-  current_period_start: string | null;
-  current_period_end: string | null;
-  canceled_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -195,7 +172,6 @@ type OpsPayload = {
   accounts?: Account[];
   ledger?: Ledger[];
   purchases?: Purchase[];
-  subscriptions?: Subscription[];
   paymentIncidents?: PaymentIncident[];
   tasks?: Task[];
   failedTasks?: Task[];
@@ -227,10 +203,8 @@ const adminSections = [
   ["generation-safety", "Safety"],
   ["users", "Users"],
   ["countries", "Countries"],
-  ["credit-accounts", "Accounts"],
   ["credit-ledger", "Ledger"],
   ["purchases", "Purchases"],
-  ["subscriptions", "Subscriptions"],
   ["payment-incidents", "Payment incidents"],
   ["tasks", "Tasks"],
   ["failed-tasks", "Failed"],
@@ -302,9 +276,6 @@ function downloadUsersCsv(users: AdminUser[]) {
     "failed_tasks",
     "running_tasks",
     "last_task_at",
-    "subscription_plan",
-    "subscription_cycle",
-    "subscription_status"
   ];
   const rows = users.map((user) => [
     user.email,
@@ -326,9 +297,6 @@ function downloadUsersCsv(users: AdminUser[]) {
     user.failedTasks,
     user.runningTasks,
     user.lastTaskAt,
-    user.subscriptionPlan,
-    user.subscriptionCycle,
-    user.subscriptionStatus
   ]);
   const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -518,9 +486,9 @@ export default function AdminHomePage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: "reconcile_paypal" })
       });
-      const result = (await response.json()) as { error?: string; reconciliation?: { purchasesCompleted: number; subscriptionsUpdated: number; errors: unknown[] } };
+      const result = (await response.json()) as { error?: string; reconciliation?: { purchasesCompleted: number; errors: unknown[] } };
       if (!response.ok) throw new Error(result.error || "PayPal reconciliation failed.");
-      setMessage(`PayPal reconciliation complete: ${result.reconciliation?.purchasesCompleted ?? 0} purchases completed, ${result.reconciliation?.subscriptionsUpdated ?? 0} subscriptions updated, ${result.reconciliation?.errors.length ?? 0} errors.`);
+      setMessage(`PayPal reconciliation complete: ${result.reconciliation?.purchasesCompleted ?? 0} purchases completed, ${result.reconciliation?.errors.length ?? 0} errors.`);
       await loadOps(token, filterUserId);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "PayPal reconciliation failed.");
@@ -556,10 +524,8 @@ export default function AdminHomePage() {
   const users = useMemo(() => [...(payload?.users || [])].sort((a, b) =>
     (b.createdAt ? new Date(b.createdAt).getTime() : 0) - (a.createdAt ? new Date(a.createdAt).getTime() : 0)
   ), [payload?.users]);
-  const accounts = payload?.accounts || [];
   const ledger = payload?.ledger || [];
-  const purchases = payload?.purchases || [];
-  const subscriptions = payload?.subscriptions || [];
+  const purchases = useMemo(() => [...(payload?.purchases || [])].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()), [payload?.purchases]);
   const paymentIncidents = payload?.paymentIncidents || [];
   const tasks = payload?.tasks || [];
   const failedTasks = payload?.failedTasks || [];
@@ -571,7 +537,6 @@ export default function AdminHomePage() {
   const analyticsSummary = analytics?.summary;
   const criticalFindingCount = findings.filter((finding) => finding.severity === "critical").reduce((sum, finding) => sum + finding.count, 0);
   const selectedUser = filterUserId.trim() ? users[0] || null : null;
-  const selectedSubscription = filterUserId.trim() ? subscriptions[0] || null : null;
   const selectedCompletedPurchases = purchases.filter((purchase) => purchase.status === "completed");
   const userPageCount = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
   const visibleUsers = users.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
@@ -627,7 +592,7 @@ export default function AdminHomePage() {
             </div>
           </div>
 
-          <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-7 grid grid-cols-2 gap-3 xl:grid-cols-4">
             {[
               ["Users", summary.authUsers ?? users.length],
               ["Outstanding credits", summary.totalOutstandingCredits ?? 0],
@@ -638,8 +603,6 @@ export default function AdminHomePage() {
               ["Credits spent", summary.creditsSpent ?? 0],
               ["Credits refunded", summary.creditsRefunded ?? 0],
               ["Running tasks", summary.runningTasks ?? 0],
-              ["Active subs", summary.activeSubscriptions ?? 0],
-              ["Past due subs", summary.pastDueSubscriptions ?? 0]
             ].map(([label, value]) => (
               <div key={label} className="rounded-2xl border border-black/10 bg-[#fbfbfd] p-4">
                 <p className="text-xs uppercase tracking-[0.12em] text-[#86868b]">{label}</p>
@@ -728,21 +691,11 @@ export default function AdminHomePage() {
                   Dodo Payments: {payload?.runtimeConfig?.dodoCreditCheckoutConfigured ? `configured (${payload.runtimeConfig.dodoEnvironment})` : "not configured"}. One-time credit packs use hosted checkout and verified payment confirmation.
                 </p>
                 <p className="mt-1 text-xs leading-5 text-[#6e6e73]">
-                  Customers can use PayPal for one-time credit packs. PayPal requires its API credentials and webhook ID; no subscription plans are needed for credit purchases. Historical subscription management remains available.
+                  PayPal credit purchases require API credentials and a webhook ID for verified payment confirmation.
                 </p>
                 <p className="mt-1 text-xs text-[#86868b]">
-                  PayPal {payload?.runtimeConfig?.paypalConfigured ? "ready" : `not ready (${payload?.runtimeConfig?.paypalPlansConfigured ?? 0}/${payload?.runtimeConfig?.paypalPlansTotal ?? 6} plans verified)`} · Stripe historical compatibility {payload?.runtimeConfig?.stripeConfigured ? "ready" : "not configured"}
+                  PayPal {payload?.runtimeConfig?.paypalConfigured ? "ready" : "not configured"} · Stripe historical compatibility {payload?.runtimeConfig?.stripeConfigured ? "ready" : "not configured"}
                 </p>
-                <p className={`mt-1 text-xs ${payload?.runtimeConfig?.paypalUpgradeCompatible ? "text-[#087443]" : "text-[#a14a15]"}`}>
-                  In-place upgrades {payload?.runtimeConfig?.paypalUpgradeCompatible ? "ready" : `not ready (${payload?.runtimeConfig?.paypalProductCount ?? 0} PayPal product groups detected)`}
-                </p>
-                {(payload?.runtimeConfig?.paypalPlanChecks || []).some((check) => !check.valid) ? (
-                  <div className="mt-3 space-y-1 text-xs text-[#a14a15]">
-                    {(payload?.runtimeConfig?.paypalPlanChecks || []).filter((check) => !check.valid).map((check) => (
-                      <p key={check.key}><span className="font-semibold">{check.key}</span>: {check.error || `${check.env} is invalid`}</p>
-                    ))}
-                  </div>
-                ) : null}
               </div>
               <button
                 type="button"
@@ -762,8 +715,8 @@ export default function AdminHomePage() {
           ) : null}
         </section>
 
-        <nav className="mt-6 rounded-[24px] border border-black/10 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
-          <div className="flex flex-wrap gap-2">
+        <nav aria-label="Admin sections" className="mt-6 rounded-[24px] border border-black/10 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.06)]">
+          <div className="flex gap-2 overflow-x-auto sm:flex-wrap">
             {adminSections.map(([id, label]) => (
               <a
                 key={id}
@@ -789,11 +742,6 @@ export default function AdminHomePage() {
                     <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">Created: {formatDate(selectedUser.createdAt)}</span>
                     <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">Last sign-in: {formatDate(selectedUser.lastSignInAt)}</span>
                     <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">Balance: {selectedUser.balance.toLocaleString()} credits</span>
-                    {selectedSubscription ? (
-                      <span className="rounded-full border border-black/10 bg-[#fbfbfd] px-3 py-1.5">
-                        Subscription: {selectedSubscription.plan_id} / {selectedSubscription.cycle} / {selectedSubscription.status}
-                      </span>
-                    ) : null}
                   </div>
                 ) : (
                   <p className="mt-3 text-sm text-[#86868b]">{loading ? "Loading selected user..." : "No auth user was found for this id."}</p>
@@ -986,7 +934,7 @@ export default function AdminHomePage() {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-2">
+        <section className="mt-6 grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-2">
           <Panel id="users" title="Users" count={users.length} className="xl:col-span-2">
             {(limit) => <>
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1017,9 +965,9 @@ export default function AdminHomePage() {
               Page {userPage} / {userPageCount}
             </div> : null}
             {users.length ? (
-              <div className="overflow-x-auto rounded-2xl border border-black/10">
-                <div className="min-w-[1200px]">
-                <div className="grid grid-cols-[1.4fr_0.7fr_0.8fr_0.75fr_0.75fr_0.75fr_0.75fr] gap-3 bg-[#f5f5f7] px-3 py-2 text-xs uppercase tracking-[0.1em] text-[#86868b]">
+              <div className="min-w-0 overflow-x-auto rounded-2xl border border-black/10">
+                <div className="md:min-w-[1200px]">
+                <div className="hidden grid-cols-[1.4fr_0.7fr_0.8fr_0.75fr_0.75fr_0.75fr_0.75fr] gap-3 bg-[#f5f5f7] px-3 py-2 text-xs uppercase tracking-[0.1em] text-[#86868b] md:grid">
                   <span>User</span>
                   <span>Country</span>
                   <span>Dates</span>
@@ -1038,35 +986,39 @@ export default function AdminHomePage() {
                         setAdjustUserId(user.id);
                         if (token) loadOps(token, user.id);
                       }}
-                      className="grid w-full grid-cols-[1.4fr_0.7fr_0.8fr_0.75fr_0.75fr_0.75fr_0.75fr] gap-3 px-3 py-3 text-left text-xs transition hover:bg-[#fbfbfd]"
+                      className="grid w-full min-w-0 grid-cols-2 gap-3 px-3 py-4 text-left text-xs transition hover:bg-[#fbfbfd] md:grid-cols-[1.4fr_0.7fr_0.8fr_0.75fr_0.75fr_0.75fr_0.75fr] md:py-3"
                     >
-                      <span className="min-w-0">
+                      <span className="col-span-2 min-w-0 md:col-span-1">
                         <span className="block truncate text-sm font-semibold text-[#1d1d1f]">{user.email || "No email"}</span>
                         <span className="block break-all text-[#86868b]">{user.id}</span>
                       </span>
                       <span className="min-w-0">
+                        <span className="mb-1 block text-[10px] uppercase tracking-wider text-[#86868b] md:hidden">Country</span>
                         <span className="block truncate font-semibold text-[#4f5a6d]">{countryLabel(user)}</span>
                         <span className="block text-[#86868b]">{user.countryEventCount || 0} events</span>
                       </span>
                       <span className="text-[#4f5a6d]">
+                        <span className="mb-1 block text-[10px] uppercase tracking-wider text-[#86868b] md:hidden">Dates</span>
                         <span className="block">Reg {formatDate(user.createdAt)}</span>
                         <span className="block">Login {formatDate(user.lastSignInAt)}</span>
                       </span>
-                      <span className="font-semibold text-[#1d1d1f]">{user.balance.toLocaleString()}</span>
+                      <span className="min-w-0 font-semibold text-[#1d1d1f]"><span className="mb-1 block text-[10px] font-normal uppercase tracking-wider text-[#86868b] md:hidden">Balance</span>{user.balance.toLocaleString()}</span>
                       <span className="text-[#4f5a6d]">
+                        <span className="mb-1 block text-[10px] uppercase tracking-wider text-[#86868b] md:hidden">Credits</span>
                         <span className="block">Spent {user.creditsSpent.toLocaleString()}</span>
                         <span className="block">Refund {user.creditsRefunded.toLocaleString()}</span>
                         <span className="block">{user.hasSpentCredits ? "Consumed" : "No spend"}</span>
                       </span>
                       <span className="text-[#4f5a6d]">
+                        <span className="mb-1 block text-[10px] uppercase tracking-wider text-[#86868b] md:hidden">Tasks</span>
                         <span className="block">{user.generationTasks.toLocaleString()} total</span>
                         <span className="block">{user.completedTasks} done / {user.failedTasks} failed</span>
                         <span className="block">{user.runningTasks} running</span>
                       </span>
                       <span className="text-[#4f5a6d]">
+                        <span className="mb-1 block text-[10px] uppercase tracking-wider text-[#86868b] md:hidden">Paid</span>
                         <span className="block">{user.creditsPurchased.toLocaleString()} credits</span>
                         <span className="block">{formatUsd(user.purchaseRevenueCents)}</span>
-                        <span className="block">{user.subscriptionStatus ? `${user.subscriptionPlan} ${user.subscriptionStatus}` : "No sub"}</span>
                       </span>
                     </button>
                   ))}
@@ -1087,19 +1039,6 @@ export default function AdminHomePage() {
                 country.countryCode,
                 country.users.toLocaleString(),
                 country.events.toLocaleString()
-              ])}
-              loading={loading}
-            />
-          </Panel>
-
-          <Panel id="credit-accounts" title="Credit Accounts" count={accounts.length}>
-            <Table
-              headers={["User", "Balance", "Free", "Updated"]}
-              rows={accounts.slice(0, 24).map((account) => [
-                account.user_id,
-                account.balance.toLocaleString(),
-                account.free_granted ? "Yes" : "No",
-                formatDate(account.updated_at)
               ])}
               loading={loading}
             />
@@ -1129,8 +1068,8 @@ export default function AdminHomePage() {
           </Panel>
 
           <Panel id="purchases" title="Purchases" count={purchases.length}>
-            <div className="divide-y divide-black/10">
-              {purchases.slice(0, 30).map((purchase) => (
+            {(limit) => <div className="divide-y divide-black/10">
+              {purchases.slice(0, limit).map((purchase) => (
                 <div key={purchase.id} className="grid gap-2 py-3 md:grid-cols-[0.8fr_0.8fr_1fr]">
                   <div>
                     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${statusClass(purchase.status)}`}>
@@ -1150,36 +1089,7 @@ export default function AdminHomePage() {
                 </div>
               ))}
               {!purchases.length ? <Empty loading={loading} /> : null}
-            </div>
-          </Panel>
-
-          <Panel id="subscriptions" title="Subscriptions" count={subscriptions.length}>
-            <div className="divide-y divide-black/10">
-              {subscriptions.slice(0, 30).map((subscription) => (
-                <div key={subscription.id} className="grid gap-2 py-3 md:grid-cols-[0.7fr_0.8fr_1fr]">
-                  <div>
-                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${statusClass(subscription.status)}`}>
-                      {subscription.status}
-                    </span>
-                    <p className="mt-2 text-xs text-[#86868b]">
-                      {subscription.cancel_at_period_end ? "Cancels at period end" : "Renews normally"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{subscription.plan_id} / {subscription.cycle}</p>
-                    <p className="text-xs text-[#86868b]">{subscription.credits_per_cycle.toLocaleString()} credits per cycle</p>
-                    <p className="text-xs text-[#86868b]">Period end {formatDate(subscription.current_period_end)}</p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="break-all text-xs text-[#86868b]">{subscription.user_id}</p>
-                    <p className="text-xs font-semibold capitalize text-[#4f5a6d]">{subscription.payment_provider}</p>
-                    <p className="break-all text-xs text-[#86868b]">{subscription.provider_subscription_id || subscription.stripe_subscription_id || "No subscription id"}</p>
-                    <p className="break-all text-xs text-[#86868b]">{subscription.provider_customer_id || subscription.stripe_customer_id || "No customer id"}</p>
-                  </div>
-                </div>
-              ))}
-              {!subscriptions.length ? <Empty loading={loading} /> : null}
-            </div>
+            </div>}
           </Panel>
 
           <Panel id="payment-incidents" title="Payment Incidents" count={paymentIncidents.length}>
@@ -1274,30 +1184,50 @@ function AnalyticsBreakdown({ title, values }: { title: string; values: Record<s
 
 function Panel({ id, title, count, className = "", children }: { id?: string; title: string; count: number; className?: string; children: ReactNode | ((limit: number) => ReactNode) }) {
   const [expanded, setExpanded] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
   const collapsible = typeof children === "function";
+  const canExpand = collapsible && count > 3;
   const limit = expanded ? USERS_PER_PAGE : 3;
+  function collapse() {
+    // Keep this panel in view when collapsing from the bottom of a long list.
+    headerRef.current?.scrollIntoView({ block: "nearest", behavior: "instant" });
+    setExpanded(false);
+  }
   return (
-    <article id={id} className={`scroll-mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)] ${className}`}>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-        <span className="rounded-full bg-[#f5f5f7] px-3 py-1 text-xs font-semibold text-[#6e6e73]">{count}</span>
+    <article id={id} className={`min-w-0 scroll-mt-6 rounded-[24px] border border-black/10 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)] ${className}`}>
+      <div ref={headerRef} className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center justify-between gap-3 sm:justify-start">
+          <h2 className="min-w-0 text-xl font-semibold tracking-tight">{title}</h2>
+          <span className="shrink-0 rounded-full bg-[#f5f5f7] px-3 py-1 text-xs font-semibold text-[#6e6e73]">{count}</span>
+        </div>
+        {canExpand ? <button
+          type="button"
+          data-panel-toggle
+          aria-expanded={expanded}
+          aria-controls={id ? `${id}-records` : undefined}
+          onClick={() => expanded ? collapse() : setExpanded(true)}
+          className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-black/10 bg-[#f5f5f7] px-4 py-2 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#eeeef0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 sm:w-auto"
+        >
+          {expanded ? "Show fewer" : `Show ${Math.min(count, USERS_PER_PAGE)}`}
+          <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button> : null}
       </div>
-      <div id={id ? `${id}-records` : undefined}>
+      <div id={id ? `${id}-records` : undefined} className="min-w-0">
         {typeof children === "function" ? children(limit) : children}
       </div>
-      {collapsible && count > 3 ? (
+      {canExpand ? (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-4">
-          <span className="text-xs text-[#86868b]">Showing up to {Math.min(count, limit)} of {count} records</span>
-          <button
+          <span role="status" aria-live="polite" className="text-xs text-[#86868b]">Showing up to {Math.min(count, limit)} of {count} records</span>
+          {expanded ? <button
             type="button"
-            aria-expanded={expanded}
+            data-panel-collapse
+            aria-expanded="true"
             aria-controls={id ? `${id}-records` : undefined}
-            onClick={() => setExpanded((value) => !value)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#f5f5f7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500"
+            onClick={collapse}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1d1d1f] transition hover:bg-[#f5f5f7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 sm:w-auto"
           >
-            {expanded ? "Show fewer" : `Show ${Math.min(count, USERS_PER_PAGE)}`}
-            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          </button>
+            Collapse to 3
+          </button> : null}
         </div>
       ) : null}
     </article>

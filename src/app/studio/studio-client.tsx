@@ -13,6 +13,7 @@ import { useVideoPromptEnhancement } from "../../features/studio/use-video-promp
 import { useH3DailyFree } from "../../features/studio/use-h3-daily-free";
 import { isH3DailyFreeRequest } from "../../lib/h3-daily-free-policy";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
+import { MISCHIEF_PROVIDER, MISCHIEF_MAX_IMAGE_BYTES } from "../../lib/mischief";
 import { HEYGEN_REFERENCE_IMAGE_LIMIT, isPublicReferenceUrl } from "../../lib/heygen-reference-video";
 import { isFlux3MaxPromotion, FLUX3_MAX_PROMO_END } from "../../lib/flux3-max";
 import { isGptImageProvider, gptImageQuality, GPT_IMAGE_EXAMPLE_PROMPTS, GPT_IMAGE_SIZES, GPT_IMAGE_QUALITIES, DEFAULT_GPT_IMAGE_OPTIONS, normalizeGptImageProvider, gptImageOptionError, type GptImageOptions, type GptImageQuality } from "../../lib/gpt-image-models";
@@ -1546,6 +1547,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     "seedance-mini-video",
     "happy-horse-video",
     "gemini-omni-flash-video",
+    MISCHIEF_PROVIDER,
     "kling-video",
     "veo-video",
     "elevenlabs-tts",
@@ -1879,9 +1881,9 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     if (mode === "video" && videoWorkflow === "image-to-video") {
       const limit = videoSupportsEndFrame(provider) ? 2 : 1;
       const selected = Array.from(files);
-      if (selected.length > (frameIndex === undefined ? limit : 1) || selected.some(file => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 30 * 1024 * 1024)) {
+      if (selected.length > (frameIndex === undefined ? limit : 1) || selected.some(file => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > (provider === MISCHIEF_PROVIDER ? MISCHIEF_MAX_IMAGE_BYTES : 30 * 1024 * 1024))) {
         setStatusTone("error");
-        setStatusText(st("studio.videoWorkbench.uploadError", { count: frameIndex === undefined ? limit : 1 }));
+        setStatusText(provider === MISCHIEF_PROVIDER ? st("studio.model.mischief-video") : st("studio.videoWorkbench.uploadError", { count: frameIndex === undefined ? limit : 1 }));
         return;
       }
       if (frameIndex !== undefined && (frameIndex >= limit || (frameIndex === 1 && !referenceImageUrls[0]))) return;
@@ -2241,12 +2243,12 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
         resolution:
           mode === "image"
             ? editResolution
-            : (mode === "video" || isH3MaxAvatar || isHeygenAvatar) && (provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "gemini-omni-flash-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
+            : (mode === "video" || isH3MaxAvatar || isHeygenAvatar) && (provider === "heygen-video" || provider === "flux-3-max-video" || provider === MISCHIEF_PROVIDER || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "grok-video" || provider === "gemini-omni-flash-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
               ? videoResolution
               : undefined,
-        generateAudio: mode === "video" || isHeygenAvatar ? provider === "heygen-video" || provider === "gemini-omni-flash-video" || generateAudio : undefined,
+        generateAudio: provider === MISCHIEF_PROVIDER ? false : mode === "video" || isHeygenAvatar ? provider === "heygen-video" || provider === "gemini-omni-flash-video" || generateAudio : undefined,
         reasoningLevel: provider === "flux-3-max-video" ? reasoningLevel : undefined,
-        expectedCredits: isGptImageProvider(provider) || provider === "heygen-video" || provider === "flux-3-max-video" || provider === "gemini-omni-flash-video" || isH3VideoProvider(provider) ? estCredits : undefined,
+        expectedCredits: isGptImageProvider(provider) || provider === "heygen-video" || provider === "flux-3-max-video" || provider === MISCHIEF_PROVIDER || provider === "gemini-omni-flash-video" || isH3VideoProvider(provider) ? estCredits : undefined,
         outputFormat: mode === "image" && provider !== "bria-background-remove" ? outputFormat : undefined,
         quality: mode === "image" && !isPromptlessImageWorkflow ? imageQuality : undefined,
         ...(mode==="image"&&isGptImageProvider(provider)?{...gptRequestOptions,enableSafetyChecker:gptImageOptions.enableSafetyChecker}:{}),
@@ -2256,7 +2258,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
         enableSafetyChecker: mode==="image"&&isGptImageProvider(provider)?gptImageOptions.enableSafetyChecker:(mode === "image" && !isPromptlessImageWorkflow) || ((mode === "video" || isHeygenAvatar) && (provider === "heygen-video" || provider === "happy-horse-video" || provider === "grok-video")) ? enableSafetyChecker : undefined,
         acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
         limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
-        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "heygen-video" || provider === "flux-3-max-video" || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
+        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "heygen-video" || provider === "flux-3-max-video" || provider === MISCHIEF_PROVIDER || isH3VideoProvider(provider) || provider === "dreamface-io-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
         safetyTolerance: mode === "image" && !isPromptlessImageWorkflow ? safetyTolerance : undefined,
         systemPrompt: mode === "image" && !isPromptlessImageWorkflow && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" && !isPromptlessImageWorkflow ? enableWebSearch : undefined,

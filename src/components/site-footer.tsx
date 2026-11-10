@@ -49,6 +49,7 @@ export async function SiteFooter() {
           <Link href="/avatar/ai-avatar-generator" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">AI Avatar Videos</Link>
           <Link href="/video/examples" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Video Examples &amp; Prompts</Link>
           <Link href="/video/gemini-omni" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Gemini Omni</Link>
+          <Link href="/video/mischief-1" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">TBC mischief 1</Link>
           <Link href="/video/seedance-2" className="block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Seedance 2.0</Link>
         </div>
         <div>

@@ -1,4 +1,5 @@
 import { GEMINI_OMNI_RESOLUTIONS } from "../../lib/gemini-omni";
+import { MISCHIEF_PROVIDER, MISCHIEF_RESOLUTIONS, MISCHIEF_DURATIONS } from "../../lib/mischief";
 
 export type StudioVideoWorkflow = "text-to-video" | "image-to-video" | "reference-to-video";
 export type VideoModelGroup = "freeDraft" | "betterQuality" | "premium";
@@ -140,7 +141,7 @@ export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
     durations: VIDEO_DURATION_OPTIONS.filter((item) => Number.parseInt(item, 10) >= 5),
     resolutions: ["480p", "768p", "1080p", "2k"],
     defaultDuration: "5s",
-    defaultResolution: "768p",
+    defaultResolution: "480p",
     showResolutionControl: true
   },
   "flux-3-max-video": {
@@ -237,6 +238,17 @@ export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
       "text-to-video": { provider: "gemini-omni-flash-video", workflow: "text-to-video", modelLabel: "Gemini Omni Flash", prompts: [GEMINI_TEXT_PROMPT], videoUrl: "https://v3b.fal.media/files/b/0aa06549/SqtFBfF9UAqFt1vfdpHIN_a7c736c69b4f4c0486dbef648a7fa496.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aa06549%2FSqtFBfF9UAqFt1vfdpHIN_a7c736c69b4f4c0486dbef648a7fa496.mp4/tr:so-0,w-1024,q-80/SqtFBfF9UAqFt1vfdpHIN_a7c736c69b4f4c0486dbef648a7fa496.webp", badgeParts: ["720p"], badgeHasAudio: true, settings: { duration: "8s", ratio: "16:9" } },
       "image-to-video": { provider: "gemini-omni-flash-video", workflow: "image-to-video", modelLabel: "Gemini Omni Flash", prompts: [GEMINI_IMAGE_PROMPT], videoUrl: "https://v3b.fal.media/files/b/0aa064fd/Vzo9a0G9fkd2RRZwAQDx5_aa98f069192f4c9c9d59a16962d0929d.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0aa064fd%2FVzo9a0G9fkd2RRZwAQDx5_aa98f069192f4c9c9d59a16962d0929d.mp4/tr:so-0,w-1024,q-80/Vzo9a0G9fkd2RRZwAQDx5_aa98f069192f4c9c9d59a16962d0929d.webp", sourceImageUrl: GEMINI_IMAGE_URL, sourceImageShape: "landscape", badgeParts: ["720p"], badgeHasAudio: true, settings: { duration: "8s", ratio: "16:9" } }
     }
+  },
+  [MISCHIEF_PROVIDER]: {
+    id: MISCHIEF_PROVIDER,
+    meta: { label: "TBC mischief 1", shortLabel: "mischief 1", speed: "Fast", quality: "Motion drafts", bestFor: "Low-cost image-to-video ideas, moodboards and short motion variants" },
+    group: "freeDraft",
+    workflows: { "image-to-video": { ratios: ["16:9"] } },
+    durations: MISCHIEF_DURATIONS,
+    resolutions: MISCHIEF_RESOLUTIONS,
+    defaultDuration: "5s",
+    defaultResolution: "720p",
+    showResolutionControl: true
   },
   "seedance-mini-video": {
     id: "seedance-mini-video",
@@ -341,7 +353,7 @@ export const VIDEO_PROVIDER_META: Record<string, VideoProviderMeta> = {
 export const VIDEO_PROVIDERS_BY_WORKFLOW: Record<StudioVideoWorkflow, string[]> = {
   "reference-to-video": ["heygen-video"],
   "text-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
-  "image-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video"]
+  "image-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "mischief-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video"]
 };
 
 export const VIDEO_EXAMPLE_PROMPTS = Object.values(VIDEO_MODEL_CONFIGS)

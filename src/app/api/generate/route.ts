@@ -7,6 +7,7 @@ import { createH3DailyFreeTask, h3FreeContext } from "../../../lib/h3-daily-free
 import { isH3DailyFreeRequest, H3_DAILY_FREE_PROGRAM } from "../../../lib/h3-daily-free-policy";
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize, normalizeGptImageProvider, gptImageOptionError, buildGptImageInput } from "../../../lib/gpt-image-models";
 import { NextResponse } from "next/server";
+import { MISCHIEF_PROVIDER, MISCHIEF_MODEL, MISCHIEF_DURATIONS, MISCHIEF_RESOLUTIONS, mischiefDuration, mischiefResolution, mischiefImageError } from "../../../lib/mischief";
 import { randomUUID } from "node:crypto";
 import { getUserFromBearerToken } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
@@ -200,6 +201,7 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "happy-horse-video": editImage
       ? process.env.FAL_MODEL_VIDEO_HAPPY_HORSE_I2V || "alibaba/happy-horse/v1.1/image-to-video"
       : process.env.FAL_MODEL_VIDEO_HAPPY_HORSE || "alibaba/happy-horse/v1.1/text-to-video",
+    [MISCHIEF_PROVIDER]: MISCHIEF_MODEL,
     "gemini-omni-flash-video": editImage
       ? process.env.FAL_MODEL_VIDEO_GEMINI_OMNI_I2V || GEMINI_OMNI_IMAGE_MODEL
       : process.env.FAL_MODEL_VIDEO_GEMINI_OMNI || GEMINI_OMNI_TEXT_MODEL,
@@ -426,6 +428,16 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
+  if (body.mode === "video" && body.provider === MISCHIEF_PROVIDER) {
+    return {
+      prompt, image_url: firstInputImage(body),
+      duration: mischiefDuration(body.duration), resolution: mischiefResolution(body.resolution),
+      image_transform: "center_crop",
+      // A fixed render seed also requires disabling the unseeded prompt rewrite.
+      prompt_processing: body.seed === undefined ? "enhanced" : "original",
+      ...(body.seed === undefined ? {} : { seed: body.seed })
+    };
+  }
   if (body.mode === "video" && body.provider === "gemini-omni-flash-video") {
     return {
       prompt,
@@ -664,7 +676,8 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     enable_safety_checker: typeof body.enableSafetyChecker === "boolean" ? body.enableSafetyChecker : null,
     acceleration: body.acceleration || null,
     limit_generations: typeof body.limitGenerations === "boolean" ? body.limitGenerations : null,
-    seed: body.seed || null,
+    seed: body.seed ?? null,
+    ...(body.provider === MISCHIEF_PROVIDER ? { image_transform: "center_crop", prompt_processing: body.seed === undefined ? "enhanced" : "original" } : {}),
     safety_tolerance: body.safetyTolerance || null,
     system_prompt: cleanSystemPrompt(body.systemPrompt) || null,
     enable_web_search: typeof body.enableWebSearch === "boolean" ? body.enableWebSearch : null,
@@ -898,6 +911,21 @@ export async function POST(request: Request) {
       if (body.videoWorkflow === "text-to-video" && hasInputImages(body)) return NextResponse.json({ error: "Select Image to Video to use images." }, { status: 400 });
     }
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((url) => typeof url === "string" && url.trim()) : [];
+    if (body.provider === MISCHIEF_PROVIDER) {
+      if (body.mode !== "video" || body.videoWorkflow !== "image-to-video" || imageUrls.length !== 1 || body.audioUrl) return NextResponse.json({ error: "Mischief 1 requires the image-to-video workspace and one starting image." }, { status: 400 });
+      if (!MISCHIEF_DURATIONS.includes(body.duration as typeof MISCHIEF_DURATIONS[number])) return NextResponse.json({ error: "Mischief 1 supports 3 or 5 second clips." }, { status: 400 });
+      if (body.resolution && (typeof body.resolution !== "string" || !MISCHIEF_RESOLUTIONS.includes(body.resolution.toLowerCase() as typeof MISCHIEF_RESOLUTIONS[number]))) return NextResponse.json({ error: "Mischief 1 supports 480p or 720p." }, { status: 400 });
+      if (body.ratio !== "16:9") return NextResponse.json({ error: "Mischief 1 generates landscape video only (16:9)." }, { status: 400 });
+      if (body.seed !== undefined && (!Number.isInteger(body.seed) || body.seed < 0 || body.seed > 2147483647)) return NextResponse.json({ error: "Mischief 1 seed must be an integer from 0 to 2147483647." }, { status: 400 });
+      const imageError = mischiefImageError(imageUrls[0].trim());
+      if (imageError) return NextResponse.json({ error: imageError }, { status: 400 });
+      if (!process.env.FAL_KEY?.trim()) return NextResponse.json({ error: "Video provider is not configured." }, { status: 503 });
+      body.duration = `${mischiefDuration(body.duration)}s`;
+      body.resolution = mischiefResolution(body.resolution);
+      body.imageUrls = [imageUrls[0].trim()];
+      body.generateAudio = false;
+      if (body.dailyFree === true) return NextResponse.json({ error: "Mischief 1 uses credits and is not part of the daily free program." }, { status: 400 });
+    }
     if (body.provider === "gemini-omni-flash-video") {
       if (body.mode !== "video") return NextResponse.json({ error: "Gemini Omni Flash 1.2 requires the video workspace." }, { status: 400 });
       // Quote, stored settings and payload use the same normalized parameters.
@@ -936,7 +964,7 @@ export async function POST(request: Request) {
       if (body.seed !== undefined && (!Number.isInteger(body.seed) || body.seed < 0 || body.seed > 4294967295)) {
         return NextResponse.json({ error: "HeyGen Video seed must be an integer from 0 to 4294967295." }, { status: 400 });
       }
-      body.resolution ||= "768p";
+      body.resolution ||= "480p";
     }
     if(isGptImageProvider(body.provider)) {
       if(body.mode!=="image") return NextResponse.json({error:"GPT Image requires the image workspace."},{status:400});
@@ -987,7 +1015,7 @@ export async function POST(request: Request) {
           generateAudio: body.generateAudio,
           promptText: prompt
         });
-    if(isGptImageProvider(body.provider)&&body.expectedCredits!==undefined&&body.expectedCredits!==baseEstimatedCredits) return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"generation_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
+    if((isGptImageProvider(body.provider)||body.provider===MISCHIEF_PROVIDER)&&body.expectedCredits!==undefined&&body.expectedCredits!==baseEstimatedCredits) return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"generation_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
     if (body.provider === "flux-3-max-video" && body.mode !== "video") {
       return NextResponse.json({error:"FLUX 3 Max is only available for video generation."},{status:400});
     }

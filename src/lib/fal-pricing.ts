@@ -1,4 +1,5 @@
 import { MODEL_PRICING_ROWS, estimateGenerationCredits } from "./model-pricing";
+import { MISCHIEF_PROVIDER, MISCHIEF_MODEL } from "./mischief";
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL } from "./gemini-omni";
 import { isGptImageProvider, gptImageEndpoint } from "./gpt-image-models";
 
@@ -48,6 +49,7 @@ const EXTRA_PRICING_ENDPOINT_IDS = [
 ];
 
 function endpointForProvider(provider: string, hasReferences = false) {
+  if (provider === MISCHIEF_PROVIDER) return MISCHIEF_MODEL;
   if (isGptImageProvider(provider)) return gptImageEndpoint(provider,hasReferences);
   if (provider === "nano-banana-image") return hasReferences ? "google/nano-banana-2.1/edit" : "google/nano-banana-2.1";
   if (provider === "nano-banana-edit") return "google/nano-banana-2.1/edit";

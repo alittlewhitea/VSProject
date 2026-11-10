@@ -8,10 +8,13 @@ const frames = module.exports;
 const omniModule = { exports: {} };
 new Function('module','exports',compile(readFileSync('src/lib/gemini-omni.ts','utf8')))(omniModule,omniModule.exports);
 const omni = omniModule.exports;
+const mischiefModule = { exports: {} };
+new Function('require','module','exports',compile(readFileSync('src/lib/mischief.ts','utf8')))(() => ({}),mischiefModule,mischiefModule.exports);
+const mischief = mischiefModule.exports;
 const route = readFileSync('src/app/api/generate/route.ts', 'utf8');
 // Execute the actual endpoint selection/payload builders without loading any external clients.
 const source = route.slice(route.indexOf('function isValidBody'), route.indexOf('function buildRequestSettings'));
-const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', ...Object.keys(omni), compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused', ...Object.values(omni));
+const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', ...Object.keys(omni), ...Object.keys(mischief), compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused', ...Object.values(omni), ...Object.values(mischief));
 const start = 'https://example.invalid/start.png', end = 'https://example.invalid/end.png';
 for(const resolution of ['720p','1080p']) for(const imageUrls of [[],[start],[start,end]]) {
  for(const reasoningLevel of [undefined,'low','high']) for(const generateAudio of [undefined,false,true]) {

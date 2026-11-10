@@ -20,7 +20,7 @@ const oldKey=process.env.FAL_KEY,oldFetch=globalThis.fetch,oldNow=Date.now;proce
 try{
  const pricing=load('src/lib/model-pricing.ts');let now=pricing.HEYGEN_PROMOTION_END-1;Date.now=()=>now;
  const models=load('src/features/studio/video-models.ts');const config=models.videoModelConfig('heygen-video');
- assert.equal(config.defaultDuration,'5s');assert.equal(config.defaultResolution,'768p');
+ assert.equal(config.defaultDuration,'5s');assert.equal(config.defaultResolution,'480p');
  assert.deepEqual(config.resolutions,['480p','768p','1080p','2k']);
  for(const workflow of ['text-to-video','image-to-video'])assert.equal(models.VIDEO_PROVIDERS_BY_WORKFLOW[workflow][0],'heygen-video');
  const costs=(resolution,duration='5s',time=now)=>pricing.estimateGenerationCredits({mode:'video',provider:'heygen-video',resolution,duration,pricingTime:time});
@@ -83,5 +83,16 @@ try{
  }
  const longScript=Array.from({length:18},()=> 'hello').join(' ');
  response=await route.POST(avatarRequest({prompt:longScript,duration:'10s',expectedCredits:36}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.duration,10);
+ now=pricing.HEYGEN_PROMOTION_END;
+ for(const extra of [{},{videoWorkflow:'image-to-video',imageUrls:['https://example.invalid/start.png'],ratio:'source'}]){
+  response=await route.POST(request({...extra,resolution:undefined,expectedCredits:15}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.resolution,'480p');assert.equal(response.body.estimatedCredits,15);
+ }
+ response=await route.POST(reference({resolution:undefined,expectedCredits:15}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.resolution,'480p');
+ response=await route.POST(avatarRequest({resolution:undefined,expectedCredits:15}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.resolution,'480p');assert.equal(response.body.estimatedCredits,15);
+ assert.equal(pricing.estimateGenerationCredits({mode:'video',provider:'heygen-video',duration:'5s'}),15);
+ const client=ts.createSourceFile('studio-client.tsx',readFileSync('src/app/studio/studio-client.tsx','utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+ const defaultFunction=client.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='defaultVideoResolutionForProvider');
+ const chooseDefault=new Function('videoModelDefaultResolution',ts.transpileModule(defaultFunction.getText(client),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText+';return defaultVideoResolutionForProvider;')(models.videoModelDefaultResolution);
+ assert.equal(chooseDefault('heygen-video','video'),'480p');assert.equal(chooseDefault('heygen-video','avatar'),'480p');
  console.log('HeyGen Video passed: existing T2V/I2V/reference workflows; Avatar native-speech I2V, exact dialogue/metadata, manual 5/10/15-second duration and quote, stale-credit rejection, invalid scripts/images before spending, stale quotes and provider configuration. No paid calls or database.');
 }finally{Date.now=oldNow;globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.FAL_KEY;else process.env.FAL_KEY=oldKey;}

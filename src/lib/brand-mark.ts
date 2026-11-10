@@ -1,6 +1,6 @@
-// Small, content-versioned variants of the original app icon.
+// Transparent, tightly framed variants of the DreamFace app icon.
 export const BRAND_MARK = {
-  "64": "/brand/dreamface-64-fc4a2c86f4.webp",
-  "112": "/brand/dreamface-112-9e2350f167.webp",
-  "168": "/brand/dreamface-168-7f90ce7bbd.webp"
+  "64": "/brand/dreamface-64-e450e7fda0.webp",
+  "112": "/brand/dreamface-112-2246c2a881.webp",
+  "168": "/brand/dreamface-168-8a8f9cf2f9.webp"
 } as const;

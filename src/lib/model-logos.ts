@@ -3,6 +3,7 @@ import { normalizeGptImageProvider } from "./gpt-image-models";
 // Keep these small assets local so the model picker never waits for fal's image CDN.
 const MODEL_LOGO_LABS:Record<string,string> = {
   "heygen-video":"heygen",
+  "mischief-video":"tbc",
   "flux-3-max-video":"fal",
   "minimax-h3-max-video":"fal",
   "minimax-h3-max-turbo-video":"fal",

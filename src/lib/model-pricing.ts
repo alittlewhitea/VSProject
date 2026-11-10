@@ -1,6 +1,7 @@
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } from "./gpt-image-models";
 import { flux3MaxDuration, flux3MaxSecondPrice } from "./flux3-max";
 import { lowestPaidCreditPriceUsd } from "./credit-pack-prices";
+import { MISCHIEF_PROVIDER, MISCHIEF_MODEL, mischiefCostUsd } from "./mischief";
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution, geminiOmniSecondPrice } from "./gemini-omni";
 export type PricingMode = "image" | "video" | "audio";
 
@@ -162,7 +163,7 @@ export function generationPricingMultiplier(input: GenerationEstimateInput) {
     return resolution === "2k" || resolution === "4k" || input.quality === "medium" || input.quality === "high" || input.provider === "topaz-image"
       ? HD_CREDIT_MARKUP_MULTIPLIER : CREDIT_MARKUP_MULTIPLIER;
   }
-  const basicDefault = ["minimax-h3-max-video", "minimax-h3-max-turbo-video", "grok-video", "seedance-video", "seedance-mini-video"].includes(input.provider);
+  const basicDefault = ["heygen-video", "minimax-h3-max-video", "minimax-h3-max-turbo-video", "grok-video", "seedance-video", "seedance-mini-video"].includes(input.provider);
   const effectiveResolution = resolution || (basicDefault ? "480p" : "720p");
   if (input.provider === "kling-avatar-standard") return CREDIT_MARKUP_MULTIPLIER;
   if (input.provider === "kling-avatar-pro") return HD_CREDIT_MARKUP_MULTIPLIER;
@@ -208,6 +209,7 @@ export function estimateGenerationCostUsd(input: GenerationEstimateInput): numbe
     throw new Error("Missing supplier cost estimate for audio provider");
   }
   if (input.provider === "heygen-video") return Math.min(15, Math.max(5, seconds)) * heygenSecondPrice(input.resolution, input.pricingTime);
+  if (input.provider === MISCHIEF_PROVIDER) return mischiefCostUsd(input.duration, input.resolution);
   if (input.provider === "flux-3-max-video") return flux3MaxSecondPrice(input.resolution, input.pricingTime) * flux3MaxDuration(input.duration);
   if (input.provider === "minimax-h3-max-turbo-video" || input.provider === "minimax-h3-max-video") return seconds * h3SupplierSecondPrice(input);
   if (input.provider === "gemini-omni-flash-video") return geminiOmniDuration(input.duration, Boolean(input.hasReferences && (input.referenceCount || 0) > 1)) * geminiOmniSecondPrice(input.resolution);
@@ -236,19 +238,26 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 
 export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
   {
+    provider: MISCHIEF_PROVIDER, label: "TBC mischief 1", mode: "video", workflow: "Image to Video",
+    endpointId: MISCHIEF_MODEL, referenceDuration: "5s", referenceResolution: "720p",
+    falBasis: "480p $0.005/s; 720p $0.01/s. Billed by the requested 3 or 5 seconds, not the extra rendered frame.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: MISCHIEF_PROVIDER, duration: "5s", resolution: "720p", hasReferences: true }),
+    unitNote: "Estimated credits depend on resolution and duration; check Generate"
+  },
+  {
     provider: "heygen-video", label: "HeyGen Video Reference", mode: "video", workflow: "Reference to Video",
-    endpointId: "heygen/heygen-video/reference-to-video", referenceDuration: "5s", referenceResolution: "768p",
+    endpointId: "heygen/heygen-video/reference-to-video", referenceDuration: "5s", referenceResolution: "480p",
     falBasis: "480p/768p $0.02/s; 1080p/2k $0.06/s after October 31, 2026.",
-    typicalCredits: estimateGenerationCredits({mode:"video",provider:"heygen-video",duration:"5s",resolution:"768p"}),
+    typicalCredits: estimateGenerationCredits({mode:"video",provider:"heygen-video",duration:"5s",resolution:"480p"}),
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   },
   ...["text-to-video", "image-to-video"].map((workflow): ModelPricingRow => ({
-    referenceDuration: "5s", referenceResolution: "768p",
+    referenceDuration: "5s", referenceResolution: "480p",
     provider: "heygen-video", label: workflow === "text-to-video" ? "HeyGen Video" : "HeyGen Video I2V",
     mode: "video", workflow: workflow === "text-to-video" ? "Text to Video" : "Image to Video",
     endpointId: `heygen/heygen-video/${workflow}`,
     falBasis: "480p/768p $0.01/s; 1080p/2k $0.03/s through October 31, 2026; list rates double after the promotion.",
-    typicalCredits: estimateGenerationCredits({mode:"video",provider:"heygen-video",duration:"5s",resolution:"768p"}),
+    typicalCredits: estimateGenerationCredits({mode:"video",provider:"heygen-video",duration:"5s",resolution:"480p"}),
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   })),
   ...["text-to-video", "image-to-video"].map((workflow): ModelPricingRow => ({

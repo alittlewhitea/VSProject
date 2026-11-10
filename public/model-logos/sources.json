@@ -175,6 +175,14 @@
       "slug": "google",
       "sourcePage": "https://fal.ai/models/fal-ai/veo3.1",
       "sourceLogo": "https://v3b.fal.media/files/b/0aa191df/jq47AGk_IiRc89viDsG_p_Logo%3DGoogle%2C%20Style%3DLight.png"
+    },
+    {
+      "provider": "mischief-video",
+      "lab": "TBC",
+      "slug": "tbc",
+      "sourcePage": "https://openrouter.ai/tbc/mischief-1",
+      "sourceLogo": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://tbc.co&size=256",
+      "checkedAt": "2026-11-10"
     }
   ]
 }

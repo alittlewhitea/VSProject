@@ -29,7 +29,7 @@ function executeFunction(name,context){const node=findNode(node=>ts.isFunctionDe
 const workflowMeta=findNode(node=>ts.isVariableDeclaration(node)&&node.name.getText(ast)==='WORKFLOW_META');
 const WORKFLOW_META=new Function('VIDEO_PROVIDERS_BY_WORKFLOW',`return (${workflowMeta.initializer.getText(ast)});`)(models.VIDEO_PROVIDERS_BY_WORKFLOW);
 function context(mode,workflow) {
-  const c={...models,...gpt,...frames,...policy,WORKFLOW_META,mode,activeWorkflow:workflow,imageWorkflow:workflow,videoWorkflow:workflow,
+  const c={...models,...gpt,...frames,...policy,...load('src/lib/mischief.ts'),WORKFLOW_META,mode,activeWorkflow:workflow,imageWorkflow:workflow,videoWorkflow:workflow,
     provider:mode==='image'?'chatgpt-image':'minimax-h3-max-turbo-video',prompt:'',referenceImagesText:'',referenceImageFiles:[],
     duration:'5s',ratio:mode==='image'?'auto':'source',videoResolution:'480p',imageSize:'square',hasCompletedCreation:false,accessToken:null,isPromptlessImageWorkflow:false,
     sp:new URLSearchParams({mode,workflow}),MINIMAX_MUSIC_DEFAULT_PROMPT:'music-default',KLING_AVATAR_DEFAULT_SCRIPT:'avatar-script',
