@@ -102,6 +102,7 @@ function providerLabel(provider?: string) {
     "veo-video": "Veo",
     "flux-3-max-video": "FLUX 3 Max",
     "grok-video": "Grok Imagine Video",
+    "mischief-video": "TBC mischief 1",
     "elevenlabs-tts": "ElevenLabs Eleven v4 Turbo",
     "gemini-flash-tts": "Gemini 3.8 Flash TTS",
     "minimax-music-2.6": "MiniMax Music 2.6"

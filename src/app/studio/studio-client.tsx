@@ -477,6 +477,7 @@ const PROMPT_IMPROVE_TEXT =
   "Optimize this prompt for a professional AI-generated image. Improve detail, lighting, composition, and overall quality while preserving intent.";
 
 function providerLabel(provider?: string) {
+  if (provider === "mischief-video") return "TBC mischief 1";
   return provider ? PROVIDER_META[provider]?.label || provider : "Auto routed";
 }
 
@@ -2104,7 +2105,9 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     if (!draft) return;
 
     restoredLoginDraftRef.current = true;
-    autoSubmitLoginDraftRef.current = draft.autoSubmit;
+    // A retired model must never turn a saved automatic submission into a paid
+    // request to a different model after authentication.
+    autoSubmitLoginDraftRef.current = draft.autoSubmit && draft.provider !== "mischief-video";
     setProvider(draft.provider === "nano-banana-edit" ? "nano-banana-image" : normalizeGptImageProvider(draft.provider));
     setImageWorkflow(draft.imageWorkflow);
     setVideoWorkflow(draft.videoWorkflow || "text-to-video");
@@ -2151,7 +2154,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     videoPromptAI.setEnabled(draft.aiPromptEnhancementEnabled !== false);
     videoPromptAI.restoreDraft(draft.videoPromptEnhancement || null);
     setStatusTone("idle");
-    setStatusText(draft.autoSubmit ? st("studio.status.restoredContinue") : st("studio.status.restored"));
+    setStatusText(autoSubmitLoginDraftRef.current ? st("studio.status.restoredContinue") : st("studio.status.restored"));
 
     setLoginDraftNonce((value) => value + 1);
   }, [accessToken, authReady]);

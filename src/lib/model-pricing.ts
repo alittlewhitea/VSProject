@@ -1,7 +1,7 @@
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } from "./gpt-image-models";
 import { flux3MaxDuration, flux3MaxSecondPrice } from "./flux3-max";
 import { lowestPaidCreditPriceUsd } from "./credit-pack-prices";
-import { MISCHIEF_PROVIDER, MISCHIEF_MODEL, mischiefCostUsd } from "./mischief";
+import { MISCHIEF_PROVIDER, mischiefCostUsd } from "./mischief";
 import { GEMINI_TTS_PROVIDER, GEMINI_TTS_MODEL, GEMINI_TTS_RATE_PER_1000, geminiTtsCharacters } from "./gemini-tts";
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution, geminiOmniSecondPrice } from "./gemini-omni";
 export type PricingMode = "image" | "video" | "audio";
@@ -239,13 +239,6 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 }
 
 export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
-  {
-    provider: MISCHIEF_PROVIDER, label: "TBC mischief 1", mode: "video", workflow: "Image to Video",
-    endpointId: MISCHIEF_MODEL, referenceDuration: "5s", referenceResolution: "720p",
-    falBasis: "480p $0.005/s; 720p $0.01/s. Billed by the requested 3 or 5 seconds, not the extra rendered frame.",
-    typicalCredits: estimateGenerationCredits({ mode: "video", provider: MISCHIEF_PROVIDER, duration: "5s", resolution: "720p", hasReferences: true }),
-    unitNote: "Estimated credits depend on resolution and duration; check Generate"
-  },
   {
     provider: "heygen-video", label: "HeyGen Video Reference", mode: "video", workflow: "Reference to Video",
     endpointId: "heygen/heygen-video/reference-to-video", referenceDuration: "5s", referenceResolution: "480p",

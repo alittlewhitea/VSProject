@@ -42,8 +42,11 @@ const selectors=new Function('WORKFLOW_META','videoModelConfig','isAvatarProvide
 for(const workflow of Object.keys(workflows)) {
   assert.ok(!workflows[workflow].providers.includes('dreamface-io-video'));
   assert.equal(selectors.providerForWorkflow(workflow,'dreamface-io-video'),workflows[workflow].recommendedProvider);
+  assert.ok(!workflows[workflow].providers.includes('mischief-video'));
+  assert.equal(selectors.providerForWorkflow(workflow,'mischief-video'),workflows[workflow].recommendedProvider);
 }
 for(const mode of ['image','video','avatar','audio'])assert.equal(selectors.isProviderAllowedForMode('dreamface-io-video',mode),false);
+for(const mode of ['image','video','avatar','audio'])assert.equal(selectors.isProviderAllowedForMode('mischief-video',mode),false);
 const forbidden=new Proxy({}, {get(){throw new Error('No storage/provider calls are allowed during suspension checks');}});
 assert.equal(await load('src/lib/runtime-config.ts').isDreamfaceIoEnabled(forbidden),false);
 const NextResponse={json:(body,options={})=>({status:options.status||200,body})};
@@ -63,9 +66,9 @@ try {
 // Execute the actual POST prefix through its suspension guard. Anything beyond it must be unreachable.
 const route=readFileSync('src/app/api/generate/route.ts','utf8');
 const prefix=route.slice(route.indexOf('export async function POST'),route.indexOf('    const isDreamfaceIoTalkingAvatar ='));
-const post=new Function('getUserFromBearerToken','isValidBody','isAvatarRequest','isH3MaxAvatarRequest','DREAMFACE_IO_PROVIDER','DREAMFACE_IO_SUSPENDED','NextResponse','exports','normalizeGptImageProvider',
+const post=new Function('getUserFromBearerToken','isValidBody','isAvatarRequest','isH3MaxAvatarRequest','DREAMFACE_IO_PROVIDER','DREAMFACE_IO_SUSPENDED','NextResponse','exports','normalizeGptImageProvider','MISCHIEF_PROVIDER','MISCHIEF_RETIRED',
   compile(prefix+"throw new Error('Suspended request reached generation processing'); } catch(error) { throw error; } }")+'\nreturn exports.POST;')(
-  async()=>({id:'fixture'}),()=>true,()=>false,()=>false,'dreamface-io-video',true,NextResponse,{},normalizeGptImageProvider
+  async()=>({id:'fixture'}),()=>true,()=>false,()=>false,'dreamface-io-video',true,NextResponse,{},normalizeGptImageProvider,'mischief-video',true
 );
 for(const mode of ['video','avatar','image','audio']) {
   const result=await post({headers:new Headers(),json:async()=>({mode,provider:'dreamface-io-video'})});

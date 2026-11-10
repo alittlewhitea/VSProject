@@ -2,7 +2,7 @@ import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyf
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution } from "../../../lib/gemini-omni";
 import { HEYGEN_REFERENCE_RATIOS, validateHeygenReferences } from "../../../lib/heygen-reference-video";
 import { heygenAvatarPrompt, heygenAvatarTiming } from "../../../lib/heygen-avatar";
-import { DREAMFACE_IO_SUSPENDED } from "../../../lib/model-release";
+import { DREAMFACE_IO_SUSPENDED, MISCHIEF_RETIRED } from "../../../lib/model-release";
 import { createH3DailyFreeTask, h3FreeContext } from "../../../lib/h3-daily-free";
 import { isH3DailyFreeRequest, H3_DAILY_FREE_PROGRAM } from "../../../lib/h3-daily-free-policy";
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize, normalizeGptImageProvider, gptImageOptionError, buildGptImageInput } from "../../../lib/gpt-image-models";
@@ -857,6 +857,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
     }
     body.provider=normalizeGptImageProvider(body.provider);
+
+    if (body.provider === MISCHIEF_PROVIDER && MISCHIEF_RETIRED) {
+      return NextResponse.json({ error: "TBC mischief 1 is no longer available. Please choose another video model. No credits were charged.", code: "model_retired" }, { status: 410 });
+    }
 
     const isAvatarProvider = isAvatarRequest(body);
     const isH3MaxAvatar = isH3MaxAvatarRequest(body);
