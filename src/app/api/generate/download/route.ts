@@ -20,7 +20,7 @@ function getExtFromContentType(contentType: string | null): string {
   if (contentType.includes("video/mp4")) return "mp4";
   if (contentType.includes("video/webm")) return "webm";
   if (contentType.includes("audio/mpeg") || contentType.includes("audio/mp3")) return "mp3";
-  if (contentType.includes("audio/wav")) return "wav";
+  if (contentType.includes("audio/wav") || contentType.includes("audio/x-wav") || contentType.includes("audio/wave")) return "wav";
   return "bin";
 }
 

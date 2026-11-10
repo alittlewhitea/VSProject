@@ -2,6 +2,7 @@ import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } f
 import { flux3MaxDuration, flux3MaxSecondPrice } from "./flux3-max";
 import { lowestPaidCreditPriceUsd } from "./credit-pack-prices";
 import { MISCHIEF_PROVIDER, MISCHIEF_MODEL, mischiefCostUsd } from "./mischief";
+import { GEMINI_TTS_PROVIDER, GEMINI_TTS_MODEL, GEMINI_TTS_RATE_PER_1000, geminiTtsCharacters } from "./gemini-tts";
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution, geminiOmniSecondPrice } from "./gemini-omni";
 export type PricingMode = "image" | "video" | "audio";
 
@@ -204,6 +205,7 @@ export function estimateGenerationCostUsd(input: GenerationEstimateInput): numbe
     return cost * countMultiplier(input.numImages,isGptImageProvider(input.provider)?10:4);
   }
   if (input.mode === "audio") {
+    if (input.provider === GEMINI_TTS_PROVIDER) return Math.max(1, geminiTtsCharacters(input.promptText?.trim() || "")) / 1000 * (live && isFalUnit(unit, "1000 characters") ? live : GEMINI_TTS_RATE_PER_1000);
     if (input.provider === "minimax-music-2.6") return live && isFalUnit(unit, "audio", "audios", "generation", "generations") ? live : 0.15;
     if (input.provider === "elevenlabs-tts") return Math.max(1, input.promptText?.trim().length || 1) / 1000 * (live && isFalUnit(unit, "1000 characters") ? live : 0.04);
     throw new Error("Missing supplier cost estimate for audio provider");
@@ -564,6 +566,14 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal lists MiniMax Music 2.6 at $0.15 per generated audio.",
     typicalCredits: estimateGenerationCredits({ mode: "audio", provider: "minimax-music-2.6" }),
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
+  },
+  {
+    provider: GEMINI_TTS_PROVIDER,
+    label: "Gemini 3.8 Flash TTS", mode: "audio", workflow: "Text to Audio",
+    endpointId: GEMINI_TTS_MODEL,
+    falBasis: "$0.045 per 1000 spoken characters; style instructions and speaker aliases are excluded.",
+    typicalCredits: estimateGenerationCredits({ mode: "audio", provider: GEMINI_TTS_PROVIDER, promptText: "x".repeat(1000) }),
+    unitNote: "Based on spoken text only; check the quote before generating"
   },
   {
     provider: "elevenlabs-tts",

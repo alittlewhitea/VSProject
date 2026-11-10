@@ -17,6 +17,7 @@ type AudioSettingsProps = {
   provider: string;
   providerOptions: ModelPickerOption[];
   isElevenLabs: boolean;
+  isGeminiTts?: boolean;
   audioVoiceOptions: string[];
   languageOptions: readonly { value: string }[];
   voiceGenderOptions: readonly { value: VoiceGender }[];
@@ -55,6 +56,7 @@ export function AudioSettings({
   provider,
   providerOptions,
   isElevenLabs,
+  isGeminiTts,
   audioVoiceOptions,
   languageOptions,
   voiceGenderOptions,
@@ -91,16 +93,16 @@ export function AudioSettings({
     <div className="df-composer-toolbar">
       <ModelPicker inline value={provider} options={providerOptions} translate={translate} onChange={onProviderChange}/>
       <div className="df-composer-parameters">
-        {isElevenLabs ? <>
+        {isGeminiTts ? <span data-speech-format className="px-3 py-2 text-xs font-semibold text-[var(--studio-muted)]">WAV</span> : isElevenLabs ? <>
           <StudioComposerParameter kind="voice" label={translate("studio.field.voice")}><select aria-label={translate("studio.field.voice")} title={translate("studio.field.voice")} value={ttsVoice} onChange={event=>onTtsVoiceChange(event.target.value)} className={controlClass}>{audioVoiceOptions.map(voice=><option key={voice} value={voice}>{voice}</option>)}</select></StudioComposerParameter>
           <StudioComposerParameter kind="language" label={translate("studio.field.language")}><select aria-label={translate("studio.field.language")} title={translate("studio.field.language")} value={ttsLanguageCode} onChange={event=>onTtsLanguageCodeChange(event.target.value)} className={controlClass}>{languageOptions.map(item=><option key={item.value||"auto"} value={item.value}>{translate(`studio.languageOption.${item.value||"auto"}`)}</option>)}</select></StudioComposerParameter>
         </> : <StudioComposerParameter kind="format" label={translate("studio.music.format")}><select aria-label={translate("studio.music.format")} title={translate("studio.music.format")} value={musicFormat} onChange={event=>onMusicFormatChange(event.target.value as MusicFormat)} className={controlClass}>{(["mp3","wav","pcm"] as const).map(value=><option key={value} value={value}>{value.toUpperCase()}</option>)}</select></StudioComposerParameter>}
       </div>
-      <button type="button" data-audio-advanced-trigger aria-expanded={advancedOpen} onClick={()=>setAdvancedOpen(value=>!value)} className="df-composer-more">{translate(advancedOpen?"studio.workbench.lessSettings":"studio.workbench.moreSettings")}</button>
+      {!isGeminiTts ? <button type="button" data-audio-advanced-trigger aria-expanded={advancedOpen} onClick={()=>setAdvancedOpen(value=>!value)} className="df-composer-more">{translate(advancedOpen?"studio.workbench.lessSettings":"studio.workbench.moreSettings")}</button> : null}
       <StudioComposerGenerate disabled={generateDisabled} submitting={isSubmitting} authenticated={isAuthenticated} credits={estimatedCredits} translate={translate} onGenerate={onGenerate}/>
     </div>
     <GenerationCostSummary compact estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate}/>
-    {advancedOpen ? <div data-audio-advanced className="df-composer-advanced">
+    {advancedOpen && !isGeminiTts ? <div data-audio-advanced className="df-composer-advanced">
       {isElevenLabs ? <>
         <button type="button" data-audio-timestamps aria-pressed={ttsTimestamps} onClick={()=>onTtsTimestampsChange(!ttsTimestamps)} className="df-composer-more">{translate("studio.field.wordTimestamps")}: {translate(ttsTimestamps?"studio.state.on":"studio.state.off")}</button>
         <div data-audio-voice-controls className="grid gap-2 sm:grid-cols-3">

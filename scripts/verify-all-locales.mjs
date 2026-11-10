@@ -11,6 +11,7 @@ const studioSources = [
   ["studio-i18n-h3-free.ts", "studioH3FreeMessages"],
   ["studio-i18n-prompt-ai.ts", "studioPromptAiMessages"],
   ["studio-i18n-gemini-omni.ts", "studioGeminiOmniMessages"],
+  ["studio-i18n-gemini-tts.ts", "studioGeminiTtsMessages"],
   ["studio-i18n-mischief.ts", "studioMischiefMessages"],
   ["studio-i18n-controls.ts", "studioControlMessages"],
   ["studio-i18n-dreamface-io.ts", "studioDreamfaceIoMessages"],

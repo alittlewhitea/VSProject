@@ -27,7 +27,7 @@ const ast=ts.createSourceFile('studio-client.tsx',source,ts.ScriptTarget.Latest,
 function findNode(predicate){let found;function visit(node){if(!found&&predicate(node))found=node;if(!found)ts.forEachChild(node,visit);}visit(ast);assert.ok(found,'Source node not found');return found;}
 function executeFunction(name,context){const node=findNode(node=>ts.isFunctionDeclaration(node)&&node.name?.text===name);const compiled=ts.transpileModule(node.getText(ast),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;return new Function('context',`with(context){${compiled};return ${name};}`)(context);}
 const workflowMeta=findNode(node=>ts.isVariableDeclaration(node)&&node.name.getText(ast)==='WORKFLOW_META');
-const WORKFLOW_META=new Function('VIDEO_PROVIDERS_BY_WORKFLOW',`return (${workflowMeta.initializer.getText(ast)});`)(models.VIDEO_PROVIDERS_BY_WORKFLOW);
+const WORKFLOW_META=new Function('VIDEO_PROVIDERS_BY_WORKFLOW','GEMINI_TTS_PROVIDER',`return (${workflowMeta.initializer.getText(ast)});`)(models.VIDEO_PROVIDERS_BY_WORKFLOW,load('src/lib/gemini-tts.ts').GEMINI_TTS_PROVIDER);
 function context(mode,workflow) {
   const c={...models,...gpt,...frames,...policy,...load('src/lib/mischief.ts'),WORKFLOW_META,mode,activeWorkflow:workflow,imageWorkflow:workflow,videoWorkflow:workflow,
     provider:mode==='image'?'chatgpt-image':'minimax-h3-max-turbo-video',prompt:'',referenceImagesText:'',referenceImageFiles:[],

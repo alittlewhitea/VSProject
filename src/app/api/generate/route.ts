@@ -7,6 +7,7 @@ import { createH3DailyFreeTask, h3FreeContext } from "../../../lib/h3-daily-free
 import { isH3DailyFreeRequest, H3_DAILY_FREE_PROGRAM } from "../../../lib/h3-daily-free-policy";
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize, normalizeGptImageProvider, gptImageOptionError, buildGptImageInput } from "../../../lib/gpt-image-models";
 import { NextResponse } from "next/server";
+import { GEMINI_TTS_PROVIDER, GEMINI_TTS_MODEL, prepareGeminiTts, type GeminiTtsOptions } from "../../../lib/gemini-tts";
 import { MISCHIEF_PROVIDER, MISCHIEF_MODEL, MISCHIEF_DURATIONS, MISCHIEF_RESOLUTIONS, mischiefDuration, mischiefResolution, mischiefImageError } from "../../../lib/mischief";
 import { randomUUID } from "node:crypto";
 import { getUserFromBearerToken } from "../../../lib/server-auth";
@@ -52,6 +53,7 @@ type GenerateRequest = {
   imageWorkflow?: "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
   videoWorkflow?: "avatar-video" | "text-to-video" | "image-to-video" | "reference-to-video";
   audioWorkflow?: "text-to-audio" | "text-to-music";
+  geminiTts?: GeminiTtsOptions;
   provider: string;
   ratio: string;
   duration: string;
@@ -205,6 +207,7 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "gemini-omni-flash-video": editImage
       ? process.env.FAL_MODEL_VIDEO_GEMINI_OMNI_I2V || GEMINI_OMNI_IMAGE_MODEL
       : process.env.FAL_MODEL_VIDEO_GEMINI_OMNI || GEMINI_OMNI_TEXT_MODEL,
+    [GEMINI_TTS_PROVIDER]: GEMINI_TTS_MODEL,
     "elevenlabs-tts": "elevenlabs/tts/eleven-v4-turbo",
     "minimax-music-2.6": process.env.FAL_MODEL_AUDIO_MINIMAX_26 || "fal-ai/minimax-music/v2.6"
   };
@@ -374,6 +377,9 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
+  if (body.mode === "audio" && body.provider === GEMINI_TTS_PROVIDER) {
+    return prepareGeminiTts(body.geminiTts?.mode === "dialogue" ? "" : prompt, body.geminiTts).input;
+  }
   if (body.mode === "audio" && body.provider === "elevenlabs-tts") {
     return {
       ...buildTtsInput(body, prompt),
@@ -667,8 +673,9 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     ...(isGptImageProvider(body.provider) ? {image_width:body.imageWidth ?? null,image_height:body.imageHeight ?? null,background:body.background || "auto",reasoning_effort:body.imageReasoningEffort || "low",output_compression:body.outputCompression ?? null,frame_count:body.frameCount ?? null,frame_duration_ms:body.frameDurationMs ?? null,svg_model:body.svgModel || null,mask_url:body.maskUrl || null,markup_image_url:body.markupImageUrl || null} : {}),
     ...(body.mode === "video" && body.videoWorkflow === "reference-to-video" ? {video_urls: body.videoUrls?.map(url => url.trim()) || []} : {}),
     audio_url: body.audioUrl || null,
+    ...(body.provider === GEMINI_TTS_PROVIDER ? { gemini_tts: prepareGeminiTts(body.geminiTts?.mode === "dialogue" ? "" : body.prompt, body.geminiTts).input } : {}),
     resolution: body.resolution || null,
-    output_format: body.outputFormat || null,
+    output_format: body.provider === GEMINI_TTS_PROVIDER ? "wav" : body.outputFormat || null,
     quality: body.quality || null,
     num_images: body.numImages || null,
     guidance_scale: body.guidanceScale || null,
@@ -860,7 +867,13 @@ export async function POST(request: Request) {
     const isDreamfaceIoTalkingAvatar = isDreamfaceIo && body.mode === "avatar";
     const storageMode = storedModeForRequest(body);
     const isPromptlessImageTool = body.mode === "image" && (body.provider === "topaz-image" || body.provider === "bria-background-remove");
-    const prompt = body.prompt.trim() || (isAvatarProvider || isDreamfaceIoTalkingAvatar || isPromptlessImageTool ? "." : "");
+    const geminiSpeech = body.provider === GEMINI_TTS_PROVIDER ? prepareGeminiTts(body.prompt, body.geminiTts) : null;
+    if (body.provider === GEMINI_TTS_PROVIDER) {
+      if (body.mode !== "audio" || (body.audioWorkflow !== undefined && body.audioWorkflow !== "text-to-audio") || body.imageUrls?.length || body.videoUrls?.length || body.audioUrl || body.dailyFree === true) return NextResponse.json({ error: "Gemini Flash TTS requires the text-to-speech workspace without media inputs." }, { status: 400 });
+      if (geminiSpeech?.error) return NextResponse.json({ error: "Check the speech text, voices, dialogue turns and input length.", code: `gemini_tts_${geminiSpeech.error}` }, { status: 400 });
+      if (!process.env.FAL_KEY?.trim()) return NextResponse.json({ error: "Audio provider is not configured." }, { status: 503 });
+    }
+    const prompt = geminiSpeech?.transcript || body.prompt.trim() || (isAvatarProvider || isDreamfaceIoTalkingAvatar || isPromptlessImageTool ? "." : "");
     if (!isPromptlessImageTool && !prompt.trim()) {
       return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
     }
@@ -1013,9 +1026,9 @@ export async function POST(request: Request) {
           enableWebSearch: body.enableWebSearch,
           thinkingLevel: body.thinkingLevel,
           generateAudio: body.generateAudio,
-          promptText: prompt
+          promptText: geminiSpeech?.billableText ?? prompt
         });
-    if((isGptImageProvider(body.provider)||body.provider===MISCHIEF_PROVIDER)&&body.expectedCredits!==undefined&&body.expectedCredits!==baseEstimatedCredits) return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"generation_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
+    if((isGptImageProvider(body.provider)||body.provider===MISCHIEF_PROVIDER||body.provider===GEMINI_TTS_PROVIDER)&&body.expectedCredits!==undefined&&body.expectedCredits!==baseEstimatedCredits) return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"generation_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
     if (body.provider === "flux-3-max-video" && body.mode !== "video") {
       return NextResponse.json({error:"FLUX 3 Max is only available for video generation."},{status:400});
     }

@@ -36,6 +36,7 @@ import { studioMusicMessages } from "./studio-i18n-music";
 import { studioTraditionalChineseMessages } from "./studio-i18n-zh-tw";
 import { studioControlMessages } from "./studio-i18n-controls";
 import { studioGeminiOmniMessages } from "./studio-i18n-gemini-omni";
+import { studioGeminiTtsMessages } from "./studio-i18n-gemini-tts";
 import { studioMischiefMessages } from "./studio-i18n-mischief";
 import { studioWorkbenchUiMessages } from "./studio-i18n-workbench-ui";
 import { studioCostMessages } from "./studio-i18n-cost";
@@ -1049,6 +1050,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
       studioWorkbenchUiMessages[locale]?.[key] ||
       studioControlMessages[locale]?.[key] ||
       studioGeminiOmniMessages[locale]?.[key] ||
+      studioGeminiTtsMessages[locale]?.[key] ||
       studioMischiefMessages[locale]?.[key] ||
       studioAudioWorkbenchMessages[locale]?.[key] ||
       studioVideoWorkbenchMessages[locale]?.[key] ||
@@ -1078,6 +1080,7 @@ export function useStudioI18n(initialLocale: Locale = defaultLocale) {
       studioModelMessages[defaultLocale]?.[key] ||
       studioMusicMessages[defaultLocale]?.[key] ||
       studioGeminiOmniMessages[defaultLocale]?.[key] ||
+      studioGeminiTtsMessages[defaultLocale]?.[key] ||
       studioMischiefMessages[defaultLocale]?.[key] ||
       studioCostMessages[defaultLocale]?.[key] ||
       studioWorkbenchUiMessages[defaultLocale]?.[key] ||

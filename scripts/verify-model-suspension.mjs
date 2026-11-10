@@ -33,11 +33,12 @@ function nodeMatching(predicate) {
   assert.ok(found);return found;
 }
 const initializer=nodeMatching(n=>ts.isVariableDeclaration(n)&&n.name.getText(ast)==='WORKFLOW_META').initializer.getText(ast);
-const workflows=new Function('VIDEO_PROVIDERS_BY_WORKFLOW',`return (${initializer});`)(models.VIDEO_PROVIDERS_BY_WORKFLOW);
+const speech=load('src/lib/gemini-tts.ts');
+const workflows=new Function('VIDEO_PROVIDERS_BY_WORKFLOW','GEMINI_TTS_PROVIDER',`return (${initializer});`)(models.VIDEO_PROVIDERS_BY_WORKFLOW,speech.GEMINI_TTS_PROVIDER);
 const providerFor=nodeMatching(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='providerForWorkflow').getText(ast);
 const allowed=nodeMatching(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='isProviderAllowedForMode').getText(ast);
 const normalizeGptImageProvider=load('src/lib/gpt-image-models.ts').normalizeGptImageProvider;
-const selectors=new Function('WORKFLOW_META','videoModelConfig','isAvatarProvider','normalizeGptImageProvider',compile(providerFor+'\n'+allowed)+'\nreturn {providerForWorkflow,isProviderAllowedForMode};')(workflows,models.videoModelConfig,()=>false,normalizeGptImageProvider);
+const selectors=new Function('WORKFLOW_META','videoModelConfig','isAvatarProvider','normalizeGptImageProvider','GEMINI_TTS_PROVIDER',compile(providerFor+'\n'+allowed)+'\nreturn {providerForWorkflow,isProviderAllowedForMode};')(workflows,models.videoModelConfig,()=>false,normalizeGptImageProvider,speech.GEMINI_TTS_PROVIDER);
 for(const workflow of Object.keys(workflows)) {
   assert.ok(!workflows[workflow].providers.includes('dreamface-io-video'));
   assert.equal(selectors.providerForWorkflow(workflow,'dreamface-io-video'),workflows[workflow].recommendedProvider);

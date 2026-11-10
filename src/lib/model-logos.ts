@@ -29,7 +29,8 @@ const MODEL_LOGO_LABS:Record<string,string> = {
   "topaz-image":"topaz-labs",
   "bria-background-remove":"bria-ai",
   "minimax-music-2.6":"minimax",
-  "elevenlabs-tts":"elevenlabs"
+  "elevenlabs-tts":"elevenlabs",
+  "gemini-flash-tts":"google"
 };
 export function modelLogoForProvider(provider?:string) {
   const lab=provider ? MODEL_LOGO_LABS[normalizeGptImageProvider(provider)] : undefined;

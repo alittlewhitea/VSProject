@@ -1,4 +1,5 @@
 import { StudioComposerPrompt } from "./studio-composer-controls";
+import type { ReactNode } from "react";
 
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
 
@@ -16,7 +17,8 @@ export function AudioWorkbench({
   onAdvancedOpenChange,
   onInstrumentalChange,
   onLyricsOptimizerChange,
-  onMusicLyricsChange
+  onMusicLyricsChange,
+  speechEditor
 }: {
   workflow: "text-to-audio" | "text-to-music";
   canSubmit: boolean;
@@ -32,14 +34,15 @@ export function AudioWorkbench({
   onInstrumentalChange: (value: boolean) => void;
   onLyricsOptimizerChange: (value: boolean) => void;
   onMusicLyricsChange: (value: string) => void;
+  speechEditor?: ReactNode;
 }) {
   const isMusic = workflow === "text-to-music";
 
   return (
     <div className="df-audio-editor">
-      <StudioComposerPrompt label={translate(isMusic ? "studio.audioWorkbench.musicPrompt" : "studio.audioWorkbench.voiceScript")} prompt={prompt} placeholder={translate(isMusic ? "studio.music.defaultPrompt" : "studio.placeholder.audio")} translate={translate} onChange={onPromptChange} maxLength={isMiniMaxMusic ? 2000 : undefined}>
+      {speechEditor || <StudioComposerPrompt label={translate(isMusic ? "studio.audioWorkbench.musicPrompt" : "studio.audioWorkbench.voiceScript")} prompt={prompt} placeholder={translate(isMusic ? "studio.music.defaultPrompt" : "studio.placeholder.audio")} translate={translate} onChange={onPromptChange} maxLength={isMiniMaxMusic ? 2000 : undefined}>
         <div className="df-composer-prompt-actions"><button type="button" disabled={!prompt.length} onClick={()=>onPromptChange("")}>{translate("studio.action.clear")}</button></div>
-      </StudioComposerPrompt>
+      </StudioComposerPrompt>}
         {isMiniMaxMusic ? (
           <div className="df-composer-music-options">
             <button type="button" onClick={() => onAdvancedOpenChange(!musicAdvancedOpen)} className="flex min-h-11 w-full items-center justify-between gap-3 text-start">

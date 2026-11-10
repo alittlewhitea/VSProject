@@ -1,4 +1,5 @@
 import type { AcceptedPrompt } from "./use-video-prompt-enhancement";
+import type { GeminiTtsOptions } from "../../lib/gemini-tts";
 import type { GptImageOptions, GptImageQuality } from "../../lib/gpt-image-models";
 
 export type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
@@ -51,6 +52,7 @@ export type StudioLoginDraft<
   videoResolution: string;
   generateAudio?: boolean;
   reasoningLevel?: "low" | "high";
+  geminiTts?: GeminiTtsOptions;
   voice?: string;
   stability?: number;
   timestamps?: boolean;

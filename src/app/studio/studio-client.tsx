@@ -31,6 +31,8 @@ import { CREDIT_LOW_BALANCE_THRESHOLD, estimateGenerationCredits } from "../../l
 import { useStudioI18n } from "../../lib/studio-i18n";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 import { AudioWorkbench } from "../../features/studio/audio-workbench";
+import { GeminiTtsEditor } from "../../features/studio/gemini-tts-editor";
+import { GEMINI_TTS_PROVIDER, newGeminiTtsOptions, restoreGeminiTtsOptions, prepareGeminiTts, geminiTtsBillableText, geminiTtsCharacters } from "../../lib/gemini-tts";
 import { AvatarWorkbench } from "../../features/studio/avatar-workbench";
 import { ImageWorkbench } from "../../features/studio/image-workbench";
 import { ImageSettings } from "../../features/studio/image-settings";
@@ -320,6 +322,7 @@ const PROVIDER_META: Record<
     bestFor: "Removing backgrounds from product, portrait, and asset images"
   },
   ...VIDEO_PROVIDER_META,
+  [GEMINI_TTS_PROVIDER]: { label: "Gemini 3.8 Flash TTS", shortLabel: "Gemini Flash TTS", speed: "Fast", quality: "Expressive speech", bestFor: "30 voices, delivery instructions and two-speaker dialogue in WAV" },
   "elevenlabs-tts": {
     label: "ElevenLabs Eleven v4 Turbo",
     shortLabel: "Eleven v4 Turbo",
@@ -394,8 +397,8 @@ const WORKFLOW_META: Record<
   "text-to-audio": {
     label: "Text to Audio",
     description: "Turn a written script into an AI voiceover.",
-    recommendedProvider: "elevenlabs-tts",
-    providers: ["elevenlabs-tts"]
+    recommendedProvider: GEMINI_TTS_PROVIDER,
+    providers: [GEMINI_TTS_PROVIDER, "elevenlabs-tts"]
   },
   "text-to-music": {
     label: "AI Music",
@@ -406,9 +409,8 @@ const WORKFLOW_META: Record<
 };
 
 function lastModelStorageKey(workflow: StudioWorkflow) {
-  // Use a new preference namespace for the two video workflows so existing
-  // users see the new default once; explicit choices are still remembered.
-  return `${LAST_MODEL_STORAGE_PREFIX}:${workflow}${workflow === "text-to-video" || workflow === "image-to-video" ? ":v2" : ""}`;
+  // Introduce updated defaults once, then continue remembering explicit choices.
+  return `${LAST_MODEL_STORAGE_PREFIX}:${workflow}${["text-to-video", "image-to-video", "text-to-audio"].includes(workflow) ? ":v2" : ""}`;
 }
 
 function readRememberedModel(workflow: StudioWorkflow) {
@@ -637,7 +639,7 @@ function isProviderAllowedForMode(provider: string | null, mode: StudioMode) {
   provider=normalizeGptImageProvider(provider);
   if (provider === "dreamface-io-video") return false;
   if (mode === "image") return ["gpt-image-2.6-sunburst", "chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
-  if (mode === "audio") return ["minimax-music-2.6", "elevenlabs-tts"].includes(provider);
+  if (mode === "audio") return [GEMINI_TTS_PROVIDER, "minimax-music-2.6", "elevenlabs-tts"].includes(provider);
   if (mode === "avatar") return ["heygen-video", "minimax-h3-max-turbo-video", "minimax-h3-max-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return Boolean(videoModelConfig(provider)) || isAvatarProvider(provider);
 }
@@ -780,6 +782,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     return ()=>{window.clearInterval(interval);if(timeout!==null)window.clearTimeout(timeout);window.removeEventListener("focus",refresh);};
   },[mode]);
   const [ttsVoice, setTtsVoice] = useState("Rachel");
+  const [geminiTts, setGeminiTts] = useState(newGeminiTtsOptions);
   const [avatarVoiceGender, setAvatarVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
   const [audioVoiceGender, setAudioVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
   const [ttsStability, setTtsStability] = useState(0.5);
@@ -1389,9 +1392,12 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
           })
       : st("studio.avatar.emptyMeta")
     : "";
-  const audioCharacterCount = mode === "audio" ? prompt.trim().length : 0;
   const isMiniMaxMusic = mode === "audio" && provider === "minimax-music-2.6";
   const isElevenLabsAudio = mode === "audio" && provider === "elevenlabs-tts";
+  const isGeminiTts = mode === "audio" && provider === GEMINI_TTS_PROVIDER;
+  const geminiSpeech = prepareGeminiTts(geminiTts.mode === "dialogue" ? "" : prompt, geminiTts);
+  const speechBillableText = isGeminiTts ? geminiTtsBillableText(prompt, geminiTts) : prompt;
+  const audioCharacterCount = mode === "audio" ? isGeminiTts ? geminiTtsCharacters(speechBillableText) : prompt.trim().length : 0;
   const avatarSelectedSeconds = Math.max(1, Number.parseInt(avatarDuration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
 
   const baseEstCredits = estimateGenerationCredits({
@@ -1409,7 +1415,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     numImages: mode === "image" ? numImages : 1,
     enableWebSearch,
     thinkingLevel,
-    promptText: prompt
+    promptText: speechBillableText
   });
   const dreamfaceIoUnits = provider === "dreamface-io-video"
     ? Math.max(1, Math.ceil((Number.parseInt(isAvatarWorkflow ? avatarDuration : duration, 10) || 5) / 5))
@@ -1466,7 +1472,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
           numImages: mode === "image" ? numImages : 1,
           enableWebSearch,
           thinkingLevel,
-          promptText: prompt
+          promptText: option.value === GEMINI_TTS_PROVIDER ? geminiTtsBillableText(prompt, geminiTts) : prompt
         });
     const optionDreamfaceUnits = option.value === "dreamface-io-video"
       ? Math.max(1, Math.ceil((Number.parseInt(optionDuration, 10) || 5) / 5))
@@ -1498,7 +1504,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
   const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const hasMiniMaxLyrics = isInstrumental || lyricsOptimizer || musicLyrics.trim().length > 0;
   const isPromptValid = isPromptlessImageWorkflow || (
-    isAvatarWorkflow
+    isGeminiTts ? !geminiSpeech.error : isAvatarWorkflow
       ? prompt.trim().length > 0 && !avatarScriptTooLong
       : isMiniMaxMusic
         ? prompt.trim().length >= 10 && hasMiniMaxLyrics
@@ -1551,6 +1557,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     "kling-video",
     "veo-video",
     "elevenlabs-tts",
+    GEMINI_TTS_PROVIDER,
     "minimax-music-2.6"
   ].includes(provider)
     ? provider
@@ -1602,6 +1609,8 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
           ? `${editResolution} / ${safetyTolerance} / ${numImages}`
           : isMiniMaxMusic
             ? `${isInstrumental ? "Instrumental" : lyricsOptimizer ? "Auto lyrics" : "Custom lyrics"} / ${musicSampleRate} Hz / ${musicFormat.toUpperCase()}`
+          : isGeminiTts
+            ? `${audioCharacterCount} / ${geminiTts.mode === "dialogue" ? st("studio.geminiTts.dialogue") : geminiTts.voice} / WAV`
           : mode === "audio"
             ? `${prompt.trim().length || 0} / ${ttsVoice} / ${ttsStability.toFixed(2)}`
           : isAvatarWorkflow
@@ -2048,6 +2057,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
       generateAudio,
       reasoningLevel,
       voice: ttsVoice,
+      geminiTts,
       stability: ttsStability,
       timestamps: ttsTimestamps,
       languageCode: ttsLanguageCode,
@@ -2110,6 +2120,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
     setGenerateAudio(Boolean(draft.generateAudio));
     setReasoningLevel(draft.reasoningLevel === "low" ? "low" : "high");
     setTtsVoice(draft.voice || "Rachel");
+    setGeminiTts(restoreGeminiTtsOptions(draft.geminiTts));
     setTtsStability(typeof draft.stability === "number" ? draft.stability : 0.5);
     setTtsTimestamps(Boolean(draft.timestamps));
     setTtsLanguageCode(draft.languageCode || "");
@@ -2231,7 +2242,8 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
         dailyFree: usesH3FreeAllowance,
         ratio: isAvatarWorkflow ? isDreamfaceTalkingAvatar ? ratio : "source" : ratio,
         duration: requestDuration,
-        prompt: isPromptlessImageWorkflow ? "" : finalPrompt,
+        prompt: isPromptlessImageWorkflow || (isGeminiTts && geminiTts.mode === "dialogue") ? "" : finalPrompt,
+        geminiTts: isGeminiTts ? geminiTts : undefined,
         promptEnhancement,
         imageSize: mode === "image" ? imageSize : undefined,
         imageUrls:
@@ -2248,7 +2260,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
               : undefined,
         generateAudio: provider === MISCHIEF_PROVIDER ? false : mode === "video" || isHeygenAvatar ? provider === "heygen-video" || provider === "gemini-omni-flash-video" || generateAudio : undefined,
         reasoningLevel: provider === "flux-3-max-video" ? reasoningLevel : undefined,
-        expectedCredits: isGptImageProvider(provider) || provider === "heygen-video" || provider === "flux-3-max-video" || provider === MISCHIEF_PROVIDER || provider === "gemini-omni-flash-video" || isH3VideoProvider(provider) ? estCredits : undefined,
+        expectedCredits: isGeminiTts || isGptImageProvider(provider) || provider === "heygen-video" || provider === "flux-3-max-video" || provider === MISCHIEF_PROVIDER || provider === "gemini-omni-flash-video" || isH3VideoProvider(provider) ? estCredits : undefined,
         outputFormat: mode === "image" && provider !== "bria-background-remove" ? outputFormat : undefined,
         quality: mode === "image" && !isPromptlessImageWorkflow ? imageQuality : undefined,
         ...(mode==="image"&&isGptImageProvider(provider)?{...gptRequestOptions,enableSafetyChecker:gptImageOptions.enableSafetyChecker}:{}),
@@ -2277,7 +2289,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
       };
       const fingerprint = createIdempotencyFingerprint({
         ...requestPayload,
-        prompt: finalPrompt.trim(),
+        prompt: isGeminiTts ? geminiSpeech.transcript : finalPrompt.trim(),
         imageUrls: referenceImageUrls,
         audioUrl: avatarAudioUrl.trim()
       });
@@ -2354,7 +2366,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
                 : "Queued",
         cost: typeof payload.estimatedCredits === "number" ? payload.estimatedCredits : estCredits,
         provider,
-        prompt: finalPrompt.trim(),
+        prompt: isGeminiTts ? geminiSpeech.transcript : finalPrompt.trim(),
         ratio,
         transport: payload.transport,
         createdAt: new Date().toISOString(),
@@ -2768,6 +2780,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
       provider={provider}
       providerOptions={modelPickerOptions}
       isElevenLabs={isElevenLabsAudio}
+      isGeminiTts={isGeminiTts}
       audioVoiceOptions={audioVoiceOptions}
       languageOptions={ELEVENLABS_LANGUAGE_OPTIONS}
       voiceGenderOptions={ELEVENLABS_VOICE_GENDER_OPTIONS}
@@ -2995,6 +3008,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
                         translate={st}
                         editor={<AudioWorkbench
                           workflow={audioWorkflow}
+                          speechEditor={isGeminiTts ? <GeminiTtsEditor prompt={prompt} options={geminiTts} onPromptChange={setPrompt} onChange={setGeminiTts} translate={st} /> : undefined}
                           canSubmit={canSubmit}
                           prompt={prompt}
                           isMiniMaxMusic={isMiniMaxMusic}
@@ -3814,6 +3828,7 @@ function StudioContent({ initialLocale, initialView }: { initialLocale: Locale; 
                       provider={provider}
                       providerOptions={modelPickerOptions}
                       isElevenLabs={isElevenLabsAudio}
+      isGeminiTts={isGeminiTts}
                       audioVoiceOptions={audioVoiceOptions}
                       languageOptions={ELEVENLABS_LANGUAGE_OPTIONS}
                       voiceGenderOptions={ELEVENLABS_VOICE_GENDER_OPTIONS}
