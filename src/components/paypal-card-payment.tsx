@@ -5,6 +5,9 @@ import { getPayPalWalletConfig } from "../lib/paypal-wallets-client";
 import { mountPayPalCards, type CardCallbacks, type CardController } from "../lib/paypal-cards-client";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
+// CardFields supplies its own border, padding and auto-resizing wrapper. Keep
+// the host in normal flow; a fixed height makes the next label overlap it.
+const CARD_FIELD_HOST = "min-h-[78px] w-full min-w-0 [&_iframe]:block [&_iframe]:max-w-full";
 const COUNTRY_CODES = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" ");
 
 export function PayPalCardPayment({ amountCents, disabled, callbacks, t }: {
@@ -60,10 +63,10 @@ export function PayPalCardPayment({ amountCents, disabled, callbacks, t }: {
       }}>
         <fieldset disabled={disabled || status !== "ready"} inert={disabled || status !== "ready" || undefined} className="grid min-w-0 gap-3">
           <p className="text-xs leading-5 text-[#82758f]">{t("creditShop.cardSecure")}</p>
-          {[["name", name, "cardName"], ["number", number, "cardNumber"]] .map(([key, ref, label]) => <div key={key as string} className="min-w-0"><p className="mb-1 text-xs font-semibold text-[#5e4a78]">{t(`creditShop.${label}`)}</p><div ref={ref as typeof name} data-card-field={key as string} className="h-12 min-w-0 rounded-lg border border-[#ddd4e8] bg-white px-2" /></div>)}
+          {[["name", name, "cardName"], ["number", number, "cardNumber"]] .map(([key, ref, label]) => <div key={key as string} className="min-w-0"><p className="mb-1 text-xs font-semibold text-[#5e4a78]">{t(`creditShop.${label}`)}</p><div ref={ref as typeof name} data-card-field={key as string} className={CARD_FIELD_HOST} /></div>)}
           <div className="grid min-w-0 grid-cols-2 gap-3">
-            <div className="min-w-0"><p className="mb-1 text-xs font-semibold text-[#5e4a78]">{t("creditShop.cardExpiry")}</p><div ref={expiry} data-card-field="expiry" className="h-12 min-w-0 rounded-lg border border-[#ddd4e8] bg-white px-2" /></div>
-            <div className="min-w-0"><p className="mb-1 text-xs font-semibold text-[#5e4a78]">{t("creditShop.cardCvv")}</p><div ref={cvv} data-card-field="cvv" className="h-12 min-w-0 rounded-lg border border-[#ddd4e8] bg-white px-2" /></div>
+            <div className="min-w-0"><p className="mb-1 text-xs font-semibold text-[#5e4a78]">{t("creditShop.cardExpiry")}</p><div ref={expiry} data-card-field="expiry" className={CARD_FIELD_HOST} /></div>
+            <div className="min-w-0"><p className="mb-1 text-xs font-semibold text-[#5e4a78]">{t("creditShop.cardCvv")}</p><div ref={cvv} data-card-field="cvv" className={CARD_FIELD_HOST} /></div>
           </div>
           <p className="mt-1 text-xs font-bold text-[#5e4a78]">{t("creditShop.cardBillingAddress")}</p>
           <label className="grid min-w-0 gap-1 text-xs font-semibold text-[#5e4a78]">{t("creditShop.cardCountry")}<select name="countryCode" autoComplete="billing country" required defaultValue="" className="h-11 w-full min-w-0 rounded-lg border border-[#ddd4e8] bg-white px-2 text-sm text-[#241a34]"><option value="" disabled>{t("creditShop.cardChooseCountry")}</option>{countries.map(country => <option key={country.code} value={country.code}>{country.name}</option>)}</select></label>

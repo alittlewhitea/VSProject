@@ -7,7 +7,7 @@ const socket=new WebSocket(tab.webSocketDebuggerUrl);await new Promise(resolve=>
 const pending=new Map(),errors=[],orders=[],captures=[],analytics=[];let sequence=0,captureMode='success';
 function send(method,params={}){return new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});socket.send(JSON.stringify({id,method,params}));});}
 const sdk=`window.dreamfacePayPal={Applepay:()=>({config:async()=>({isEligible:false})}),Googlepay:()=>({config:async()=>({isEligible:false})}),CardFields:options=>{
- const field=label=>{let iframe;return{render:async host=>{if(window.cardRenderFailure)throw new Error('Fixture loading failure');iframe=document.createElement('iframe');iframe.title=label;iframe.style='height:100%;width:100%;border:0';host.replaceChildren(iframe);},close:()=>iframe?.remove()}};
+ const field=label=>{let frame;return{render:async host=>{if(window.cardRenderFailure)throw new Error('Fixture loading failure');const wrapper=document.createElement('div');wrapper.dataset.cardSdkWrapper='true';wrapper.style='position:relative;width:100%;height:90px';frame=document.createElement('iframe');frame.title=label;frame.style='display:block;position:absolute;width:100%;height:100%;border:0';wrapper.append(frame);host.replaceChildren(wrapper);frame.contentDocument.body.innerHTML='<input aria-label="'+label+'" placeholder="'+label+'" style="box-sizing:border-box;display:block;width:100%;height:64px;margin:8px 0;border:1px solid #b8bdc4;border-radius:6px;font:16px Arial;padding:12px">';Object.assign(frame.contentDocument.body.style,{margin:'0',padding:'0'});},close:()=>frame?.remove()}};
  return{isEligible:()=>!window.cardIneligible,NameField:()=>field('Cardholder name'),NumberField:()=>field('Card number'),ExpiryField:()=>field('Expiry'),CVVField:()=>field('CVV'),getState:async()=>({isFormValid:!window.cardInvalid}),submit:async()=>{
   const orderID=await options.createOrder();if(window.cardCanceled)throw new Error('Fixture cancel');await Promise.all([options.onApprove({orderID,liabilityShift:'POSSIBLE'}),options.onApprove({orderID,liabilityShift:'POSSIBLE'})]);
  }};}};`;
@@ -44,6 +44,12 @@ async function open(){await evaluate("document.querySelector('[data-credit-pack-
 async function close(){await evaluate("document.querySelector('[data-credit-payment-dialog] button[aria-label=Close]').click()");await wait("!document.querySelector('[data-credit-payment-dialog]')");}
 async function address(){await evaluate("{const form=document.querySelector('[data-paypal-card-payment] form');for(const [name,value] of Object.entries({countryCode:'GB',addressLine1:'Fixture street',adminArea2:'Fixture city',postalCode:'SW1A 1AA'})){form.elements.namedItem(name).value=value;}} ");}
 async function shot(name){const result=await send('Page.captureScreenshot',{format:'png'});writeFileSync('outputs/paypal-cards/'+name+'.png',Buffer.from(result.data,'base64'));}
+async function checkFieldLayout(){
+ const layout=await evaluate(`(()=>{const fields=[...document.querySelectorAll('[data-card-field]')];return fields.map(host=>{const iframe=host.querySelector('iframe'),a=host.getBoundingClientRect(),b=iframe.getBoundingClientRect(),style=getComputedStyle(host);return {field:host.dataset.cardField,contained:b.bottom<=a.bottom+1&&b.right<=a.right+1&&b.top>=a.top-1,height:a.height,sdkHeight:b.height,border:parseFloat(style.borderTopWidth),padding:parseFloat(style.paddingLeft)}})})()`);
+ assert.equal(layout.length,4);
+ for(const field of layout){assert.equal(field.contained,true,JSON.stringify(field));assert.equal(field.border,0,'SDK owns the input border');assert.equal(field.padding,0,'No duplicate host padding');}
+ assert.equal(await evaluate(`(()=>{const root=document.querySelector('[data-paypal-card-payment]'),number=root.querySelector('[data-card-field=number]').getBoundingClientRect(),expiry=root.querySelector('[data-card-field=expiry]').parentElement.getBoundingClientRect(),name=root.querySelector('[data-card-field=name]').getBoundingClientRect(),numberLabel=root.querySelector('[data-card-field=number]').previousElementSibling.getBoundingClientRect();return name.bottom<=numberLabel.top+1&&number.bottom<=expiry.top+1;})()`),true,'Auto-resized fields cannot overlap subsequent labels');
+}
 try{
  mkdirSync('outputs/paypal-cards',{recursive:true});await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setCacheDisabled',{cacheDisabled:true});
  await send('Fetch.enable',{patterns:[{urlPattern:origin+'/api/*'},{urlPattern:'https://*'}]});
@@ -53,6 +59,9 @@ try{
   await wait("Object.keys(document.querySelector('[data-credit-pack-select=starter]')||{}).some(key=>key.startsWith('__reactProps'))");
   const before=orders.length;await open();assert.equal(await evaluate("document.querySelector('[data-card-status]').dataset.cardStatus"),'ready');assert.equal(orders.length,before,'Rendering card fields cannot create a purchase');
   assert.equal(await evaluate("document.querySelectorAll('[data-card-field] iframe').length"),4);assert.equal(await evaluate("!!document.querySelector('[data-payment-provider=dodo]')"),false);
+  await checkFieldLayout();
+  await evaluate("document.querySelectorAll('[data-card-sdk-wrapper]').forEach(wrapper=>wrapper.style.height='112px')");await checkFieldLayout();
+  await evaluate("document.querySelectorAll('[data-card-sdk-wrapper]').forEach(wrapper=>wrapper.style.height='90px')");
   assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
   await address();await evaluate("document.querySelector('[data-paypal-card-payment] form').scrollIntoView({block:'start'})");await shot('form-'+width);
   await evaluate("window.cardInvalid=true;document.querySelector('[data-card-pay]').click()");await wait("!!document.querySelector('[data-paypal-card-payment] [role=alert]')");assert.equal(orders.length,before);

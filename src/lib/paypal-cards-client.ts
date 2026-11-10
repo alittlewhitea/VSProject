@@ -35,7 +35,7 @@ export async function mountPayPalCards(config: WalletConfig, input: {
     const sdk = await getPayPalCheckoutSdk(config);
     if (destroyed || !sdk.CardFields) return empty;
     const form = sdk.CardFields({
-      style: { input: { "font-size": "16px", "font-family": "Arial, sans-serif", color: "#241a34" }, ".invalid": { color: "#b91c1c" } },
+      style: { input: { "font-size": "16px", "font-family": "Arial, sans-serif", "line-height": "24px", padding: "12px", color: "#241a34" }, ".invalid": { color: "#b91c1c" } },
       createOrder: async () => {
         if (destroyed || !busy) throw new Error("Card payment was not started");
         orderRequest ||= input.callbacks.createOrder().then(orderId => { createdOrder = orderId; return orderId; });
