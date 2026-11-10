@@ -70,10 +70,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "PayPal order amount does not match the purchase." }, { status: 400 });
       }
       if (!["APPROVED", "COMPLETED"].includes(approved.status)) return NextResponse.json({ error: "Payment authorization is not complete." }, { status: 409 });
-      const authentication = approved.payment_source?.google_pay?.card?.authentication_result;
-      if (authentication?.liability_shift === "UNKNOWN" ||
-          (authentication?.three_d_secure?.enrollment_status === "Y" && !["POSSIBLE", "YES"].includes(authentication.liability_shift || ""))) {
-        return NextResponse.json({ error: "Payment authentication was not successful." }, { status: 409 });
+      // A completed capture is verified below and reconciled even after a lost
+      // response. Check 3DS before initiating any new capture.
+      for (const authentication of approved.status === "COMPLETED" ? [] : [approved.payment_source?.card?.authentication_result, approved.payment_source?.google_pay?.card?.authentication_result]) {
+        if (authentication?.liability_shift === "UNKNOWN" ||
+            ["N", "R", "U", "C", "D"].includes(authentication?.three_d_secure?.authentication_status || "") ||
+            (authentication?.three_d_secure?.enrollment_status === "Y" && !["POSSIBLE", "YES"].includes(authentication.liability_shift || ""))) {
+          return NextResponse.json({ error: "Payment authentication was not successful.", code: "paypal_authentication_failed" }, { status: 409 });
+        }
       }
       order = approved.status === "COMPLETED" ? approved : await capturePayPalOrder(orderId);
     } catch (captureError) {

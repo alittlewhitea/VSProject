@@ -12,9 +12,10 @@ type PayPalMoney = {
 export type PayPalOrder = {
   id: string;
   status: string;
-  payment_source?: { google_pay?: { card?: { authentication_result?: {
-    liability_shift?: string; three_d_secure?: { enrollment_status?: string };
-  } } } };
+  payment_source?: {
+    card?: { authentication_result?: PayPalCardAuthentication };
+    google_pay?: { card?: { authentication_result?: PayPalCardAuthentication } };
+  };
   links?: PayPalLink[];
   purchase_units?: Array<{
     custom_id?: string;
@@ -28,6 +29,11 @@ export type PayPalOrder = {
       }>;
     };
   }>;
+};
+
+type PayPalCardAuthentication = {
+  liability_shift?: string;
+  three_d_secure?: { enrollment_status?: string; authentication_status?: string };
 };
 
 export type PayPalSubscription = {
@@ -171,7 +177,7 @@ export async function createPayPalOrder(input: {
   currency: string;
   returnUrl: string;
   cancelUrl: string;
-  wallet?: "applepay" | "googlepay";
+  wallet?: "applepay" | "googlepay" | "card";
 }) {
   return paypalRequest<PayPalOrder>("/v2/checkout/orders", {
     method: "POST",
@@ -186,7 +192,10 @@ export async function createPayPalOrder(input: {
           value: (input.amountCents / 100).toFixed(2)
         }
       }],
-      ...(input.wallet ? {} : { payment_source: {
+      ...(input.wallet === "card" ? { payment_source: { card: {
+        attributes: { verification: { method: "SCA_WHEN_REQUIRED" } },
+        experience_context: { shipping_preference: "NO_SHIPPING", return_url: input.returnUrl, cancel_url: input.cancelUrl }
+      } } } : input.wallet ? {} : { payment_source: {
         paypal: {
           experience_context: {
             user_action: "PAY_NOW",

@@ -235,6 +235,7 @@ try {
    '../lib/billing':{CREDIT_PACKS:[pack],formatUsd:amount=>'$'+(amount/100).toFixed(2)},
    '../lib/analytics':{trackEvent(){},trackPurchaseEvent(){}},
    '../lib/paypal-wallets-client':{mountPayPalWallets(){throw new Error('Unexpected wallet initialization');}},
+   './paypal-card-payment':{PayPalCardPayment:()=>null},
    '../lib/payment-release':{DODO_CHECKOUT_SUSPENDED:suspended}
   }).default;
   const nodes=elements(component({pack,accessToken:'fixture',t:key=>key,loadingPack:null,onCheckout(){},onClose(){}}));

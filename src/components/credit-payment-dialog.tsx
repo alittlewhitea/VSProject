@@ -5,6 +5,8 @@ import { CREDIT_PACKS, formatUsd, type CreditPack, type CreditPaymentProvider } 
 import { trackEvent, trackPurchaseEvent } from "../lib/analytics";
 import { getPayPalWalletConfig, mountPayPalWallets, type WalletController, type WalletStatus, type WalletReceipt, type Wallet, type WalletCallbacks } from "../lib/paypal-wallets-client";
 import { DODO_CHECKOUT_SUSPENDED } from "../lib/payment-release";
+import { PayPalCardPayment } from "./paypal-card-payment";
+type PaymentCallbacks = Omit<Required<WalletCallbacks>, "createOrder"> & { createOrder: (method: Wallet | "card") => Promise<string> };
 type Translate=(key:string,values?:Record<string,string|number>)=>string;
 const PENDING_KEY="dreamface_wallet_pending_order";
 type Pending={orderId:string;packId:string};
@@ -26,7 +28,7 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
   async function post(path:string,body:unknown) {
     const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${accessToken}`},body:JSON.stringify(body),signal:AbortSignal.timeout(45000)});
     const payload=await response.json().catch(()=>null);
-    if(!response.ok)throw Object.assign(new Error("Payment not confirmed"),{status:response.status});
+    if(!response.ok)throw Object.assign(new Error("Payment not confirmed"),{status:response.status,code:payload?.code});
     return payload;
   }
   function remember(value:Pending) {
@@ -50,7 +52,7 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
     }
     window.dispatchEvent(new Event("dreamface:credits-updated"));
   }
-  const callbacks=useRef<Required<WalletCallbacks>>({canStart:()=>true,createOrder:async(_wallet:Wallet)=>"",capture:async(_id:string)=>({} as WalletReceipt),onBusy:(_busy:boolean)=>{},onAuthorized:(_id:string)=>{},onSuccess:(_receipt:WalletReceipt)=>{},onError:()=>{}});
+  const callbacks=useRef<PaymentCallbacks>({canStart:()=>true,createOrder:async(_wallet:Wallet|"card")=>"",capture:async(_id:string)=>({} as WalletReceipt),onBusy:(_busy:boolean)=>{},onAuthorized:(_id:string)=>{},onSuccess:(_receipt:WalletReceipt)=>{},onError:()=>{}});
   callbacks.current={
     canStart:()=>!operation.current&&!pendingRef.current&&!paid&&!loadingPack,
     createOrder:async(wallet)=>{
@@ -60,7 +62,19 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
       trackEvent("checkout_started",{pack_id:pack.id,payment_provider:"paypal",wallet,credits:pack.credits,amount_cents:pack.amountCents},accessToken);
       return order.orderId;
     },
-    capture:async(orderId)=>post("/api/billing/paypal/capture",{orderId}),
+    capture:async(orderId)=>{
+      try { return await post("/api/billing/paypal/capture",{orderId}); }
+      catch (failure) {
+        // The server explicitly refused to capture this order. An uncertain
+        // capture still keeps recovery locked to its existing order below.
+        if ((failure as {code?:string}).code === "paypal_authentication_failed") {
+          pendingRef.current=null;
+          try{window.sessionStorage.removeItem(PENDING_KEY);}catch{/* optional storage */}
+          if(alive.current)setPending(null);
+        }
+        throw failure;
+      }
+    },
     onBusy:value=>{operation.current=value;if(alive.current){setWalletBusy(value);if(value){setError(false);setRedirectAttempted(false);}}},
     onAuthorized:orderId=>remember({orderId,packId:pack.id}),
     onSuccess:receipt=>complete(receipt),
@@ -77,7 +91,7 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
     const keydown=(event:KeyboardEvent)=>{
       if(event.key==="Escape"){event.stopImmediatePropagation();if(!stateRef.current.busy)stateRef.current.onClose();}
       if(event.key!=="Tab")return;
-      const items=dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],apple-pay-button,[tabindex="0"]');
+      const items=dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),iframe,a[href],apple-pay-button,[tabindex="0"]');
       if(!items?.length){event.preventDefault();return;}
       const visible=Array.from(items).filter(item=>!item.closest('[inert]')&&item.getClientRects().length);
       const first=visible[0],last=visible[visible.length-1];
@@ -159,6 +173,10 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
           </div>
           <div className="grid gap-2">
             <button type="button" data-payment-provider="paypal" disabled={disabled} onClick={()=>void redirect("paypal")} className="min-h-12 rounded-xl bg-[#ffc439] px-4 text-sm font-black text-[#003087] disabled:opacity-40">PayPal</button>
+            <PayPalCardPayment key={pack.id} amountCents={pack.amountCents} disabled={disabled} t={t} callbacks={{
+              canStart:()=>callbacks.current.canStart(),createOrder:()=>callbacks.current.createOrder("card"),capture:id=>callbacks.current.capture(id),
+              onBusy:value=>callbacks.current.onBusy(value),onAuthorized:id=>callbacks.current.onAuthorized(id),onSuccess:receipt=>callbacks.current.onSuccess(receipt),onError:()=>callbacks.current.onError(),onInvalid:()=>{}
+            }} />
             {card&&!DODO_CHECKOUT_SUSPENDED?<button type="button" data-payment-provider="dodo" disabled={disabled} onClick={()=>void redirect("dodo")} className="min-h-12 rounded-xl bg-[#7554e8] px-4 text-sm font-black text-white disabled:opacity-40">Credit Card</button>:null}
           </div>
           {pending?<div role="status" className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><p>{t("creditShop.pending")}</p><button type="button" data-wallet-retry disabled={busy} onClick={()=>void retry()} className="mt-3 min-h-11 w-full rounded-lg bg-amber-900 px-3 font-bold text-white disabled:opacity-50">{t("creditShop.retry")}</button></div>:null}

@@ -6,7 +6,7 @@
 
 - 已登录用户查看充值页或打开积分套餐弹窗时，后台预加载付款组件、公开商户配置及钱包 SDK。普通工作台首页不提前加载钱包 SDK。
 - 根据 PayPal 商户配置和设备能力展示钱包官方按钮。钱包不可用或脚本加载失败时，仍保留原有支付方式。
-- Apple Pay、Google Pay 均通过 PayPal 收款；Credit Card 继续使用既有 Dodo 托管结账。
+- Apple Pay、Google Pay、信用卡/借记卡均通过 PayPal 收款。Dodo 托管结账仍暂停，PayPal 银行卡入口独立于 Dodo。
 - 未登录时先进入现有登录流程，不创建钱包订单。
 - 钱包付款成功后，服务端确认扣款及积分发放，当前页面刷新余额，无需离开工作台。
 
@@ -23,9 +23,9 @@
 ## 服务端流程与保护
 
 1. `GET /api/billing/paypal/wallet-config` 返回公开的 SDK 配置。
-2. `POST /api/billing/paypal/wallet-orders` 要求登录、有效积分包和钱包类型。金额和积分来自服务端套餐表；若浏览器显示的报价过期，拒绝建单。
+2. `POST /api/billing/paypal/wallet-orders` 要求登录、有效积分包和付款类型（`applepay`、`googlepay` 或 `card`）。金额和积分来自服务端套餐表；若浏览器显示的报价过期，拒绝建单。
 3. 为钱包创建没有预选 PayPal 跳转资金来源的 Orders v2 订单，并保存到已有 `credit_purchases` 表。钱包仍记为 `payment_provider=paypal`。
-4. 浏览器官方 SDK 验证 Apple 商户会话、提交钱包授权。Google Pay 需要额外身份验证时执行 3DS；验证失败不进入扣款。
+4. 浏览器官方 SDK 验证 Apple 商户会话、提交钱包授权。Google Pay 需要额外身份验证时执行 3DS；验证失败不进入扣款。银行卡订单使用 `payment_source.card.attributes.verification.method=SCA_WHEN_REQUIRED`，必要时由 SDK 展示银行验证。
 5. `POST /api/billing/paypal/capture` 验证订单归属，从 PayPal 读取真实订单，核对金额、币种和授权状态，再执行 Capture。只在捕获状态为 COMPLETED、金额及币种与本地订单一致时发放积分。
 6. 积分流水沿用 `paypal:capture:<capture_id>` 幂等键。重复回调、客户端重试、Webhook 同时到账均不能重复发积分。原有 Webhook 和对账流程继续适用。
 
@@ -55,10 +55,28 @@ GA4 的 `purchase` 只在服务端确认后报告，使用与现有 PayPal 跳�
 
 `npm run verify:wallets` 覆盖服务端报价、身份归属、金额/币种校验、重复到账、额外身份验证以及钱包用户点击流程。原有 PayPal、Dodo、GA4 测试继续执行。
 
-自动测试使用隔离订单、模拟 SDK 和模拟数据库，不创建真实付款。生产钱包资格、iPhone/Apple Wallet 以及真实 Google Wallet 支付仍需要在正式域名上验证。
+自动测试使用隔离订单、模拟 SDK 和模拟数据库，不创建真实付款。生产银行卡资格、iPhone/Apple Wallet 以及真实 Google Wallet 支付仍需要在正式域名上验证。
+
+## PayPal 银行卡入口（2026-11-10）
+
+此前没有入口的代码原因：只加载了 `applepay,googlepay`，没有接入 `card-fields`；原 `Credit Card` 按钮依赖已暂停的 Dodo。商户后台勾选 Advanced Credit and Debit Card Payments 不会替网站自动增加表单。
+
+现在购买积分弹窗提供“信用卡或借记卡”按钮，展开后检查 `CardFields.isEligible()` 并渲染持卡人姓名、卡号、有效期和安全码四个 PayPal 托管字段；独立采集账单国家/地区、地址、城市及可选省州/邮编，通过 SDK `submit({billingAddress})` 直接交给 PayPal。不会把卡号、有效期或安全码读入 React 状态、日志、分析事件或自己的 API。
+
+现有钱包使用 JavaScript SDK v5，本次在同一 SDK/命名空间补充 `card-fields`，继续复用脚本预加载缓存，避免混用 v5/v6。未引入支付依赖或新增密钥，不创建订阅或保存银行卡。
+
+只有用户提交有效表单才创建订单；无效表单、加载和资格检查不创建订单。卡支付和钱包/PayPal 跳转共享互斥锁，同一次 SDK 建单及批准回调合并，重复回调不能重复扣款或发积分。输入框尺寸显式设置，移动端弹窗内可滚动；不支持银行卡时说明原因，保留 PayPal。加载失败可重试。
+
+服务端在发起 Capture 前同时检查直接银行卡及 Google Pay 的真实 3DS 结果，拒绝失败、拒绝、尚待挑战和未知验证状态。银行卡未注册 3DS 且不要求挑战时允许普通授权。明确拒绝验证时返回 `paypal_authentication_failed`，由于没有发起 Capture，前端可释放待确认锁并允许换付款方式；网络超时或未知扣款结果仍保留原订单恢复，不能直接重建付款。已真正 COMPLETED 的 Capture 按金额和币种校验后对账到账，不因迟到回调重复扣款。
+
+测试：`npm run verify:wallets` 包含 `verify-paypal-cards.mjs`，覆盖独立卡订单/3DS 设置、授权状态、托管字段、验证失败/取消、互斥、回调合并、失败恢复及关闭清理。`node scripts/verify-paypal-cards-ui.mjs` 使用隔离 Chrome CDP 9353 和本地 3000，验证 1440/390/320 宽度、字段、无 Dodo、银行卡资格失败、加载重试、同订单恢复和未捕获的 3DS 拒绝换方式。截图与报告位于 `outputs/paypal-cards/`。
+
+尚未通过商户后台 API 核验实际 Live 应用的卡支付资格，也未进行真实银行卡交易；截图中的开通状态不能替代部署后 SDK 的运行时资格结果。上线时需使用已开通 Advanced Cards 的同一环境/应用 Client ID 和 Secret，并在正式域名完成一笔受控验收。
 
 ## 官方文档
 
 - [PayPal Apple Pay](https://developer.paypal.com/v5/apple-pay/integrate/)
 - [PayPal Google Pay](https://developer.paypal.com/v5/google-pay/integrate/)
 - [PayPal 3D Secure 参数](https://developer.paypal.com/platforms/checkout/advanced/customize/3d-secure/response-parameters/)
+- [现有 SDK v5 Card Fields 集成](https://developer.paypal.com/v5/expanded/integrate)
+- [Card Fields 3DS 设置](https://developer.paypal.com/v5/expanded/3d-secure/integrate/card-fields/)

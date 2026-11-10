@@ -36,7 +36,7 @@ export function getPayPalWalletConfig(refresh = false): Promise<WalletConfig> {
 
 function walletScripts(config: WalletConfig) {
   const sdk = new URL("https://www.paypal.com/sdk/js");
-  sdk.search = new URLSearchParams({ "client-id": config.clientId || "", components: "applepay,googlepay", currency: "USD", intent: "capture", commit: "true" }).toString();
+  sdk.search = new URLSearchParams({ "client-id": config.clientId || "", components: "applepay,googlepay,card-fields", currency: "USD", intent: "capture", commit: "true" }).toString();
   // All three downloads start together; one failed wallet must not block the other.
   const resources = { paypal: loadScript(sdk.toString()), apple: loadScript(APPLE_SDK), google: loadScript(GOOGLE_SDK) };
   for (const promise of Object.values(resources)) void promise.catch(() => undefined);
@@ -66,6 +66,13 @@ function loadScript(src: string) {
 }
 // External SDK objects deliberately stay at this boundary; payment data is never logged or stored.
 type ExternalSdk = any;
+export async function getPayPalCheckoutSdk(config: WalletConfig): Promise<ExternalSdk> {
+  if (!config.enabled || !config.clientId) throw new Error("PayPal unavailable");
+  await walletScripts(config).paypal;
+  const sdk = (window as unknown as { dreamfacePayPal?: ExternalSdk }).dreamfacePayPal;
+  if (!sdk) throw new Error("PayPal SDK unavailable");
+  return sdk;
+}
 function deadline<T>(promise:Promise<T>,milliseconds=10000):Promise<T> {
   return new Promise((resolve,reject)=>{
     const timer=window.setTimeout(()=>reject(new Error("Wallet operation timed out")),milliseconds);

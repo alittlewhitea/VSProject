@@ -14,7 +14,7 @@ let authenticated=true,ready=true,allowed=true,created=0;
 const purchases=[];
 const helper=load('src/lib/paypal-credit-checkout.ts',{
  './billing':{getCreditPack:id=>id==='starter'?pack:null},
- './paypal':{createPayPalOrder:async input=>{assert.equal(input.amountCents,499);assert.ok(['applepay','googlepay'].includes(input.wallet));created++;return{id:'ORDER1234'};},paypalApprovalUrl:()=>null},
+ './paypal':{createPayPalOrder:async input=>{assert.equal(input.amountCents,499);assert.ok(['applepay','googlepay','card'].includes(input.wallet));created++;return{id:'ORDER1234'};},paypalApprovalUrl:()=>null},
  './mysql':{mysqlExecute:async(sql,args)=>purchases.push(args)}
 });
 const orderRoute=load('src/app/api/billing/paypal/wallet-orders/route.ts',{
@@ -27,7 +27,7 @@ const orderRoute=load('src/app/api/billing/paypal/wallet-orders/route.ts',{
 });
 const request=body=>new Request('https://dreamface.invalid/api/billing/paypal/wallet-orders',{method:'POST',body:JSON.stringify(body)});
 const body={packId:'starter',wallet:'applepay',expectedAmountCents:499,expectedCredits:800};
-for(const wallet of ['applepay','googlepay']){
+for(const wallet of ['applepay','googlepay','card']){
  const response=await orderRoute.POST(request({...body,wallet,credits:999999,amountCents:1}));
  assert.equal(response.status,200);assert.equal((await response.json()).orderId,'ORDER1234');assert.equal(purchases.at(-1)[0],'owner');
 }
@@ -36,19 +36,19 @@ assert.equal((await orderRoute.POST(request({...body,expectedCredits:99999}))).s
 assert.equal((await orderRoute.POST(request({...body,wallet:'invalid'}))).status,400);
 authenticated=false;assert.equal((await orderRoute.POST(request(body))).status,401);authenticated=true;
 ready=false;assert.equal((await orderRoute.POST(request(body))).status,503);ready=true;
-allowed=false;assert.equal((await orderRoute.POST(request(body))).status,429);allowed=true;assert.equal(created,2);
+allowed=false;assert.equal((await orderRoute.POST(request(body))).status,429);allowed=true;assert.equal(created,3);
 
 // Execute the real owner-only capture route with canonical provider responses.
-let status='created',owned=true,providerStatus='COMPLETED',amount='4.99',currency='USD',captureFails=false,captureCalls=0,granted=0;
+let status='created',owned=true,providerStatus='COMPLETED',amount='4.99',currency='USD',captureFails=false,captureCalls=0,granted=0,authentication,authenticationKind='card';
 const ledger=new Set();
 const snapshot=()=>({id:1,user_id:'owner',pack_id:'starter',credits:800,amount_cents:499,currency:'usd',status,provider_capture_id:status==='completed'?'CAPTURE123':null});
 const admin={from(table){assert.equal(table,'credit_purchases');let update;
  const q={select(){return q;},eq(){return q;},maybeSingle:async()=>({data:owned?snapshot():null}),update(value){update=value;return q;},throwOnError:async()=>{status=update.status;return {};}};return q;
 }};
-const canonical=()=>({id:'ORDER1234',status:providerStatus,purchase_units:[{amount:{value:amount,currency_code:currency},payments:{captures:[{id:'CAPTURE123',status:providerStatus,amount:{value:amount,currency_code:currency}}]}}]});
+const canonical=(resultStatus=providerStatus)=>({id:'ORDER1234',status:resultStatus,...(authentication?{payment_source:{[authenticationKind]:authenticationKind==='card'?{authentication_result:authentication}:{card:{authentication_result:authentication}}}}:{}),purchase_units:[{amount:{value:amount,currency_code:currency},payments:{captures:[{id:'CAPTURE123',status:resultStatus,amount:{value:amount,currency_code:currency}}]}}]});
 const capture=load('src/app/api/billing/paypal/capture/route.ts',{
  'next/server':{NextResponse:Response},
- '../../../../../lib/paypal':{capturePayPalOrder:async()=>{captureCalls++;if(captureFails)throw new Error('Already captured / network ambiguity');return canonical();},getPayPalOrder:async()=>canonical()},
+ '../../../../../lib/paypal':{capturePayPalOrder:async()=>{captureCalls++;if(captureFails)throw new Error('Already captured / network ambiguity');return canonical('COMPLETED');},getPayPalOrder:async()=>canonical()},
  '../../../../../lib/credits':{addCredits:async(_db,_user,credits,_reason,key)=>{if(!ledger.has(key)){ledger.add(key);granted+=credits;}}},
  '../../../../../lib/server-auth':{getUserFromBearerToken:async()=>authenticated?{id:'owner'}:null},
  '../../../../../lib/supabase-admin':{createSupabaseAdminClient:()=>admin},
@@ -60,9 +60,21 @@ amount='0.01';assert.equal((await confirm()).status,400);assert.equal(granted,0)
 currency='EUR';assert.equal((await confirm()).status,400);assert.equal(granted,0);currency='USD';
 providerStatus='PENDING';assert.equal((await confirm()).status,409);assert.equal(granted,0);providerStatus='COMPLETED';
 status='refunded';assert.equal((await confirm()).status,409);status='created';
+providerStatus='APPROVED';
+for(authenticationKind of ['card','google_pay']) for(authentication of [
+ {liability_shift:'UNKNOWN'},
+ {liability_shift:'NO',three_d_secure:{enrollment_status:'Y'}},
+ ...['N','R','U','C','D'].map(authentication_status=>({liability_shift:'POSSIBLE',three_d_secure:{enrollment_status:'Y',authentication_status}}))
+]){
+ const rejected=await confirm();assert.equal(rejected.status,409);assert.equal((await rejected.json()).code,'paypal_authentication_failed');
+ assert.equal(captureCalls,0);assert.equal(granted,0,'Unsuccessful card/Google 3DS cannot capture or grant credits');
+}
+authentication=undefined;providerStatus='COMPLETED';
 captureFails=true;let result=await confirm();assert.equal(result.status,200);assert.equal((await result.json()).transactionId,'CAPTURE123');
 assert.equal(granted,800);result=await confirm();assert.equal((await result.json()).duplicate,true);assert.equal(granted,800);
 status='created';await Promise.all([confirm(),confirm()]);assert.equal(granted,800);
+captureFails=false;providerStatus='APPROVED';status='created';authenticationKind='card';authentication={liability_shift:'NO',three_d_secure:{enrollment_status:'N'}};
+assert.equal((await confirm()).status,200,'A card not enrolled in 3DS remains payable when authentication is not mandated');assert.equal(granted,800,'Repeated capture receipt remains idempotent');
 
 // Verify wallet orders omit PayPal redirect funding, and expose only public SDK configuration.
 const previous={fetch:globalThis.fetch,window:globalThis.window,document:globalThis.document,env:{...process.env}};
@@ -76,6 +88,8 @@ try {
  assert.equal(JSON.parse(calls.at(-1).init.body).payment_source,undefined);
  await paypal.createPayPalOrder({referenceId:'redirect',description:'Credits',amountCents:499,currency:'usd',returnUrl:'https://example.invalid/return',cancelUrl:'https://example.invalid/cancel'});
  assert.equal(JSON.parse(calls.at(-1).init.body).payment_source.paypal.experience_context.user_action,'PAY_NOW');
+ await paypal.createPayPalOrder({referenceId:'card-fixture',description:'Credits',amountCents:499,currency:'usd',returnUrl:'https://example.invalid/return',cancelUrl:'https://example.invalid/cancel',wallet:'card'});
+ assert.deepEqual(JSON.parse(calls.at(-1).init.body).payment_source,{card:{attributes:{verification:{method:'SCA_WHEN_REQUIRED'}},experience_context:{shipping_preference:'NO_SHIPPING',return_url:'https://example.invalid/return',cancel_url:'https://example.invalid/cancel'}}});
 
  // Mock browser SDKs and enforce synchronous user-gesture entry for both wallets.
  let gesture=false,appleSession,googleClient,googlePromise,confirmed=0,orders=0,captures=0,successes=0,errors=0,extraAuth=0,googleStatus='APPROVED',googleShift='POSSIBLE';

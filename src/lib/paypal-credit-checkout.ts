@@ -5,7 +5,7 @@ import { createPayPalOrder, paypalApprovalUrl } from "./paypal";
 
 // Keep the same purchase shape and return URL used by the existing capture,
 // webhook and reconciliation handlers. Subscription creation is not restored.
-export async function createPayPalCreditCheckout(userId: string, packId: string, origin: string, wallet?: "applepay" | "googlepay") {
+export async function createPayPalCreditCheckout(userId: string, packId: string, origin: string, wallet?: "applepay" | "googlepay" | "card") {
   const pack = getCreditPack(packId);
   if (!pack) throw new Error("Invalid credit pack.");
   const order = await createPayPalOrder({

@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({error:"Unauthorized."},{status:401});
     const body=await request.json().catch(()=>null);
     const pack=typeof body?.packId==="string"?getCreditPack(body.packId):null;
-    if (!pack || !["applepay","googlepay"].includes(body?.wallet)) return NextResponse.json({error:"Invalid wallet or credit pack."},{status:400});
+    if (!pack || !["applepay","googlepay","card"].includes(body?.wallet)) return NextResponse.json({error:"Invalid payment method or credit pack."},{status:400});
     const config=paypalWalletConfiguration();
     if (!config.enabled || (body.wallet==="googlepay" && !config.merchantCountry)) return NextResponse.json({error:"This payment method is unavailable."},{status:503});
     if (body.expectedAmountCents!==pack.amountCents || body.expectedCredits!==pack.credits) return NextResponse.json({error:"The pack has changed. Please close and reopen checkout."},{status:409});
