@@ -60,9 +60,12 @@ export async function trimAudioFileToDataUrl(file: File, maxSeconds: number) {
   const context = new AudioContextClass();
   try {
     const decoded = await context.decodeAudioData(await file.arrayBuffer());
+    // Always upload PCM WAV: the server reads its length from the header to bill
+    // the exact Avatar duration. Other formats cannot be measured and are billed
+    // at the maximum length.
     if (decoded.duration <= maxSeconds + 0.05) {
       return {
-        dataUrl: await readFileAsDataUrl(file),
+        dataUrl: await readFileAsDataUrl(audioBufferToWavBlob(decoded, decoded.length)),
         originalSeconds: decoded.duration,
         outputSeconds: decoded.duration,
         trimmed: false

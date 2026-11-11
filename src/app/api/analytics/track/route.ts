@@ -6,6 +6,10 @@ import { cookies } from "next/headers";
 import { captureGrowthTouch, readGrowthTouch, growthProperties, GROWTH_COOKIE } from "../../../../lib/growth-attribution";
 import { publicLandingPath } from "../../../../lib/growth-policy";
 import { siteUrl } from "../../../../lib/site-url";
+import { ANALYTICS_LIMITS, ANALYTICS_MAX_BODY_BYTES, firstExceededLimit, rateLimitHeaders } from "../../../../lib/api-limits";
+import { consumeRateLimit } from "../../../../lib/request-security";
+import { getRequestIp } from "../../../../lib/credits";
+import { readRequestJson, RequestBodyError } from "../../../../lib/request-body";
 
 const ALLOWED_EVENTS = new Set([
   "landing_view",
@@ -90,7 +94,12 @@ function hashIp(value: string | null) {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as TrackBody | null;
+  // Anonymous endpoint that writes to the database: cap body size and per-IP rate.
+  let body: TrackBody | null;
+  try { body = await readRequestJson(request, ANALYTICS_MAX_BODY_BYTES); }
+  catch (error) { return NextResponse.json({ ok: false, error: "Invalid event request." }, { status: error instanceof RequestBodyError ? error.status : 400 }); }
+  const limited = await firstExceededLimit(getRequestIp(request.headers) || "unknown", ANALYTICS_LIMITS, consumeRateLimit);
+  if (limited) return NextResponse.json({ ok: false, error: "Too many events." }, { status: limited.unavailable ? 503 : 429, headers: rateLimitHeaders(limited.retryAfterSeconds) });
   const eventName = cleanText(body?.eventName, 80);
 
   if (!eventName || !ALLOWED_EVENTS.has(eventName)) {

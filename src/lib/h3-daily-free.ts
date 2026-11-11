@@ -5,6 +5,7 @@ import type { PoolConnection } from "mysql2/promise";
 import { getRequestIp, hashSignupIp } from "./credits";
 import { mysqlExecute, withMysqlTransaction } from "./mysql";
 import { H3_DAILY_FREE_PROGRAM, H3_DAILY_FREE_PROVIDER, h3DailyFreePeriod } from "./h3-daily-free-policy";
+import { assertGenerationCapacity } from "./generation-capacity";
 
 const COOKIE = "df_generation_device";
 type Identity = { kind: "ip" | "device"; hash: string };
@@ -91,6 +92,7 @@ export async function createH3DailyFreeTask(task: H3FreeTask, context: H3FreeCon
         const [used]=await rows(db,"SELECT task_id FROM h3_daily_free_usage WHERE quota_day=? AND user_id=? FOR UPDATE",[period.day,task.userId]);
         // Never resubmit an existing free task, including a retry after a network timeout.
         if (used) throw new H3FreeDenied("used_today");
+        await assertGenerationCapacity(db, task.userId);
         await db.execute("INSERT INTO generation_tasks (id,user_id,mode,provider,prompt,status,estimated_credits,transport,request_settings,created_at,updated_at) VALUES (?,?,?,?,?,'queued',0,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))",[
           task.id,task.userId,task.mode,H3_DAILY_FREE_PROVIDER,task.prompt,task.transport,
           JSON.stringify({...task.settings,billing_source:"daily_free",free_units_used:1,free_program:H3_DAILY_FREE_PROGRAM})

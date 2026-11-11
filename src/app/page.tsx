@@ -12,7 +12,7 @@ import { AppButton } from "../components/ui/button";
 import { defaultLocale, isLocale } from "../i18n/routing";
 import { CREDIT_PACKS, formatUsd } from "../lib/billing";
 import { galleryItemPath, mapGalleryRow } from "../lib/gallery";
-import { fetchPublishedGalleryItems } from "../lib/gallery-server";
+import { fetchHomeGalleryItems } from "../lib/gallery-server";
 import { siteUrl } from "../lib/site-url";
 
 const homeFaqKeys = [
@@ -43,7 +43,7 @@ export default async function HomePage() {
   const requestLocale = (await headers()).get("x-dreamface-locale");
   const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
   const t = await getTranslations({ locale });
-  const galleryItems = await fetchPublishedGalleryItems({ limit: 8, featuredFirst: true })
+  const galleryItems = await fetchHomeGalleryItems()
     .then((rows) => rows.map(mapGalleryRow))
     .catch(() => []);
   const plans = [

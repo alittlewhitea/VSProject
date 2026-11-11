@@ -1,24 +1,15 @@
+import { syncFalTask, type FalTask } from "../../../lib/fal-task-sync";
+import {REMOVED_PROVIDER_IDS} from "../../../lib/retired-providers";
 import { NextResponse } from "next/server";
 import { getUserFromBearerToken, getUserIdsForAuthUser } from "../../../lib/server-auth";
 import { createSupabaseAdminClient } from "../../../lib/supabase-admin";
-import { fetchFal } from "../../../lib/fal-fetch";
-import { refundCredits } from "../../../lib/credits";
-import { resolveFalCostUsd } from "../../../lib/fal-billing";
-import {
-  falApiErrorFromResponse,
-  falNoMediaFailurePayload,
-  falRefundCreditsFromCost,
-  falResultLooksFailed,
-  formatFalFailureReason,
-  parseFalFailure
-} from "../../../lib/fal-errors";
-import { DREAMFACE_IO_PROVIDER, syncDreamfaceIoTask } from "../../../lib/dreamface-io";
+
+import { TASKS_LIMITS, firstExceededLimit, rateLimitHeaders } from "../../../lib/api-limits";
+import { consumeRateLimit } from "../../../lib/request-security";
 
 const DEFAULT_TASK_HISTORY_TIMEOUT_MS = 12000;
 const DEFAULT_TASK_SYNC_TIMEOUT_MS = 3500;
 const TASK_SYNC_LIMIT = 5;
-const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
-const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
 const TASK_LIST_SELECT =
   "id, mode, provider, prompt, status, estimated_credits, transport, status_url, response_url, output_url, created_at, updated_at, title, is_favorite, failure_code, failure_reason, last_checked_at, timed_out_at";
 const TASK_DETAIL_SELECT = `${TASK_LIST_SELECT}, request_settings, raw_result`;
@@ -103,69 +94,6 @@ function taskSyncTimeoutMs() {
   return positiveTimeout(process.env.TASK_SYNC_TIMEOUT_MS, DEFAULT_TASK_SYNC_TIMEOUT_MS);
 }
 
-function isAllowedFalUrl(url: string | null): url is string {
-  if (!url) return false;
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" && parsed.hostname === "queue.fal.run";
-  } catch {
-    return false;
-  }
-}
-
-function extractMediaUrl(result: unknown): string | null {
-  if (!result || typeof result !== "object") return null;
-  const payload = result as Record<string, unknown>;
-  if (typeof payload.url === "string") return payload.url;
-  if (Array.isArray(payload.images) && payload.images[0] && typeof payload.images[0] === "object") {
-    const first = payload.images[0] as Record<string, unknown>;
-    if (typeof first.url === "string") return first.url;
-  }
-  if (payload.image && typeof payload.image === "object") {
-    const image = payload.image as Record<string, unknown>;
-    if (typeof image.url === "string") return image.url;
-  }
-  if (payload.video && typeof payload.video === "object") {
-    const video = payload.video as Record<string, unknown>;
-    if (typeof video.url === "string") return video.url;
-  }
-  if (Array.isArray(payload.videos) && payload.videos[0] && typeof payload.videos[0] === "object") {
-    const first = payload.videos[0] as Record<string, unknown>;
-    if (typeof first.url === "string") return first.url;
-  }
-  if (payload.audio && typeof payload.audio === "object") {
-    const audio = payload.audio as Record<string, unknown>;
-    if (typeof audio.url === "string") return audio.url;
-  }
-  return null;
-}
-
-function normalizeFalStatus(status: string) {
-  const upperStatus = status.toUpperCase();
-  if (upperStatus === "IN_QUEUE") return "queued";
-  if (upperStatus === "IN_PROGRESS") return "running";
-  if (upperStatus === "COMPLETED") return "completed";
-  return "failed";
-}
-
-function taskTimeoutMinutes() {
-  const value = Number(process.env.GENERATION_TASK_TIMEOUT_MINUTES || DEFAULT_TASK_TIMEOUT_MINUTES);
-  return Number.isFinite(value) && value > 0 ? value : DEFAULT_TASK_TIMEOUT_MINUTES;
-}
-
-function isTaskTimedOut(createdAt: string) {
-  return Date.now() - new Date(createdAt).getTime() > taskTimeoutMinutes() * 60 * 1000;
-}
-
-function orphanTaskTimeoutMinutes() {
-  const value = Number(process.env.GENERATION_ORPHAN_TIMEOUT_MINUTES || DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES);
-  return Number.isFinite(value) && value > 0 ? value : DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES;
-}
-
-function isOrphanTaskTimedOut(createdAt: string) {
-  return Date.now() - new Date(createdAt).getTime() > orphanTaskTimeoutMinutes() * 60 * 1000;
-}
-
 function normalizeTitle(value: unknown) {
   if (typeof value !== "string") return null;
   const title = value.trim().replace(/\s+/g, " ");
@@ -198,161 +126,23 @@ async function attachCreditLedger(admin: any, userIds: string[], tasks: TaskRow[
 }
 
 async function syncPendingFalTasks(admin: ReturnType<typeof createSupabaseAdminClient>, userIds: string[]) {
-  const falKey = process.env.FAL_KEY;
-  if (!admin || !falKey || !userIds.length) return;
+  if (!admin || !userIds.length) return;
+  const { data } = await admin.from("generation_tasks")
+    .select("id,user_id,provider,status,estimated_credits,transport,provider_request_id,status_url,response_url,request_settings,output_url,raw_result,failure_code,failure_reason,created_at,timed_out_at")
+    .in("user_id", userIds).eq("transport", "real").neq("provider",REMOVED_PROVIDER_IDS[0]).in("status", ["queued", "running"])
+    .order("last_checked_at", { ascending: true }).order("created_at", { ascending: true }).limit(TASK_SYNC_LIMIT);
+  await Promise.all(((data || []) as FalTask[]).map(async task => {
+    try {
+      await syncFalTask(admin, task, process.env.FAL_KEY || "");
+    } catch { /* History remains available when provider reconciliation is delayed. */ }
+  }));
+}
 
-  const { data } = await admin
-    .from("generation_tasks")
-    .select("id,user_id,provider,status,estimated_credits,transport,provider_request_id,status_url,response_url,request_settings,output_url,created_at,timed_out_at")
-    .in("user_id", userIds)
-    .eq("transport", "real")
-    .in("status", ["queued", "running"])
-    .order("created_at", { ascending: false })
-    .limit(TASK_SYNC_LIMIT);
-
-  const pendingTasks = (data || []) as PendingTaskRow[];
-  await Promise.all(
-    pendingTasks.map(async (task) => {
-      try {
-        if (task.provider === DREAMFACE_IO_PROVIDER) {
-          await syncDreamfaceIoTask(admin, task as Parameters<typeof syncDreamfaceIoTask>[1]);
-          return;
-        }
-        if (!isAllowedFalUrl(task.status_url)) {
-          const now = new Date().toISOString();
-          if (isOrphanTaskTimedOut(task.created_at)) {
-            if (task.estimated_credits > 0) {
-              await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", task.id);
-            }
-            await admin
-              .from("generation_tasks")
-              .update({
-                status: "failed",
-                failure_code: "provider_tracking_missing",
-                failure_reason: `The task was charged but never received a provider tracking URL within ${orphanTaskTimeoutMinutes()} minutes. Credits were refunded automatically. Please retry.`,
-                last_checked_at: now,
-                timed_out_at: now,
-                updated_at: now
-              })
-              .eq("id", task.id)
-              .eq("user_id", task.user_id);
-          } else {
-            await admin
-              .from("generation_tasks")
-              .update({
-                last_checked_at: now,
-                updated_at: now
-              })
-              .eq("id", task.id)
-              .eq("user_id", task.user_id);
-          }
-          return;
-        }
-
-        if (isTaskTimedOut(task.created_at)) {
-          const now = new Date().toISOString();
-          if (task.estimated_credits > 0) {
-            await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", task.id);
-          }
-          await admin
-            .from("generation_tasks")
-            .update({
-              status: "failed",
-              failure_code: "task_timeout",
-              failure_reason: `The provider task did not finish within ${taskTimeoutMinutes()} minutes. Credits were refunded automatically.`,
-              last_checked_at: now,
-              timed_out_at: now,
-              updated_at: now
-            })
-            .eq("id", task.id)
-            .eq("user_id", task.user_id);
-          return;
-        }
-
-        const statusRes = await fetchFal(task.status_url, {
-          attempts: 1,
-          timeoutMs: 3500,
-          headers: {
-            Authorization: `Key ${falKey}`
-          },
-          cache: "no-store"
-        });
-        if (!statusRes.ok) return;
-
-        const statusPayload = (await statusRes.json()) as { status?: string; response_url?: string };
-        const upperStatus = (statusPayload.status || "IN_QUEUE").toUpperCase();
-        const normalized = normalizeFalStatus(upperStatus);
-        const providerResponseUrl = isAllowedFalUrl(statusPayload.response_url || null)
-          ? statusPayload.response_url || null
-          : null;
-        const effectiveResponseUrl = providerResponseUrl || task.response_url;
-        let result: unknown = null;
-
-        let responseFailureInfo: ReturnType<typeof parseFalFailure> | null = null;
-        if ((upperStatus === "COMPLETED" || upperStatus === "FAILED" || upperStatus === "ERROR") && isAllowedFalUrl(effectiveResponseUrl)) {
-          const resultRes = await fetchFal(effectiveResponseUrl, {
-            attempts: 1,
-            timeoutMs: 5000,
-            headers: {
-              Authorization: `Key ${falKey}`
-            },
-            cache: "no-store"
-          });
-          if (resultRes.ok) {
-            result = await resultRes.json();
-          } else {
-            const falError = await falApiErrorFromResponse(resultRes);
-            responseFailureInfo = falError.info;
-            result = falError.info.details;
-          }
-        }
-
-        const mediaUrl = extractMediaUrl(result);
-        const completedFailurePayload =
-          normalized === "completed"
-            ? falResultLooksFailed(result)
-              ? result
-              : mediaUrl
-                ? null
-                : falNoMediaFailurePayload(result || statusPayload)
-            : null;
-        const finalStatus = completedFailurePayload ? "failed" : normalized;
-        const failureInfo =
-          finalStatus === "failed"
-            ? completedFailurePayload
-              ? parseFalFailure(completedFailurePayload)
-              : responseFailureInfo || parseFalFailure(result || statusPayload)
-            : null;
-        if (failureInfo) {
-          failureInfo.costUsd = await resolveFalCostUsd(falKey, task.provider_request_id, failureInfo.costUsd);
-        }
-        const refundCreditsAmount = failureInfo ? falRefundCreditsFromCost(failureInfo.costUsd, task.estimated_credits, task.provider) : 0;
-        if (finalStatus === "failed" && refundCreditsAmount > 0) {
-          await refundCredits(admin, task.user_id, refundCreditsAmount, "generation_refund", task.id);
-        }
-        const failureReason = failureInfo
-          ? formatFalFailureReason(failureInfo, task.estimated_credits, refundCreditsAmount)
-          : null;
-
-        await admin
-          .from("generation_tasks")
-          .update({
-            status: finalStatus,
-            response_url: effectiveResponseUrl,
-            output_url: finalStatus === "completed" ? mediaUrl : null,
-            raw_result: result,
-            failure_code: failureInfo?.code || (finalStatus === "failed" ? "provider_failed" : null),
-            failure_reason: failureReason,
-            last_checked_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", task.id)
-          .eq("user_id", task.user_id);
-      } catch {
-        // History should still load even if a provider status check times out.
-      }
-    })
-  );
+async function taskHistoryLimited(userId: string) {
+  const exceeded = await firstExceededLimit(userId, TASKS_LIMITS, consumeRateLimit);
+  return exceeded
+    ? NextResponse.json({ error: "Too many requests." }, { status: exceeded.unavailable ? 503 : 429, headers: rateLimitHeaders(exceeded.retryAfterSeconds) })
+    : null;
 }
 
 export async function GET(request: Request) {
@@ -360,6 +150,8 @@ export async function GET(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized. Invalid or missing Supabase access token." }, { status: 401 });
   }
+  const limited = await taskHistoryLimited(user.id);
+  if (limited) return limited;
 
   const admin = createSupabaseAdminClient();
   if (!admin) {
@@ -418,6 +210,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const user = await getUserFromBearerToken(request.headers.get("authorization"));
   if (!user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const limited = await taskHistoryLimited(user.id);
+  if (limited) return limited;
   const admin = createSupabaseAdminClient();
   if (!admin) return NextResponse.json({ error: "Storage is not configured." }, { status: 500 });
   const userIds = await getUserIdsForAuthUser(user);
@@ -474,7 +268,7 @@ export async function PATCH(request: Request) {
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Unable to update this task.", code: "task_update_failed" }, { status: 500 });
   }
 
   if (!data) {
@@ -515,7 +309,7 @@ export async function DELETE(request: Request) {
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Unable to update this task.", code: "task_update_failed" }, { status: 500 });
   }
 
   if (!data) {

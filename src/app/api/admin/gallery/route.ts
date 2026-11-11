@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminUserFromRequest } from "../../../../lib/admin-auth";
+import { invalidateHomeGalleryCache } from "../../../../lib/gallery-cache";
 import { GALLERY_CATEGORIES, mapGalleryRow, toDbGalleryCategory } from "../../../../lib/gallery";
 import {
   deleteAdminGalleryRow,
@@ -123,6 +124,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Duplicate gallery item: ${duplicate.title}`, item: mapGalleryRow(duplicate), duplicate: true }, { status: 409 });
     }
     const data = await insertAdminGalleryRow(validated.data);
+    if (data) invalidateHomeGalleryCache();
     return NextResponse.json({ item: data ? mapGalleryRow(data) : null });
   } catch (error) {
     return NextResponse.json(
@@ -149,6 +151,7 @@ export async function PUT(request: Request) {
     }
     const data = await updateAdminGalleryRow(body.id, validated.data);
     if (!data) return NextResponse.json({ error: "Gallery item not found." }, { status: 404 });
+    invalidateHomeGalleryCache();
     return NextResponse.json({ item: mapGalleryRow(data) });
   } catch (error) {
     return NextResponse.json(
@@ -169,6 +172,7 @@ export async function DELETE(request: Request) {
   try {
     const data = await deleteAdminGalleryRow(id);
     if (!data) return NextResponse.json({ error: "Gallery item not found." }, { status: 404 });
+    invalidateHomeGalleryCache();
     return NextResponse.json({ item: mapGalleryRow(data) });
   } catch (error) {
     return NextResponse.json(

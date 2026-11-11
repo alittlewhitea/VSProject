@@ -1,4 +1,5 @@
 "use client";
+import {StudioDeferredSection} from "./studio-deferred-section";
 
 import Link from "./studio-link";
 import { useEffect, useRef, useState } from "react";
@@ -85,7 +86,7 @@ export function StudioHome({ t, locale, onCreate }: { t: Translate; locale: Loca
         <h2>{t("studio.workspace.heroTitle")} {t("studio.workspace.heroAccent")}</h2>
         <p>{t("studio.workspace.heroBody")}</p>
         </div>
-        <HomeTemplateCarousel translate={t} />
+        <StudioDeferredSection><HomeTemplateCarousel translate={t} /></StudioDeferredSection>
         <div className="studio-composer">
           {upload ? <div className="df-home-upload-preview"><img src={upload.dataUrl} alt={upload.name} /><span>{upload.name}</span><button type="button" onClick={() => { uploadSequence.current++; setUpload(null); setReading(false); }} aria-label={t("studio.action.clear")}><StudioIcon name="x" className="h-4 w-4" /></button></div> : null}
           <label htmlFor="studio-home-prompt" className="sr-only">{t("studio.field.prompt")}</label>
@@ -111,7 +112,7 @@ export function StudioHome({ t, locale, onCreate }: { t: Translate; locale: Loca
         </div>
       </section>
 
-      <CombinedTemplateGallery translate={t} locale={locale} videoFocusRequest={videoTemplatesRequest} />
+      <StudioDeferredSection><CombinedTemplateGallery translate={t} locale={locale} videoFocusRequest={videoTemplatesRequest} /></StudioDeferredSection>
     </div>
   );
 }

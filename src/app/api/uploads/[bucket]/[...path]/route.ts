@@ -11,6 +11,7 @@ function contentTypeFor(filename: string) {
   if (extension === ".webp") return "image/webp";
   if (extension === ".gif") return "image/gif";
   if (extension === ".avif") return "image/avif";
+  if (extension === ".wav") return "audio/wav";
   return "application/octet-stream";
 }
 

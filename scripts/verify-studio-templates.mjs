@@ -1,3 +1,4 @@
+import {readStudioSource} from './studio-source.mjs';
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -61,7 +62,7 @@ for (const locale of ["en", "zh-CN", "zh-TW", "es", "pt-BR", "fr", "de", "ja", "
   assert.deepEqual(Object.keys(messages.titles).sort(), [...titles].sort());
   for (const value of Object.values(messages.titles)) assert.ok(typeof value === "string" && value.trim());
 }
-const source = readFileSync("src/app/studio/studio-client.tsx", "utf8");
+const source = readStudioSource();
 assert.ok(source.includes('<VideoTemplateGallery translate={st} locale={studioI18n.locale} />'),"Keep the video template gallery below the creation form");
 const videoSettings=readFileSync("src/features/studio/video-settings.tsx","utf8");
 assert.ok(videoSettings.includes('data-video-workspace={workflow}'));

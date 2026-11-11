@@ -16,3 +16,4 @@ migration/supabase-csv/
 /dreamface_growth_20261023/
 /c_drive_usage.json
 /*.sql.gz
+/.test-build/

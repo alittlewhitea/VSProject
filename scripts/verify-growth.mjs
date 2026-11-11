@@ -6,7 +6,7 @@ import ts from 'typescript';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 const native=createRequire(import.meta.url);
-function loader(mocks={}){const cache=new Map();function load(file){file=resolve(file);if(cache.has(file))return cache.get(file).exports;const module={exports:{}};cache.set(file,module);const code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;new Function('require','module','exports',code)(id=>{if(id in mocks)return mocks[id];if(!id.startsWith('.'))return native(id);const path=resolve(dirname(file),id);return load(existsSync(path+'.ts')?path+'.ts':path+'.tsx');},module,module.exports);return module.exports;}return load;}
+function loader(mocks={}){const cache=new Map();function load(file){file=resolve(file);if(cache.has(file))return cache.get(file).exports;const module={exports:{}};cache.set(file,module);const code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;new Function('require','module','exports',code)(id=>{if(id in mocks)return mocks[id];if(/\/lib\/request-security$/.test(id))return {...load('src/lib/request-security.ts'),consumeRateLimit:async()=>({allowed:true,retryAfterSeconds:0})};if(!id.startsWith('.'))return native(id);const path=resolve(dirname(file),id);return load(existsSync(path+'.ts')?path+'.ts':path+'.tsx');},module,module.exports);return module.exports;}return load;}
 const sql=[],events=[],values=new Map(),written=[];
 const store={get:key=>values.has(key)?{value:values.get(key)}:undefined,set(key,value,options){values.set(key,value);written.push({key,value,options});}};
 let allowAdmin=false,failGallery=false;
@@ -34,7 +34,7 @@ assert.equal(attribution.captureGrowthTouch(store,{pagePath:'/en/price',referrer
 const before=sql.length;assert.equal(await attribution.recordSignupAttribution('old-user',false,signed),false);assert.equal(sql.length,before,'Existing logins do not write registration attribution');
 assert.equal(await attribution.recordSignupAttribution('new-user',true,signed),true);assert.match(sql.at(-1).query,/growthAttribution.*is null/);assert.equal(JSON.parse(sql.at(-1).params[0]).id,first.id);
 const track=load('src/app/api/analytics/track/route.ts');
-const request=(path,properties={})=>({url:'https://dreamface.io/api/analytics/track',headers:new Headers(),json:async()=>({eventName:'landing_view',pagePath:path,anonymousId:'anon_fixture_browser_123',properties})});
+const request=(path,properties={})=>{const payload={eventName:'landing_view',pagePath:path,anonymousId:'anon_fixture_browser_123',properties};return {url:'https://dreamface.io/api/analytics/track',headers:new Headers(),json:async()=>payload,text:async()=>JSON.stringify(payload)};};
 let response=await track.POST(request('/avatar/ai-avatar-generator',{attribution_id:'forged',first_landing_path:'/forged'}));
 assert.equal(response.status,200);assert.equal(events.at(-1).properties.attribution_id,first.id);assert.equal(events.at(-1).properties.first_landing_path,first.landingPath);
 const eventCount=events.length;response=await track.POST(request('/api/auth/verify?token=secret'));assert.equal(response.status,400);assert.equal(events.length,eventCount);

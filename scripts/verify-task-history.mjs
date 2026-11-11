@@ -24,12 +24,16 @@ const admin={from(table){
  };return query;
 }};
 const overrides={
+ '../../../lib/fal-task-sync':{syncFalTask:()=>{providerCalls++;throw new Error('History read cannot synchronize providers');}},
  'next/server':{NextResponse:{json:(body,init)=>new Response(JSON.stringify(body),{headers:{'Content-Type':'application/json'},...init})}},
  '../../../lib/server-auth':{getUserFromBearerToken:async()=>authenticated?{id:'user-1'}:null,getUserIdsForAuthUser:async()=>['user-1']},
  '../../../lib/supabase-admin':{createSupabaseAdminClient:()=>admin},
  '../../../lib/fal-fetch':{fetchFal:()=>{providerCalls++;throw new Error('Provider call in read path');}},
  '../../../lib/credits':{refundCredits:()=>{throw new Error('Read must not refund');}},
- '../../../lib/fal-billing':{},'../../../lib/fal-errors':{},'../../../lib/dreamface-io':{DREAMFACE_IO_PROVIDER:'dreamface-io-video'}
+ '../../../lib/fal-billing':{},'../../../lib/fal-errors':{},'../../../lib/retired-providers':{REMOVED_PROVIDER_IDS:['dreamface-io-video']},
+ // Rate limits are covered by tests/api-limits.test.ts; this script checks the read path only.
+ '../../../lib/api-limits':{TASKS_LIMITS:[],firstExceededLimit:async()=>null,rateLimitHeaders:()=>({})},
+ '../../../lib/request-security':{consumeRateLimit:async()=>({allowed:true,retryAfterSeconds:1})}
 };
 const module={exports:{}};
 const compiled=ts.transpileModule(readFileSync('src/app/api/tasks/route.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;

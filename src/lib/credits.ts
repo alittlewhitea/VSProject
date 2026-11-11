@@ -140,7 +140,9 @@ export function signupBonusCreditsForCountry(countryCode: string | null) {
 }
 
 function signupIpSecret() {
-  return process.env.SIGNUP_IP_SECRET || process.env.AUTH_SESSION_SECRET || process.env.MYSQL_PASSWORD || "local-signup-ip-secret";
+  const secret = process.env.SIGNUP_IP_SECRET || process.env.AUTH_SESSION_SECRET || process.env.MYSQL_PASSWORD;
+  if (!secret && process.env.NODE_ENV === "production") throw new Error("Signup signing is not configured.");
+  return secret || "local-signup-ip-secret";
 }
 
 export function hashSignupIp(ip: string) {

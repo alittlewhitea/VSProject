@@ -57,7 +57,7 @@ export type VideoModelConfig = {
 
 const VIDEO_DURATION_OPTIONS = ["3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s", "11s", "12s", "13s", "14s", "15s"] as const;
 const DEFAULT_VIDEO_RATIOS = ["16:9", "9:16", "1:1"] as const;
-const DREAMFACE_IO_RATIOS = ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] as const;
+
 const SEEDANCE_RATIOS = ["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"] as const;
 const HAPPY_HORSE_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21", "5:4", "4:5"] as const;
 const GROK_TEXT_RATIOS = ["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16"] as const;
@@ -196,18 +196,7 @@ export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
       "image-to-video": { provider: "minimax-h3-max-video", workflow: "image-to-video", modelLabel: "MiniMax H3 Max", prompts: [MINIMAX_H3_MAX_IMAGE_PROMPT], videoUrl: MINIMAX_H3_MAX_IMAGE_VIDEO_URL, posterUrl: MINIMAX_H3_MAX_IMAGE_POSTER_URL, sourceImageUrl: MINIMAX_H3_MAX_IMAGE_URL, sourceImageShape: "landscape", videoFit: "contain", badgeParts: ["480p"], settings: { duration: "5s", ratio: "source", resolution: "480p" } }
     }
   },
-  "dreamface-io-video": {
-    id: "dreamface-io-video",
-    meta: { label: "DreamFace IO", shortLabel: "DreamFace IO", speed: "Fast", quality: "Video 2.5 Flash", bestFor: "Fast 720p text-to-video and image-to-video creation with a free daily allowance" },
-    group: "freeDraft",
-    badge: "free",
-    workflows: { "text-to-video": { ratios: DREAMFACE_IO_RATIOS }, "image-to-video": { ratios: DREAMFACE_IO_RATIOS } },
-    durations: ["5s", "10s"],
-    resolutions: ["720p"],
-    defaultDuration: "5s",
-    defaultResolution: "720p",
-    showResolutionControl: true
-  },
+
   "grok-video": {
     id: "grok-video",
     meta: { label: "Grok Imagine Video 1.5 Lite", shortLabel: "Grok 1.5 Lite", speed: "Fast", quality: "Expressive", bestFor: "Fast text-to-video and image-to-video ideas with 480p/720p/1080p output" },

@@ -1,3 +1,5 @@
+import {generationFixtureDependency} from './generation-runtime-fixture.mjs';
+import {settlementRpcFixture} from './generation-settlement-fixture.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createRequire} from 'node:module';
@@ -9,26 +11,30 @@ let authenticated=true,allowHistory=false,syncStatus='COMPLETED',providerCalls=0
 const admin={from(table){
  assert.ok(allowHistory,'Retired generation must not access storage');assert.equal(table,'generation_tasks');let updated,filters={},predicates=[];
  const query={select(){return query;},eq(key,value){filters[key]=value;return query;},
-  in(key,values){predicates.push(row=>values.includes(row[key]));return query;},is(key,value){predicates.push(row=>row[key]===value);return query;},order(){return query;},limit(){return query;},
+  neq(key,value){predicates.push(row=>row[key]!==value);return query;},in(key,values){predicates.push(row=>values.includes(row[key]));return query;},is(key,value){predicates.push(row=>row[key]===value);return query;},order(){return query;},limit(){return query;},
   update(value){updated=value;return query;},
   then(done){if(updated&&records[filters.id])Object.assign(records[filters.id],updated);return Promise.resolve({data:Object.values(records).filter(row=>Object.entries(filters).every(([key,value])=>row[key]===value)&&predicates.every(predicate=>predicate(row))),error:null}).then(done);}};
  return query;
 }};
 const forbidden=()=>{throw new Error('Retired generation reached billing, storage or provider preparation');};
+admin.rpc=settlementRpcFixture(records,amount=>refunds.push(amount));
 const overrides={
+ '../../../lib/mysql':{mysqlExecute:async()=>[{active:0}],toMysqlDate:value=>value},
+ '../../../lib/request-security':{consumeRateLimit:async()=>({allowed:true,retryAfterSeconds:0})},
  'next/server':{NextResponse:{json:(body,options={})=>({status:options.status||200,body})}},
  '../../../lib/server-auth':{getUserFromBearerToken:async()=>authenticated?{id:'mischief-fixture'}:null,getUserIdsForAuthUser:async()=>['mischief-fixture']},
  '../../../lib/supabase-admin':{createSupabaseAdminClient:()=>{assert.ok(allowHistory,'Retired generation cannot create a database client');return admin;}},
  '../../../lib/credits':{ensureSignupCreditAccount:forbidden,ensureCreditAccount:forbidden,spendCredits:forbidden,refundCredits:async(_admin,_user,amount)=>{assert.ok(allowHistory);refunds.push(amount);return 10000;}},
  '../../../lib/h3-daily-free':{createH3DailyFreeTask:forbidden},
  '../../../lib/fal-pricing':{estimateGenerationCreditsWithLivePricing:forbidden},
- '../../../lib/fal-billing':{resolveFalCostUsd:async()=>null},
+ '../../../lib/fal-billing':{resolveFalCostUsd:async()=>null,resolveFalTaskCostUsd:async()=>({costUsd:null,pendingAuxiliary:false})},
  '../../../lib/fal-fetch':{fetchFal:async(url,options)=>{
   assert.ok(allowHistory);assert.notEqual(options.method,'POST','No new provider generation is permitted');providerCalls++;
   return {ok:true,json:async()=>url.endsWith('/status')?{status:syncStatus}:syncStatus==='COMPLETED'?{video:{url:'https://example.invalid/mischief.mp4'}}:{error:'Isolated historical generation failure'}};
  }}
 };
-function load(file){file=resolve(file);if(cache.has(file))return cache.get(file).exports;const module={exports:{}};cache.set(file,module);const code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','module','exports',code)(id=>id in overrides?overrides[id]:id.startsWith('.')?load(resolve(dirname(file),id+'.ts')):native(id),module,module.exports);return module.exports;}
+function load(file){file=resolve(file);if(cache.has(file))return cache.get(file).exports;const module={exports:{}};cache.set(file,module);const code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','module','exports',code)(id=>id in overrides?overrides[id]:(generationFixtureDependency(id,overrides,load)??(id.startsWith('.')?load(resolve(dirname(file),id+'.ts')):native(id))),module,module.exports);return module.exports;}
+Object.assign(overrides,{'./fal-fetch':overrides['../../../lib/fal-fetch'],'./fal-billing':overrides['../../../lib/fal-billing']});
 const previousFetch=globalThis.fetch,previousKey=process.env.FAL_KEY;
 globalThis.fetch=forbidden;process.env.FAL_KEY='fixture-no-real-network';
 try{

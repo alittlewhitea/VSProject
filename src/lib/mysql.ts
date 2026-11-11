@@ -68,6 +68,23 @@ export async function withMysqlTransaction<T>(fn: (conn: PoolConnection) => Prom
   }
 }
 
+/** Serialize provider-ID assignment across tasks and app processes. The advisory
+ * lock stays on this connection through commit, and is released before pooling.
+ */
+export async function withMysqlAdvisoryTransaction<T>(name:string,fn:(conn:PoolConnection)=>Promise<T>) {
+  const conn=await getMysqlPool().getConnection();let locked=false,reusable=true;
+  try {
+    const [rows]=await conn.execute<RowDataPacket[]>("select get_lock(?, 5) as acquired",[name]);
+    if(Number(rows[0]?.acquired)!==1)throw new Error("Provider assignment is busy. Reconcile again shortly.");locked=true;
+    await conn.beginTransaction();
+    try {const result=await fn(conn);await conn.commit();return result;}
+    catch(error){await conn.rollback();throw error;}
+  } finally {
+    if(locked)try{await conn.execute("select release_lock(?)",[name]);}catch{reusable=false;conn.destroy();}
+    if(reusable)conn.release();
+  }
+}
+
 export function toMysqlDate(value: unknown) {
   if (value == null || value === "") return null;
   if (value instanceof Date) return value.toISOString().slice(0, 19).replace("T", " ");

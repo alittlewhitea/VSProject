@@ -290,11 +290,11 @@ export async function getLiveModelPricingRows(): Promise<LiveModelPricingRow[]> 
   const checkedAt = new Date().toISOString();
   return Promise.all(
     MODEL_PRICING_ROWS.map(async (row) => {
-      const live = row.provider === "dreamface-io-video" ? null : await getFalModelPricing(row.endpointId);
+      const live = await getFalModelPricing(row.endpointId);
       const typicalCredits = estimateGenerationCredits({
         mode: row.mode,
         provider: row.provider,
-        duration: row.referenceDuration ?? (row.provider === "flux-3-max-video" || row.provider === "dreamface-io-video" || row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "5s" : row.mode === "video" ? "6s" : undefined),
+        duration: row.referenceDuration ?? (row.provider === "flux-3-max-video" || row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "5s" : row.mode === "video" ? "6s" : undefined),
         resolution: row.referenceResolution ?? (row.provider === "minimax-h3-max-video" || row.provider === "minimax-h3-max-turbo-video" ? "480p" : undefined),
         imageSize: row.provider === "flux-image" ? "landscape_16_9" : "default_4_3",
         hasReferences: row.workflow.toLowerCase().includes("image to image") || row.workflow.toLowerCase().includes("image to video"),

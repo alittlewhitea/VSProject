@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
@@ -21,6 +22,12 @@ const deploymentId =
   gitSha();
 
 const isProduction = process.env.NODE_ENV === "production";
+const marketingCache = JSON.parse(readFileSync(new URL("./src/lib/marketing-cache-settings.json", import.meta.url), "utf8"));
+const publicMarketingPaths = [
+  ...marketingCache.englishPages,
+  ...marketingCache.localeHomes.map(locale => `/${locale}`),
+  ...["es", "pt-BR"].flatMap(locale => marketingCache.translatedLandingPages.map(path => `/${locale}${path}`))
+];
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -78,6 +85,16 @@ const nextConfig = {
         source: "/:path*",
         headers: securityHeaders
       },
+      // Header matchers run before Next strips Flight headers for middleware.
+      // Keep document caching separate from RSC/prefetch/action variants.
+      ...(isProduction ? publicMarketingPaths.map(source => ({
+        source,
+        missing: [
+          ...marketingCache.nonHtmlHeaders.map(key => ({ type: "header", key })),
+          { type: "header", key: "accept", value: ".*text/x-component.*" }
+        ],
+        headers: [{ key: "Cache-Control", value: marketingCache.publicCacheControl }]
+      })) : []),
       {
         source: "/_next/static/:path*",
         headers: [
@@ -108,7 +125,7 @@ const nextConfig = {
           }
         ]
       },
-      ...["/", "/about", "/studio", "/auth", "/billing", "/price", "/creations", "/gallery", "/admin"].map((source) => ({
+      ...["/", "/studio", "/auth", "/billing", "/price", "/creations", "/gallery", "/admin"].map((source) => ({
         source,
         headers: [
           {

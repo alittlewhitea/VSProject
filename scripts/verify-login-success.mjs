@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readStudioSource } from './studio-source.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve, dirname } from 'node:path';
@@ -11,7 +12,7 @@ function loader(mocks = {}) {
     const module = { exports: {} }; cache.set(file, module);
     const compiled = ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
     new Function('require', 'module', 'exports', compiled)(id => {
-      if (id in mocks) return mocks[id];
+      if (id in mocks) return mocks[id];if(/\/lib\/request-security$/.test(id))return {...load('src/lib/request-security.ts'),consumeRateLimit:async()=>({allowed:true,retryAfterSeconds:0})};
       if (!id.startsWith('.')) return native(id);
       const path = resolve(dirname(file), id); return load(existsSync(path + '.ts') ? path + '.ts' : path + '.tsx');
     }, module, module.exports);
@@ -117,9 +118,9 @@ try {
   await bridge.auth.getSession(); await analytics.flushLoginSuccessTracking(); assert.equal(rows.has(popupEvent.id), true);
   await bridge.auth.getSession(); await analytics.flushLoginSuccessTracking();
   assert.equal(window.dataLayer.filter(event => event.login_event_id === popupEvent.id).length, 1);
-  const logout = load('src/app/api/auth/logout/route.ts'); await logout.POST();
+  const logout = load('src/app/api/auth/logout/route.ts'); await logout.POST(new Request('https://fixture.invalid/api/auth/logout', {method:'POST'}));
   assert.equal(cookies.has(receipts.LOGIN_SUCCESS_COOKIE), false);
-  for (const file of ['src/app/studio/studio-client.tsx', 'src/features/billing/billing-content.tsx']) assert.doesNotMatch(readFileSync(file, 'utf8'), /trackEvent\(\s*["']login_success["']/);
+  for (const source of [readStudioSource(), readFileSync('src/features/billing/billing-content.tsx', 'utf8')]) assert.doesNotMatch(source, /trackEvent\(\s*["']login_success["']/);
   console.log('Login success passed: signed callback-only receipts, restored-session exclusion, eight concurrent claims produce one row, legacy mirror suppressed, repeat real logins counted, browser reload/storage-blocked deduplication, transient retry, popup-parent ownership and logout cleanup. No live authentication, GTM, or database calls.');
 } finally {
   globalThis.window = saved.window; globalThis.document = saved.document; globalThis.fetch = saved.fetch; Date.now = saved.now;

@@ -14,13 +14,6 @@ import {
   signupBonusCreditsForCountry
 } from "../../../lib/credits";
 import { listUserSubscriptions } from "../../../lib/subscriptions";
-import {
-  DREAMFACE_IO_DAILY_UNITS,
-  getDreamfaceIoDailyUsage,
-  isDreamfaceIoConfigured,
-  isDreamfaceIoDailyEligible
-} from "../../../lib/dreamface-io";
-import { isDreamfaceIoEnabled } from "../../../lib/runtime-config";
 
 const CREDIT_TIMEOUT_MS = 4500;
 
@@ -64,13 +57,7 @@ export async function GET(request: Request) {
       CREDIT_TIMEOUT_MS
     ).catch(() => ({ data: [] }));
     const subscriptions = await withTimeout(listUserSubscriptions(admin, user.id), CREDIT_TIMEOUT_MS).catch(() => []);
-    const dreamfaceIoEnabled = (await isDreamfaceIoEnabled(admin)) && isDreamfaceIoConfigured();
-    const dreamfaceIoEligible = dreamfaceIoEnabled
-      ? await isDreamfaceIoDailyEligible(admin, user.id).catch(() => false)
-      : false;
-    const dreamfaceIoUsage = dreamfaceIoEligible
-      ? await getDreamfaceIoDailyUsage(admin, user.id).catch(() => ({ usedUnits: 0, remainingUnits: 0 }))
-      : { usedUnits: 0, remainingUnits: 0 };
+
     return NextResponse.json({
       balance: account.balance,
       freeGranted: account.free_granted,
@@ -80,13 +67,7 @@ export async function GET(request: Request) {
       purchases: purchases || [],
       subscriptions,
       signupBonusCredits,
-      dreamfaceIo: {
-        enabled: dreamfaceIoEnabled,
-        eligible: dreamfaceIoEligible,
-        dailyUnits: DREAMFACE_IO_DAILY_UNITS,
-        usedUnits: dreamfaceIoUsage.usedUnits,
-        remainingUnits: dreamfaceIoUsage.remainingUnits
-      }
+
     });
   } catch (error) {
     const user = await getUserFromBearerToken(request.headers.get("authorization"));

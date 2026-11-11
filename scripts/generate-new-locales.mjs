@@ -18,7 +18,6 @@ const localeTargets = {
 };
 
 const studioSources = [
-  ["studio-i18n-dreamface-io.ts", "studioDreamfaceIoMessages"],
   ["studio-i18n-workspace-home.ts", "studioWorkspaceHomeMessages"],
   ["studio-i18n-fal-errors.ts", "studioFalErrorMessages"],
   ["studio-i18n-additions.ts", "studioAdditionalMessages"],
@@ -27,8 +26,8 @@ const studioSources = [
   ["studio-i18n-avatar-workbench.ts", "studioAvatarWorkbenchMessages"],
   ["studio-i18n-text-image.ts", "studioTextImageMessages"],
   ["studio-i18n-image-workbench.ts", "studioImageWorkbenchMessages"],
-  ["studio-i18n.ts", "messages"],
-  ["studio-i18n.ts", "workflowMessages"],
+  ["studio-message-catalog.ts", "messages"],
+  ["studio-message-catalog.ts", "workflowMessages"],
   ["studio-i18n-home.ts", "studioHomeMessages"],
   ["studio-i18n-feedback.ts", "studioFeedbackMessages"],
   ["studio-i18n-models.ts", "studioModelMessages"]
@@ -36,7 +35,6 @@ const studioSources = [
 ];
 
 const protectedTerms = [
-  "DreamFace IO",
   "DreamFace",
   "ElevenLabs",
   "GPT Image",

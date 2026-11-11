@@ -224,7 +224,7 @@ export function estimateGenerationCostUsd(input: GenerationEstimateInput): numbe
   if (input.provider === "grok-video") return ((seconds <= 15 ? seconds : 5) * (resolution === "1080p" ? 14 : resolution === "720p" ? 3 : 2) + (input.hasReferences ? 1 : 0)) / 100;
   if (input.provider === "veo-video") return seconds * (resolution === "4k" ? (input.generateAudio ? 0.6 : 0.4) : (input.generateAudio ? 0.4 : 0.2));
   // Legacy channel is disabled before billing; retain historical display compatibility.
-  if (input.provider === "dreamface-io-video") return Math.ceil(seconds / 5) * 10 / CREDIT_USD_TO_CREDITS;
+
   throw new Error("Missing supplier cost estimate for video provider");
 }
 

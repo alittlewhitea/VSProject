@@ -1,13 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { defaultLocale, getLocaleFromPathname, withLocalePrefix } from "./i18n/routing";
+import { canCacheMarketingRequest, PRIVATE_PAGE_CACHE_CONTROL } from "./lib/marketing-cache-policy";
 
 const DEPLOYMENT_ID = process.env.NEXT_PUBLIC_DEPLOYMENT_ID || process.env.NEXT_DEPLOYMENT_ID || "local";
-const NO_STORE_VALUE = "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
-
-function withRuntimeHeaders(response: NextResponse) {
-  response.headers.set("Cache-Control", NO_STORE_VALUE);
-  response.headers.set("Pragma", "no-cache");
-  response.headers.set("Expires", "0");
+function withRuntimeHeaders(response: NextResponse, publicPage = false) {
+  // Positive cache rules live in next.config: Next hides Flight headers from
+  // middleware, so only that earlier layer can safely distinguish raw requests.
+  if (!publicPage) {
+    response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE_CONTROL);
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+  }
   response.headers.set("X-DreamFace-Deploy", DEPLOYMENT_ID);
   return response;
 }
@@ -40,7 +43,8 @@ export function middleware(request: NextRequest) {
       request: {
         headers: requestHeaders
       }
-    })
+    }),
+    process.env.NODE_ENV === "production" && canCacheMarketingRequest(request)
   );
 }
 

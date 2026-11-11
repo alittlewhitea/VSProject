@@ -1,3 +1,4 @@
+import {readStudioSource} from './studio-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -64,7 +65,7 @@ for(const name of ['studio-navigation','studio-home','studio-header','studio-pro
  const source=readFileSync(`src/features/studio/${name}.tsx`,'utf8');
  if(source.includes('<Link '))assert.match(source,/import Link from "\.\/studio-link"/);
 }
-const studio = readFileSync('src/app/studio/studio-client.tsx','utf8');
+const studio = readStudioSource();
 assert.doesNotMatch(studio,/router\.replace\(`/);
 assert.match(studio,/navigateStudio\(studioProjectHref/);
 globalThis.fetch=oldFetch;

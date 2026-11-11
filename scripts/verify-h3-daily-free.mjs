@@ -1,3 +1,5 @@
+import {generationFixtureDependency} from './generation-runtime-fixture.mjs';
+import {settlementRpcFixture} from './generation-settlement-fixture.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
@@ -10,7 +12,7 @@ function loader(overrides={}) {
   path=resolve(path);if(cache.has(path))return cache.get(path).exports;
   const module={exports:{}};cache.set(path,module);
   const code=ts.transpileModule(readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-  new Function('require','module','exports',code)(id=>id in overrides?overrides[id]:id.startsWith('.')?load(resolve(dirname(path),id+'.ts')):native(id),module,module.exports);
+  new Function('require','module','exports',code)(id=>id in overrides?overrides[id]:(generationFixtureDependency(id,overrides,load)??(id.startsWith('.')?load(resolve(dirname(path),id+'.ts')):native(id))),module,module.exports);
   return module.exports;
  }
  return load;
@@ -23,7 +25,8 @@ reset();
 async function execute(sql,args=[]) {
  if(failSql&&sql.includes(failSql))throw new Error('Injected SQL failure');
  let result=[];
- if(sql.startsWith('SELECT amount,reference_id'))result=state.bonuses[args[0]]?[state.bonuses[args[0]]]:[];
+ if(sql.startsWith('select id from generation_tasks'))result=Object.values(state.tasks).filter(row=>row.user_id===args[0]&&['queued','running'].includes(row.status)).slice(0,5);
+ else if(sql.startsWith('SELECT amount,reference_id'))result=state.bonuses[args[0]]?[state.bonuses[args[0]]]:[];
  else if(sql.startsWith('SELECT user_id FROM user_credit_accounts'))result=state.bonuses[args[0]]?[{user_id:args[0]}]:[];
  else if(sql.startsWith('INSERT IGNORE INTO h3_daily_free_identities'))state.owners[args[0]+':'+args[1]]??=args[2];
  else if(sql.startsWith('SELECT owner_user_id')){const owner=state.owners[args[0]+':'+args[1]];result=owner?[{owner_user_id:owner}]:[];}
@@ -104,6 +107,7 @@ try {
    then(resolve){if(insert)state.tasks[insert.id]={...insert};if(values&&state.tasks[filters.id])Object.assign(state.tasks[filters.id],values);return Promise.resolve({error:null}).then(resolve);}};
   return query;
  }};
+ admin.rpc=(...args)=>settlementRpcFixture(state.tasks)(...args);
  const route=loader({
   'next/server':{NextResponse:{json:(body,options={})=>({status:options.status||200,body})}},
   '../../../lib/server-auth':{getUserFromBearerToken:async()=>({id:currentUser})},
@@ -113,15 +117,15 @@ try {
   '../../../lib/fal-pricing':{estimateGenerationCreditsWithLivePricing:async()=>15},
   '../../../lib/fal-fetch':{fetchFal:async()=>{submissions++;if(providerFailure)throw new Error('Fixture upstream unavailable');return {ok:true,json:async()=>({request_id:'fixture-request',status:'IN_QUEUE',status_url:'https://queue.fal.run/fixture/status'})};}}
  })('src/app/api/generate/route.ts');
- const request=(key,extra={})=>({headers:new Headers(),json:async()=>({mode:'video',provider:policy.H3_DAILY_FREE_PROVIDER,duration:'5s',resolution:'480p',ratio:'16:9',prompt:'Test motion',videoWorkflow:'text-to-video',dailyFree:true,idempotencyKey:key,...extra})});
+ const request=(key,extra={})=>({headers:new Headers(),json:async()=>({mode:'video',provider:policy.H3_DAILY_FREE_PROVIDER,duration:'5s',resolution:'480p',ratio:'16:9',prompt:'Test motion',videoWorkflow:'text-to-video',dailyFree:true,expectedCredits:0,idempotencyKey:key,...extra})});
  let result=await route.POST(request('fixture-free-1'));
  assert.equal(result.status,200);assert.equal(result.body.estimatedCredits,0);assert.equal(result.body.billingSource,'daily_free');assert.equal(spends,0);assert.equal(submissions,1);
  result=await route.POST(request('fixture-free-1'));assert.equal(result.body.duplicate,true);assert.equal(submissions,1);
  result=await route.POST(request('fixture-free-2'));assert.equal(result.status,409);assert.equal(spends,0);assert.equal(submissions,1);
- accountBalance=100;result=await route.POST(request('fixture-paid-1',{dailyFree:false}));assert.equal(result.body.estimatedCredits,15);assert.equal(spends,1);assert.equal(submissions,2);
+ accountBalance=100;result=await route.POST(request('fixture-paid-1',{dailyFree:false,expectedCredits:15}));assert.equal(result.body.estimatedCredits,15);assert.equal(spends,1);assert.equal(submissions,2);
  result=await route.POST(request('fixture-wrong-1',{resolution:'1080p'}));assert.equal(result.status,400);assert.equal(spends,1);
  currentUser='low';result=await route.POST(request('fixture-low-1'));assert.equal(result.status,409);assert.equal(spends,1);assert.equal(submissions,2);
- reset();currentUser='a';providerFailure=true;result=await route.POST(request('fixture-failure-1'));assert.equal(result.status,502);assert.equal(spends,1);assert.equal(Object.keys(state.usage).length,1,'Submitted attempts consume one daily opportunity even if upstream fails');
+ reset();currentUser='a';providerFailure=true;result=await route.POST(request('fixture-failure-1'));assert.equal(result.status,202);assert.equal(result.body.failureCode,'provider_submission_unknown');assert.equal(spends,1);assert.equal(Object.keys(state.usage).length,1,'Submitted attempts consume one daily opportunity even if upstream fails');
  reset();failSql='h3_daily_free_identities';result=await route.POST(request('fixture-no-db-1'));assert.equal(result.status,503);assert.equal(spends,1);assert.equal(Object.keys(state.tasks).length,0);
  console.log('H3 daily free checks passed: 15-credit signup tier, cohort/IP/device rules, signed identity, daily reset, concurrent claims, rollback, duplicate submission, zero charge, explicit paid retries and unavailable storage. Isolated fixtures only.');
 } finally {

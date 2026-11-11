@@ -1,3 +1,4 @@
+import {generationFixtureDependency} from './generation-runtime-fixture.mjs';
 ﻿import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
@@ -14,7 +15,7 @@ const overrides={
  '../../../lib/fal-pricing':{estimateGenerationCreditsWithLivePricing:async input=>load('src/lib/model-pricing.ts').estimateGenerationCredits(input)},
  '../../../lib/fal-fetch':{fetchFal:async(url,options)=>{submissions.push({url,input:JSON.parse(options.body)});return {ok:true,json:async()=>({request_id:'fixture-request',status:'IN_QUEUE',status_url:'https://queue.fal.run/fixture/status'})};}}
 };
-function load(file){file=resolve(file);if(cache.has(file))return cache.get(file).exports;const module={exports:{}};cache.set(file,module);const code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','module','exports',code)(id=>id in overrides?overrides[id]:id.startsWith('.')?load(resolve(dirname(file),id+'.ts')):native(id),module,module.exports);return module.exports;}
+function load(file){file=resolve(file);if(cache.has(file))return cache.get(file).exports;const module={exports:{}};cache.set(file,module);const code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','module','exports',code)(id=>id in overrides?overrides[id]:(generationFixtureDependency(id,overrides,load)??(id.startsWith('.')?load(resolve(dirname(file),id+'.ts')):native(id))),module,module.exports);return module.exports;}
 const oldKey=process.env.FAL_KEY,oldFetch=globalThis.fetch;process.env.FAL_KEY='fixture-no-network';globalThis.fetch=async()=>{throw new Error('Unexpected network');};
 try {
  const models=load('src/lib/gpt-image-models.ts'),pricing=load('src/lib/model-pricing.ts'),route=load('src/app/api/generate/route.ts');
@@ -27,7 +28,7 @@ try {
  }
  for(const quality of models.GPT_IMAGE_QUALITIES){const response=await route.POST(request({quality}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.quality,quality);}
  let response=await route.POST(request({imageSize:'custom',imageWidth:2048,imageHeight:1536,quality:'max',imageReasoningEffort:'high',background:'opaque',numImages:10,outputFormat:'webp',outputCompression:0,enableSafetyChecker:false}));assert.equal(response.status,200);
- assert.deepEqual(submissions.at(-1).input,{prompt:'A minimal product photograph.',image_size:{width:2048,height:1536},quality:'max',background:'opaque',reasoning_effort:'high',num_images:10,output_format:'webp',output_compression:0,enable_safety_checker:false});
+ assert.deepEqual(submissions.at(-1).input,{prompt:'A minimal product photograph.',image_size:{width:2048,height:1536},quality:'max',background:'opaque',reasoning_effort:'high',num_images:10,output_format:'webp',output_compression:0,enable_safety_checker:true});
  response=await route.POST(request({imageSize:'auto',outputFormat:'gif',frameCount:16,frameDurationMs:205}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.frame_duration_ms,210);assert.equal(submissions.at(-1).input.frame_count,16);assert.equal(submissions.at(-1).input.image_size,'auto');
  for(const svgModel of models.GPT_IMAGE_SVG_MODELS){response=await route.POST(request({outputFormat:'svg',svgModel}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.svg_model,svgModel);}
  for(const guide of [{maskUrl:mask},{markupImageUrl:mask}]){response=await route.POST(request({imageWorkflow:'image-to-image',imageUrls:Array(16).fill(ref),...guide}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.image_urls.length,16);assert.equal(submissions.at(-1).input[guide.maskUrl?'mask_url':'markup_image_url'],mask);const row=Object.values(records).at(-1);assert.equal(row.request_settings[guide.maskUrl?'mask_url':'markup_image_url'],mask);}

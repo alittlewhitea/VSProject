@@ -1,3 +1,4 @@
+import {readStudioSource} from './studio-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -22,7 +23,7 @@ function loader(overrides={}) {
   return load;
 }
 const load=loader(),models=load('src/features/studio/video-models.ts'),gpt=load('src/lib/gpt-image-models.ts'),frames=load('src/lib/video-keyframes.ts'),policy=load('src/lib/studio-workspace-inputs.ts');
-const source=readFileSync('src/app/studio/studio-client.tsx','utf8');
+const source=readStudioSource();
 const ast=ts.createSourceFile('studio-client.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
 function findNode(predicate){let found;function visit(node){if(!found&&predicate(node))found=node;if(!found)ts.forEachChild(node,visit);}visit(ast);assert.ok(found,'Source node not found');return found;}
 function executeFunction(name,context){const node=findNode(node=>ts.isFunctionDeclaration(node)&&node.name?.text===name);const compiled=ts.transpileModule(node.getText(ast),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;return new Function('context',`with(context){${compiled};return ${name};}`)(context);}

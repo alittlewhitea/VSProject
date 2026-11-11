@@ -4,6 +4,8 @@ import path from "node:path";
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { fromMysqlRow, mysqlExecute, toMysqlDate, withMysqlTransaction } from "./mysql";
 import { siteUrl } from "./site-url";
+import { assertGenerationCapacity, GenerationCapacityError } from "./generation-capacity";
+import {hasProviderIntegration} from "./retired-providers";
 
 type QueryResult<T = unknown> = { data: T | null; error: null | MysqlAdapterError };
 type Filter = { column: string; op: string; value: unknown };
@@ -44,7 +46,6 @@ const TABLE_CONFLICT_KEYS: Record<string, string[]> = {
   runtime_settings: ["key"],
   payment_webhook_events: ["payment_provider", "event_id"],
   payment_incidents: ["payment_provider", "event_id"],
-  model_daily_usage_events: ["user_id", "model_key", "reference_id"],
   credit_purchases: ["payment_provider", "provider_transaction_id"],
   user_subscriptions: ["payment_provider", "provider_subscription_id"],
   public_gallery_items: ["id"],
@@ -296,7 +297,8 @@ export class MysqlQueryBuilder {
       if (operation === "insert") return await this.executeInsert(false);
       if (operation === "upsert") return await this.executeInsert(true);
       if (operation === "update") return await this.executeUpdate();
-      return await this.executeDelete();
+      if (operation === "delete") return await this.executeDelete();
+      throw new MysqlAdapterError("Unsupported database operation.");
     } catch (error) {
       return { data: null, error: mysqlError(error) };
     }
@@ -343,7 +345,8 @@ export class MysqlQueryBuilder {
   }
 
   private async selectInserted(rows: Record<string, unknown>[], columns: string[]) {
-    const keyColumns = this.conflictColumns || TABLE_CONFLICT_KEYS[this.table] || (columns.includes("id") ? ["id"] : columns.slice(0, 1));
+    const keyColumns = this.conflictColumns || TABLE_CONFLICT_KEYS[this.table] || (columns.includes("id") ? ["id"] : null);
+    if (!keyColumns?.length || keyColumns.some(key => rows[0][key] == null)) throw new MysqlAdapterError("An explicit row key is required to read inserted data.");
     const selected = new MysqlQueryBuilder(this.table).select(this.selectColumns);
     for (const key of keyColumns) selected.eq(key, rows[0][key]);
     if (this.singleMode === "single") return selected.single().execute();
@@ -352,6 +355,7 @@ export class MysqlQueryBuilder {
   }
 
   private async executeUpdate(): Promise<QueryResult> {
+    if (!this.filters.length) throw new MysqlAdapterError("Refusing an unfiltered UPDATE.");
     const row = normalizeRow((this.body || [])[0] || {});
     const columns = Object.keys(row);
     if (!columns.length) return { data: null, error: null };
@@ -365,6 +369,7 @@ export class MysqlQueryBuilder {
   }
 
   private async executeDelete(): Promise<QueryResult> {
+    if (!this.filters.length) throw new MysqlAdapterError("Refusing an unfiltered DELETE.");
     const where = buildWhere(this.filters);
     const sql = `delete from ${quoteIdent(this.table)}${where.sql}`;
     const result = await mysqlExecute<ResultSetHeader>(sql, where.params);
@@ -372,8 +377,8 @@ export class MysqlQueryBuilder {
   }
 }
 
-async function applyCreditLedgerOnce(params: Record<string, unknown>) {
-  return withMysqlTransaction(async (conn) => {
+async function applyCreditLedgerOnce(params: Record<string, unknown>, connection?: PoolConnection) {
+  const apply = async (conn: PoolConnection) => {
     const userId = String(params.p_user_id || "");
     const amount = Number(params.p_amount || 0);
     const reason = String(params.p_reason || "");
@@ -407,58 +412,76 @@ async function applyCreditLedgerOnce(params: Record<string, unknown>) {
       [userId, amount, reason, referenceId, toMysqlDate(now)]
     );
     return { balance: nextBalance, ledger_id: inserted.insertId, duplicate: false, applied: true };
-  });
+  };
+  return connection ? apply(connection) : withMysqlTransaction(apply);
 }
 
-async function getModelDailyUsage(params: Record<string, unknown>) {
-  const today = new Date().toISOString().slice(0, 10);
-  const rows = await mysqlExecute<RowDataPacket[]>(
-    "select coalesce(sum(units), 0) as used_units from model_daily_usage_events where user_id = ? and model_key = ? and usage_date = ? and refunded_at is null",
-    [params.p_user_id, params.p_model_key, today]
-  );
-  return { used_units: Number(rows[0]?.used_units || 0) };
+const TASK_SETTLEMENT_COLUMNS = new Set(["status", "response_url", "status_url", "provider_request_id", "output_url", "raw_result", "failure_code", "failure_reason", "last_checked_at", "timed_out_at", "updated_at"]);
+
+async function reserveGenerationTask(params: Record<string, unknown>) {
+  const task = params.p_task as Record<string, unknown>;
+  if (!task || !task.id || !task.user_id || !["image", "video", "audio"].includes(String(task.mode)) || !["real", "mock"].includes(String(task.transport)) || typeof task.prompt !== "string" || typeof task.provider !== "string" || !Number.isSafeInteger(task.estimated_credits) || Number(task.estimated_credits) < 0) throw new MysqlAdapterError("Invalid generation reservation.");
+  try {
+    return await withMysqlTransaction(async conn => {
+      const [accounts] = await conn.execute<RowDataPacket[]>("select balance from user_credit_accounts where user_id = ? for update", [String(task.user_id)]);
+      if (!accounts.length) throw new MysqlAdapterError("Generation account is unavailable.");
+      const balance = Number(accounts[0].balance);
+      const [existing] = await conn.execute<RowDataPacket[]>("select * from generation_tasks where id = ? and user_id = ?", [String(task.id), String(task.user_id)]);
+      if (existing.length) return { allowed: true, duplicate: true, balance, task: parseRow(existing[0]) };
+      await assertGenerationCapacity(conn, String(task.user_id));
+      if (balance < Number(task.estimated_credits)) return { allowed: false, duplicate: false, balance, task: null };
+      const row = normalizeRow(withTableDefaults("generation_tasks", { id:task.id, user_id:task.user_id, mode:task.mode, provider:task.provider, prompt:task.prompt, estimated_credits:task.estimated_credits, transport:task.transport, request_settings:task.request_settings || {}, status:"queued" }));
+      const columns = Object.keys(row);
+      await conn.execute(`insert into generation_tasks (${columns.map(quoteIdent).join(",")}) values (${columns.map(() => "?").join(",")})`, columns.map(key => row[key]) as any[]);
+      const charge = Number(task.estimated_credits) > 0
+        ? await applyCreditLedgerOnce({p_user_id:task.user_id, p_amount:-Number(task.estimated_credits), p_reason:"generation_task", p_reference_id:task.id}, conn)
+        : {balance};
+      return { allowed:true, duplicate:false, balance:charge.balance, task:parseRow(row) };
+    });
+  } catch (error) {
+    if (error instanceof GenerationCapacityError) throw new MysqlAdapterError(error.message, "generation_concurrency_limit");
+    throw error;
+  }
 }
 
-async function reserveModelDailyUnits(params: Record<string, unknown>) {
-  return withMysqlTransaction(async (conn: PoolConnection) => {
-    const userId = String(params.p_user_id || "");
-    const modelKey = String(params.p_model_key || "");
-    const referenceId = String(params.p_reference_id || "");
-    const units = Number(params.p_units || 0);
-    const dailyLimit = Number(params.p_daily_limit || 0);
-    const today = new Date().toISOString().slice(0, 10);
-    const now = toMysqlDate(new Date());
-
-    const [existing] = await (conn as any).execute(
-      "select id from model_daily_usage_events where user_id = ? and model_key = ? and reference_id = ? limit 1",
-      [userId, modelKey, referenceId]
-    );
-    const [usageRows] = await (conn as any).execute(
-      "select coalesce(sum(units), 0) as used_units from model_daily_usage_events where user_id = ? and model_key = ? and usage_date = ? and refunded_at is null for update",
-      [userId, modelKey, today]
-    );
-    const used = Number(usageRows[0]?.used_units || 0);
-    if (existing.length) {
-      return { allowed: true, duplicate: true, used_units: used, remaining_units: Math.max(0, dailyLimit - used) };
+async function settleGenerationTask(params: Record<string, unknown>) {
+  const userId = String(params.p_user_id || ""), taskId = String(params.p_task_id || "");
+  const patch = params.p_patch as Record<string, unknown>;
+  if (!userId || !taskId || !patch || !["queued", "running", "completed", "failed"].includes(String(patch.status))) throw new MysqlAdapterError("Invalid task settlement.");
+  if (Object.keys(patch).some(key => !TASK_SETTLEMENT_COLUMNS.has(key))) throw new MysqlAdapterError("Unsupported task settlement field.");
+  return withMysqlTransaction(async conn => {
+    const [tasks] = await conn.execute<RowDataPacket[]>("select * from generation_tasks where id = ? and user_id = ? for update", [taskId, userId]);
+    const task = tasks[0];
+    if (!task) throw new MysqlAdapterError("Task not found.");
+    const repairingFailedRefund = params.p_repair_failed_refund === true && task.status === "failed" && patch.status === "failed";
+    if (!["queued", "running"].includes(String(task.status)) && !repairingFailedRefund) return { applied: false, task: parseRow(task), balance: null, refundLedgerId: null, refundedCredits: 0 };
+    const resolution=params.p_resolution as Record<string,unknown>|undefined;
+    if(resolution&&(!resolution.actor||typeof resolution.note!=="string"||resolution.note.length<12||typeof resolution.evidence!=="string"))throw new MysqlAdapterError("A documented operator resolution is required.");
+    const config=parseRow(task).request_settings as Record<string,any> || {};
+    if(resolution?.evidence==="operator_provider_confirmed_no_active_job") {
+      if(task.provider_request_id&&hasProviderIntegration(task.provider))throw new MysqlAdapterError("Provider tracking arrived while this task was being reviewed. Reconcile it first.");
+      const latest=Math.max(0,...Object.values(config.provider_attempts||{}).map((attempt:any)=>new Date(attempt?.startedAt||0).getTime()).filter(Number.isFinite));
+      if(latest&&Date.now()-latest<10*60000)throw new MysqlAdapterError("A recent provider stage is still awaiting confirmation.");
     }
-    if (used + units > dailyLimit) {
-      return { allowed: false, duplicate: false, used_units: used, remaining_units: Math.max(0, dailyLimit - used) };
+    const normalized = normalizeRow({ ...patch, status: task.status === "running" && patch.status === "queued" ? "running" : patch.status,
+      ...(resolution?{request_settings:{...config,reconciliation_events:[...(Array.isArray(config.reconciliation_events)?config.reconciliation_events:[]),{action:"settle",...resolution,at:new Date().toISOString()}].slice(-20)}}:{}) });
+    const columns = Object.keys(normalized);
+    await conn.execute(`update generation_tasks set ${columns.map(column => `${quoteIdent(column)} = ?`).join(", ")} where id = ? and user_id = ?`, [...columns.map(column => normalized[column]), taskId, userId] as any[]);
+    let balance: number | null = null, refundLedgerId: number | string | null = null, refundedCredits = 0;
+    const requested = Number(params.p_refund_credits || 0);
+    if (!Number.isSafeInteger(requested) || requested < 0) throw new MysqlAdapterError("Invalid task refund.");
+    if (requested && patch.status !== "failed") throw new MysqlAdapterError("Only a failed task can be refunded.");
+    if (requested) {
+      const [charges] = await conn.execute<RowDataPacket[]>("select amount from credit_ledger where user_id = ? and reason = 'generation_task' and reference_id = ? limit 1", [userId, taskId]);
+      const charged = Math.max(0, -Number(charges[0]?.amount || 0));
+      const amount = Math.min(requested, charged, Math.max(0, Number(task.estimated_credits || 0)));
+      if (amount) {
+        const credit = await applyCreditLedgerOnce({ p_user_id: userId, p_amount: amount, p_reason: "generation_refund", p_reference_id: taskId, p_allow_negative: false }, conn);
+        balance = credit.balance; refundLedgerId = credit.ledger_id; refundedCredits = credit.duplicate ? 0 : amount;
+      }
     }
-    await (conn as any).execute(
-      "insert into model_daily_usage_events (user_id, model_key, usage_date, units, reference_id, created_at) values (?, ?, ?, ?, ?, ?)",
-      [userId, modelKey, today, units, referenceId, now]
-    );
-    const next = used + units;
-    return { allowed: true, duplicate: false, used_units: next, remaining_units: Math.max(0, dailyLimit - next) };
+    return { applied: true, task: parseRow({ ...task, ...normalized }), balance, refundLedgerId, refundedCredits };
   });
-}
-
-async function refundModelDailyUnits(params: Record<string, unknown>) {
-  await mysqlExecute(
-    "update model_daily_usage_events set refunded_at = ? where user_id = ? and model_key = ? and reference_id = ? and refunded_at is null",
-    [toMysqlDate(new Date()), params.p_user_id, params.p_model_key, params.p_reference_id]
-  );
-  return null;
 }
 
 class MysqlStorageBucket {
@@ -500,9 +523,8 @@ export function createMysqlSupabaseAdapter() {
     async rpc(name: string, params: Record<string, unknown>) {
       try {
         if (name === "apply_credit_ledger_once") return { data: await applyCreditLedgerOnce(params), error: null };
-        if (name === "get_model_daily_usage") return { data: await getModelDailyUsage(params), error: null };
-        if (name === "reserve_model_daily_units") return { data: await reserveModelDailyUnits(params), error: null };
-        if (name === "refund_model_daily_units") return { data: await refundModelDailyUnits(params), error: null };
+        if (name === "settle_generation_task") return { data: await settleGenerationTask(params), error: null };
+        if (name === "reserve_generation_task") return { data: await reserveGenerationTask(params), error: null };
         return { data: null, error: new MysqlAdapterError(`Unsupported RPC: ${name}`) };
       } catch (error) {
         return { data: null, error: mysqlError(error) };

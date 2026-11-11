@@ -27,7 +27,7 @@ export const localeCookieMaxAge = 60 * 60 * 24 * 365;
 
 export function persistLocalePreference(locale: Locale) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(localeStorageKey, locale);
+  try {window.localStorage.setItem(localeStorageKey, locale);}catch{}
   document.cookie = `${localeCookieKey}=${encodeURIComponent(locale)}; Path=/; Max-Age=${localeCookieMaxAge}; SameSite=Lax${
     window.location.protocol === "https:" ? "; Secure" : ""
   }`;

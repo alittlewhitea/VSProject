@@ -2,7 +2,7 @@ import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyf
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution } from "../../../lib/gemini-omni";
 import { HEYGEN_REFERENCE_RATIOS, validateHeygenReferences } from "../../../lib/heygen-reference-video";
 import { heygenAvatarPrompt, heygenAvatarTiming } from "../../../lib/heygen-avatar";
-import { DREAMFACE_IO_SUSPENDED, MISCHIEF_RETIRED } from "../../../lib/model-release";
+import { MISCHIEF_RETIRED } from "../../../lib/model-release";
 import { createH3DailyFreeTask, h3FreeContext } from "../../../lib/h3-daily-free";
 import { isH3DailyFreeRequest, H3_DAILY_FREE_PROGRAM } from "../../../lib/h3-daily-free-policy";
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize, normalizeGptImageProvider, gptImageOptionError, buildGptImageInput } from "../../../lib/gpt-image-models";
@@ -22,27 +22,36 @@ import {
 } from "../../../lib/fal-errors";
 import {
   ensureCreditAccount,
-  ensureSignupCreditAccount,
-  refundCredits,
-  spendCredits
+  ensureSignupCreditAccount
 } from "../../../lib/credits";
 import { estimateGenerationCreditsWithLivePricing } from "../../../lib/fal-pricing";
+
 import {
-  DREAMFACE_IO_PROVIDER,
-  DREAMFACE_IO_MODEL,
-  dreamfaceIoCredits,
-  dreamfaceIoUnits,
-  enhanceDreamfaceIoPrompt,
-  ensureDreamfaceIoPublicImage,
-  isDreamfaceIoConfigured,
-  isDreamfaceIoDailyEligible,
-  isDreamfaceIoDurationSupported,
-  refundDreamfaceIoBilling,
-  refundDreamfaceIoDailyUnits,
-  reserveDreamfaceIoDailyUnits,
-  submitDreamfaceIoVideo
-} from "../../../lib/dreamface-io";
-import { isDreamfaceIoEnabled } from "../../../lib/runtime-config";
+  EDIT_RESOLUTIONS,
+  GROK_VIDEO_RESOLUTIONS,
+  HAPPY_HORSE_VIDEO_RESOLUTIONS,
+  MINIMAX_H3_MAX_VIDEO_RESOLUTIONS,
+  SEEDANCE_MINI_VIDEO_RESOLUTIONS,
+  SEEDANCE_VIDEO_RESOLUTIONS,
+  VEO_VIDEO_DURATIONS,
+  VEO_VIDEO_RESOLUTIONS,
+  getFalImageSize,
+  normalizeBillableRequest
+} from "../../../lib/generation-billing-normalize";
+import {
+  GENERATE_LIMITS,
+  firstExceededLimit,
+  rateLimitHeaders
+} from "../../../lib/api-limits";
+import { consumeRateLimit } from "../../../lib/request-security";
+import { reserveGenerationTask, GenerationCapacityError } from "../../../lib/generation-capacity";
+import { isRetiredProvider } from "../../../lib/retired-providers";
+import { readRequestJson, RequestBodyError } from "../../../lib/request-body";
+import { settleGenerationTask } from "../../../lib/generation-task-settlement";
+import { prepareAvatarAudio, AvatarAudioError } from "../../../lib/avatar-audio";
+import { submitTrackedFal, recordTtsOutput, SubmissionNotStarted, type SubmissionStage } from "../../../lib/generation-submission";
+import { applyGenerationSafety } from "../../../lib/generation-safety";
+import {resolveFalTaskCostUsd} from "../../../lib/fal-billing";
 
 type GenerateMode = "image" | "video" | "audio" | "avatar";
 type StoredGenerateMode = "image" | "video" | "audio";
@@ -223,17 +232,7 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
   );
 }
 
-const IMAGE_SIZE_PRESETS = new Set([
-  "default_4_3",
-  "square_hd",
-  "square",
-  "portrait_4_3",
-  "portrait_16_9",
-  "landscape_4_3",
-  "landscape_16_9"
-]);
 const EDIT_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "3:2", "4:3", "5:4", "1:1", "4:5", "3:4", "2:3", "9:16", "4:1", "1:4", "8:1", "1:8"]);
-const EDIT_RESOLUTIONS = new Set(["1K", "2K", "4K"]);
 const OUTPUT_FORMATS = new Set(["jpeg", "png", "webp"]);
 const FLUX_OUTPUT_FORMATS = new Set(["jpeg", "png"]);
 const IMAGE_QUALITIES = new Set(["auto", "low", "medium", "high"]);
@@ -249,13 +248,6 @@ const KLING_TEXT_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1"]);
 const VEO_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const GEMINI_OMNI_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const MINIMAX_H3_MAX_VIDEO_ASPECT_RATIOS = new Set(["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
-const MINIMAX_H3_MAX_VIDEO_RESOLUTIONS = new Set(["480p", "768p", "1080p"]);
-const GROK_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p"]);
-const SEEDANCE_VIDEO_RESOLUTIONS = new Set(["480p", "720p", "1080p", "4k"]);
-const SEEDANCE_MINI_VIDEO_RESOLUTIONS = new Set(["480p", "720p"]);
-const HAPPY_HORSE_VIDEO_RESOLUTIONS = new Set(["720p", "1080p"]);
-const VEO_VIDEO_RESOLUTIONS = new Set(["720p", "1080p", "4k"]);
-const VEO_VIDEO_DURATIONS = new Set(["4s", "6s", "8s"]);
 const AVATAR_MAX_SECONDS = 15;
 const AVATAR_KLING_BUFFER_SECONDS = 2;
 const KLING_AVATAR_DEFAULT_SCRIPT =
@@ -318,16 +310,6 @@ function cleanSystemPrompt(value: unknown) {
 
 function cleanLanguageCode(value: unknown) {
   return typeof value === "string" && /^[a-z]{2}$/i.test(value.trim()) ? value.trim().toLowerCase() : undefined;
-}
-
-function getFalImageSize(ratio: string, imageSize?: string) {
-  if (imageSize === "default_4_3") return "landscape_4_3";
-  if (imageSize && IMAGE_SIZE_PRESETS.has(imageSize)) return imageSize;
-  if (ratio === "16:9") return "landscape_16_9";
-  if (ratio === "4:3") return "landscape_4_3";
-  if (ratio === "3:4") return "portrait_4_3";
-  if (ratio === "9:16") return "portrait_16_9";
-  return "square_hd";
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string) {
@@ -705,28 +687,8 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
   };
 }
 
-async function submitFalQueue(falKey: string, modelId: string, input: unknown) {
-  const response = await fetchFal(`https://queue.fal.run/${modelId}`, {
-    method: "POST",
-    attempts: 3,
-    timeoutMs: 22000,
-    headers: {
-      Authorization: `Key ${falKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(input)
-  });
-
-  if (!response.ok) {
-    throw await falApiErrorFromResponse(response);
-  }
-
-  return (await response.json()) as {
-    request_id: string;
-    status: string;
-    status_url: string;
-    response_url?: string;
-  };
+async function submitFalQueue(falKey: string, modelId: string, input: unknown, context:{taskId:string;userId:string;stage:SubmissionStage}) {
+  return submitTrackedFal(falKey,modelId,input,context);
 }
 
 function falFailureInfoFromError(error: unknown) {
@@ -851,24 +813,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized. Invalid or missing Supabase access token." }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await readRequestJson(request, 64 * 1024 * 1024);
 
     if (!isValidBody(body)) {
       return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
     }
     body.provider=normalizeGptImageProvider(body.provider);
+    if (isRetiredProvider(body.provider)) return NextResponse.json({error:"This model has been retired. Please choose another model.", code:"model_retired"}, {status:410});
 
     if (body.provider === MISCHIEF_PROVIDER && MISCHIEF_RETIRED) {
       return NextResponse.json({ error: "TBC mischief 1 is no longer available. Please choose another video model. No credits were charged.", code: "model_retired" }, { status: 410 });
     }
 
+    const taskId = generationTaskId(body.idempotencyKey);
+    const admin = createSupabaseAdminClient();
+    if (!admin) {
+      return NextResponse.json({ error: "Server auth storage is not configured." }, { status: 500 });
+    }
+    const existingTask = await findExistingTask(admin, user.id, taskId);
+    if (existingTask) {
+      return returnExistingTask(admin, user.id, existingTask);
+    }
+
+    // Idempotent replays return above; only new submissions count toward limits.
+    const generationLimit = await firstExceededLimit(user.id, GENERATE_LIMITS, consumeRateLimit);
+    if (generationLimit) {
+      return NextResponse.json(
+        { error: "Too many generation requests. Please wait a moment and try again. No credits were charged.", code: generationLimit.unavailable ? "generation_limits_unavailable" : "generation_rate_limited" },
+        { status: generationLimit.unavailable ? 503 : 429, headers: rateLimitHeaders(generationLimit.retryAfterSeconds) }
+      );
+    }
     const isAvatarProvider = isAvatarRequest(body);
     const isH3MaxAvatar = isH3MaxAvatarRequest(body);
-    const isDreamfaceIo = body.provider === DREAMFACE_IO_PROVIDER;
-    if (isDreamfaceIo && DREAMFACE_IO_SUSPENDED) {
-      return NextResponse.json({ error: "DreamFace IO is temporarily unavailable. Please choose another model." }, { status: 503 });
-    }
-    const isDreamfaceIoTalkingAvatar = isDreamfaceIo && body.mode === "avatar";
+
     const storageMode = storedModeForRequest(body);
     const isPromptlessImageTool = body.mode === "image" && (body.provider === "topaz-image" || body.provider === "bria-background-remove");
     const geminiSpeech = body.provider === GEMINI_TTS_PROVIDER ? prepareGeminiTts(body.prompt, body.geminiTts) : null;
@@ -877,7 +854,7 @@ export async function POST(request: Request) {
       if (geminiSpeech?.error) return NextResponse.json({ error: "Check the speech text, voices, dialogue turns and input length.", code: `gemini_tts_${geminiSpeech.error}` }, { status: 400 });
       if (!process.env.FAL_KEY?.trim()) return NextResponse.json({ error: "Audio provider is not configured." }, { status: 503 });
     }
-    const prompt = geminiSpeech?.transcript || body.prompt.trim() || (isAvatarProvider || isDreamfaceIoTalkingAvatar || isPromptlessImageTool ? "." : "");
+    const prompt = geminiSpeech?.transcript || body.prompt.trim() || (isAvatarProvider || isPromptlessImageTool ? "." : "");
     if (!isPromptlessImageTool && !prompt.trim()) {
       return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
     }
@@ -899,11 +876,19 @@ export async function POST(request: Request) {
     const avatarScriptSeconds = isAvatarProvider ? estimateAvatarScriptSeconds(prompt) : 0;
     const avatarOutputSeconds = isAvatarProvider ? avatarScriptSeconds + AVATAR_KLING_BUFFER_SECONDS : 0;
     const isDefaultAvatarScript = isAvatarProvider && prompt.trim() === KLING_AVATAR_DEFAULT_SCRIPT;
-    if (isAvatarProvider && !isDefaultAvatarScript && avatarOutputSeconds > AVATAR_MAX_SECONDS) {
+    if (isAvatarProvider && !body.audioUrl && !isDefaultAvatarScript && avatarOutputSeconds > AVATAR_MAX_SECONDS) {
       return NextResponse.json({ error: `AI Avatar output is about ${avatarOutputSeconds}s including Kling buffer. Please keep it within ${AVATAR_MAX_SECONDS}s.` }, { status: 400 });
     }
     if (isAvatarProvider) {
-      body.duration = avatarDurationFromPrompt(prompt);
+      // With user audio the output follows the audio, not the (placeholder) script.
+      const userAudio = typeof body.audioUrl === "string" ? body.audioUrl.trim() : "";
+      if (userAudio) {
+        const audio = await prepareAvatarAudio(admin, user.id, userAudio, AVATAR_MAX_SECONDS);
+        body.audioUrl = audio.audioUrl;
+        body.duration = `${audio.billableSeconds}s`;
+      } else {
+        body.duration = avatarDurationFromPrompt(prompt);
+      }
       body.videoWorkflow = "avatar-video";
       body.ratio = "source";
     }
@@ -993,28 +978,11 @@ export async function POST(request: Request) {
       body.quality=gptImageQuality(body.quality);
       body.imageUrls=imageUrls.map(url=>url.trim());
     }
-    if (isDreamfaceIoTalkingAvatar) {
-      body.videoWorkflow = "avatar-video";
-      body.ratio = body.ratio === "16:9" || body.ratio === "9:16" || body.ratio === "1:1" || body.ratio === "4:3" || body.ratio === "3:4" ? body.ratio : "16:9";
-      body.duration = body.duration === "5s" || body.duration === "10s" || body.duration === "15s"
-        ? body.duration
-        : "5s";
-    }
-    if (
-      isDreamfaceIo &&
-      !(
-        (body.mode === "video" && ["text-to-video", "image-to-video"].includes(body.videoWorkflow || "")) ||
-        isDreamfaceIoTalkingAvatar
-      )
-    ) {
-      return NextResponse.json({ error: "DreamFace IO is only available for text-to-video, image-to-video, and AI Talking." }, { status: 400 });
-    }
-    if (isDreamfaceIo && !["5s", "10s", "15s"].includes(body.duration)) {
-      return NextResponse.json({ error: "DreamFace IO supports 5, 10, or 15 second videos." }, { status: 400 });
-    }
-    const baseEstimatedCredits = isDreamfaceIo
-      ? dreamfaceIoCredits(body.duration)
-      : await estimateGenerationCreditsWithLivePricing({
+
+    // Price and provider payload must use identical values (see generation-billing-normalize).
+    normalizeBillableRequest(body);
+    applyGenerationSafety(body);
+    const baseEstimatedCredits = await estimateGenerationCreditsWithLivePricing({
           mode: storageMode,
           provider: body.provider,
           imageSize: body.imageSize,
@@ -1032,7 +1000,6 @@ export async function POST(request: Request) {
           generateAudio: body.generateAudio,
           promptText: geminiSpeech?.billableText ?? prompt
         });
-    if((isGptImageProvider(body.provider)||body.provider===MISCHIEF_PROVIDER||body.provider===GEMINI_TTS_PROVIDER)&&body.expectedCredits!==undefined&&body.expectedCredits!==baseEstimatedCredits) return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"generation_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
     if (body.provider === "flux-3-max-video" && body.mode !== "video") {
       return NextResponse.json({error:"FLUX 3 Max is only available for video generation."},{status:400});
     }
@@ -1070,47 +1037,14 @@ export async function POST(request: Request) {
     if (isH3MaxAvatar && !imageUrls.length) {
       return NextResponse.json({ error: "MiniMax H3 Avatar requires one reference image." }, { status: 400 });
     }
-    if (isDreamfaceIoTalkingAvatar && !imageUrls.length) {
-      return NextResponse.json({ error: "AI Talking requires one reference image." }, { status: 400 });
-    }
-    if (isDreamfaceIo && !isDreamfaceIoDurationSupported(body.duration)) {
-      return NextResponse.json({ error: "DreamFace IO Video 2.5 Flash currently supports 5 or 10 second generations." }, { status: 400 });
-    }
+
     const falKey = process.env.FAL_KEY;
-    const modelId = isDreamfaceIo ? DREAMFACE_IO_MODEL : body.videoWorkflow === "reference-to-video"
+    const modelId = body.videoWorkflow === "reference-to-video"
       ? "heygen/heygen-video/reference-to-video" : getModelId(storageMode, body.provider, hasInputImages(body));
-    const taskId = generationTaskId(body.idempotencyKey);
-    const submittedPrompt = isDreamfaceIo
-      ? enhanceDreamfaceIoPrompt(prompt, {
-          imageToVideo: body.videoWorkflow === "image-to-video",
-          talkingAvatar: isDreamfaceIoTalkingAvatar,
-          duration: body.duration
-        })
-      : isHeygenAvatar ? heygenAvatarPrompt(prompt) : prompt;
-
-    const admin = createSupabaseAdminClient();
-    if (!admin) {
-      return NextResponse.json({ error: "Server auth storage is not configured." }, { status: 500 });
+    if ((!falKey || !modelId) && (process.env.NODE_ENV === "production" || process.env.ALLOW_MOCK_GENERATION !== "true")) {
+      return NextResponse.json({ error: "This generation model is unavailable. No credits were charged.", code: "provider_not_configured" }, { status: 503 });
     }
-    const existingTask = await findExistingTask(admin, user.id, taskId);
-    if (existingTask) {
-      return returnExistingTask(admin, user.id, existingTask);
-    }
-
-    if (isDreamfaceIo && (!(await isDreamfaceIoEnabled(admin)) || !isDreamfaceIoConfigured())) {
-      return NextResponse.json({ error: "DreamFace IO is currently unavailable." }, { status: 404 });
-    }
-    if (isDreamfaceIo && (body.videoWorkflow === "image-to-video" || isDreamfaceIoTalkingAvatar)) {
-      try {
-        const publicImageUrl = await ensureDreamfaceIoPublicImage(admin, user.id, taskId, firstInputImage(body));
-        if (!publicImageUrl) {
-          return NextResponse.json({ error: isDreamfaceIoTalkingAvatar ? "AI Talking requires one reference image." : "DreamFace IO image-to-video requires one reference image." }, { status: 400 });
-        }
-        body.imageUrls = [publicImageUrl];
-      } catch {
-        return NextResponse.json({ error: "DreamFace IO could not prepare this reference image." }, { status: 422 });
-      }
-    }
+    const submittedPrompt = isHeygenAvatar ? heygenAvatarPrompt(prompt) : prompt;
 
     const creditAccount = await ensureRequestCreditAccount(admin, user.id, request);
     let estimatedCredits = baseEstimatedCredits;
@@ -1118,15 +1052,9 @@ export async function POST(request: Request) {
     let freeUnitsUsed = 0;
     let dailyUnitsRemaining: number | null = null;
 
-    if (isDreamfaceIo && await isDreamfaceIoDailyEligible(admin, user.id)) {
-      const units = dreamfaceIoUnits(body.duration);
-      const reservation = await reserveDreamfaceIoDailyUnits(admin, user.id, taskId, units);
-      dailyUnitsRemaining = reservation.remainingUnits;
-      if (reservation.allowed) {
-        estimatedCredits = 0;
-        billingSource = "daily_free";
-        freeUnitsUsed = units;
-      }
+    const quotedCredits = body.dailyFree === true ? 0 : estimatedCredits;
+    if (body.expectedCredits !== undefined && body.expectedCredits !== quotedCredits) {
+      return NextResponse.json({error:"The price has changed. Review the updated credits and try again.", code:"generation_price_changed", pricingTime:Date.now(), estimatedCredits:quotedCredits}, {status:409});
     }
 
     if (creditAccount.balance < estimatedCredits && body.dailyFree !== true) {
@@ -1136,7 +1064,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const transport = isDreamfaceIo ? "real" : !falKey || !modelId ? "mock" : "real";
+    const transport = !falKey || !modelId ? "mock" : "real";
     const requestSettings = {
       ...buildRequestSettings(body, modelId),
       ...(body.mode === "video" && body.promptEnhancement && typeof body.promptEnhancement === "object" ? {
@@ -1147,8 +1075,8 @@ export async function POST(request: Request) {
           model: typeof body.promptEnhancement.model === "string" ? body.promptEnhancement.model.slice(0, 120) : null
         }
       } : {}),
-      ...(isDreamfaceIo || isHeygenAvatar ? { submitted_prompt: submittedPrompt } : {}),
-      billing_source: billingSource,
+      ...(isHeygenAvatar ? { submitted_prompt: submittedPrompt } : {}),
+      billing_source: billingSource as "credits" | "daily_free",
       free_units_used: freeUnitsUsed,
       ...(body.dailyFree === true ? { free_program: H3_DAILY_FREE_PROGRAM } : {})
     };
@@ -1174,69 +1102,19 @@ export async function POST(request: Request) {
         requestSettings.billing_source = billingSource;
         requestSettings.free_units_used = freeUnitsUsed;
       } catch (error) {
+        if (error instanceof GenerationCapacityError) throw error;
         const existing = await findExistingTask(admin, user.id, taskId);
         if (existing) return returnExistingTask(admin, user.id, existing);
         console.error("H3 daily free reservation failed; no paid fallback was attempted.");
         return NextResponse.json({ error: "Daily free generation is temporarily unavailable. No credits were charged.", code: "daily_free_unavailable" }, { status: 503 });
       }
     }
-    try {
-      if (!h3FreeTaskCreated) {
-        const { error: insertError } = await admin.from("generation_tasks").insert({
-          id: taskId,
-          user_id: user.id,
-          mode: storageMode,
-          provider: body.provider,
-          prompt,
-          status: "queued",
-          estimated_credits: estimatedCredits,
-          transport,
-          request_settings: requestSettings
-        });
-        if (insertError) {
-          const existingAfterConflict = await findExistingTask(admin, user.id, taskId);
-          if (existingAfterConflict) {
-            return returnExistingTask(admin, user.id, existingAfterConflict);
-          }
-          throw insertError;
-        }
-      }
-    } catch (insertError) {
-      const existingAfterConflict = await findExistingTask(admin, user.id, taskId);
-      if (existingAfterConflict) {
-        return returnExistingTask(admin, user.id, existingAfterConflict);
-      }
-      if (billingSource === "daily_free") {
-        await refundDreamfaceIoDailyUnits(admin, user.id, taskId).catch(() => null);
-      }
-      return NextResponse.json(
-        {
-          error: `Task could not be saved, so credits were not charged: ${
-            insertError instanceof Error ? insertError.message : "Task history insert failed."
-          }`
-        },
-        { status: 500 }
-      );
-    }
-
-    const spendResult = estimatedCredits > 0
-      ? await spendCredits(admin, user.id, estimatedCredits, "generation_task", taskId)
-      : { ok: true as const, balance: creditAccount.balance };
-    if (!spendResult.ok) {
-      await admin
-        .from("generation_tasks")
-        .update({
-          status: "failed",
-          failure_code: "insufficient_credits",
-          failure_reason: `Not enough credits. This task needs ${estimatedCredits} credits, but your balance is ${spendResult.balance}.`,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", taskId)
-        .eq("user_id", user.id);
-      return NextResponse.json(
-        { error: `Not enough credits. This task needs ${estimatedCredits} credits, but your balance is ${spendResult.balance}.` },
-        { status: 402 }
-      );
+    let spendResult = { ok: true, balance: creditAccount.balance };
+    if (!h3FreeTaskCreated) {
+      const reservation = await reserveGenerationTask(admin, {id:taskId, user_id:user.id, mode:storageMode, provider:body.provider, prompt, estimated_credits:estimatedCredits, transport, request_settings:requestSettings});
+      if (reservation.duplicate && reservation.task) return returnExistingTask(admin, user.id, reservation.task as ExistingTask);
+      if (!reservation.allowed) return NextResponse.json({error:"Your balance changed. Refresh your credits and try again."}, {status:402});
+      spendResult = {ok:true, balance:reservation.balance};
     }
 
     if (transport === "mock") {
@@ -1253,7 +1131,7 @@ export async function POST(request: Request) {
         dailyUnitsRemaining
       });
     }
-    if (!isDreamfaceIo && (!falKey || !modelId)) {
+    if ((!falKey || !modelId)) {
       throw new Error("fal.ai model configuration is missing.");
     }
 
@@ -1280,23 +1158,10 @@ export async function POST(request: Request) {
       response_url?: string;
     } | null = null;
     try {
-      if (isDreamfaceIo) {
-        const dreamfaceSubmit = await submitDreamfaceIoVideo({
-          prompt: submittedPrompt,
-          imageUrl: firstInputImage(body),
-          ratio: body.ratio,
-          duration: body.duration,
-          seed: optionalSeed(body.seed)
-        });
-        submitPayload = {
-          request_id: dreamfaceSubmit.requestId,
-          status: dreamfaceSubmit.status,
-          status_url: dreamfaceSubmit.statusUrl
-        };
-      } else if (isAvatarProvider && !body.audioUrl) {
+      if (isAvatarProvider && !body.audioUrl) {
         const ttsModelId = getModelId("audio", "elevenlabs-tts") || "elevenlabs/tts/eleven-v4-turbo";
         const ttsInput = buildTtsInput(body, prompt);
-        const ttsSubmitPayload = await submitFalQueue(falKey as string, ttsModelId, ttsInput);
+        const ttsSubmitPayload = await submitFalQueue(falKey as string, ttsModelId, ttsInput, {taskId,userId:user.id,stage:"tts"});
         const ttsResult = await waitForFalResponse(falKey as string, ttsSubmitPayload, 90000);
         const audioUrl = pickAudioUrl(ttsResult);
         if (!audioUrl) {
@@ -1317,79 +1182,49 @@ export async function POST(request: Request) {
           estimated_seconds: avatarScriptSeconds,
           estimated_avatar_seconds: Math.min(AVATAR_MAX_SECONDS, Math.max(3, avatarOutputSeconds))
         };
-        await admin
-          .from("generation_tasks")
-          .update({
-            request_settings: {
-              ...requestSettings,
-              tts_step: ttsStep
-            },
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", taskId)
-          .eq("user_id", user.id);
+        await recordTtsOutput(taskId, user.id, ttsStep);
       }
-      if (!isDreamfaceIo) {
-        submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(body, isHeygenAvatar ? submittedPrompt : prompt));
-      }
+      submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(body, isHeygenAvatar ? submittedPrompt : prompt), {taskId,userId:user.id,stage:"primary"});
     } catch (networkError) {
-      if (isDreamfaceIo) {
-        await refundDreamfaceIoBilling(admin, {
-          id: taskId,
-          user_id: user.id,
-          estimated_credits: estimatedCredits,
-          request_settings: requestSettings
-        });
-        const failureReason = "DreamFace IO could not start this generation. Your generation allowance was returned.";
-        await admin
-          .from("generation_tasks")
-          .update({
-            status: "failed",
-            failure_code: "provider_submit_failed",
-            failure_reason: failureReason,
-            raw_result: { message: "DreamFace IO provider submission failed." },
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", taskId)
-          .eq("user_id", user.id);
-        return NextResponse.json(
-          {
-            error: failureReason,
-            failureCode: "provider_submit_failed",
-            refundedCredits: billingSource === "credits" ? estimatedCredits : 0,
-            balance: billingSource === "credits" ? creditAccount.balance : spendResult.balance
-          },
-          { status: 502 }
-        );
+      if(networkError instanceof SubmissionNotStarted&&!ttsStep) {
+        const settled=await settleGenerationTask(admin,user.id,taskId,{status:"failed",failure_code:"provider_not_submitted",failure_reason:"The provider request could not be prepared. No generation was submitted.",updated_at:new Date().toISOString()},estimatedCredits);
+        return NextResponse.json({error:"Generation could not be submitted. Your credits were returned.",refundedCredits:settled.refundedCredits,balance:settled.balance},{status:503});
       }
+
       const failureInfo = falFailureInfoFromError(networkError);
+      if (!(networkError instanceof FalApiError) || networkError.status >= 500 || [408,409].includes(networkError.status)) {
+        const failureReason = "The provider submission is awaiting confirmation. Do not resubmit this task. Its payment will be reconciled when the provider result is known.";
+        await settleGenerationTask(admin, user.id, taskId, { status: "queued", failure_code: "provider_submission_unknown", failure_reason: failureReason, updated_at: new Date().toISOString() });
+        return NextResponse.json({ taskId, status: "queued", transport: "real", mode: storageMode, provider: body.provider, estimatedCredits, balance: spendResult.balance, failureCode: "provider_submission_unknown", failureReason }, { status: 202 });
+      }
+      if(ttsStep) {
+        const cost=await resolveFalTaskCostUsd(falKey as string,{request_settings:{tts_step:ttsStep}},failureInfo.costUsd);
+        if(cost.pendingAuxiliary) {
+          await settleGenerationTask(admin,user.id,taskId,{status:"queued",failure_code:"billing_reconciliation_pending",failure_reason:"Provider rejection is confirmed. Voice-stage cost is being verified.",updated_at:new Date().toISOString()});
+          return NextResponse.json({taskId,status:"queued",transport:"real",provider:body.provider,estimatedCredits,balance:spendResult.balance,failureCode:"billing_reconciliation_pending"},{status:202});
+        }
+        failureInfo.costUsd=cost.costUsd;
+      }
       const refundedCredits = falRefundCreditsFromCost(failureInfo.costUsd, estimatedCredits, body.provider);
-      const balance =
-        refundedCredits > 0
-          ? await refundCredits(admin, user.id, refundedCredits, "generation_refund", taskId)
-          : spendResult.balance;
       const failedSurface = body.mode === "avatar" ? "Avatar generation" : "provider generation";
       const failureReason =
         networkError instanceof FalApiError
           ? formatFalFailureReason(failureInfo, estimatedCredits, refundedCredits)
           : `fal.ai error before ${failedSurface} started. ${formatFalFailureReason(failureInfo, estimatedCredits, refundedCredits)}`;
-      await admin
-        .from("generation_tasks")
-        .update({
+      const settled = await settleGenerationTask(admin, user.id, taskId, {
           status: "failed",
           failure_code: failureInfo.code || "provider_submit_failed",
           failure_reason: failureReason,
           raw_result: failureInfo.details,
           updated_at: new Date().toISOString()
-        })
-        .eq("id", taskId)
-        .eq("user_id", user.id);
+        }, refundedCredits);
+      const balance = settled.balance ?? spendResult.balance;
       return NextResponse.json(
         {
           error: failureReason,
           failureCode: failureInfo.code,
           failureReason,
-          refundedCredits,
+          refundedCredits: settled.refundedCredits,
           actualCredits: Math.max(0, estimatedCredits - refundedCredits),
           balance
         },
@@ -1403,64 +1238,15 @@ export async function POST(request: Request) {
 
     try {
       const normalizedStatus = submitPayload.status?.toUpperCase() === "IN_PROGRESS" ? "running" : "queued";
-      const { error: updateError } = await admin
-        .from("generation_tasks")
-        .update({
-          provider_request_id: submitPayload.request_id,
-          status: normalizedStatus,
-          status_url: submitPayload.status_url,
-          response_url: submitPayload.response_url || null,
-          request_settings: ttsStep
-            ? {
-                ...requestSettings,
-                tts_step: ttsStep
-              }
-            : requestSettings,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", taskId)
-        .eq("user_id", user.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-    } catch (updateError) {
-      if (isDreamfaceIo) {
-        await refundDreamfaceIoBilling(admin, {
-          id: taskId,
-          user_id: user.id,
-          estimated_credits: estimatedCredits,
-          request_settings: requestSettings
-        });
-      }
-      const balance = isDreamfaceIo
-        ? spendResult.balance
-        : estimatedCredits > 0
-          ? await refundCredits(admin, user.id, estimatedCredits, "generation_refund", taskId)
-          : spendResult.balance;
+      await settleGenerationTask(admin, user.id, taskId, {provider_request_id:submitPayload.request_id, status:normalizedStatus, status_url:submitPayload.status_url, response_url:submitPayload.response_url || null, updated_at:new Date().toISOString()});
+    } catch {
+      // Provider acceptance is not a failure or a reason to grant a free job.
       try {
-        await admin
-          .from("generation_tasks")
-          .update({
-            status: "failed",
-            failure_code: "local_tracking_failed",
-            failure_reason: `Provider accepted the task (${submitPayload.request_id}), but local tracking could not be updated. Credits were refunded automatically.`,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", taskId)
-          .eq("user_id", user.id);
+        await settleGenerationTask(admin, user.id, taskId, { status: "queued", provider_request_id: submitPayload.request_id, status_url: submitPayload.status_url, response_url: submitPayload.response_url || null, failure_code: "tracking_recovery_pending", failure_reason: "Your generation was accepted and its tracking is being recovered.", updated_at: new Date().toISOString() });
       } catch {
-        // The original update already failed. The response still carries the provider id for support.
+        console.error(JSON.stringify({ event: "generation_tracking_recovery_required", taskId, providerRequestId: submitPayload.request_id }));
       }
-      return NextResponse.json(
-        {
-          error: `Provider accepted the task but local tracking failed, so credits were refunded. Provider request id: ${submitPayload.request_id}. ${
-            updateError instanceof Error ? updateError.message : "Task update failed."
-          }`,
-          balance
-        },
-        { status: 500 }
-      );
+      return NextResponse.json({ taskId, status: "queued", transport: "real", provider: body.provider, mode: storageMode, estimatedCredits, balance: spendResult.balance, statusUrl: submitPayload.status_url, responseUrl: submitPayload.response_url || null, providerRequestId: submitPayload.request_id, failureCode: "tracking_recovery_pending" }, { status: 202 });
     }
 
     return NextResponse.json({
@@ -1479,11 +1265,13 @@ export async function POST(request: Request) {
       providerRequestId: submitPayload.request_id
     });
   } catch (error) {
+    if (error instanceof AvatarAudioError) return NextResponse.json({error:error.message, code:"audio_verification_failed"}, {status:error.status});
+    if (error instanceof GenerationCapacityError) return NextResponse.json({error:error.message, code:"generation_concurrency_limit"}, {status:429, headers:rateLimitHeaders(30)});
     return NextResponse.json(
       {
-        error: error instanceof Error ? `Unable to process generation request: ${error.message}` : "Unable to process generation request."
+        error: error instanceof RequestBodyError ? error.message : "Unable to process generation request. Please try again.", code: error instanceof RequestBodyError ? "invalid_request_body" : "generation_unavailable"
       },
-      { status: 500 }
+      { status: error instanceof RequestBodyError ? error.status : 500 }
     );
   }
 }

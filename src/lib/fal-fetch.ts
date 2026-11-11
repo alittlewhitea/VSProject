@@ -72,20 +72,24 @@ async function fetchFalWithCurl(url: string, options: Omit<FalFetchOptions, "att
 }
 
 export async function fetchFal(url: string, options: FalFetchOptions = {}) {
-  const attempts = options.attempts ?? 3;
+  const readOnly = ["GET", "HEAD"].includes((options.method || "GET").toUpperCase());
+  // A timed-out POST may already have created a billable job. Never replay it
+  // or switch transports after an uncertain result.
+  const attempts = readOnly ? options.attempts ?? 3 : 1;
   const timeoutMs = options.timeoutMs ?? 20000;
   const { attempts: _attempts, timeoutMs: _timeoutMs, fallback: allowFallback = true, ...requestInit } = options;
   let lastError = "request failed";
   const startedAt = Date.now();
+  const logUrl = new URL(url); logUrl.search = ""; logUrl.hash = "";
 
   if (process.platform === "win32" && process.env.FAL_USE_NATIVE_FETCH !== "1") {
     try {
       const response = await fetchFalWithCurl(url, requestInit, timeoutMs);
-      console.info(`[fal] ${requestInit.method || "GET"} ${url} via curl in ${Date.now() - startedAt}ms`);
+      console.info(`[fal] ${requestInit.method || "GET"} ${logUrl} via curl in ${Date.now() - startedAt}ms`);
       return response;
     } catch (error) {
       lastError = `curl: ${describeError(error)}`;
-      if (!allowFallback) throw new Error("fal.ai request failed.");
+      if (!allowFallback || !readOnly) throw new Error("fal.ai request failed.");
     }
   }
 
@@ -98,7 +102,7 @@ export async function fetchFal(url: string, options: FalFetchOptions = {}) {
         ...requestInit,
         signal: requestInit.signal || controller.signal
       });
-      console.info(`[fal] ${requestInit.method || "GET"} ${url} via fetch in ${Date.now() - startedAt}ms`);
+      console.info(`[fal] ${requestInit.method || "GET"} ${logUrl} via fetch in ${Date.now() - startedAt}ms`);
       return response;
     } catch (error) {
       lastError = describeError(error);
@@ -111,10 +115,10 @@ export async function fetchFal(url: string, options: FalFetchOptions = {}) {
     }
   }
 
-  if (process.platform === "win32" && allowFallback) {
+  if (process.platform === "win32" && allowFallback && readOnly) {
     try {
       const response = await fetchFalWithCurl(url, requestInit, timeoutMs);
-      console.info(`[fal] ${requestInit.method || "GET"} ${url} via curl fallback in ${Date.now() - startedAt}ms`);
+      console.info(`[fal] ${requestInit.method || "GET"} ${logUrl} via curl fallback in ${Date.now() - startedAt}ms`);
       return response;
     } catch (error) {
       throw new Error(`fal.ai network error after ${attempts} fetch attempts and curl fallback: ${describeError(error)}; fetch: ${lastError}`);

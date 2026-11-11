@@ -1,6 +1,8 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { RowDataPacket } from "mysql2/promise";
+import { cookies, headers } from "next/headers";
 import { mysqlExecute, toMysqlDate } from "./mysql";
+import { bearerCredential, isSameOriginRequest } from "./session-transport";
 
 export const SESSION_COOKIE_NAME = "dreamface_session";
 const SESSION_DAYS = 30;
@@ -196,8 +198,31 @@ export async function deleteSession(token: string | null | undefined) {
   await mysqlExecute("delete from sessions where id = ?", [hashAuthToken(token.trim())]);
 }
 
+function configuredPublicOrigin() {
+  return process.env.NEXT_PUBLIC_APP_URL?.trim() || process.env.NEXT_PUBLIC_SITE_URL?.trim() || process.env.SITE_URL?.trim() || null;
+}
+
+async function getUserFromSessionCookie(): Promise<AuthUser | null> {
+  try {
+    const [cookieStore, requestHeaders] = await Promise.all([cookies(), headers()]);
+    if (!isSameOriginRequest(requestHeaders, configuredPublicOrigin())) return null;
+    const session = await getSessionFromToken(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+    return session?.user || null;
+  } catch {
+    // Outside a request scope there is no cookie to read.
+    return null;
+  }
+}
+
+/**
+ * Resolves the caller. A real bearer token is honoured for non-browser clients;
+ * browsers (which only hold a placeholder) are authenticated by the httpOnly cookie.
+ */
 export async function getUserFromBearerToken(authHeader: string | null): Promise<AuthUser | null> {
-  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
-  const session = await getSessionFromToken(authHeader.slice("Bearer ".length));
-  return session?.user || null;
+  const bearer = bearerCredential(authHeader);
+  if (bearer) {
+    const session = await getSessionFromToken(bearer);
+    return session?.user || null;
+  }
+  return getUserFromSessionCookie();
 }

@@ -1,3 +1,4 @@
+import {readStudioSource} from './studio-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -19,14 +20,14 @@ function loader(overrides={}) {
   return load;
 }
 const load=loader(),release=load('src/lib/model-release.ts'),models=load('src/features/studio/video-models.ts');
-assert.equal(release.DREAMFACE_IO_SUSPENDED,true);
+assert.equal(load("src/lib/retired-providers.ts").isRetiredProvider("dreamface-io-video"),true);
 for(const [workflow,providers] of Object.entries(models.VIDEO_PROVIDERS_BY_WORKFLOW)) {
   assert.ok(!providers.includes('dreamface-io-video'));
   if(workflow==='reference-to-video') assert.deepEqual(providers,['heygen-video']);
   else assert.ok(providers.includes('minimax-h3-max-turbo-video'));
 }
 assert.ok(!load('src/lib/model-pricing.ts').MODEL_PRICING_ROWS.some(row=>row.provider==='dreamface-io-video'));
-const studio=readFileSync('src/app/studio/studio-client.tsx','utf8');
+const studio=readStudioSource();
 const ast=ts.createSourceFile('studio.tsx',studio,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
 function nodeMatching(predicate) {
   let found;function visit(node){if(predicate(node))found=node;if(!found)ts.forEachChild(node,visit);}visit(ast);
@@ -47,31 +48,15 @@ for(const workflow of Object.keys(workflows)) {
 }
 for(const mode of ['image','video','avatar','audio'])assert.equal(selectors.isProviderAllowedForMode('dreamface-io-video',mode),false);
 for(const mode of ['image','video','avatar','audio'])assert.equal(selectors.isProviderAllowedForMode('mischief-video',mode),false);
-const forbidden=new Proxy({}, {get(){throw new Error('No storage/provider calls are allowed during suspension checks');}});
-assert.equal(await load('src/lib/runtime-config.ts').isDreamfaceIoEnabled(forbidden),false);
 const NextResponse={json:(body,options={})=>({status:options.status||200,body})};
-const availability=loader({
-  'next/server':{NextResponse},
-  '../../../lib/supabase-admin':{createSupabaseAdminClient(){throw new Error('Unexpected DB access');}},
-  '../../../lib/dreamface-io':{isDreamfaceIoConfigured(){throw new Error('Unexpected provider access');}},
-  '../../../lib/runtime-config':forbidden
-})('src/app/api/model-availability/route.ts');
-const originalEnv=process.env.NODE_ENV;
-try {
-  for(const environment of ['production','development']) {
-    process.env.NODE_ENV=environment;
-    assert.deepEqual(await availability.GET(),{status:200,body:{models:{dreamfaceIo:false}}});
-  }
-} finally {if(originalEnv===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=originalEnv;}
-// Execute the actual POST prefix through its suspension guard. Anything beyond it must be unreachable.
 const route=readFileSync('src/app/api/generate/route.ts','utf8');
-const prefix=route.slice(route.indexOf('export async function POST'),route.indexOf('    const isDreamfaceIoTalkingAvatar ='));
-const post=new Function('getUserFromBearerToken','isValidBody','isAvatarRequest','isH3MaxAvatarRequest','DREAMFACE_IO_PROVIDER','DREAMFACE_IO_SUSPENDED','NextResponse','exports','normalizeGptImageProvider','MISCHIEF_PROVIDER','MISCHIEF_RETIRED',
-  compile(prefix+"throw new Error('Suspended request reached generation processing'); } catch(error) { throw error; } }")+'\nreturn exports.POST;')(
-  async()=>({id:'fixture'}),()=>true,()=>false,()=>false,'dreamface-io-video',true,NextResponse,{},normalizeGptImageProvider,'mischief-video',true
-);
-for(const mode of ['video','avatar','image','audio']) {
-  const result=await post({headers:new Headers(),json:async()=>({mode,provider:'dreamface-io-video'})});
-  assert.equal(result.status,503);
+const prefix=route.slice(route.indexOf('export async function POST'),route.indexOf('    const taskId = generationTaskId'));
+const post=new Function('getUserFromBearerToken','isValidBody','isRetiredProvider','NextResponse','exports','normalizeGptImageProvider','MISCHIEF_PROVIDER','MISCHIEF_RETIRED','readRequestJson',
+ compile(prefix+"throw new Error('Retired request reached generation processing'); } catch(error) { throw error; } }")+'\nreturn exports.POST;')(
+ async()=>({id:'fixture'}),()=>true,load('src/lib/retired-providers.ts').isRetiredProvider,NextResponse,{},normalizeGptImageProvider,'mischief-video',true,async request=>request.json());
+for(const provider of ['dreamface-io-video','mischief-video'])for(const mode of ['video','avatar','image','audio']) {
+ const result=await post({headers:new Headers(),json:async()=>({mode,provider})});assert.equal(result.status,410);assert.equal(result.body.code,'model_retired');
 }
-console.log('Model suspension passed: all workspaces, old links, public pricing, development/production availability and early generation rejection. No DB or paid API calls.');
+assert.equal(native('node:fs').existsSync('src/lib/dreamface-io.ts'),false);
+assert.equal(native('node:fs').existsSync('src/lib/studio-i18n-dreamface-io.ts'),false);
+console.log('Retired models passed: unavailable in all workspaces, old-link fallback, no public prices, early 410 before any charge, and removed provider/free-allowance modules. No database or paid calls.');

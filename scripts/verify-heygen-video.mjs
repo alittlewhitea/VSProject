@@ -1,3 +1,5 @@
+import {readStudioSource} from './studio-source.mjs';
+import {generationFixtureDependency} from './generation-runtime-fixture.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
@@ -15,7 +17,7 @@ const overrides={
  '../../../lib/fal-pricing':{estimateGenerationCreditsWithLivePricing:async input=>load('src/lib/model-pricing.ts').estimateGenerationCredits(input)},
  '../../../lib/fal-fetch':{fetchFal:async(url,options)=>{submissions.push({url,input:JSON.parse(options.body)});return {ok:true,json:async()=>({request_id:'fixture-request',status:'IN_QUEUE',status_url:'https://queue.fal.run/fixture/status'})};}}
 };
-function load(file){file=resolve(file);if(cache.has(file))return cache.get(file).exports;const module={exports:{}};cache.set(file,module);const code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','module','exports',code)(id=>id in overrides?overrides[id]:id.startsWith('.')?load(resolve(dirname(file),id+'.ts')):native(id),module,module.exports);return module.exports;}
+function load(file){file=resolve(file);if(cache.has(file))return cache.get(file).exports;const module={exports:{}};cache.set(file,module);const code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','module','exports',code)(id=>id in overrides?overrides[id]:(generationFixtureDependency(id,overrides,load)??(id.startsWith('.')?load(resolve(dirname(file),id+'.ts')):native(id))),module,module.exports);return module.exports;}
 const oldKey=process.env.FAL_KEY,oldFetch=globalThis.fetch,oldNow=Date.now;process.env.FAL_KEY='fixture-no-network';globalThis.fetch=async()=>{throw new Error('Unexpected network');};
 try{
  const pricing=load('src/lib/model-pricing.ts');let now=pricing.HEYGEN_PROMOTION_END-1;Date.now=()=>now;
@@ -31,7 +33,7 @@ try{
  const request=(extra={})=>({headers:new Headers(),json:async()=>({mode:'video',provider:'heygen-video',videoWorkflow:'text-to-video',duration:'5s',resolution:'768p',ratio:'16:9',prompt:'A peaceful landscape.',expectedCredits:9,idempotencyKey:crypto.randomUUID(),...extra})});
  let response=await route.POST(request());assert.equal(response.status,200);assert.equal(response.body.estimatedCredits,9);assert.deepEqual(spends,[9]);
  assert.equal(submissions[0].url,'https://queue.fal.run/heygen/heygen-video/text-to-video');
- assert.deepEqual(submissions[0].input,{prompt:'A peaceful landscape.',duration:5,resolution:'768p',prompt_enhancement:'turbo',enable_safety_checker:false,aspect_ratio:'16:9'});
+ assert.deepEqual(submissions[0].input,{prompt:'A peaceful landscape.',duration:5,resolution:'768p',prompt_enhancement:'turbo',enable_safety_checker:true,aspect_ratio:'16:9'});
  response=await route.POST(request({videoWorkflow:'image-to-video',imageUrls:['https://example.invalid/start.png'],duration:'15s',resolution:'2k',ratio:'source',enableSafetyChecker:true,seed:4294967295,expectedCredits:81}));
  assert.equal(response.status,200);assert.equal(submissions.at(-1).url,'https://queue.fal.run/heygen/heygen-video/image-to-video');
  assert.deepEqual(submissions.at(-1).input,{prompt:'A peaceful landscape.',duration:15,resolution:'2k',prompt_enhancement:'turbo',enable_safety_checker:true,image_url:'https://example.invalid/start.png',seed:4294967295});
@@ -47,7 +49,7 @@ try{
  const reference=(extra={})=>request({videoWorkflow:'reference-to-video',videoUrls:[videoUrl],ratio:'adaptive',expectedCredits:18,...extra});
  response=await route.POST(reference());assert.equal(response.status,200);assert.equal(response.body.estimatedCredits,18);
  assert.equal(submissions.at(-1).url,'https://queue.fal.run/heygen/heygen-video/reference-to-video');
- assert.deepEqual(submissions.at(-1).input,{prompt:'A peaceful landscape.',duration:5,resolution:'768p',prompt_enhancement:'turbo',enable_safety_checker:false,reference_video_urls:[videoUrl],aspect_ratio:'adaptive'});
+ assert.deepEqual(submissions.at(-1).input,{prompt:'A peaceful landscape.',duration:5,resolution:'768p',prompt_enhancement:'turbo',enable_safety_checker:true,reference_video_urls:[videoUrl],aspect_ratio:'adaptive'});
  const record=Object.values(records).at(-1);assert.equal(record.request_settings.workflow,'reference-to-video');assert.deepEqual(record.request_settings.video_urls,[videoUrl]);
  const refImages=['https://cdn.example.test/product.png','data:image/png;base64,aGVsbG8='];
  response=await route.POST(reference({imageUrls:refImages,ratio:'9:16',resolution:'2k',duration:'15s',expectedCredits:162,seed:0,enableSafetyChecker:true}));
@@ -71,7 +73,7 @@ try{
  const avatarRequest=(extra={})=>request({mode:'avatar',videoWorkflow:'avatar-video',imageUrls:['https://example.invalid/avatar.jpg'],ratio:'source',prompt:'Hello, welcome to our studio.',expectedCredits:18,...extra});
  response=await route.POST(avatarRequest());assert.equal(response.status,200,JSON.stringify(response));
  assert.equal(submissions.at(-1).url,'https://queue.fal.run/heygen/heygen-video/image-to-video');
- assert.deepEqual(submissions.at(-1).input,{prompt:avatarTools.heygenAvatarPrompt('Hello, welcome to our studio.'),duration:5,resolution:'768p',prompt_enhancement:'turbo',enable_safety_checker:false,image_url:'https://example.invalid/avatar.jpg'});
+ assert.deepEqual(submissions.at(-1).input,{prompt:avatarTools.heygenAvatarPrompt('Hello, welcome to our studio.'),duration:5,resolution:'768p',prompt_enhancement:'turbo',enable_safety_checker:true,image_url:'https://example.invalid/avatar.jpg'});
  const avatarRecord=Object.values(records).at(-1);assert.equal(avatarRecord.prompt,'Hello, welcome to our studio.');assert.equal(avatarRecord.request_settings.workflow,'avatar-video');assert.equal(avatarRecord.request_settings.submitted_prompt,submissions.at(-1).input.prompt);
  const avatarCount=submissions.length,avatarSpends=[...spends];
  for(const extra of [{imageUrls:[]},{imageUrls:['one','two']},{prompt:'word '.repeat(80)},{prompt:'\u4f60'.repeat(100)},{audioUrl:'https://example.invalid/speech.mp3'},{videoWorkflow:'image-to-video'},{videoUrls:['https://example.invalid/video.mp4']}]){response=await route.POST(avatarRequest(extra));assert.equal(response.status,400,JSON.stringify(extra));}
@@ -90,7 +92,7 @@ try{
  response=await route.POST(reference({resolution:undefined,expectedCredits:15}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.resolution,'480p');
  response=await route.POST(avatarRequest({resolution:undefined,expectedCredits:15}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.resolution,'480p');assert.equal(response.body.estimatedCredits,15);
  assert.equal(pricing.estimateGenerationCredits({mode:'video',provider:'heygen-video',duration:'5s'}),15);
- const client=ts.createSourceFile('studio-client.tsx',readFileSync('src/app/studio/studio-client.tsx','utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+ const client=ts.createSourceFile('studio-client.tsx',readStudioSource(),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
  const defaultFunction=client.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='defaultVideoResolutionForProvider');
  const chooseDefault=new Function('videoModelDefaultResolution',ts.transpileModule(defaultFunction.getText(client),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText+';return defaultVideoResolutionForProvider;')(models.videoModelDefaultResolution);
  assert.equal(chooseDefault('heygen-video','video'),'480p');assert.equal(chooseDefault('heygen-video','avatar'),'480p');

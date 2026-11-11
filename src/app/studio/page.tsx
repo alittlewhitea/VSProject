@@ -4,6 +4,7 @@ import { defaultLocale, isLocale, localeCookieKey } from "../../i18n/routing";
 import { hasOnlyTrackingParameters, isPrivateStudioView, type SearchParameters } from "../../lib/search-url-policy";
 import { absoluteUrl, siteUrl } from "../../lib/site-url";
 import { StudioPageClient } from "./studio-client";
+import {loadStudioMessages} from "../../lib/studio-message-loader";
 
 export const dynamic = "force-dynamic";
 
@@ -22,5 +23,6 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 
 export default async function StudioPage() {
   const cookieLocale = (await cookies()).get(localeCookieKey)?.value;
-  return <StudioPageClient initialLocale={isLocale(cookieLocale) ? cookieLocale : defaultLocale} />;
+  const locale=isLocale(cookieLocale)?cookieLocale:defaultLocale;
+  return <StudioPageClient initialLocale={locale} initialMessages={await loadStudioMessages(locale)} />;
 }

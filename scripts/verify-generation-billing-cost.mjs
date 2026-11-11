@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {projectLoader} from './load-project-ts.mjs';
+let events={primary:[{request_id:'primary',cost:0.04}],voice:[{request_id:'voice',cost:0.02}],zero:[{request_id:'zero',cost:0}],missing:[]};
+const billing=projectLoader({'./fal-fetch':{fetchFal:async url=>Response.json({billing_events:events[new URL(url).searchParams.get('request_id')]||[]})}})('src/lib/fal-billing.ts');
+assert.equal(await billing.fetchFalBillingCostUsd('fixture','zero'),0,'Explicit zero-cost events remain evidence rather than missing data');
+assert.equal(await billing.fetchFalBillingCostUsd('fixture','missing'),null);
+const task={provider_request_id:'primary',request_settings:{tts_step:{request_id:'voice'},provider_attempts:{tts:{requestId:'voice'}}}};
+assert.deepEqual(await billing.resolveFalTaskCostUsd('fixture',task,null),{costUsd:0.06,pendingAuxiliary:false});
+assert.deepEqual(await billing.resolveFalTaskCostUsd('fixture',task,null,true),{costUsd:0.02,pendingAuxiliary:false},'Cancelling queued video retains the already billed voice stage');
+events.voice=[];assert.equal((await billing.resolveFalTaskCostUsd('fixture',task,null)).pendingAuxiliary,true,'Unknown voice billing never permits a full refund');
+events.voice=[{request_id:'voice',cost:null}];assert.equal((await billing.resolveFalTaskCostUsd('fixture',task,null)).pendingAuxiliary,true);
+assert.deepEqual(await billing.resolveFalTaskCostUsd('fixture',{provider_request_id:'zero'},99),{costUsd:0,pendingAuxiliary:false});
+console.log('Provider cost passed: explicit zero versus absent/null evidence, deduplicated TTS costs, summed stage billing, queued cancellation retains billed voice cost, and missing stage costs remain pending. Network fully mocked.');

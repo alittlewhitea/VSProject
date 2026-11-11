@@ -1,3 +1,4 @@
+import {readStudioSource} from './studio-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -120,7 +121,7 @@ assert.equal((await api.POST(request({ ...base, mode: 'image-to-video' }))).stat
 const apiResponse = await api.POST(request(base)); assert.equal(apiResponse.status, 200); assert.equal((await apiResponse.json()).enhancedPrompt, good); assert.equal(apiCalls, 1);
 const route = readFileSync('src/app/api/generate/route.ts', 'utf8');
 assert.match(route, /prompt_enhancement/); assert.match(route, /final_prompt: prompt/);
-const studio = readFileSync('src/app/studio/studio-client.tsx', 'utf8').replaceAll('\r\n', '\n');
+const studio = readStudioSource().replaceAll('\r\n', '\n');
 assert.match(studio, /STUDIO_SIGN_IN_URL = "\/auth/);
 assert.match(studio, /<AuthLink href=\{STUDIO_SIGN_IN_URL\}/);
 const generation = studio.slice(studio.indexOf('  async function handleGenerate()'), studio.indexOf('  function handleGenerateClick()'));

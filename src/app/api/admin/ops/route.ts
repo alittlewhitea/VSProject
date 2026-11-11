@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { DREAMFACE_IO_SUSPENDED } from "../../../../lib/model-release";
 import { randomUUID } from "node:crypto";
 import { getAdminUserFromRequest } from "../../../../lib/admin-auth";
-import { addCredits, refundCredits, spendCredits } from "../../../../lib/credits";
+import { addCredits, spendCredits } from "../../../../lib/credits";
+import { settleGenerationTask } from "../../../../lib/generation-task-settlement";
+import { syncFalTask, type FalTask } from "../../../../lib/fal-task-sync";
+
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import {
-  isDreamfaceIoEnabled,
-  setDreamfaceIoEnabled,
   type PaymentProvider
 } from "../../../../lib/runtime-config";
-import { DREAMFACE_IO_PROVIDER, isDreamfaceIoConfigured, refundDreamfaceIoBilling } from "../../../../lib/dreamface-io";
+
 import { isPayPalConfigured, isPayPalWebhookConfigured } from "../../../../lib/paypal";
 import { isDodoConfigured, dodoEnvironment } from "../../../../lib/dodo";
 import { validateConfiguredPayPalPlans } from "../../../../lib/paypal-billing";
@@ -85,6 +85,8 @@ type TaskRow = {
   estimated_credits: number;
   transport: "real" | "mock";
   provider_request_id: string | null;
+  status_url: string | null;
+  response_url?: string | null;
   output_url: string | null;
   failure_code: string | null;
   failure_reason: string | null;
@@ -386,7 +388,7 @@ async function repairGenerationSafety(admin: NonNullable<ReturnType<typeof creat
   let query = admin
     .from("generation_tasks")
     .select(
-      "id,user_id,mode,provider,prompt,status,estimated_credits,transport,provider_request_id,output_url,request_settings,failure_code,failure_reason,created_at,updated_at"
+      "id,user_id,mode,provider,prompt,status,estimated_credits,transport,provider_request_id,status_url,response_url,output_url,request_settings,failure_code,failure_reason,created_at,updated_at"
     )
     .is("deleted_at", null)
     .in("status", ["queued", "running", "failed"])
@@ -401,92 +403,20 @@ async function repairGenerationSafety(admin: NonNullable<ReturnType<typeof creat
   if (taskError) throw taskError;
 
   const tasks = (taskData || []) as TaskRow[];
-  const taskIds = tasks.map((task) => task.id);
-  const ledger =
-    taskIds.length > 0
-      ? ((await admin
-          .from("credit_ledger")
-          .select("id,user_id,amount,reason,reference_id,created_at")
-          .in("reference_id", taskIds)
-          .in("reason", ["generation_task", "generation_refund"])).data || []) as LedgerRow[]
-      : [];
-  const byRef = ledgerByReference(ledger);
-  const now = new Date().toISOString();
   let failedRefunded = 0;
-  let orphanRefunded = 0;
-  let timedOutRefunded = 0;
-
+  let pendingReconciled = 0;
   for (const task of tasks) {
-    const entries = byRef.get(task.id);
-    const hasCharge = hasLedger(entries, "generation_task");
-    const hasRefund = hasLedger(entries, "generation_refund");
+    if (task.status === "failed") {
 
-    const refundTask = async () => {
-      if (task.provider === DREAMFACE_IO_PROVIDER) {
-        await refundDreamfaceIoBilling(admin, task);
-      } else {
-        await refundCredits(admin, task.user_id, task.estimated_credits, "generation_refund", task.id);
-      }
-    };
-
-    if (task.status === "failed" && ((hasCharge && !hasRefund) || task.provider === DREAMFACE_IO_PROVIDER)) {
-      await refundTask();
-      failedRefunded += 1;
-      continue;
-    }
-
-    if (
-      task.transport === "real" &&
-      (task.status === "queued" || task.status === "running") &&
-      !task.provider_request_id &&
-      isOlderThan(task.created_at, orphanTaskTimeoutMinutes())
-    ) {
-      await refundTask();
-      await admin
-        .from("generation_tasks")
-        .update({
-          status: "failed",
-          failure_code: "provider_tracking_missing",
-          failure_reason: `Admin repair: task was charged but never received provider tracking within ${orphanTaskTimeoutMinutes()} minutes. Credits were refunded.`,
-          last_checked_at: now,
-          timed_out_at: now,
-          updated_at: now
-        })
-        .eq("id", task.id)
-        .eq("user_id", task.user_id);
-      orphanRefunded += 1;
-      continue;
-    }
-
-    if (
-      task.transport === "real" &&
-      (task.status === "queued" || task.status === "running") &&
-      Boolean(task.provider_request_id) &&
-      isOlderThan(task.created_at, taskTimeoutMinutes())
-    ) {
-      await refundTask();
-      await admin
-        .from("generation_tasks")
-        .update({
-          status: "failed",
-          failure_code: "task_timeout",
-          failure_reason: `Admin repair: provider task exceeded ${taskTimeoutMinutes()} minutes. Credits were refunded.`,
-          last_checked_at: now,
-          timed_out_at: now,
-          updated_at: now
-        })
-        .eq("id", task.id)
-        .eq("user_id", task.user_id);
-      timedOutRefunded += 1;
+      const settled = await settleGenerationTask(admin, task.user_id, task.id, {status:"failed"}, task.estimated_credits, true);
+      if (settled.refundedCredits > 0) failedRefunded++;
+    } else if (task.transport === "real") {
+      // Admin repair must use the same authoritative reconciliation as polling and cron.
+      await syncFalTask(admin, task as FalTask, process.env.FAL_KEY || "");
+      pendingReconciled++;
     }
   }
-
-  return {
-    failedRefunded,
-    orphanRefunded,
-    timedOutRefunded,
-    totalRepaired: failedRefunded + orphanRefunded + timedOutRefunded
-  };
+  return {failedRefunded, orphanRefunded:0, timedOutRefunded:0, pendingReconciled, totalRepaired:failedRefunded + pendingReconciled};
 }
 
 function metadataCountryCode(value: unknown) {
@@ -896,15 +826,14 @@ export async function GET(request: Request) {
   const analytics = (analyticsResult.error ? [] : analyticsResult.data || []) as AnalyticsRow[];
   const incidents = (incidentsResult.data || []) as PaymentIncidentRow[];
   const users = buildUserRows(authUsers, accounts, ledger, purchases, tasks, subscriptions, analytics);
-  const dreamfaceIoEnabled = await isDreamfaceIoEnabled(admin);
+
   const paypalPlans = await validateConfiguredPayPalPlans();
   const openPaymentIncidents = incidents.filter((incident) => incident.status === "review_required").length;
 
   return NextResponse.json({
     adminEmail: adminUser.email,
     runtimeConfig: {
-      dreamfaceIoEnabled,
-      dreamfaceIoConfigured: isDreamfaceIoConfigured(),
+
       paymentProvider: isDodoConfigured() ? "dodo" : "paypal",
       dodoCreditCheckoutConfigured: isDodoConfigured(),
       dodoEnvironment: isDodoConfigured() ? dodoEnvironment() : null,
@@ -969,17 +898,6 @@ export async function POST(request: Request) {
   if (action === "repair_generation_safety") {
     const repair = await repairGenerationSafety(admin, userId);
     return NextResponse.json({ ok: true, repair, adminEmail: adminUser.email });
-  }
-
-  if (action === "set_dreamface_io_enabled") {
-    if (body?.enabled === true && DREAMFACE_IO_SUSPENDED) {
-      return NextResponse.json({ error: "DreamFace IO is temporarily suspended in this release." }, { status: 409 });
-    }
-    if (typeof body?.enabled !== "boolean") {
-      return NextResponse.json({ error: "Enabled must be a boolean." }, { status: 400 });
-    }
-    const enabled = await setDreamfaceIoEnabled(admin, body.enabled, adminUser.email);
-    return NextResponse.json({ ok: true, enabled, adminEmail: adminUser.email });
   }
 
   if (action === "reconcile_paypal") {

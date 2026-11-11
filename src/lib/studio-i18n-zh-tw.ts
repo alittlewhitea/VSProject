@@ -1,15 +1,7 @@
 type Messages = Record<string, string>;
 
 export const studioTraditionalChineseMessages: Messages = {
-  "studio.generate.dailyFree": "今日免費 · 剩餘 {remaining}/6 個 5 秒額度",
-  "studio.generate.dailyPaid": "{credits} 積分 · 今日免費額度已用完",
-  "studio.dreamfaceIo.qualityHint": "DreamFace IO 仍在持續最佳化中；如需更精緻、更穩定的效果，建議使用我們的其他更強影片模型。",
-  "studio.status.dreamfaceIoQueued": "DreamFace IO 任務已提交，正在等待生成……",
-  "studio.status.dreamfaceIoQueue": "DreamFace IO 正在準備你的影片……",
-  "studio.status.dreamfaceIoRunning": "DreamFace IO 正在生成你的影片……",
-  "studio.status.dreamfaceIoCompleted": "DreamFace IO 已生成完成，結果已儲存到專案。",
-  "studio.status.dreamfaceIoFailedRefund": "DreamFace IO 本次未能完成生成，額度已自動返還。",
-  "studio.model.dreamface-io-video": "DreamFace IO 適合高頻日常影片創作，並為符合條件的帳號提供每日免費額度。",
+
   "studio.workspace.badge": "全新創作工作台",
   "studio.workspace.eyebrow": "DreamFace Studio",
   "studio.workspace.heroTitle": "讓你的創意",
@@ -107,10 +99,8 @@ export const studioTraditionalChineseMessages: Messages = {
   "studio.billing.includedCredits": "包含積分",
   "studio.billing.usage.title": "這些積分最高可用於生成",
   "studio.billing.usage.images": "張 FLUX Schnell 圖片",
-  "studio.billing.usage.videos": "個 5 秒 DreamFace IO 影片",
   "studio.billing.usage.voiceovers": "段 1,000 字元配音",
   "studio.billing.usage.avatars": "個 5 秒標準 Avatar 影片",
-  "studio.billing.usage.note": "以上為分別使用全部積分時的上限，並非可以同時獲得；符合條件的 DreamFace IO 每日免費次數另計。",
   "studio.billing.checkoutFailed": "暫時無法開啟付款頁面。",
   "studio.billing.subscriptionCheckoutFailed": "暫時無法開啟會員付款頁面。",
   "studio.generate.button": "生成",
@@ -125,7 +115,7 @@ export const studioTraditionalChineseMessages: Messages = {
   "studio.modelSelect.badge.pro": "專業",
   "studio.modelSelect.badge.premium": "高階",
   "studio.modelSelect.credits": "{credits} 積分",
-  "studio.modelSelect.desc.dreamface-io-video": "每日免費草稿 · 適合快速嘗試想法",
+
   "studio.modelSelect.desc.grok-video": "快速出片 · 適合低成本測試",
   "studio.modelSelect.desc.seedance-mini-video": "品質與成本最均衡",
     "studio.modelSelect.desc.happy-horse-video": "原生音訊影片 · 支援 720p/1080p",

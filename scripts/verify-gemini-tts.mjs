@@ -1,3 +1,5 @@
+import {generationFixtureDependency} from './generation-runtime-fixture.mjs';
+import {settlementRpcFixture} from './generation-settlement-fixture.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
@@ -9,24 +11,28 @@ let authenticated=true,failSubmit=false,syncStatus='COMPLETED';
 const admin={from(table){
  assert.equal(table,'generation_tasks');let inserted,updated,filters={},predicates=[];
  const query={select(){return query;},eq(key,value){filters[key]=value;return query;},maybeSingle:async()=>({data:records[filters.id]||null}),
-  in(key,values){predicates.push(row=>values.includes(row[key]));return query;},is(key,value){predicates.push(row=>row[key]===value);return query;},order(){return query;},limit(){return query;},
+  neq(key,value){predicates.push(row=>row[key]!==value);return query;},in(key,values){predicates.push(row=>values.includes(row[key]));return query;},is(key,value){predicates.push(row=>row[key]===value);return query;},order(){return query;},limit(){return query;},
   insert(value){inserted=value;return query;},update(value){updated=value;return query;},
   then(done){if(inserted)records[inserted.id]={deleted_at:null,...inserted};if(updated&&records[filters.id])Object.assign(records[filters.id],updated);return Promise.resolve({data:Object.values(records).filter(row=>Object.entries(filters).every(([key,value])=>row[key]===value)&&predicates.every(predicate=>predicate(row))),error:null}).then(done);}};
  return query;
 }};
+admin.rpc=settlementRpcFixture(records,amount=>refunds.push(amount));
 const overrides={
+ '../../../lib/mysql':{mysqlExecute:async()=>[{active:0}],toMysqlDate:value=>value},
+ '../../../lib/request-security':{consumeRateLimit:async()=>({allowed:true,retryAfterSeconds:0})},
  'next/server':{NextResponse:{json:(body,options={})=>({status:options.status||200,body})}},
  '../../../lib/server-auth':{getUserFromBearerToken:async()=>authenticated?{id:'speech-fixture'}:null,getUserIdsForAuthUser:async()=>['speech-fixture']},
  '../../../lib/supabase-admin':{createSupabaseAdminClient:()=>admin},
  '../../../lib/credits':{ensureSignupCreditAccount:async()=>({balance:10000}),ensureCreditAccount:async()=>({balance:10000}),spendCredits:async(_admin,_user,amount)=>{spends.push(amount);return {ok:true,balance:10000-amount};},refundCredits:async(_admin,_user,amount)=>{refunds.push(amount);return 10000;}},
  '../../../lib/h3-daily-free':{createH3DailyFreeTask:async()=>{throw new Error('Unexpected free reservation');}},
  '../../../lib/fal-pricing':{estimateGenerationCreditsWithLivePricing:async input=>load('src/lib/model-pricing.ts').estimateGenerationCredits(input)},
- '../../../lib/fal-billing':{resolveFalCostUsd:async()=>null},
+ '../../../lib/fal-billing':{resolveFalCostUsd:async()=>null,resolveFalTaskCostUsd:async()=>({costUsd:null,pendingAuxiliary:false})},
  '../../../lib/fal-fetch':{fetchFal:async(url,options)=>{
   if(options.method!=='POST')return {ok:true,json:async()=>url.endsWith('/status')?{status:syncStatus}:syncStatus==='COMPLETED'?{audio:{url:'https://example.invalid/speech.wav',content_type:'audio/wav'}}:{error:'Isolated generation failure'}};
   submissions.push({url,input:JSON.parse(options.body)});if(failSubmit)throw new Error('Isolated provider submission failure');return {ok:true,json:async()=>({request_id:'fixture-request',status:'IN_QUEUE',status_url:'https://queue.fal.run/google/gemini-3.8-flash-tts/requests/fixture/status',response_url:'https://queue.fal.run/google/gemini-3.8-flash-tts/requests/fixture'})};}}
 };
-function load(file){file=resolve(file);if(cache.has(file))return cache.get(file).exports;const module={exports:{}};cache.set(file,module);const code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','module','exports',code)(id=>id in overrides?overrides[id]:id.startsWith('.')?load(resolve(dirname(file),id+'.ts')):native(id),module,module.exports);return module.exports;}
+function load(file){file=resolve(file);if(cache.has(file))return cache.get(file).exports;const module={exports:{}};cache.set(file,module);const code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;new Function('require','module','exports',code)(id=>id in overrides?overrides[id]:(generationFixtureDependency(id,overrides,load)??(id.startsWith('.')?load(resolve(dirname(file),id+'.ts')):native(id))),module,module.exports);return module.exports;}
+Object.assign(overrides,{'./fal-fetch':overrides['../../../lib/fal-fetch'],'./fal-billing':overrides['../../../lib/fal-billing']});
 const previousFetch=globalThis.fetch,previousKey=process.env.FAL_KEY;
 globalThis.fetch=async()=>{throw new Error('Unexpected network call');};process.env.FAL_KEY='fixture-no-real-network';
 try{
@@ -53,7 +59,7 @@ try{
  authenticated=false;assert.equal((await route.POST(request({}))).status,401);authenticated=true;
  delete process.env.FAL_KEY;assert.equal((await route.POST(request({}))).status,503);process.env.FAL_KEY='fixture-no-real-network';
  const id=crypto.randomUUID();await route.POST(request({idempotencyKey:id}));const calls=submissions.length,charged=spends.length;response=await route.POST(request({idempotencyKey:id}));assert.equal(response.body.duplicate,true);assert.equal(submissions.length,calls);assert.equal(spends.length,charged);
- failSubmit=true;response=await route.POST(request({prompt:'a'.repeat(1000)}));assert.equal(response.status,502);assert.equal(response.body.refundedCredits,7);assert.equal(refunds.at(-1),7);failSubmit=false;
+ failSubmit=true;const beforeUnknownRefunds=refunds.length;response=await route.POST(request({prompt:'a'.repeat(1000)}));assert.equal(response.status,202);assert.equal(response.body.failureCode,'provider_submission_unknown');assert.equal(refunds.length,beforeUnknownRefunds,'Uncertain submission must not refund or replay');failSubmit=false;
  for(const task of Object.values(records))task.status='completed';
  const taskRoute=load('src/app/api/tasks/route.ts'),success=await route.POST(request({}));await taskRoute.POST(new Request('https://site.invalid/api/tasks',{method:'POST'}));assert.equal(records[success.body.taskId].status,'completed');assert.equal(records[success.body.taskId].output_url,'https://example.invalid/speech.wav');
  syncStatus='FAILED';const failed=await route.POST(request({}));const refundCount=refunds.length;await taskRoute.POST(new Request('https://site.invalid/api/tasks',{method:'POST'}));assert.equal(records[failed.body.taskId].status,'failed');assert.equal(refunds.length,refundCount+1);await taskRoute.POST(new Request('https://site.invalid/api/tasks',{method:'POST'}));assert.equal(refunds.length,refundCount+1);

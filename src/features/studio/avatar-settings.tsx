@@ -10,7 +10,7 @@ type AvatarSettingsProps = {
   compact?: boolean;
   isHeygenAvatar?: boolean;
   dailyFreeLabel?: string;
-  isDreamfaceTalkingAvatar: boolean;
+
   isH3MaxAvatar: boolean;
   duration: string;
   durationOptions: string[];
@@ -48,7 +48,7 @@ export function AvatarSettings({
   compact=false,
   isHeygenAvatar=false,
   dailyFreeLabel,
-  isDreamfaceTalkingAvatar,
+
   isH3MaxAvatar,
   duration,
   durationOptions,
@@ -71,17 +71,8 @@ export function AvatarSettings({
   return (
     <div className={`${compact?"df-avatar-settings ":""}bg-[var(--studio-panel)] px-4 py-4 text-start`}>
       <div className="mb-3 grid gap-2">
-        <div className={`mt-3 grid gap-2 ${isDreamfaceTalkingAvatar || isH3MaxAvatar ? "grid-cols-2" : "grid-cols-1"}`}>
-          {isHeygenAvatar ? <><AvatarParameter label={translate("studio.field.duration")} kind="duration"><select aria-label={translate("studio.field.duration")} value={duration} onChange={event=>onDurationChange(event.target.value)} className={controlClass}>{durationOptions.map(item=><option key={item} value={item}>{item}</option>)}</select></AvatarParameter><AvatarParameter label={translate("studio.field.resolution")} kind="resolution"><select aria-label={translate("studio.field.resolution")} value={resolution} onChange={event=>onResolutionChange(event.target.value)} className={controlClass}>{resolutionOptions.map(item=><option key={item} value={item}>{item}</option>)}</select></AvatarParameter></> : isDreamfaceTalkingAvatar ? (
-            <>
-              <AvatarParameter label={translate("studio.field.duration")} kind="duration"><select value={duration} onChange={(event) => onDurationChange(event.target.value)} className={controlClass}>
-                {durationOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select></AvatarParameter>
-              <AvatarParameter label={translate("studio.field.aspectRatio")} kind="ratio"><select value={ratio} onChange={(event) => onRatioChange(event.target.value)} className={controlClass}>
-                {ratioOptions.map((item) => <option key={item} value={item}>{item === "source" ? translate("studio.option.sourceImage") : item}</option>)}
-              </select></AvatarParameter>
-            </>
-          ) : isH3MaxAvatar ? (
+        <div className={`mt-3 grid gap-2 ${isH3MaxAvatar ? "grid-cols-2" : "grid-cols-1"}`}>
+          {isHeygenAvatar ? <><AvatarParameter label={translate("studio.field.duration")} kind="duration"><select aria-label={translate("studio.field.duration")} value={duration} onChange={event=>onDurationChange(event.target.value)} className={controlClass}>{durationOptions.map(item=><option key={item} value={item}>{item}</option>)}</select></AvatarParameter><AvatarParameter label={translate("studio.field.resolution")} kind="resolution"><select aria-label={translate("studio.field.resolution")} value={resolution} onChange={event=>onResolutionChange(event.target.value)} className={controlClass}>{resolutionOptions.map(item=><option key={item} value={item}>{item}</option>)}</select></AvatarParameter></> : isH3MaxAvatar ? (
             <>
               <AvatarParameter label={translate("studio.field.duration")} kind="duration"><select value={duration} onChange={(event) => onDurationChange(event.target.value)} className={controlClass}>
                 {durationOptions.map((item) => <option key={item} value={item}>{item}</option>)}

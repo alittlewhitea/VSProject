@@ -30,6 +30,7 @@ type AdminTask = {
   failureReason: string | null;
   lastCheckedAt: string | null;
   timedOutAt: string | null;
+  reconciliationEvents?:{action:string;actor:string;note:string;at:string}[];
 };
 
 type AdminTasksPayload = {
@@ -81,6 +82,12 @@ export default function AdminTasksPage() {
   const [message, setMessage] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [syncingTaskId, setSyncingTaskId] = useState<string | null>(null);
+  const [reviewOnly,setReviewOnly]=useState(false);
+  const [reviewTask,setReviewTask]=useState<AdminTask|null>(null);
+  const [reviewRequestId,setReviewRequestId]=useState("");
+  const [reviewNote,setReviewNote]=useState("");
+  const [reviewCost,setReviewCost]=useState("0");
+  const [providerConfirmed,setProviderConfirmed]=useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -100,6 +107,7 @@ export default function AdminTasksPage() {
     const params = new URLSearchParams({ limit: "50" });
     if (status !== "all") params.set("status", status);
     if (userId.trim()) params.set("userId", userId.trim());
+    if(reviewOnly)params.set("review","1");
 
     try {
       const response = await fetch(`/api/admin/tasks?${params.toString()}`, {
@@ -141,9 +149,7 @@ export default function AdminTasksPage() {
         setTasks((current) => current.map((task) => (task.id === taskId ? (payload.task as AdminTask) : task)));
       }
       setMessage(
-        payload.timedOut
-          ? `Provider sync marked ${taskId} as timed out and refunded credits.`
-          : `Provider sync completed for ${taskId}. Provider status: ${payload.providerStatus || "unknown"}.`
+        `Provider sync completed for ${taskId}. Provider status: ${payload.providerStatus || "unknown"}.`
       );
       await loadTasks(accessToken);
     } catch (error) {
@@ -153,10 +159,21 @@ export default function AdminTasksPage() {
     }
   }
 
+  async function reviewAction(action:"attach_tracking"|"cancel_provider"|"resolve_no_job",task=reviewTask) {
+    if(!task||!token)return;
+    setSyncingTaskId(task.id);setMessage("");
+    try {
+      const response=await fetch("/api/admin/tasks",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({action,taskId:task.id,requestId:reviewRequestId.trim(),note:reviewNote.trim(),confirmedCostUsd:Number(reviewCost),providerConfirmedNoJob:providerConfirmed})});
+      const payload=await response.json();if(!response.ok)throw new Error(payload.error||"The task could not be reconciled.");
+      setReviewTask(null);await loadTasks(token);setMessage(`Task ${task.id}: ${payload.providerStatus||"reconciliation recorded"}.`);
+    } catch(error){setMessage(error instanceof Error?error.message:"The task could not be reconciled.");}
+    finally{setSyncingTaskId(null);}
+  }
+
   useEffect(() => {
     if (token) loadTasks(token);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, status]);
+  }, [token, status, reviewOnly]);
 
   return (
     <main className="min-h-screen bg-[#f7f7f8] text-[#1d1d1f]">
@@ -182,6 +199,36 @@ export default function AdminTasksPage() {
               </AppButton>
             </div>
           </div>
+
+          <label className="mt-5 flex items-center gap-2 text-sm text-[#6e6e73]">
+            <input type="checkbox" checked={reviewOnly} onChange={event=>setReviewOnly(event.target.checked)} />
+            Show tasks awaiting provider confirmation
+          </label>
+
+          {reviewTask ? (
+            <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div><h2 className="font-semibold">Review pending task</h2><p className="mt-1 break-all text-xs text-[#6e6e73]">{reviewTask.id}</p></div>
+                <button type="button" onClick={()=>setReviewTask(null)} className="text-sm underline">Close</button>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <label className="text-sm">Provider request ID
+                  <input value={reviewRequestId} onChange={event=>setReviewRequestId(event.target.value)} placeholder="ID from the provider dashboard" className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2" />
+                </label>
+                <label className="text-sm">Confirmed total provider cost (USD)
+                  <input type="number" min="0" step="0.000001" value={reviewCost} onChange={event=>setReviewCost(event.target.value)} className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2" />
+                </label>
+                <label className="text-sm sm:col-span-2">Provider evidence and resolution reason
+                  <textarea value={reviewNote} onChange={event=>setReviewNote(event.target.value)} maxLength={1000} rows={3} placeholder="Record the provider support reference, confirmed task state and cost." className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-2" />
+                </label>
+              </div>
+              <label className="mt-3 flex items-start gap-2 text-sm leading-6"><input type="checkbox" checked={providerConfirmed} onChange={event=>setProviderConfirmed(event.target.checked)} className="mt-1.5" />The provider confirmed no active job remains, and the total cost above includes all generation stages.</label>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <AppButton variant="secondary" disabled={Boolean(syncingTaskId)||!reviewRequestId.trim()||reviewNote.trim().length<12} onClick={()=>reviewAction("attach_tracking")}>Verify and attach request</AppButton>
+                <AppButton disabled={Boolean(syncingTaskId)||!providerConfirmed||reviewNote.trim().length<12||!reviewCost.trim()||!Number.isFinite(Number(reviewCost))||Number(reviewCost)<0} onClick={()=>reviewAction("resolve_no_job")}>Settle confirmed failure</AppButton>
+              </div>
+            </section>
+          ) : null}
 
           <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -284,12 +331,19 @@ export default function AdminTasksPage() {
                           {syncingTaskId === task.id ? "Syncing..." : "Sync provider"}
                         </button>
                       ) : null}
+                      {task.transport==="real"&&["queued","running"].includes(task.status)?(
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button type="button" disabled={Boolean(syncingTaskId)} onClick={()=>{setReviewTask(task);setReviewRequestId(task.providerRequestId||"");setReviewNote("");setReviewCost("0");setProviderConfirmed(false);window.scrollTo({top:0,behavior:"smooth"});}} className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-60">Review</button>
+                          {task.providerRequestId?<button type="button" disabled={Boolean(syncingTaskId)} onClick={()=>reviewAction("cancel_provider",task)} className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 disabled:opacity-60">Request cancellation</button>:null}
+                        </div>
+                      ):null}
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-[#1d1d1f]">{task.failureCode || "No failure code"}</p>
                       <p className="mt-1 line-clamp-3 text-xs leading-5 text-[#6e6e73]">
                         {task.failureReason || "No failure reason recorded."}
                       </p>
+                      {task.reconciliationEvents?.length?<details className="mt-2 text-xs"><summary className="cursor-pointer font-semibold">Reconciliation history</summary><ul className="mt-2 space-y-2">{task.reconciliationEvents.map((event,index)=><li key={index} className="break-words rounded-lg bg-neutral-50 p-2"><p>{event.action} · {event.actor}</p><p className="mt-1 text-[#6e6e73]">{event.note}</p><p className="mt-1 text-[#86868b]">{formatDate(event.at)}</p></li>)}</ul></details>:null}
                     </div>
                   </article>
                 ))

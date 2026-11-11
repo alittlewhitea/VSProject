@@ -1,0 +1,46 @@
+name: Project checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: '1'
+    services:
+      mysql:
+        image: mysql:5.7.44
+        env:
+          MYSQL_ROOT_PASSWORD: isolated-integration-only
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 13318:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pisolated-integration-only"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: sudo apt-get update && sudo apt-get install --no-install-recommends -y ffmpeg
+      - run: npm run check
+      - run: npm run verify:mysql-generation
+        env:
+          RUN_MYSQL_INTEGRATION: '1'
+          TEST_MYSQL_HOST: 127.0.0.1
+          TEST_MYSQL_PORT: '13318'
+          TEST_MYSQL_USER: root
+          TEST_MYSQL_PASSWORD: isolated-integration-only

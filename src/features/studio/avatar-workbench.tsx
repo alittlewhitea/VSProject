@@ -11,7 +11,7 @@ type AvatarWorkbenchProps = {
   prompt: string;
   referenceImagesText: string;
   referenceImageUrls: string[];
-  isDreamfaceTalkingAvatar: boolean;
+
   isH3MaxAvatar: boolean;
   avatarScriptTooLong: boolean;
   avatarScriptMeta: string;
@@ -40,7 +40,7 @@ export function AvatarWorkbench({
   prompt,
   referenceImagesText,
   referenceImageUrls,
-  isDreamfaceTalkingAvatar,
+
   isH3MaxAvatar,
   avatarScriptTooLong,
   avatarScriptMeta,
@@ -67,7 +67,7 @@ export function AvatarWorkbench({
     onReferenceFiles(files).catch(onFileError);
   };
 
-  const voiceControls = <>          {!isDreamfaceTalkingAvatar && !isH3MaxAvatar ? (
+  const voiceControls = <>          {!isH3MaxAvatar ? (
             <div className="mt-4 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-sm font-semibold text-[var(--studio-text)]">{translate("studio.avatar.voice")}</span>
@@ -105,7 +105,7 @@ export function AvatarWorkbench({
               </div>
             </div>
           ) : null}</>;
-  if(compact) return <AvatarComposerInput prompt={prompt} images={referenceImageUrls} url={referenceImagesText} meta={avatarScriptMeta} tooLong={avatarScriptTooLong} translate={translate} onPrompt={onPromptChange} onUrl={onReferenceImagesTextChange} onFiles={onReferenceFiles} onFileError={onFileError} onGuide={onStartImageGuide}>{!isDreamfaceTalkingAvatar && !isH3MaxAvatar ? voiceControls : null}</AvatarComposerInput>;
+  if(compact) return <AvatarComposerInput prompt={prompt} images={referenceImageUrls} url={referenceImagesText} meta={avatarScriptMeta} tooLong={avatarScriptTooLong} translate={translate} onPrompt={onPromptChange} onUrl={onReferenceImagesTextChange} onFiles={onReferenceFiles} onFileError={onFileError} onGuide={onStartImageGuide}>{!isH3MaxAvatar ? voiceControls : null}</AvatarComposerInput>;
   return (
     <div>
       <div className="grid gap-4 px-4 pb-4 pt-3">
@@ -170,9 +170,7 @@ export function AvatarWorkbench({
               ? translate("studio.avatar.scriptTooLong")
               : isH3MaxAvatar
                 ? translate("studio.videoWorkbench.imageHeroDescription")
-              : isDreamfaceTalkingAvatar
-                ? translate("studio.avatarWorkbench.dreamfaceHint")
-                : translate("studio.avatar.billingHint", { duration: avatarDuration })}
+              : translate("studio.avatar.billingHint", { duration: avatarDuration })}
           </div>
 
           {voiceControls}

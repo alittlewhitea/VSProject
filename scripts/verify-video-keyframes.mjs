@@ -17,7 +17,10 @@ const speech = speechModule.exports;
 const route = readFileSync('src/app/api/generate/route.ts', 'utf8');
 // Execute the actual endpoint selection/payload builders without loading any external clients.
 const source = route.slice(route.indexOf('function isValidBody'), route.indexOf('function buildRequestSettings'));
-const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', ...Object.keys(omni), ...Object.keys(mischief), ...Object.keys(speech), compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused', ...Object.values(omni), ...Object.values(mischief), ...Object.values(speech));
+const billingModule = { exports: {} };
+new Function('module','exports',compile(readFileSync('src/lib/generation-billing-normalize.ts','utf8')))(billingModule,billingModule.exports);
+const billing = billingModule.exports;
+const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', ...Object.keys(omni), ...Object.keys(mischief), ...Object.keys(speech), ...Object.keys(billing), compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused', ...Object.values(omni), ...Object.values(mischief), ...Object.values(speech), ...Object.values(billing));
 const start = 'https://example.invalid/start.png', end = 'https://example.invalid/end.png';
 for(const resolution of ['720p','1080p']) for(const imageUrls of [[],[start],[start,end]]) {
  for(const reasoningLevel of [undefined,'low','high']) for(const generateAudio of [undefined,false,true]) {
