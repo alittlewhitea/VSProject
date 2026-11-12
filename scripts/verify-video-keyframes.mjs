@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import {projectLoader} from './load-project-ts.mjs';
 const compile = source => ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const module = { exports: {} };
 new Function('module', 'exports', compile(readFileSync('src/lib/video-keyframes.ts', 'utf8')))(module, module.exports);
@@ -14,13 +15,14 @@ const mischief = mischiefModule.exports;
 const speechModule = { exports: {} };
 new Function('module','exports',compile(readFileSync('src/lib/gemini-tts.ts','utf8')))(speechModule,speechModule.exports);
 const speech = speechModule.exports;
+const heygenVoice = projectLoader()('src/lib/heygen-voice.ts');
 const route = readFileSync('src/app/api/generate/route.ts', 'utf8');
 // Execute the actual endpoint selection/payload builders without loading any external clients.
 const source = route.slice(route.indexOf('function isValidBody'), route.indexOf('function buildRequestSettings'));
 const billingModule = { exports: {} };
 new Function('module','exports',compile(readFileSync('src/lib/generation-billing-normalize.ts','utf8')))(billingModule,billingModule.exports);
 const billing = billingModule.exports;
-const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', ...Object.keys(omni), ...Object.keys(mischief), ...Object.keys(speech), ...Object.keys(billing), compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused', ...Object.values(omni), ...Object.values(mischief), ...Object.values(speech), ...Object.values(billing));
+const builders = new Function('videoEndFrameInput', 'isGptImageProvider', 'DREAMFACE_IO_MODEL', 'gptImageEndpoint', ...Object.keys(omni), ...Object.keys(mischief), ...Object.keys(speech), ...Object.keys(heygenVoice), ...Object.keys(billing), compile(source) + '\nreturn { buildFalInput, getModelId };')(frames.videoEndFrameInput, () => false, 'unused', () => 'unused', ...Object.values(omni), ...Object.values(mischief), ...Object.values(speech), ...Object.values(heygenVoice), ...Object.values(billing));
 const start = 'https://example.invalid/start.png', end = 'https://example.invalid/end.png';
 for(const resolution of ['720p','1080p']) for(const imageUrls of [[],[start],[start,end]]) {
  for(const reasoningLevel of [undefined,'low','high']) for(const generateAudio of [undefined,false,true]) {

@@ -3,6 +3,7 @@ import { flux3MaxDuration, flux3MaxSecondPrice } from "./flux3-max";
 import { lowestPaidCreditPriceUsd } from "./credit-pack-prices";
 import { MISCHIEF_PROVIDER, mischiefCostUsd } from "./mischief";
 import { GEMINI_TTS_PROVIDER, GEMINI_TTS_MODEL, GEMINI_TTS_RATE_PER_1000, geminiTtsCharacters } from "./gemini-tts";
+import { HEYGEN_VOICE_PROVIDER, HEYGEN_VOICE_MODEL, HEYGEN_VOICE_RATE_PER_1000, heygenVoiceCharacters, isHeygenVoiceFree } from "./heygen-voice";
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution, geminiOmniSecondPrice } from "./gemini-omni";
 export type PricingMode = "image" | "video" | "audio";
 
@@ -205,6 +206,7 @@ export function estimateGenerationCostUsd(input: GenerationEstimateInput): numbe
     return cost * countMultiplier(input.numImages,isGptImageProvider(input.provider)?10:4);
   }
   if (input.mode === "audio") {
+    if (input.provider === HEYGEN_VOICE_PROVIDER) return Math.max(1,heygenVoiceCharacters(input.promptText||""))/1000*(live&&isFalUnit(unit,"1000 characters")?live:HEYGEN_VOICE_RATE_PER_1000);
     if (input.provider === GEMINI_TTS_PROVIDER) return Math.max(1, geminiTtsCharacters(input.promptText?.trim() || "")) / 1000 * (live && isFalUnit(unit, "1000 characters") ? live : GEMINI_TTS_RATE_PER_1000);
     if (input.provider === "minimax-music-2.6") return live && isFalUnit(unit, "audio", "audios", "generation", "generations") ? live : 0.15;
     if (input.provider === "elevenlabs-tts") return Math.max(1, input.promptText?.trim().length || 1) / 1000 * (live && isFalUnit(unit, "1000 characters") ? live : 0.04);
@@ -229,6 +231,7 @@ export function estimateGenerationCostUsd(input: GenerationEstimateInput): numbe
 }
 
 export function estimateGenerationCredits(input: GenerationEstimateInput) {
+  if(input.mode==="audio"&&input.provider===HEYGEN_VOICE_PROVIDER&&isHeygenVoiceFree(input.pricingTime))return 0;
   // Each output image is quoted individually; batches do not change per-image pricing.
   const count = input.mode === "image" ? countMultiplier(input.numImages,isGptImageProvider(input.provider)?10:4) : 1;
   const unitInput = count > 1 ? { ...input, numImages: 1 } : input;
@@ -559,6 +562,12 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     falBasis: "fal lists MiniMax Music 2.6 at $0.15 per generated audio.",
     typicalCredits: estimateGenerationCredits({ mode: "audio", provider: "minimax-music-2.6" }),
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
+  },
+  {
+    provider:HEYGEN_VOICE_PROVIDER,label:"HeyGen Voice Turbo",mode:"audio",workflow:"Text to Audio",endpointId:HEYGEN_VOICE_MODEL,
+    falBasis:"Supplier standard rate: $0.004 per 1,000 characters. DreamFace waives credits through November 30, 2026 (UTC+8).",
+    typicalCredits:estimateGenerationCredits({mode:"audio",provider:HEYGEN_VOICE_PROVIDER,promptText:"x".repeat(1000)}),
+    unitNote:"Customer promotion ends December 1, 2026 at 00:00 UTC+8; supplier charges still apply."
   },
   {
     provider: GEMINI_TTS_PROVIDER,

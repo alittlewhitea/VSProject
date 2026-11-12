@@ -10,6 +10,7 @@ import { isH3DailyFreeRequest, H3_DAILY_FREE_PROGRAM } from "../../../lib/h3-dai
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize, normalizeGptImageProvider, gptImageOptionError, buildGptImageInput } from "../../../lib/gpt-image-models";
 import { NextResponse } from "next/server";
 import { GEMINI_TTS_PROVIDER, GEMINI_TTS_MODEL, prepareGeminiTts, type GeminiTtsOptions } from "../../../lib/gemini-tts";
+import { HEYGEN_VOICE_PROVIDER, HEYGEN_VOICE_MODEL, HEYGEN_VOICE_FREE_END, prepareHeygenVoice, type HeygenVoiceOptions } from "../../../lib/heygen-voice";
 import { MISCHIEF_PROVIDER, MISCHIEF_MODEL, MISCHIEF_DURATIONS, MISCHIEF_RESOLUTIONS, mischiefDuration, mischiefResolution, mischiefImageError } from "../../../lib/mischief";
 import { randomUUID } from "node:crypto";
 import { getUserFromBearerToken } from "../../../lib/server-auth";
@@ -65,6 +66,7 @@ type GenerateRequest = {
   videoWorkflow?: "avatar-video" | "text-to-video" | "image-to-video" | "reference-to-video";
   audioWorkflow?: "text-to-audio" | "text-to-music";
   geminiTts?: GeminiTtsOptions;
+  heygenVoice?: HeygenVoiceOptions;
   provider: string;
   ratio: string;
   duration: string;
@@ -219,6 +221,7 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
       ? process.env.FAL_MODEL_VIDEO_GEMINI_OMNI_I2V || GEMINI_OMNI_IMAGE_MODEL
       : process.env.FAL_MODEL_VIDEO_GEMINI_OMNI || GEMINI_OMNI_TEXT_MODEL,
     [GEMINI_TTS_PROVIDER]: GEMINI_TTS_MODEL,
+    [HEYGEN_VOICE_PROVIDER]: HEYGEN_VOICE_MODEL,
     "elevenlabs-tts": "elevenlabs/tts/eleven-v4-turbo",
     "minimax-music-2.6": process.env.FAL_MODEL_AUDIO_MINIMAX_26 || "fal-ai/minimax-music/v2.6"
   };
@@ -363,6 +366,9 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
 
   if (body.mode === "audio" && body.provider === GEMINI_TTS_PROVIDER) {
     return prepareGeminiTts(body.geminiTts?.mode === "dialogue" ? "" : prompt, body.geminiTts).input;
+  }
+  if(body.mode === "audio" && body.provider === HEYGEN_VOICE_PROVIDER) {
+    return prepareHeygenVoice(prompt,body.heygenVoice).input;
   }
   if (body.mode === "audio" && body.provider === "elevenlabs-tts") {
     return {
@@ -658,8 +664,9 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     ...(body.mode === "video" && body.videoWorkflow === "reference-to-video" ? {video_urls: body.videoUrls?.map(url => url.trim()) || []} : {}),
     audio_url: body.audioUrl || null,
     ...(body.provider === GEMINI_TTS_PROVIDER ? { gemini_tts: prepareGeminiTts(body.geminiTts?.mode === "dialogue" ? "" : body.prompt, body.geminiTts).input } : {}),
+    ...(body.provider === HEYGEN_VOICE_PROVIDER ? {heygen_voice:prepareHeygenVoice(body.prompt,body.heygenVoice).input} : {}),
     resolution: body.resolution || null,
-    output_format: body.provider === GEMINI_TTS_PROVIDER ? "wav" : body.outputFormat || null,
+    output_format: body.provider === GEMINI_TTS_PROVIDER || body.provider === HEYGEN_VOICE_PROVIDER ? "wav" : body.outputFormat || null,
     quality: body.quality || null,
     num_images: body.numImages || null,
     guidance_scale: body.guidanceScale || null,
@@ -851,6 +858,12 @@ export async function POST(request: Request) {
     const storageMode = storedModeForRequest(body);
     const isPromptlessImageTool = body.mode === "image" && (body.provider === "topaz-image" || body.provider === "bria-background-remove");
     const geminiSpeech = body.provider === GEMINI_TTS_PROVIDER ? prepareGeminiTts(body.prompt, body.geminiTts) : null;
+    if(body.provider === HEYGEN_VOICE_PROVIDER) {
+      if(body.mode!=="audio"||(body.audioWorkflow!==undefined&&body.audioWorkflow!=="text-to-audio")||body.imageUrls?.length||body.videoUrls?.length||body.audioUrl||body.dailyFree===true)return NextResponse.json({error:"HeyGen Voice Turbo requires the text-to-speech workspace without image or video inputs.",code:"heygen_voice_invalid_workflow"},{status:400});
+      const speech=prepareHeygenVoice(body.prompt,body.heygenVoice);
+      if(speech.error)return NextResponse.json({error:"Check the speech text, voice, language, expression and public reference audio URL.",code:`heygen_voice_${speech.error}`},{status:400});
+      if(!process.env.FAL_KEY?.trim())return NextResponse.json({error:"Audio provider is not configured."},{status:503});
+    }
     if (body.provider === GEMINI_TTS_PROVIDER) {
       if (body.mode !== "audio" || (body.audioWorkflow !== undefined && body.audioWorkflow !== "text-to-audio") || body.imageUrls?.length || body.videoUrls?.length || body.audioUrl || body.dailyFree === true) return NextResponse.json({ error: "Gemini Flash TTS requires the text-to-speech workspace without media inputs." }, { status: 400 });
       if (geminiSpeech?.error) return NextResponse.json({ error: "Check the speech text, voices, dialogue turns and input length.", code: `gemini_tts_${geminiSpeech.error}` }, { status: 400 });
@@ -1075,6 +1088,7 @@ export async function POST(request: Request) {
     const transport = !falKey || !modelId ? "mock" : "real";
     const requestSettings = {
       ...buildRequestSettings(body, modelId),
+      ...(body.provider===HEYGEN_VOICE_PROVIDER?{credit_promotion:estimatedCredits===0?{id:"heygen-voice-november-2026",ends_at:new Date(HEYGEN_VOICE_FREE_END).toISOString()}:null}:{}),
       ...(body.mode === "video" && body.promptEnhancement && typeof body.promptEnhancement === "object" ? {
         prompt_enhancement: {
           original_prompt: typeof body.promptEnhancement.originalPrompt === "string" ? body.promptEnhancement.originalPrompt.slice(0, 5000) : prompt,

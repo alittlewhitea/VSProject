@@ -5,7 +5,7 @@ import { useStudioController } from "../../features/studio/use-studio-controller
 import { StudioShell } from "../../features/studio/studio-shell";
 import { loadStudioMessages } from "../../lib/studio-message-loader";
 
-type Props = { initialLocale: Locale; initialMessages?: Record<string, string>; initialView?: "billing" };
+type Props = { initialLocale: Locale; initialMessages?: Record<string, string>; initialView?: "billing"; initialPricingTime?: number };
 
 function StudioContent(props: Props) {
   return <StudioShell model={useStudioController(props)} />;

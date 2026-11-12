@@ -1,5 +1,6 @@
 import type { AcceptedPrompt } from "./use-video-prompt-enhancement";
 import type { GeminiTtsOptions } from "../../lib/gemini-tts";
+import type { HeygenVoiceOptions } from "../../lib/heygen-voice";
 import type { GptImageOptions, GptImageQuality } from "../../lib/gpt-image-models";
 
 export type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
@@ -53,6 +54,8 @@ export type StudioLoginDraft<
   generateAudio?: boolean;
   reasoningLevel?: "low" | "high";
   geminiTts?: GeminiTtsOptions;
+  heygenVoice?: HeygenVoiceOptions;
+  heygenVoiceFreeRequested?: boolean;
   voice?: string;
   stability?: number;
   timestamps?: boolean;

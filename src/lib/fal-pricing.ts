@@ -1,6 +1,7 @@
 import { MODEL_PRICING_ROWS, estimateGenerationCredits } from "./model-pricing";
 import { MISCHIEF_PROVIDER, MISCHIEF_MODEL } from "./mischief";
 import { GEMINI_TTS_PROVIDER, GEMINI_TTS_MODEL } from "./gemini-tts";
+import { HEYGEN_VOICE_PROVIDER, HEYGEN_VOICE_MODEL, isHeygenVoiceFree } from "./heygen-voice";
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL } from "./gemini-omni";
 import { isGptImageProvider, gptImageEndpoint } from "./gpt-image-models";
 
@@ -50,6 +51,7 @@ const EXTRA_PRICING_ENDPOINT_IDS = [
 ];
 
 function endpointForProvider(provider: string, hasReferences = false) {
+  if (provider === HEYGEN_VOICE_PROVIDER) return HEYGEN_VOICE_MODEL;
   if (provider === GEMINI_TTS_PROVIDER) return GEMINI_TTS_MODEL;
   if (provider === MISCHIEF_PROVIDER) return MISCHIEF_MODEL;
   if (isGptImageProvider(provider)) return gptImageEndpoint(provider,hasReferences);
@@ -276,6 +278,7 @@ export async function estimateGenerationCreditsWithLivePricing(input: {
   generateAudio?: boolean | null;
   promptText?: string | null;
 }) {
+  if(input.mode==="audio"&&input.provider===HEYGEN_VOICE_PROVIDER&&isHeygenVoiceFree())return 0;
   const endpointId = input.provider === "heygen-video" && input.videoWorkflow === "reference-to-video"
     ? "heygen/heygen-video/reference-to-video" : endpointForProvider(input.provider, input.hasReferences);
   const livePricing = endpointId ? await getFalModelPricing(endpointId) : null;
@@ -305,7 +308,7 @@ export async function getLiveModelPricingRows(): Promise<LiveModelPricingRow[]> 
 
       return {
         ...row,
-        fallbackCredits: row.provider === "flux-3-max-video" ? typicalCredits : row.typicalCredits,
+        fallbackCredits: row.provider === "flux-3-max-video" || row.provider === HEYGEN_VOICE_PROVIDER ? typicalCredits : row.typicalCredits,
         typicalCredits,
         liveUnitPriceUsd: live?.unit_price ?? null,
         unit: live?.unit || null,

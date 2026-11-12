@@ -24,5 +24,5 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 export default async function StudioPage() {
   const cookieLocale = (await cookies()).get(localeCookieKey)?.value;
   const locale=isLocale(cookieLocale)?cookieLocale:defaultLocale;
-  return <StudioPageClient initialLocale={locale} initialMessages={await loadStudioMessages(locale)} />;
+  return <StudioPageClient initialLocale={locale} initialMessages={await loadStudioMessages(locale)} initialPricingTime={Date.now()} />;
 }

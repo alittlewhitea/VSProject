@@ -1,4 +1,3 @@
-import {readStudioSource} from './studio-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -27,19 +26,9 @@ for(const [workflow,providers] of Object.entries(models.VIDEO_PROVIDERS_BY_WORKF
   else assert.ok(providers.includes('minimax-h3-max-turbo-video'));
 }
 assert.ok(!load('src/lib/model-pricing.ts').MODEL_PRICING_ROWS.some(row=>row.provider==='dreamface-io-video'));
-const studio=readStudioSource();
-const ast=ts.createSourceFile('studio.tsx',studio,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
-function nodeMatching(predicate) {
-  let found;function visit(node){if(predicate(node))found=node;if(!found)ts.forEachChild(node,visit);}visit(ast);
-  assert.ok(found);return found;
-}
-const initializer=nodeMatching(n=>ts.isVariableDeclaration(n)&&n.name.getText(ast)==='WORKFLOW_META').initializer.getText(ast);
-const speech=load('src/lib/gemini-tts.ts');
-const workflows=new Function('VIDEO_PROVIDERS_BY_WORKFLOW','GEMINI_TTS_PROVIDER',`return (${initializer});`)(models.VIDEO_PROVIDERS_BY_WORKFLOW,speech.GEMINI_TTS_PROVIDER);
-const providerFor=nodeMatching(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='providerForWorkflow').getText(ast);
-const allowed=nodeMatching(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='isProviderAllowedForMode').getText(ast);
+const selectors=load('src/features/studio/studio-workspace-config.ts');
+const workflows=selectors.WORKFLOW_META;
 const normalizeGptImageProvider=load('src/lib/gpt-image-models.ts').normalizeGptImageProvider;
-const selectors=new Function('WORKFLOW_META','videoModelConfig','isAvatarProvider','normalizeGptImageProvider','GEMINI_TTS_PROVIDER',compile(providerFor+'\n'+allowed)+'\nreturn {providerForWorkflow,isProviderAllowedForMode};')(workflows,models.videoModelConfig,()=>false,normalizeGptImageProvider,speech.GEMINI_TTS_PROVIDER);
 for(const workflow of Object.keys(workflows)) {
   assert.ok(!workflows[workflow].providers.includes('dreamface-io-video'));
   assert.equal(selectors.providerForWorkflow(workflow,'dreamface-io-video'),workflows[workflow].recommendedProvider);

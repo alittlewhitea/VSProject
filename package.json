@@ -21,7 +21,7 @@
     "verify:studio-performance": "node scripts/verify-studio-performance.mjs",
     "verify:studio-inputs": "node scripts/verify-studio-inputs.mjs",
     "verify:video-keyframes": "node scripts/verify-video-keyframes.mjs && node scripts/verify-gemini-omni.mjs && node scripts/verify-mischief.mjs",
-    "verify:model-upgrades": "node scripts/verify-model-upgrades.mjs && node scripts/verify-gemini-tts.mjs",
+    "verify:model-upgrades": "node scripts/verify-model-upgrades.mjs && node scripts/verify-gemini-tts.mjs && node scripts/verify-heygen-voice.mjs",
     "verify:heygen-video": "node scripts/verify-heygen-video.mjs",
     "verify:pricing": "node scripts/verify-cost-tier-pricing.mjs",
     "verify:gallery": "node scripts/verify-gallery-pagination.mjs",

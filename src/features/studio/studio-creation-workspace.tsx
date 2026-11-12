@@ -8,6 +8,7 @@ formatApproximateCreditValue
 } from "../../lib/billing";
 import { GPT_IMAGE_QUALITIES,GPT_IMAGE_SIZES,isGptImageProvider } from "../../lib/gpt-image-models";
 import { estimateGenerationCredits } from "../../lib/model-pricing";
+import {HEYGEN_VOICE_MAX_CHARACTERS} from "../../lib/heygen-voice";
 import { parseStudioReferenceImages } from "../../lib/studio-workspace-inputs";
 const AudioSettings = dynamic(() => import("./audio-settings").then(module=>module.AudioSettings));
 const AudioWorkbench = dynamic(() => import("./audio-workbench").then(module=>module.AudioWorkbench));
@@ -59,6 +60,9 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
     enableWebSearch,
     estCredits,
     geminiTts,
+    heygenVoice,
+    heygenVoiceFree,
+    heygenVoiceError,
     generateAudio,
     generateDisabled,
     gptImageOptions,
@@ -76,6 +80,7 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
     isBillingView,
     isElevenLabsAudio,
     isGeminiTts,
+    isHeygenVoice,
     isH3MaxAvatar,
     isHeygenAvatar,
     isInstrumental,
@@ -119,6 +124,7 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
     setEnableSafetyChecker,
     setEnableWebSearch,
     setGeminiTts,
+    setHeygenVoice,
     setGenerateAudio,
     setGptImageOptions,
     setGuidanceScale,
@@ -283,6 +289,12 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
       providerOptions={modelPickerOptions}
       isElevenLabs={isElevenLabsAudio}
       isGeminiTts={isGeminiTts}
+      isHeygenVoice={isHeygenVoice}
+      heygenVoice={heygenVoice}
+      heygenVoiceFree={heygenVoiceFree}
+      heygenVoiceError={heygenVoiceError}
+      onHeygenVoiceChange={setHeygenVoice}
+      locale={studioI18n.locale}
       audioVoiceOptions={audioVoiceOptions}
       languageOptions={ELEVENLABS_LANGUAGE_OPTIONS}
       voiceGenderOptions={ELEVENLABS_VOICE_GENDER_OPTIONS}
@@ -396,6 +408,8 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                         editor={<AudioWorkbench
                           workflow={audioWorkflow}
                           speechEditor={isGeminiTts ? <GeminiTtsEditor prompt={prompt} options={geminiTts} onPromptChange={setPrompt} onChange={setGeminiTts} translate={st} /> : undefined}
+                          scriptMaxLength={isHeygenVoice ? HEYGEN_VOICE_MAX_CHARACTERS : undefined}
+                          scriptPlaceholder={isHeygenVoice ? st("studio.heygenVoice.placeholder") : undefined}
                           canSubmit={canSubmit}
                           prompt={prompt}
                           isMiniMaxMusic={isMiniMaxMusic}
@@ -1179,6 +1193,12 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                       providerOptions={modelPickerOptions}
                       isElevenLabs={isElevenLabsAudio}
       isGeminiTts={isGeminiTts}
+                      isHeygenVoice={isHeygenVoice}
+                      heygenVoice={heygenVoice}
+                      heygenVoiceFree={heygenVoiceFree}
+                      heygenVoiceError={heygenVoiceError}
+                      onHeygenVoiceChange={setHeygenVoice}
+                      locale={studioI18n.locale}
                       audioVoiceOptions={audioVoiceOptions}
                       languageOptions={ELEVENLABS_LANGUAGE_OPTIONS}
                       voiceGenderOptions={ELEVENLABS_VOICE_GENDER_OPTIONS}

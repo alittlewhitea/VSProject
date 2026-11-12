@@ -1,4 +1,5 @@
 import { GEMINI_TTS_PROVIDER } from "../../lib/gemini-tts";
+import { HEYGEN_VOICE_PROVIDER } from "../../lib/heygen-voice";
 import { GPT_IMAGE_EXAMPLE_PROMPTS,GPT_IMAGE_SIZES,isGptImageProvider,normalizeGptImageProvider } from "../../lib/gpt-image-models";
 import { parseStudioReferenceImages } from "../../lib/studio-workspace-inputs";
 import {
@@ -256,6 +257,7 @@ export const PROVIDER_META: Record<
   },
   ...VIDEO_PROVIDER_META,
   [GEMINI_TTS_PROVIDER]: { label: "Gemini 3.8 Flash TTS", shortLabel: "Gemini Flash TTS", speed: "Fast", quality: "Expressive speech", bestFor: "30 voices, delivery instructions and two-speaker dialogue in WAV" },
+  [HEYGEN_VOICE_PROVIDER]: {label:"HeyGen Voice Turbo",shortLabel:"HeyGen Voice Turbo",speed:"Fast",quality:"Natural speech",bestFor:"24 voices, 39 languages and voice cloning · 44.1 kHz WAV"},
   "elevenlabs-tts": {
     label: "ElevenLabs Eleven v4 Turbo",
     shortLabel: "Eleven v4 Turbo",
@@ -331,7 +333,7 @@ export const WORKFLOW_META: Record<
     label: "Text to Audio",
     description: "Turn a written script into an AI voiceover.",
     recommendedProvider: GEMINI_TTS_PROVIDER,
-    providers: [GEMINI_TTS_PROVIDER, "elevenlabs-tts"]
+    providers: [GEMINI_TTS_PROVIDER, HEYGEN_VOICE_PROVIDER, "elevenlabs-tts"]
   },
   "text-to-music": {
     label: "AI Music",
@@ -574,7 +576,7 @@ export function isProviderAllowedForMode(provider: string | null, mode: StudioMo
   provider=normalizeGptImageProvider(provider);
 
   if (mode === "image") return ["gpt-image-2.6-sunburst", "chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
-  if (mode === "audio") return [GEMINI_TTS_PROVIDER, "minimax-music-2.6", "elevenlabs-tts"].includes(provider);
+  if (mode === "audio") return [GEMINI_TTS_PROVIDER, HEYGEN_VOICE_PROVIDER, "minimax-music-2.6", "elevenlabs-tts"].includes(provider);
   if (mode === "avatar") return ["heygen-video", "minimax-h3-max-turbo-video", "minimax-h3-max-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return Boolean(videoModelConfig(provider)) || isAvatarProvider(provider);
 }

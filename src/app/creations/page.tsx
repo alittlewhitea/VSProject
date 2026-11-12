@@ -206,6 +206,7 @@ function providerLabel(provider?: string) {
     "flux-3-max-video": "FLUX 3 Max",
     "grok-video": "Grok Imagine Video",
     "elevenlabs-tts": "ElevenLabs Eleven v4 Turbo",
+    "heygen-voice-turbo": "HeyGen Voice Turbo",
     "minimax-music-2.6": "MiniMax Music 2.6"
   };
   return provider ? labels[provider] || provider : "Unknown provider";

@@ -9,6 +9,7 @@ CREDIT_PACKS
 } from "../../lib/billing";
 import { FLUX3_MAX_PROMO_END,isFlux3MaxPromotion } from "../../lib/flux3-max";
 import { GEMINI_TTS_PROVIDER,geminiTtsBillableText,geminiTtsCharacters,newGeminiTtsOptions,prepareGeminiTts,restoreGeminiTtsOptions } from "../../lib/gemini-tts";
+import { HEYGEN_VOICE_PROVIDER, HEYGEN_VOICE_FREE_END, heygenVoiceCharacters, isHeygenVoiceFree, newHeygenVoiceOptions, prepareHeygenVoice, restoreHeygenVoiceOptions } from "../../lib/heygen-voice";
 import { DEFAULT_GPT_IMAGE_OPTIONS,GPT_IMAGE_SIZES,gptImageOptionError,gptImageQuality,isGptImageProvider,normalizeGptImageProvider,type GptImageOptions,type GptImageQuality } from "../../lib/gpt-image-models";
 import { isH3DailyFreeRequest } from "../../lib/h3-daily-free-policy";
 import { heygenAvatarTiming } from "../../lib/heygen-avatar";
@@ -66,7 +67,7 @@ videoModelRatios,
 videoModelResolutions
 } from "./video-models";
 
-export function useStudioController({ initialLocale, initialMessages, initialView }: { initialLocale: Locale; initialMessages?: Record<string,string>; initialView?: "billing" }) {
+export function useStudioController({ initialLocale, initialMessages, initialView, initialPricingTime }: { initialLocale: Locale; initialMessages?: Record<string,string>; initialView?: "billing"; initialPricingTime?: number }) {
 
   const studioI18n = useStudioI18n(initialLocale,initialMessages);
   const st = studioI18n.t;
@@ -171,7 +172,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const [videoResolution, setVideoResolution] = useState(() => defaultVideoResolutionForProvider(initialProvider));
   const [generateAudio, setGenerateAudio] = useState(initialProvider === "flux-3-max-video");
   const [reasoningLevel, setReasoningLevel] = useState<"low"|"high">("high");
-  const [pricingTime, setPricingTime] = useState(()=>Date.now());
+  const [pricingTime, setPricingTime] = useState(()=>initialPricingTime ?? Date.now());
   useEffect(()=>{
     if(mode !== "video") return;
     const refresh=()=>setPricingTime(Date.now());
@@ -183,6 +184,18 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   },[mode]);
   const [ttsVoice, setTtsVoice] = useState("Rachel");
   const [geminiTts, setGeminiTts] = useState(newGeminiTtsOptions);
+  const [heygenVoice, setHeygenVoice] = useState(newHeygenVoiceOptions);
+  const heygenVoiceFreeIntentRef = useRef(false);
+  useEffect(()=>{
+    if(mode!=="audio"||provider!==HEYGEN_VOICE_PROVIDER)return;
+    const refresh=()=>setPricingTime(Date.now());
+    refresh();
+    const timer=window.setInterval(refresh,60000);
+    const remaining=HEYGEN_VOICE_FREE_END-Date.now();
+    const deadline=remaining>0&&remaining<2147483647?window.setTimeout(refresh,remaining+1):null;
+    window.addEventListener("focus",refresh);
+    return ()=>{window.clearInterval(timer);if(deadline!==null)window.clearTimeout(deadline);window.removeEventListener("focus",refresh);};
+  },[mode,provider]);
   const [avatarVoiceGender, setAvatarVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
   const [audioVoiceGender, setAudioVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
   const [ttsStability, setTtsStability] = useState(0.5);
@@ -602,9 +615,12 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const isMiniMaxMusic = mode === "audio" && provider === "minimax-music-2.6";
   const isElevenLabsAudio = mode === "audio" && provider === "elevenlabs-tts";
   const isGeminiTts = mode === "audio" && provider === GEMINI_TTS_PROVIDER;
+  const isHeygenVoice = mode === "audio" && provider === HEYGEN_VOICE_PROVIDER;
+  const heygenVoiceFree = isHeygenVoice && isHeygenVoiceFree(pricingTime);
+  const heygenVoiceError = isHeygenVoice ? prepareHeygenVoice(prompt,heygenVoice).error : null;
   const geminiSpeech = prepareGeminiTts(geminiTts.mode === "dialogue" ? "" : prompt, geminiTts);
   const speechBillableText = isGeminiTts ? geminiTtsBillableText(prompt, geminiTts) : prompt;
-  const audioCharacterCount = mode === "audio" ? isGeminiTts ? geminiTtsCharacters(speechBillableText) : prompt.trim().length : 0;
+  const audioCharacterCount = mode === "audio" ? isHeygenVoice ? heygenVoiceCharacters(prompt) : isGeminiTts ? geminiTtsCharacters(speechBillableText) : prompt.trim().length : 0;
   const avatarSelectedSeconds = Math.max(1, Number.parseInt(avatarDuration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
 
   const baseEstCredits = estimateGenerationCredits({
@@ -694,15 +710,15 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
           : optionDuration
         : undefined,
       credits: optionCredits,
-      badge: option.value === "flux-3-max-video" && isFlux3MaxPromotion(pricingTime) ? st("studio.flux3.promotion") : badgeKey ? st(badgeKey) : undefined,
+      badge: option.value===HEYGEN_VOICE_PROVIDER&&isHeygenVoiceFree(pricingTime)?st("studio.heygenVoice.freeBadge"):option.value === "flux-3-max-video" && isFlux3MaxPromotion(pricingTime) ? st("studio.flux3.promotion") : badgeKey ? st(badgeKey) : undefined,
       group: st(groupKey)
     };
   })), [activeWorkflow, avatarDuration, duration, editResolution, estCredits, geminiTts, generateAudio, gptImageOptions, h3DailyFree, imageQuality, imageSize, imageWorkflow, isAvatarWorkflow, mode, numImages, options, pricingTime, prompt, provider, recommendedProvider, referenceImageUrls, st, videoResolution]);
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
-  const lowBalanceAfterGeneration = typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
+  const lowBalanceAfterGeneration = estCredits > 0 && typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const hasMiniMaxLyrics = isInstrumental || lyricsOptimizer || musicLyrics.trim().length > 0;
   const isPromptValid = isPromptlessImageWorkflow || (
-    isGeminiTts ? !geminiSpeech.error : isAvatarWorkflow
+    isHeygenVoice ? !heygenVoiceError : isGeminiTts ? !geminiSpeech.error : isAvatarWorkflow
       ? prompt.trim().length > 0 && !avatarScriptTooLong
       : isMiniMaxMusic
         ? prompt.trim().length >= 10 && hasMiniMaxLyrics
@@ -756,6 +772,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     "veo-video",
     "elevenlabs-tts",
     GEMINI_TTS_PROVIDER,
+    HEYGEN_VOICE_PROVIDER,
     "minimax-music-2.6"
   ].includes(provider)
     ? provider
@@ -809,6 +826,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
             ? `${isInstrumental ? "Instrumental" : lyricsOptimizer ? "Auto lyrics" : "Custom lyrics"} / ${musicSampleRate} Hz / ${musicFormat.toUpperCase()}`
           : isGeminiTts
             ? `${audioCharacterCount} / ${geminiTts.mode === "dialogue" ? st("studio.geminiTts.dialogue") : geminiTts.voice} / WAV`
+          : isHeygenVoice
+            ? `${audioCharacterCount} / ${heygenVoice.referenceAudioUrl.trim()?st("studio.heygenVoice.clonedVoice"):heygenVoice.voice} / WAV`
           : mode === "audio"
             ? `${prompt.trim().length || 0} / ${ttsVoice} / ${ttsStability.toFixed(2)}`
           : isAvatarWorkflow
@@ -1256,6 +1275,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       reasoningLevel,
       voice: ttsVoice,
       geminiTts,
+      heygenVoice,
+      heygenVoiceFreeRequested: autoSubmit && isHeygenVoice && isHeygenVoiceFree(pricingTime),
       stability: ttsStability,
       timestamps: ttsTimestamps,
       languageCode: ttsLanguageCode,
@@ -1304,7 +1325,9 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     restoredLoginDraftRef.current = true;
     // A retired model must never turn a saved automatic submission into a paid
     // request to a different model after authentication.
-    autoSubmitLoginDraftRef.current = draft.autoSubmit && draft.provider !== "mischief-video";
+    heygenVoiceFreeIntentRef.current=draft.provider===HEYGEN_VOICE_PROVIDER&&draft.heygenVoiceFreeRequested===true;
+    const expiredVoiceOffer=heygenVoiceFreeIntentRef.current&&!isHeygenVoiceFree();
+    autoSubmitLoginDraftRef.current = draft.autoSubmit && draft.provider !== "mischief-video" && !expiredVoiceOffer;
     setProvider(draft.provider === "nano-banana-edit" ? "nano-banana-image" : normalizeGptImageProvider(draft.provider));
     setImageWorkflow(draft.imageWorkflow);
     setVideoWorkflow(draft.videoWorkflow || "text-to-video");
@@ -1321,6 +1344,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setReasoningLevel(draft.reasoningLevel === "low" ? "low" : "high");
     setTtsVoice(draft.voice || "Rachel");
     setGeminiTts(restoreGeminiTtsOptions(draft.geminiTts));
+    setHeygenVoice(restoreHeygenVoiceOptions(draft.heygenVoice));
     setTtsStability(typeof draft.stability === "number" ? draft.stability : 0.5);
     setTtsTimestamps(Boolean(draft.timestamps));
     setTtsLanguageCode(draft.languageCode || "");
@@ -1351,7 +1375,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     videoPromptAI.setEnabled(draft.aiPromptEnhancementEnabled === true);
     videoPromptAI.restoreDraft(draft.videoPromptEnhancement || null);
     setStatusTone("idle");
-    setStatusText(autoSubmitLoginDraftRef.current ? st("studio.status.restoredContinue") : st("studio.status.restored"));
+    setStatusText(expiredVoiceOffer ? st("studio.heygenVoice.expired") : autoSubmitLoginDraftRef.current ? st("studio.status.restoredContinue") : st("studio.status.restored"));
 
     setLoginDraftNonce((value) => value + 1);
   }, [accessToken, authReady]);
@@ -1436,6 +1460,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
         duration: requestDuration,
         prompt: isPromptlessImageWorkflow || (isGeminiTts && geminiTts.mode === "dialogue") ? "" : finalPrompt,
         geminiTts: isGeminiTts ? geminiTts : undefined,
+        heygenVoice: isHeygenVoice ? heygenVoice : undefined,
         promptEnhancement,
         imageSize: mode === "image" ? imageSize : undefined,
         imageUrls:
@@ -1771,10 +1796,14 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   }
 
   function openGenerationSignIn() {
+    const freeVoiceRequested=isHeygenVoice&&isHeygenVoiceFree(pricingTime);
+    heygenVoiceFreeIntentRef.current=freeVoiceRequested;
     requestSignIn({
       onBeforeRedirect: () => saveLoginDraft(true),
       onSuccess: () => {
-        autoSubmitLoginDraftRef.current = true;
+        const expired=freeVoiceRequested&&!isHeygenVoiceFree();
+        autoSubmitLoginDraftRef.current = !expired;
+        if(expired){setPricingTime(Date.now());setStatusText(st("studio.heygenVoice.expired"));}
         setLoginDraftNonce(value => value + 1);
       }
     });
@@ -1786,6 +1815,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       openGenerationSignIn();
       return;
     }
+    heygenVoiceFreeIntentRef.current=false;
     handleGenerate();
   }
 
@@ -1793,6 +1823,9 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     if (!authReady || !accessToken || !autoSubmitLoginDraftRef.current || isSubmitting || !isPromptValid || h3FreeLoading) return;
     const timer = window.setTimeout(() => {
       autoSubmitLoginDraftRef.current = false;
+      if(heygenVoiceFreeIntentRef.current&&(provider!==HEYGEN_VOICE_PROVIDER||!isHeygenVoiceFree())) {
+        setPricingTime(Date.now());setStatusText(st("studio.heygenVoice.expired"));return;
+      }
       handleGenerate();
     }, 150);
     return () => window.clearTimeout(timer);
@@ -1927,6 +1960,9 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     enableWebSearch,
     estCredits,
     geminiTts,
+    heygenVoice,
+    heygenVoiceFree,
+    heygenVoiceError,
     generateAudio,
     generateDisabled,
     gptImageOptions,
@@ -1944,6 +1980,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     isBillingView,
     isElevenLabsAudio,
     isGeminiTts,
+    isHeygenVoice,
     isH3MaxAvatar,
     isHeygenAvatar,
     isInstrumental,
@@ -1997,6 +2034,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setEnableSafetyChecker,
     setEnableWebSearch,
     setGeminiTts,
+    setHeygenVoice,
     setGenerateAudio,
     setGptImageOptions,
     setGuidanceScale,
