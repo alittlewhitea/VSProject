@@ -111,6 +111,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.85
     },
     {
+      url: absoluteUrl(baseUrl, "/video/seedance-2-5-flash"),
+      lastModified: "2026-11-12",
+      changeFrequency: "weekly",
+      priority: 0.85
+    },
+    {
       url: absoluteUrl(baseUrl, "/about"),
       changeFrequency: "monthly",
       priority: 0.6

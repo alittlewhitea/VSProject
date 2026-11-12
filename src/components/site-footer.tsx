@@ -50,6 +50,7 @@ export async function SiteFooter() {
           <Link href="/video/examples" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Video Examples &amp; Prompts</Link>
           <Link href="/video/gemini-omni" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Gemini Omni</Link>
           <Link href="/video/seedance-2" className="block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Seedance 2.0</Link>
+          <Link href="/video/seedance-2-5-flash" className="mt-2 block text-sm text-[#4f5a67] hover:text-[#1d1d1f]">Seedance 2.5 Flash Guide</Link>
         </div>
         <div>
           <Link href="/compare" className="block text-sm font-semibold hover:text-[#1d1d1f]">Compare</Link>

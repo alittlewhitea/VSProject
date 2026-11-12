@@ -13,7 +13,7 @@ async function get(path, headers = {}, method = 'GET') {
 }
 
 try {
-  for (const path of ['/en', '/zh-CN', '/ar', '/about', '/avatar/ai-avatar-generator', '/video/text-to-video', '/video/image-to-video', '/video/gemini-omni', '/video/seedance-2', '/video/examples', '/image/text-to-image', '/es/video/text-to-video', '/pt-BR/image/text-to-image', '/compare', '/compare/dreamface-vs-heygen']) {
+  for (const path of ['/en', '/zh-CN', '/ar', '/about', '/avatar/ai-avatar-generator', '/video/text-to-video', '/video/image-to-video', '/video/gemini-omni', '/video/seedance-2', '/video/seedance-2-5-flash', '/video/examples', '/image/text-to-image', '/es/video/text-to-video', '/pt-BR/image/text-to-image', '/compare', '/compare/dreamface-vs-heygen']) {
     const { response, body } = await get(path);
     assert.equal(response.status, 200, path);
     assert.match(response.headers.get('cache-control'), /public.*max-age=0.*s-maxage=300.*stale-while-revalidate=60/, path);

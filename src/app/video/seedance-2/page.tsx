@@ -265,6 +265,12 @@ export default function SeedancePage() {
           </div>
         </section>
 
+        <aside className="mb-8 rounded-3xl border border-black/10 bg-white px-6 py-7 sm:px-10">
+          <p className="text-xs font-black uppercase tracking-widest text-[#5664d8]">Explore the next generation</p>
+          <h2 className="mt-3 text-2xl font-bold">Learn about Seedance 2.5 Flash</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-[#666b75]">Read the announced specifications and watch official Flash and flagship examples. Seedance 2.5 Flash is a separate model and is not yet connected to DreamFace Studio.</p>
+          <Link href="/video/seedance-2-5-flash" className="mt-3 inline-flex min-h-11 items-center font-bold text-[#5664d8] underline">Seedance 2.5 Flash guide</Link>
+        </aside>
         <SiteFooter />
       </div>
     </main>

@@ -10,7 +10,7 @@ assert.deepEqual([...settings.localeHomes].sort(), [...locales].sort(), 'Header 
 const { canCacheMarketingRequest, PUBLIC_MARKETING_CACHE_CONTROL } = load('src/lib/marketing-cache-policy.ts');
 const request = (path, options) => new NextRequest('https://fixture.invalid' + path, options);
 for (const locale of locales) assert.equal(canCacheMarketingRequest(request('/' + locale)), true);
-for (const path of ['/about', '/video/gemini-omni', '/video/seedance-2', '/avatar/ai-avatar-generator', '/compare/dreamface-vs-heygen', '/es/video/text-to-video', '/pt-BR/image/text-to-image']) {
+for (const path of ['/about', '/video/gemini-omni', '/video/seedance-2', '/video/seedance-2-5-flash', '/avatar/ai-avatar-generator', '/compare/dreamface-vs-heygen', '/es/video/text-to-video', '/pt-BR/image/text-to-image']) {
   assert.equal(canCacheMarketingRequest(request(path)), true, path);
   assert.equal(canCacheMarketingRequest(request(path + '?utm_source=google&gclid=fixture')), true);
 }

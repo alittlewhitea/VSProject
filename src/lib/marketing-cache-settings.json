@@ -4,7 +4,7 @@
   "nonHtmlHeaders": ["rsc", "next-router-prefetch", "next-router-state-tree", "next-router-segment-prefetch", "next-url", "next-action", "authorization"],
   "englishPages": [
     "/about", "/avatar/ai-avatar-generator", "/image/text-to-image",
-    "/video/text-to-video", "/video/image-to-video", "/video/gemini-omni", "/video/seedance-2", "/video/examples",
+    "/video/text-to-video", "/video/image-to-video", "/video/gemini-omni", "/video/seedance-2", "/video/seedance-2-5-flash", "/video/examples",
     "/compare", "/compare/dreamface-vs-runway", "/compare/dreamface-vs-pika", "/compare/dreamface-vs-kling-ai",
     "/compare/dreamface-vs-higgsfield", "/compare/dreamface-vs-heygen", "/compare/dreamface-vs-artlist"
   ],
