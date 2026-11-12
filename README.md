@@ -22,6 +22,6 @@ Run verification without production credentials. Tests simulate providers; never
 
 ## Architecture and operations
 
-See [the architecture guide](docs/architecture.md), [generation operations](docs/generation-settlement-and-recovery.zh-CN.md) and [the November audit](docs/claude-review-verification-2026-11-11.zh-CN.md) for settlement guarantees, recovery procedures and remaining limitations.
+See [the architecture guide](docs/architecture.md), [generation operations](docs/generation-settlement-and-recovery.zh-CN.md), [Cloudflare language redirects](docs/cloudflare-locale-redirect.zh-CN.md) and [the November audit](docs/claude-review-verification-2026-11-11.zh-CN.md) for settlement guarantees, recovery procedures and remaining limitations.
 
 After reviewing and deploying a change through the usual release process, run the application with `npm run build` and `npm run start` or the existing PM2 setup. Deployment and production reconciliation are separate operational actions; running local checks does not perform them.

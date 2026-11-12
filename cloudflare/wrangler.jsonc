@@ -1,0 +1,9 @@
+{
+  "name": "dreamface-locale-redirect",
+  "main": "locale-redirect-worker.mjs",
+  "compatibility_date": "2026-11-12",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "dreamface.io/*", "zone_name": "dreamface.io" }
+  ]
+}

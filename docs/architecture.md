@@ -42,6 +42,10 @@ Public marketing documents use a short shared-cache policy selected by an explic
 
 The root layout still reads request locale headers. Public pages are not forced into static rendering; whole-document cache hits require a correctly configured proxy/CDN. See [cache scope, HTTP validation and deployment boundaries](marketing-cache.zh-CN.md).
 
+## Language negotiation
+
+Root marketing redirects share a weighted language-preference resolver with a generated standalone Cloudflare Worker. Saved language cookies take precedence over browser preferences; explicit language URLs remain authoritative. The origin middleware handles the same negotiation when edge routing is bypassed. The Worker preserves tracking queries and proxies non-root requests unchanged, with no retries for failed origin POSTs. See [edge deployment and fallback validation](cloudflare-locale-redirect.zh-CN.md).
+
 ## Validation boundaries
 
 Unit and security fixtures exercise real routes and services with simulated boundaries. The opt-in MySQL suite additionally executes actual SQL/locks/rollback against disposable databases. Headless browser checks cover Admin review, audio inspection and Studio lazy loading/draft retention using mocked APIs. Local production HTTP checks verify marketing cache headers, language and RSC separation. These are not paid provider, CDN deployment or production callback acceptance tests. Trusted-proxy configuration, broad upload retention, CDN deployment verification, Admin aggregation and further generation-service decomposition remain in the audit.

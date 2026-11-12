@@ -4,11 +4,11 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "next dev",
-    "build": "npm run generate:studio-messages && next build",
+    "build": "npm run generate:studio-messages && npm run generate:locale-redirect && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "node -e \"require('fs').rmSync('.test-build',{recursive:true,force:true})\" && tsc -p tsconfig.test.json && node --test \".test-build/tests/**/*.test.js\"",
-    "verify:locales": "node scripts/verify-all-locales.mjs && npm run verify:studio-messages",
+    "verify:locales": "node scripts/verify-all-locales.mjs && npm run verify:studio-messages && npm run verify:locale-redirect",
     "verify:security": "node scripts/verify-security-invariants.mjs",
     "verify:referrals": "node scripts/verify-referrals.mjs",
     "verify:gpt-image": "node scripts/verify-gpt-image.mjs && node scripts/verify-gpt-image-pricing.mjs",
@@ -39,7 +39,9 @@
     "verify:audio-runtime": "node scripts/check-audio-runtime.mjs",
     "generate:studio-messages": "node scripts/generate-studio-messages.mjs",
     "verify:studio-messages": "node scripts/generate-studio-messages.mjs --check && node scripts/verify-studio-messages.mjs && node scripts/verify-studio-locale-hook.mjs",
-    "verify:marketing-cache": "node scripts/verify-marketing-cache.mjs"
+    "verify:marketing-cache": "node scripts/verify-marketing-cache.mjs",
+    "generate:locale-redirect": "node scripts/generate-locale-redirect-worker.mjs",
+    "verify:locale-redirect": "node scripts/generate-locale-redirect-worker.mjs --check && node scripts/verify-locale-redirect.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
