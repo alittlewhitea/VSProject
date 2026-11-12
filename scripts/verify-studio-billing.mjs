@@ -1,6 +1,22 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import {createTranslator} from 'next-intl';
+import {projectLoader} from './load-project-ts.mjs';
+
+// Marketing uses next-intl's nested paths; Studio uses flat keys. Verify the
+// new shared purchase copy through both representations, including ICU values.
+const localeLoad=projectLoader();
+const {creditShopDesignMessages}=localeLoad('src/lib/credit-shop-design-messages.ts');
+for(const [locale,messages] of Object.entries(creditShopDesignMessages)) {
+ const creditShop=JSON.parse(readFileSync(`messages/credit-shop/${locale}.json`,'utf8'));
+ const studio=JSON.parse(readFileSync(`messages/studio/${locale}.json`,'utf8'));
+ const translate=createTranslator({locale,messages:{creditShop:Object.fromEntries(Object.entries(creditShop).map(([key,value])=>[key.replace(/^creditShop\./,''),value]))},onError:error=>{throw error;}});
+ for(const [key,value] of Object.entries(messages)) {
+  assert.equal(creditShop[key],value);assert.equal(studio[key],value);
+  assert.ok(!translate(key,{count:'100',percent:11,credits:1800,seconds:5,characters:'1,000'}).includes('creditShop.'),`${locale}: ${key}`);
+ }
+}
 
 const compile = source => ts.transpileModule(source, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 const module = {exports:{}};

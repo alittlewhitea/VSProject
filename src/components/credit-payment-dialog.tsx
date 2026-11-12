@@ -6,12 +6,15 @@ import { trackEvent, trackPurchaseEvent } from "../lib/analytics";
 import { getPayPalWalletConfig, mountPayPalWallets, type WalletController, type WalletStatus, type WalletReceipt, type Wallet, type WalletCallbacks } from "../lib/paypal-wallets-client";
 import { DODO_CHECKOUT_SUSPENDED } from "../lib/payment-release";
 import { PayPalCardPayment } from "./paypal-card-payment";
+import { CreditShopIcon } from "./credit-shop-icon";
+import styles from "./credit-shop.module.css";
 type PaymentCallbacks = Omit<Required<WalletCallbacks>, "createOrder"> & { createOrder: (method: Wallet | "card") => Promise<string> };
 type Translate=(key:string,values?:Record<string,string|number>)=>string;
 const PENDING_KEY="dreamface_wallet_pending_order";
 type Pending={orderId:string;packId:string};
-export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,message,onCheckout,onClose}:{
+export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,message,onCheckout,onClose,balance=null}:{
   pack:CreditPack;accessToken:string;t:Translate;loadingPack:string|null;message?:string;
+  balance?:number|null;
   onCheckout:(id:string,provider:CreditPaymentProvider)=>void|Promise<void>;onClose:()=>void;
 }) {
   const dialog=useRef<HTMLDivElement>(null),apple=useRef<HTMLDivElement>(null),google=useRef<HTMLDivElement>(null);
@@ -25,6 +28,13 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
   const busy=walletBusy||Boolean(loadingPack);
   const stateRef=useRef({busy,onClose});stateRef.current={busy,onClose};
   const displayPack=CREDIT_PACKS.find(item=>item.id===(paid?.packId||pending?.packId))||pack;
+  // Freeze the quoted starting balance. A verified purchase triggers a balance
+  // refresh in the parent; adding credits to that refreshed value would double it.
+  const startingBalance=useRef(balance);
+  if(startingBalance.current===null&&!paid&&balance!==null)startingBalance.current=balance;
+  const starter=CREDIT_PACKS.find(item=>item.id==="starter")!;
+  const discount=Math.max(0,Math.floor((1-(displayPack.amountCents/displayPack.credits)/(starter.amountCents/starter.credits))*100));
+  const quotedBalance=(pending?.packId||paid?.packId||pack.id)!==pack.id?null:startingBalance.current;
   async function post(path:string,body:unknown) {
     const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${accessToken}`},body:JSON.stringify(body),signal:AbortSignal.timeout(45000)});
     const payload=await response.json().catch(()=>null);
@@ -146,19 +156,25 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
   }
   const disabled=busy||Boolean(pending)||Boolean(paid);
   return createPortal(
-    <div data-credit-payment-dialog className="fixed inset-0 z-[220] flex items-center justify-center bg-[#100b1d]/65 p-4 backdrop-blur-sm" onClick={event=>{event.stopPropagation();if(event.target===event.currentTarget&&!busy)onClose();}}>
-      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="credit-payment-title" tabIndex={-1} className="relative max-h-[90dvh] w-full max-w-[440px] overflow-y-auto rounded-3xl border border-white/70 bg-white p-6 text-start shadow-2xl outline-none sm:p-8">
-        <button type="button" aria-label={t("creditShop.close")} disabled={busy} onClick={onClose} className="absolute end-3 top-3 grid h-10 w-10 place-items-center rounded-full text-xl text-[#82758f] hover:bg-[#f5f2fa] disabled:opacity-40">×</button>
-        <p className="text-xs font-black uppercase tracking-widest text-[#8069b1]">{t("creditShop.oneTime")}</p>
-        <h2 id="credit-payment-title" className="mt-3 pe-6 text-2xl font-black tracking-tight text-[#241a34]">{t("creditShop.paymentTitle")}</h2>
-        <div className="my-6 rounded-2xl border border-[#e8e0f7] bg-[#faf7ff] p-4">
-          <p className="font-bold text-[#37294b]">{displayPack.name}</p>
-          <p className="mt-1 text-sm font-semibold text-[#8061b8]">{(paid?.credits??displayPack.credits).toLocaleString()} {t("creditShop.credits")}</p>
-          <div className="mt-4 flex items-center justify-between border-t border-[#e8e0f7] pt-3"><span className="text-sm text-[#82758f]">{t("creditShop.total")}</span><strong className="text-2xl font-black text-[#241a34]">{formatUsd(paid?.amountCents??displayPack.amountCents)} <span className="text-xs font-semibold text-[#82758f]">USD</span></strong></div>
+    <div data-credit-payment-dialog className={styles.paymentBackdrop} onClick={event=>{event.stopPropagation();if(event.target===event.currentTarget&&!busy)onClose();}}>
+      <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="credit-payment-title" tabIndex={-1} className={styles.payment}>
+        <button type="button" data-credit-payment-close aria-label={t("creditShop.backToPacks")} disabled={busy} onClick={onClose} className={styles.close}>×</button>
+        <p className={styles.paymentEyebrow}><CreditShopIcon name="lock" />{t("creditShop.instantCheckout")}</p>
+        <h2 id="credit-payment-title" className={styles.paymentTitle}>{displayPack.name}</h2>
+        <div className={styles.order} data-credit-order-summary>
+          <div className={styles.orderRow}><span>{t("creditShop.creditsAdded")}</span><strong data-order-credits>+{(paid?.credits??displayPack.credits).toLocaleString()} {t("creditShop.credits")}</strong></div>
+          <div className={styles.orderRow}><span>{t("creditShop.newBalance")}</span><strong data-order-balance>{quotedBalance === null ? "—" : `${(quotedBalance + (paid?.credits??displayPack.credits)).toLocaleString()} ${t("creditShop.credits")}`}</strong></div>
+          <div className={`${styles.orderRow} ${styles.orderDiscount}`}><span>{t("creditShop.discountTier")}</span><strong>{discount>0?t("creditShop.savings",{percent:discount}):t("creditShop.standardRate")}</strong></div>
+          <div className={`${styles.orderRow} ${styles.orderTotal}`}><span>{t("creditShop.dueToday")}</span><strong data-order-total>{formatUsd(paid?.amountCents??displayPack.amountCents)} <small>USD</small></strong></div>
         </div>
         {paid ? <p role="status" className="rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{t("creditShop.paid")}</p> : <>
           <p className="mb-3 text-sm font-bold text-[#5e4a78]">{t("creditShop.chooseMethod")}</p>
-          <div inert={disabled||undefined} className={disabled?"pointer-events-none opacity-50":""}>
+          <div className="grid gap-2.5">
+            <PayPalCardPayment key={pack.id} amountCents={pack.amountCents} disabled={disabled} t={t} callbacks={{
+              canStart:()=>callbacks.current.canStart(),createOrder:()=>callbacks.current.createOrder("card"),capture:id=>callbacks.current.capture(id),
+              onBusy:value=>callbacks.current.onBusy(value),onAuthorized:id=>callbacks.current.onAuthorized(id),onSuccess:receipt=>callbacks.current.onSuccess(receipt),onError:()=>callbacks.current.onError(),onInvalid:()=>{}
+            }} />
+          <div inert={disabled||undefined} hidden={walletStates.applepay==="unavailable"&&walletStates.googlepay==="unavailable"} className={disabled?"pointer-events-none opacity-50":""}>
             {(["applepay","googlepay"] as const).map(wallet=><div key={wallet} data-wallet-slot={wallet} data-wallet-status={walletStates[wallet]} hidden={walletStates[wallet]==="unavailable"} className="mb-2 min-h-12 min-w-0">
               <div ref={wallet==="applepay"?apple:google} data-wallet-container={wallet} hidden={walletStates[wallet]!=="ready"} />
               {walletStates[wallet]==="loading"?<div role="status" className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-[#e8e0f7] bg-[#f7f5fa] px-4 py-3 text-sm" aria-label={`${wallet==="applepay"?"Apple Pay":"Google Pay"}: ${t("creditShop.walletLoading")}`}>
@@ -171,12 +187,7 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
               </div>:null}
             </div>)}
           </div>
-          <div className="grid gap-2">
             <button type="button" data-payment-provider="paypal" disabled={disabled} onClick={()=>void redirect("paypal")} className="min-h-12 rounded-xl bg-[#ffc439] px-4 text-sm font-black text-[#003087] disabled:opacity-40">PayPal</button>
-            <PayPalCardPayment key={pack.id} amountCents={pack.amountCents} disabled={disabled} t={t} callbacks={{
-              canStart:()=>callbacks.current.canStart(),createOrder:()=>callbacks.current.createOrder("card"),capture:id=>callbacks.current.capture(id),
-              onBusy:value=>callbacks.current.onBusy(value),onAuthorized:id=>callbacks.current.onAuthorized(id),onSuccess:receipt=>callbacks.current.onSuccess(receipt),onError:()=>callbacks.current.onError(),onInvalid:()=>{}
-            }} />
             {card&&!DODO_CHECKOUT_SUSPENDED?<button type="button" data-payment-provider="dodo" disabled={disabled} onClick={()=>void redirect("dodo")} className="min-h-12 rounded-xl bg-[#7554e8] px-4 text-sm font-black text-white disabled:opacity-40">Credit Card</button>:null}
           </div>
           {pending?<div role="status" className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><p>{t("creditShop.pending")}</p><button type="button" data-wallet-retry disabled={busy} onClick={()=>void retry()} className="mt-3 min-h-11 w-full rounded-lg bg-amber-900 px-3 font-bold text-white disabled:opacity-50">{t("creditShop.retry")}</button></div>:null}
@@ -184,7 +195,7 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
           {error||redirectAttempted&&message&&!loadingPack?<p role="alert" className="mt-3 text-sm text-red-700">{redirectAttempted&&message?message:t("creditShop.paymentFailed")}</p>:null}
         </>}
         {paid||pending?<a href="/billing" className="mt-4 inline-block text-sm font-bold text-[#7554e8] underline">{t("creditShop.viewBilling")}</a>:null}
-        <p className="mt-5 text-xs leading-5 text-[#95869f]">{t("creditShop.secure")}</p>
+        <p className={styles.paymentSecure}><CreditShopIcon name="shield" />{t("creditShop.secureCheckout")}</p>
       </div>
     </div>,document.body
   );

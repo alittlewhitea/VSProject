@@ -41,7 +41,7 @@ async function evaluate(expression){const result=await send('Runtime.evaluate',{
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function wait(expression){for(let n=0;n<160;n++){if(await evaluate(expression))return;await pause(125);}throw new Error(expression);}
 async function open(){await evaluate("document.querySelector('[data-credit-pack-select=starter]').click()");await wait("!!document.querySelector('[data-payment-provider=paypal-card]')");await evaluate("document.querySelector('[data-payment-provider=paypal-card]').click()");await wait("document.querySelector('[data-card-status]')?.dataset.cardStatus!=='loading'");}
-async function close(){await evaluate("document.querySelector('[data-credit-payment-dialog] button[aria-label=Close]').click()");await wait("!document.querySelector('[data-credit-payment-dialog]')");}
+async function close(){await evaluate("document.querySelector('[data-credit-payment-close]').click()");await wait("!document.querySelector('[data-credit-payment-dialog]')");}
 async function address(){await evaluate("{const form=document.querySelector('[data-paypal-card-payment] form');for(const [name,value] of Object.entries({countryCode:'GB',addressLine1:'Fixture street',adminArea2:'Fixture city',postalCode:'SW1A 1AA'})){form.elements.namedItem(name).value=value;}} ");}
 async function shot(name){const result=await send('Page.captureScreenshot',{format:'png'});writeFileSync('outputs/paypal-cards/'+name+'.png',Buffer.from(result.data,'base64'));}
 async function checkFieldLayout(){
@@ -77,4 +77,4 @@ try{
  writeFileSync('outputs/paypal-cards/browser.json',JSON.stringify({passed:true,widths:[1440,390,320],orders:orders.length,captures:captures.length,checks:['hosted fields','no Dodo','invalid card creates no order','single submit and approval','uncertain capture recovery same order','3DS refusal permits fallback','ineligible fallback','load failure retry','no card data in own APIs'],errors},null,2));
  console.log('PayPal card UI passed: desktop/mobile/320px fields, no Dodo dependency, validation, concurrent clicks, capture recovery, 3DS failure fallback, ineligible and load retry. All business APIs and external SDKs mocked.');
 }catch(error){console.log(await evaluate("JSON.stringify({url:location.href,body:document.body?.innerText.slice(-1200)})").catch(()=>''));throw error;}
-finally{await send('Page.close').catch(()=>{});socket.close();}
+finally{await send('Page.navigate',{url:'about:blank'}).catch(()=>{});await new Promise(resolve=>{socket.addEventListener('close',resolve,{once:true});socket.close();});await fetch('http://127.0.0.1:9353/json/close/'+tab.id).catch(()=>{});await pause(150);}

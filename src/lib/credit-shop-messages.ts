@@ -1,4 +1,5 @@
 import type { Locale } from "../i18n/routing";
+import { creditShopDesignMessages } from "./credit-shop-design-messages";
 
 const paymentMessages = {
   "creditShop.paymentTitle": "Complete your purchase",
@@ -746,3 +747,7 @@ export const creditShopMessages: Record<Locale, Record<string, string>> = {
     "creditShop.checkLater": "لم يتم تأكيد الدفع بعد. حدّث لاحقاً أو تواصل مع الدعم برقم الطلب."
   }
 };
+
+for (const locale of Object.keys(creditShopMessages) as Locale[]) {
+  Object.assign(creditShopMessages[locale], creditShopDesignMessages[locale]);
+}

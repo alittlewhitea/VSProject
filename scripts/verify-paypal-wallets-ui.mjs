@@ -2,8 +2,8 @@
 // All APIs and external requests are fixtures; this script never creates a real payment.
 import assert from 'node:assert/strict';
 import {mkdirSync,writeFileSync} from 'node:fs';
-const tabs=await(await fetch('http://127.0.0.1:9353/json/list')).json();
-const socket=new WebSocket(tabs.find(tab=>tab.type==='page').webSocketDebuggerUrl);
+const tab=await(await fetch('http://127.0.0.1:9353/json/new?about:blank',{method:'PUT'})).json();
+const socket=new WebSocket(tab.webSocketDebuggerUrl);
 await new Promise(resolve=>socket.addEventListener('open',resolve,{once:true}));
 let sequence=0,balance=100,orderCount=0,failCapture=false,failConfig=false,configCount=0;
 let releaseApple;
@@ -49,7 +49,7 @@ async function evaluate(expression){const result=await send('Runtime.evaluate',{
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function wait(expression){for(let i=0;i<120;i++){if(await evaluate(expression))return;await pause(250);}throw new Error('Timed out: '+expression);}
 async function openPayment(ready=true){await evaluate(`document.querySelector('[data-credit-pack-select="starter"]').click()`);await wait(`Boolean(document.querySelector('[data-credit-payment-dialog]'))`);if(ready)await wait(`document.querySelector('[data-wallet-slot="applepay"]')?.dataset.walletStatus==='ready' && document.querySelector('[data-wallet-slot="googlepay"]')?.dataset.walletStatus==='ready'`);}
-async function closePayment(){await evaluate(`document.querySelector('[data-credit-payment-dialog] button[aria-label="Close"]').click()`);await wait(`!document.querySelector('[data-credit-payment-dialog]')`);}
+async function closePayment(){await evaluate(`document.querySelector('[data-credit-payment-close]').click()`);await wait(`!document.querySelector('[data-credit-payment-dialog]')`);}
 async function shot(name){const screenshot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});writeFileSync('outputs/wallet-loading/'+name+'.png',Buffer.from(screenshot.data,'base64'));}
 try {
  mkdirSync('outputs/wallet-loading',{recursive:true});
@@ -89,6 +89,7 @@ try {
   await shot(name+'-ready');
   await evaluate(`document.querySelector('[data-payment-provider="paypal"]').click()`);await wait(`document.querySelector('[data-credit-payment-dialog] [role="alert"]')?.innerText.includes('Fixture checkout unavailable')`);
   await evaluate(`document.querySelector('apple-pay-button').click()`);await wait(`document.querySelector('[data-credit-payment-dialog]')?.innerText.includes('Payment confirmed')`);
+  await wait(`document.querySelector('[data-order-balance]')?.innerText===${JSON.stringify(balance.toLocaleString('en-US')+' credits')}`);
   assert.equal(await evaluate(`document.querySelector('[data-credit-payment-dialog] [role="alert"]')===null`),true);
   await closePayment();
   await openPayment();failCapture=true;
@@ -122,4 +123,4 @@ try {
  assert.deepEqual(errors,[]);
  writeFileSync('outputs/wallet-loading/browser-regression.json',JSON.stringify({passed:true,orders:orderCount,configRequests:configCount,sdkRequests,checks:['preload before selection','parallel downloads','independent loading','working Google retained during Apple retry','cached reopen','unsupported vs error','configuration retry','desktop/mobile','Apple capture','Google capture recovery reuses order','nested Studio close'],errors},null,2));
  console.log('Wallet desktop/mobile UI passed: preloading before selection, independent placeholders/readiness, isolated retries, cached reopen, unsupported/config failure states, PayPal fallback, Apple purchase and Google recovery with the same order. All APIs and SDKs mocked.');
-} finally {socket.close();}
+} finally {await send('Page.navigate',{url:'about:blank'}).catch(()=>{});await new Promise(resolve=>{socket.addEventListener('close',resolve,{once:true});socket.close();});await fetch('http://127.0.0.1:9353/json/close/'+tab.id).catch(()=>{});await pause(150);}

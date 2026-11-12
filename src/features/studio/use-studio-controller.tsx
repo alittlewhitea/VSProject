@@ -278,6 +278,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       } catch { /* A confirmed payment can still be viewed on Billing if refresh fails. */ }
     };
     window.addEventListener("dreamface:credits-updated", refresh);
+    void refresh();
     return () => { controller.abort(); window.removeEventListener("dreamface:credits-updated", refresh); };
   }, [accessToken, userId]);
   const [authReady, setAuthReady] = useState(false);

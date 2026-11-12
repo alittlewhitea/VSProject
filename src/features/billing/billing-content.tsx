@@ -12,6 +12,7 @@ import {
 } from "../../lib/billing";
 import { CREDIT_LOW_BALANCE_THRESHOLD, MODEL_PRICING_ROWS } from "../../lib/model-pricing";
 import { CreditPackGrid } from "../../components/credit-pack-grid";
+import creditShopStyles from "../../components/credit-shop.module.css";
 import { TopNav } from "../../components/top-nav";
 import { trackEvent, trackPurchaseEvent } from "../../lib/analytics";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
@@ -662,10 +663,7 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
           ) : null}
 
           <section className="mt-8">
-            <h2 className="mb-3 text-2xl font-semibold">{t("creditShop.title")}</h2>
-            <p className="mb-6 text-sm text-[var(--df-muted)]">{t("creditShop.subtitle")}</p>
-            <CreditPackGrid appearance={embedded ? "studio" : "default"} t={t} loadingPack={loadingPack} onCheckout={startCheckout} accessToken={accessToken} message={message} />
-            <p className="mt-5 text-xs text-[var(--df-muted)]">{t("creditShop.note")}</p>
+            <CreditPackGrid appearance={embedded ? "studio" : "default"} balance={balance} t={t} loadingPack={loadingPack} onCheckout={startCheckout} accessToken={accessToken} message={message} />
           </section>
 
           <section className="mt-10 grid gap-5 lg:grid-cols-2">
@@ -726,24 +724,18 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
   }
 
   return (
-    <main className="min-h-screen bg-[#faf8ff] pb-16 text-[#20182e]">
+    <main className={creditShopStyles.pricingPage}>
       <div className="mx-auto max-w-[1400px] px-4 pt-4 md:px-8"><TopNav /></div>
-      <section className="mx-auto max-w-[1240px] px-4 pb-8 pt-12 text-center sm:px-8 sm:pt-20">
-        <p className="text-xs font-black uppercase tracking-[.18em] text-[#896bbd]">{t("creditShop.eyebrow")}</p>
-        <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-6xl">{t("creditShop.title")}</h1>
-        <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-[#82748f]">{t("creditShop.subtitle")}</p>
-        {accessToken ? <p className="mt-5 text-sm font-bold text-[#7554df]">{t("creditShop.balance")}: {balance === null ? "--" : balance.toLocaleString()} {t("creditShop.credits")} · <a className="underline" href="/billing">{t("billing.title")}</a></p> : null}
-        {message ? <p role="status" className="mt-6 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">{message}</p> : null}
-        <div className="mt-10"><CreditPackGrid t={t} loadingPack={loadingPack} onCheckout={startCheckout} accessToken={accessToken} message={message} /></div>
-        <p className="mt-5 text-xs leading-6 text-[#8b8096]">{t("creditShop.note")}</p>
-      </section>
-      <section className="mx-auto mt-6 max-w-[1176px] rounded-3xl border border-[#e7e1f0] bg-white p-6 sm:p-8">
+      <div className="px-3 sm:px-6"><section className={creditShopStyles.pricingPanel}>
+        <CreditPackGrid headingLevel={1} balance={balance} t={t} loadingPack={loadingPack} onCheckout={startCheckout} accessToken={accessToken} message={message} />
+      </section></div>
+      <section className="mx-3 mt-6 max-w-[1140px] rounded-3xl border border-slate-200 bg-white p-6 sm:mx-6 sm:p-8 xl:mx-auto">
         <h2 className="text-xl font-black">{t("creditShop.howTitle")}</h2>
         <div className="mt-5 grid gap-5 text-sm leading-6 text-[#80718c] sm:grid-cols-3">
           {["step1","step2","step3"].map((key,index) => <p key={key}><span className="me-2 font-black text-[#7655ed]">0{index+1}</span>{t(`creditShop.${key}`)}</p>)}
         </div>
       </section>
-      <section className="mx-auto max-w-[1176px] px-4 pt-12 sm:px-0">
+      <section className="mx-auto max-w-[1140px] px-4 pt-12 xl:px-0">
         <h2 className="text-2xl font-black">{t("pricing.modelGuide.title")}</h2>
         <p className="mt-3 text-sm leading-6 text-[#82748f]">{t("creditShop.modelNote")}</p>
         <div className="mt-5 overflow-hidden rounded-2xl border border-[#e7e1f0] bg-white">
