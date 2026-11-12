@@ -2,6 +2,8 @@ import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyf
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution } from "../../../lib/gemini-omni";
 import { HEYGEN_REFERENCE_RATIOS, validateHeygenReferences } from "../../../lib/heygen-reference-video";
 import { heygenAvatarPrompt, heygenAvatarTiming } from "../../../lib/heygen-avatar";
+import { heygenVideoSpokenPrompt, shouldDisableHeygenEnhancement, videoDialogueTiming } from "../../../lib/video-spoken-script";
+import { heygenAspectRatioError } from "../../../lib/heygen-video-options";
 import { MISCHIEF_RETIRED } from "../../../lib/model-release";
 import { createH3DailyFreeTask, h3FreeContext } from "../../../lib/h3-daily-free";
 import { isH3DailyFreeRequest, H3_DAILY_FREE_PROGRAM } from "../../../lib/h3-daily-free-policy";
@@ -319,7 +321,7 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
       prompt,
       duration: Number.parseInt(body.duration, 10),
       resolution: body.resolution || "768p",
-      prompt_enhancement: "turbo",
+      prompt_enhancement: shouldDisableHeygenEnhancement(prompt, body.promptEnhancement) ? "disabled" : "turbo",
       enable_safety_checker: body.enableSafetyChecker === true,
       ...(body.videoWorkflow === "reference-to-video"
         ? { reference_video_urls: body.videoUrls?.map(url => url.trim()), ...(body.imageUrls?.length ? {reference_image_urls: body.imageUrls.map(url => url.trim())} : {}), aspect_ratio: body.ratio }
@@ -951,9 +953,15 @@ export async function POST(request: Request) {
       if (!/^(?:[5-9]|1[0-5])s$/.test(body.duration)) {
         return NextResponse.json({ error: "HeyGen Video supports durations from 5 to 15 seconds." }, { status: 400 });
       }
+      const speech = body.mode === "video" ? videoDialogueTiming(prompt, body.duration) : null;
+      if (speech?.tooLong) {
+        return NextResponse.json({ error: `The spoken dialogue needs about ${speech.requiredSeconds}s; the selected clip is ${speech.selectedSeconds}s (maximum 15s). Shorten the dialogue or select a duration that fits.`, code: "video_dialogue_too_long", requiredSeconds: speech.requiredSeconds, selectedSeconds: speech.selectedSeconds, maxSeconds: speech.maxSeconds }, { status: 400 });
+      }
       if (body.resolution && !["480p", "768p", "1080p", "2k"].includes(body.resolution)) {
         return NextResponse.json({ error: "HeyGen Video supports 480p, 768p, 1080p, and 2k." }, { status: 400 });
       }
+      const aspectRatioError = heygenAspectRatioError(body.videoWorkflow || "", body.resolution, body.ratio);
+      if (aspectRatioError) return NextResponse.json({ error: aspectRatioError, code: "heygen_resolution_aspect_ratio" }, { status: 400 });
       if (body.videoWorkflow === "image-to-video" && imageUrls.length !== 1) {
         return NextResponse.json({ error: "HeyGen Video image-to-video requires one reference image." }, { status: 400 });
       }
@@ -1044,7 +1052,7 @@ export async function POST(request: Request) {
     if ((!falKey || !modelId) && (process.env.NODE_ENV === "production" || process.env.ALLOW_MOCK_GENERATION !== "true")) {
       return NextResponse.json({ error: "This generation model is unavailable. No credits were charged.", code: "provider_not_configured" }, { status: 503 });
     }
-    const submittedPrompt = isHeygenAvatar ? heygenAvatarPrompt(prompt) : prompt;
+    const submittedPrompt = isHeygenAvatar ? heygenAvatarPrompt(prompt) : body.mode === "video" && body.provider === "heygen-video" ? heygenVideoSpokenPrompt(prompt) : prompt;
 
     const creditAccount = await ensureRequestCreditAccount(admin, user.id, request);
     let estimatedCredits = baseEstimatedCredits;
@@ -1075,7 +1083,7 @@ export async function POST(request: Request) {
           model: typeof body.promptEnhancement.model === "string" ? body.promptEnhancement.model.slice(0, 120) : null
         }
       } : {}),
-      ...(isHeygenAvatar ? { submitted_prompt: submittedPrompt } : {}),
+      ...(submittedPrompt !== prompt ? { submitted_prompt: submittedPrompt } : {}),
       billing_source: billingSource as "credits" | "daily_free",
       free_units_used: freeUnitsUsed,
       ...(body.dailyFree === true ? { free_program: H3_DAILY_FREE_PROGRAM } : {})
@@ -1184,7 +1192,7 @@ export async function POST(request: Request) {
         };
         await recordTtsOutput(taskId, user.id, ttsStep);
       }
-      submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(body, isHeygenAvatar ? submittedPrompt : prompt), {taskId,userId:user.id,stage:"primary"});
+      submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(body, submittedPrompt), {taskId,userId:user.id,stage:"primary"});
     } catch (networkError) {
       if(networkError instanceof SubmissionNotStarted&&!ttsStep) {
         const settled=await settleGenerationTask(admin,user.id,taskId,{status:"failed",failure_code:"provider_not_submitted",failure_reason:"The provider request could not be prepared. No generation was submitted.",updated_at:new Date().toISOString()},estimatedCredits);

@@ -8,7 +8,7 @@ export function reusableEnhancement(accepted: AcceptedPrompt | null, context: Vi
   return accepted?.contextKey === enhancementContextKey(context) && accepted.final === context.prompt ? accepted : null;
 }
 export function useVideoPromptEnhancement(context: VideoPromptContext, setPrompt: (prompt: string) => void, authenticated: boolean) {
-  const [enabled, setEnabled] = useState(true);
+  const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<"enhanced" | "fallback" | "disabled" | "login" | "restored" | null>(null);
   const [accepted, setAccepted] = useState<AcceptedPrompt | null>(null);

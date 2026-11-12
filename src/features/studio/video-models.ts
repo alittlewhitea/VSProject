@@ -1,4 +1,5 @@
 import { GEMINI_OMNI_RESOLUTIONS } from "../../lib/gemini-omni";
+import { HEYGEN_HD_ASPECT_RATIOS, heygenRequiresHdAspectRatio } from "../../lib/heygen-video-options";
 
 export type StudioVideoWorkflow = "text-to-video" | "image-to-video" | "reference-to-video";
 export type VideoModelGroup = "freeDraft" | "betterQuality" | "premium";
@@ -354,7 +355,8 @@ export function videoModelDefaultResolution(provider: string) {
   return VIDEO_MODEL_CONFIGS[provider]?.defaultResolution || "720p";
 }
 
-export function videoModelRatios(provider: string, workflow: StudioVideoWorkflow) {
+export function videoModelRatios(provider: string, workflow: StudioVideoWorkflow, resolution?: string) {
+  if (provider === "heygen-video" && heygenRequiresHdAspectRatio(workflow, resolution)) return [...HEYGEN_HD_ASPECT_RATIOS];
   return [...(VIDEO_MODEL_CONFIGS[provider]?.workflows[workflow]?.ratios || DEFAULT_VIDEO_RATIOS)];
 }
 

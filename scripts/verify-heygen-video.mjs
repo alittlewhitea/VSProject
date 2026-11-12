@@ -73,7 +73,7 @@ try{
  const avatarRequest=(extra={})=>request({mode:'avatar',videoWorkflow:'avatar-video',imageUrls:['https://example.invalid/avatar.jpg'],ratio:'source',prompt:'Hello, welcome to our studio.',expectedCredits:18,...extra});
  response=await route.POST(avatarRequest());assert.equal(response.status,200,JSON.stringify(response));
  assert.equal(submissions.at(-1).url,'https://queue.fal.run/heygen/heygen-video/image-to-video');
- assert.deepEqual(submissions.at(-1).input,{prompt:avatarTools.heygenAvatarPrompt('Hello, welcome to our studio.'),duration:5,resolution:'768p',prompt_enhancement:'turbo',enable_safety_checker:true,image_url:'https://example.invalid/avatar.jpg'});
+ assert.deepEqual(submissions.at(-1).input,{prompt:avatarTools.heygenAvatarPrompt('Hello, welcome to our studio.'),duration:5,resolution:'768p',prompt_enhancement:'disabled',enable_safety_checker:true,image_url:'https://example.invalid/avatar.jpg'});
  const avatarRecord=Object.values(records).at(-1);assert.equal(avatarRecord.prompt,'Hello, welcome to our studio.');assert.equal(avatarRecord.request_settings.workflow,'avatar-video');assert.equal(avatarRecord.request_settings.submitted_prompt,submissions.at(-1).input.prompt);
  const avatarCount=submissions.length,avatarSpends=[...spends];
  for(const extra of [{imageUrls:[]},{imageUrls:['one','two']},{prompt:'word '.repeat(80)},{prompt:'\u4f60'.repeat(100)},{audioUrl:'https://example.invalid/speech.mp3'},{videoWorkflow:'image-to-video'},{videoUrls:['https://example.invalid/video.mp4']}]){response=await route.POST(avatarRequest(extra));assert.equal(response.status,400,JSON.stringify(extra));}
@@ -96,5 +96,54 @@ try{
  const defaultFunction=client.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='defaultVideoResolutionForProvider');
  const chooseDefault=new Function('videoModelDefaultResolution',ts.transpileModule(defaultFunction.getText(client),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText+';return defaultVideoResolutionForProvider;')(models.videoModelDefaultResolution);
  assert.equal(chooseDefault('heygen-video','video'),'480p');assert.equal(chooseDefault('heygen-video','avatar'),'480p');
- console.log('HeyGen Video passed: existing T2V/I2V/reference workflows; Avatar native-speech I2V, exact dialogue/metadata, manual 5/10/15-second duration and quote, stale-credit rejection, invalid scripts/images before spending, stale quotes and provider configuration. No paid calls or database.');
+ const hdSpends=[...spends],hdSubmissions=submissions.length;
+ for(const resolution of ['1080p','2k']){
+  for(const ratio of ['21:9','4:3','1:1','3:4']){
+   response=await route.POST(request({resolution,ratio,expectedCredits:costs(resolution)}));
+   assert.equal(response.status,400);assert.equal(response.body.code,'heygen_resolution_aspect_ratio');
+   response=await route.POST(reference({resolution,ratio,expectedCredits:costs(resolution)}));
+   assert.equal(response.status,400);assert.equal(response.body.code,'heygen_resolution_aspect_ratio');
+  }
+  response=await route.POST(reference({resolution,ratio:'adaptive',expectedCredits:costs(resolution)}));
+  assert.equal(response.status,400);assert.equal(response.body.code,'heygen_resolution_aspect_ratio');
+  assert.deepEqual(models.videoModelRatios('heygen-video','text-to-video',resolution),['16:9','9:16']);
+  assert.deepEqual(models.videoModelRatios('heygen-video','reference-to-video',resolution),['16:9','9:16']);
+  assert.deepEqual(models.videoModelRatios('heygen-video','image-to-video',resolution),['source']);
+ }
+ assert.deepEqual(spends,hdSpends,'Invalid HD ratio combinations do not spend credits');
+ assert.equal(submissions.length,hdSubmissions,'Invalid HD ratios never reach the supplier');
+ for(const resolution of ['1080p','2k']) for(const ratio of ['16:9','9:16']){
+  response=await route.POST(request({resolution,ratio,expectedCredits:costs(resolution)}));assert.equal(response.status,200);
+  assert.equal(submissions.at(-1).input.aspect_ratio,ratio);assert.equal(submissions.at(-1).input.resolution,resolution);
+  response=await route.POST(reference({resolution,ratio,expectedCredits:costs(resolution)}));assert.equal(response.status,200);
+  assert.equal(submissions.at(-1).input.aspect_ratio,ratio);
+ }
+ const hdOptions=load('src/lib/heygen-video-options.ts');
+ assert.equal(hdOptions.preferredHeygenHdRatio('3:4'),'9:16');assert.equal(hdOptions.preferredHeygenHdRatio('1:1'),'16:9');assert.equal(hdOptions.preferredHeygenHdRatio('9:16'),'9:16');
+ assert.equal(hdOptions.heygenAspectRatioError('image-to-video','2k','source'),null);
+ assert.ok(models.videoModelRatios('heygen-video','text-to-video','480p').includes('1:1'));
+ assert.ok(models.videoModelRatios('heygen-video','reference-to-video','768p').includes('adaptive'));
+ const promptTools=load('src/lib/video-prompt-enhancement.ts');
+ for(const resolution of ['1080p','2k']) assert.throws(()=>promptTools.validatePromptContext({mode:'text-to-video',model:'heygen-video',prompt:'A quiet landscape.',duration:'5s',aspectRatio:'1:1',resolution}));
+ const originalSpeech="Hello my love how are you doing today? How was work today I hope you have a wonderful day today I just want to know what's wrong with you but I'm really worried about you";
+ const beforeSpeechSpends=[...spends],beforeSpeechSubmissions=submissions.length;
+ for(const duration of ['5s','15s']){
+  response=await route.POST(request({prompt:originalSpeech,duration,expectedCredits:18}));
+  assert.equal(response.status,400);assert.equal(response.body.code,'video_dialogue_too_long');assert.equal(response.body.requiredSeconds,16);
+ }
+ assert.deepEqual(spends,beforeSpeechSpends,'Overlong dialogue is rejected before charging');
+ assert.equal(submissions.length,beforeSpeechSubmissions,'Overlong dialogue never reaches the paid provider');
+ const speechTools=load('src/lib/video-spoken-script.ts');
+ response=await route.POST(request({prompt:'Hello, my love!',expectedCredits:18}));assert.equal(response.status,200);
+ assert.equal(submissions.at(-1).input.prompt,speechTools.heygenVideoSpokenPrompt('Hello, my love!'));
+ assert.equal(submissions.at(-1).input.prompt_enhancement,'disabled');assert.equal(submissions.at(-1).input.duration,5);
+ assert.equal(Object.values(records).at(-1).request_settings.submitted_prompt,submissions.at(-1).input.prompt);
+ for(const status of ['off','enhanced','fallback','disabled']){
+  response=await route.POST(request({expectedCredits:18,promptEnhancement:{status,originalPrompt:'A peaceful landscape.',finalPrompt:'A peaceful landscape.'}}));
+  assert.equal(response.status,200);assert.equal(submissions.at(-1).input.prompt_enhancement,'disabled','Website enhancement policy must not be followed by another provider rewrite');
+ }
+ const completePrompt='A steady natural shot. Dialogue: "Hello my love, how are you doing today?"';
+ response=await route.POST(request({prompt:completePrompt,duration:'10s',expectedCredits:36}));assert.equal(response.status,200);
+ assert.equal(submissions.at(-1).input.prompt,completePrompt);assert.equal(submissions.at(-1).input.prompt_enhancement,'disabled');assert.equal(submissions.at(-1).input.duration,10);
+ console.log('HeyGen Video passed: existing workflows; Avatar native speech; verbatim Video dialogue and metadata; no double enhancement; overlong scripts rejected before charging or submission; explicit durations and existing pricing. No paid calls or database.');
 }finally{Date.now=oldNow;globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.FAL_KEY;else process.env.FAL_KEY=oldKey;}

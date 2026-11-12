@@ -11,6 +11,8 @@ import { StudioComposerGenerate } from "./studio-composer-controls";
 import { GenerationCostSummary } from "./generation-cost-summary";
 import type { StudioVideoWorkflow } from "./video-models";
 import { ModelPicker, type ModelPickerOption } from "./model-picker";
+import { videoDialogueTiming } from "../../lib/video-spoken-script";
+import { heygenRequiresHdAspectRatio } from "../../lib/heygen-video-options";
 
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
 
@@ -82,6 +84,7 @@ export function VideoSettings({
 }: VideoSettingsProps) {
   const [activePreset, setActivePreset] = useState("cinematic");
   const [moreSettingsOpen, setMoreSettingsOpen] = useState(false);
+  const speechTiming = provider === "heygen-video" ? videoDialogueTiming(prompt, duration) : null;
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if (!window.matchMedia("(min-width: 1024px)").matches || event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey || event.isComposing || event.repeat) return;
@@ -150,6 +153,7 @@ export function VideoSettings({
           </div>
           {workflow !== "reference-to-video" && ((promptAI.notice && promptAI.notice !== "login") || promptAI.busy) ? <p role="status" aria-live="polite" className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate(`studio.promptAI.${promptAI.busy ? "optimizing" : promptAI.notice}`)}</p> : null}
           {workflow !== "reference-to-video" && promptAI.current ? <div className="mt-2 flex flex-wrap items-start justify-between gap-2"><details className="min-w-0 flex-1 text-xs text-[var(--studio-muted)]"><summary className="min-h-9 cursor-pointer">{translate("studio.promptAI.original")}</summary><p dir="auto" className="mt-1 whitespace-pre-wrap break-words">{promptAI.current.original}</p></details><button type="button" onClick={promptAI.restore} className="min-h-9 rounded-lg border border-[var(--studio-border)] px-3 text-xs font-semibold text-[var(--studio-text)]">{translate("studio.promptAI.restore")}</button></div> : null}
+          {speechTiming?.tooLong ? <p role="alert" data-video-dialogue-warning className="mt-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-200">{translate(speechTiming.exceedsModelLimit ? "studio.videoSpeech.limit" : "studio.videoSpeech.duration", { required: speechTiming.requiredSeconds, selected: speechTiming.selectedSeconds, max: speechTiming.maxSeconds })}</p> : null}
 
           </div>
           <div className={`${styles.configuration} df-premium-config`} data-video-config>
@@ -180,6 +184,7 @@ export function VideoSettings({
             {showAudioControl ? <button type="button" onClick={() => onGenerateAudioChange(!generateAudio)} className={`flex min-h-11 w-full items-center justify-between rounded-[10px] border px-3 text-xs font-semibold ${generateAudio ? "border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-text)]"}`}><span>{translate("studio.field.nativeAudio")}</span><span>{translate(generateAudio ? "studio.state.on" : "studio.state.off")}</span></button> : null}
           </div> : null}
 
+          {provider === "heygen-video" && heygenRequiresHdAspectRatio(workflow, resolution) ? <p data-heygen-hd-ratios className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate("studio.heygen.hdRatios")}</p> : null}
           <StudioStatusNotice message={statusMessage} tone={statusTone} />
 
           </div>

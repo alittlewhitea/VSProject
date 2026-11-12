@@ -12,6 +12,8 @@ import { GEMINI_TTS_PROVIDER,geminiTtsBillableText,geminiTtsCharacters,newGemini
 import { DEFAULT_GPT_IMAGE_OPTIONS,GPT_IMAGE_SIZES,gptImageOptionError,gptImageQuality,isGptImageProvider,normalizeGptImageProvider,type GptImageOptions,type GptImageQuality } from "../../lib/gpt-image-models";
 import { isH3DailyFreeRequest } from "../../lib/h3-daily-free-policy";
 import { heygenAvatarTiming } from "../../lib/heygen-avatar";
+import { videoDialogueTiming } from "../../lib/video-spoken-script";
+import { heygenAspectRatioError, heygenRequiresHdAspectRatio, preferredHeygenHdRatio } from "../../lib/heygen-video-options";
 import { HEYGEN_REFERENCE_IMAGE_LIMIT,isPublicReferenceUrl } from "../../lib/heygen-reference-video";
 import { MISCHIEF_MAX_IMAGE_BYTES,MISCHIEF_PROVIDER } from "../../lib/mischief";
 import { CREDIT_LOW_BALANCE_THRESHOLD,estimateGenerationCredits } from "../../lib/model-pricing";
@@ -709,7 +711,9 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const hasRequiredReference = activeWorkflow === "reference-to-video" ? isPublicReferenceUrl(referenceVideoUrl) : !needsReferenceImage || referenceImageUrls.length > 0;
   const gptRequestOptions = {imageSize,imageWidth:gptImageOptions.width,imageHeight:gptImageOptions.height,quality:imageQuality,outputFormat,numImages,imageUrls:referenceImageUrls,background:gptImageOptions.background,imageReasoningEffort:gptImageOptions.reasoningEffort,...(["jpeg","webp"].includes(outputFormat)?{outputCompression:gptImageOptions.outputCompression}:{}),...(outputFormat==="gif"?{frameCount:gptImageOptions.frameCount,frameDurationMs:gptImageOptions.frameDurationMs}:{}),...(outputFormat==="svg"?{svgModel:gptImageOptions.svgModel}:{}),...(activeWorkflow==="image-to-image"?{maskUrl:gptImageOptions.maskUrl,markupImageUrl:gptImageOptions.markupImageUrl}:{})};
   const gptValidationError = mode==="image"&&isGptImageProvider(provider)?gptImageOptionError({...gptRequestOptions,prompt}):null;
-  const canSubmit = isPromptValid && hasRequiredReference && !gptValidationError && !verifiedAvatarAudio.loading && !verifiedAvatarAudio.error;
+  const videoSpeechTooLong = mode === "video" && provider === "heygen-video" && videoDialogueTiming(prompt, duration)?.tooLong;
+  const videoAspectRatioError = mode === "video" && provider === "heygen-video" && heygenAspectRatioError(videoWorkflow, videoResolution, ratio);
+  const canSubmit = isPromptValid && hasRequiredReference && !gptValidationError && !verifiedAvatarAudio.loading && !verifiedAvatarAudio.error && !videoSpeechTooLong && !videoAspectRatioError;
   const videoPromptAI = useVideoPromptEnhancement({
     mode: videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video",
     prompt, model: provider, duration, aspectRatio: ratio,
@@ -773,7 +777,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const configuredVideoWorkflow = videoWorkflow === "reference-to-video" ? "reference-to-video" : videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
   const videoRatioOptions = isAvatarProvider(provider) || isH3MaxAvatar || isHeygenAvatar
     ? ["source"]
-    : videoModelRatios(provider, configuredVideoWorkflow);
+    : videoModelRatios(provider, configuredVideoWorkflow, videoResolution);
   const videoDurationOptions = isAvatarProvider(provider)
     ? Array.from({ length: 13 }, (_, index) => `${index + 3}s`)
     : videoModelDurations(provider, videoWorkflow === "image-to-video" ? referenceImageUrls.length : 0);
@@ -835,7 +839,9 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   useEffect(() => {
     if (mode !== "video" && !isH3MaxAvatar) return;
     if (!videoRatioOptions.includes(ratio)) {
-      setRatio(videoRatioOptions.includes("auto") ? "auto" : videoRatioOptions[0] || "16:9");
+      setRatio(provider === "heygen-video" && heygenRequiresHdAspectRatio(configuredVideoWorkflow, videoResolution)
+        ? preferredHeygenHdRatio(ratio)
+        : videoRatioOptions.includes("auto") ? "auto" : videoRatioOptions[0] || "16:9");
     }
     if (!videoDurationOptions.includes(duration)) {
       setDuration(videoModelDefaultDuration(provider));
@@ -843,7 +849,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     if (showVideoResolutionControl && !videoResolutionOptions.includes(videoResolution)) {
       setVideoResolution(defaultVideoResolutionForProvider(provider));
     }
-  }, [duration, isH3MaxAvatar, mode, provider, ratio, showVideoResolutionControl, videoDurationOptions, videoRatioOptions, videoResolution, videoResolutionOptions]);
+  }, [configuredVideoWorkflow, duration, isH3MaxAvatar, mode, provider, ratio, showVideoResolutionControl, videoDurationOptions, videoRatioOptions, videoResolution, videoResolutionOptions]);
 
   useEffect(() => {
     if (!hasCompletedCreation || isH3VideoProvider(provider)) return;
@@ -1008,14 +1014,20 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       params.delete("imageSize");
       navigateStudio(`/studio?${params.toString()}`, { replace: true, scroll: false });
     } else {
-      const nextConfiguredWorkflow = activeWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
-      const nextRatioOptions = videoModelRatios(nextProvider, nextConfiguredWorkflow);
+      const nextConfiguredWorkflow = activeWorkflow === "reference-to-video" ? "reference-to-video" : activeWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
+      const nextResolutionOptions = videoModelResolutions(nextProvider);
+      const nextResolution = videoOverrides?.resolution && nextResolutionOptions.includes(videoOverrides.resolution)
+        ? videoOverrides.resolution
+        : defaultVideoResolutionForProvider(nextProvider);
+      const nextRatioOptions = videoModelRatios(nextProvider, nextConfiguredWorkflow, nextResolution);
       const requestedRatio = videoOverrides?.ratio || ratio;
       const nextRatio =
         isAvatarProvider(nextProvider) || (mode === "avatar" && isH3MaxProvider(nextProvider))
           ? "source"
         : nextRatioOptions.includes(requestedRatio)
           ? requestedRatio
+          : nextProvider === "heygen-video" && heygenRequiresHdAspectRatio(nextConfiguredWorkflow, nextResolution)
+            ? preferredHeygenHdRatio(requestedRatio)
           : nextRatioOptions.includes("auto")
             ? "auto"
             : nextRatioOptions[0] || "16:9";
@@ -1027,10 +1039,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       if (mode !== "avatar") {
         setDuration(nextDuration);
       }
-      const nextResolutionOptions = videoModelResolutions(nextProvider);
-      const nextResolution = videoOverrides?.resolution && nextResolutionOptions.includes(videoOverrides.resolution)
-        ? videoOverrides.resolution
-        : defaultVideoResolutionForProvider(nextProvider);
       setVideoResolution(nextResolution);
       if(nextProvider === "flux-3-max-video" && provider !== nextProvider){setGenerateAudio(true);setReasoningLevel("high");}
       setRatio(nextRatio);
@@ -1339,7 +1347,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setThinkingLevel(draft.thinkingLevel || "");
     setDuration(draft.duration);
     setPrompt(draft.mode === "avatar" ? promptForProviderChange(draft.prompt, "", st("studio.music.defaultPrompt")) : draft.prompt);
-    videoPromptAI.setEnabled(draft.aiPromptEnhancementEnabled !== false);
+    videoPromptAI.setEnabled(draft.aiPromptEnhancementEnabled === true);
     videoPromptAI.restoreDraft(draft.videoPromptEnhancement || null);
     setStatusTone("idle");
     setStatusText(autoSubmitLoginDraftRef.current ? st("studio.status.restoredContinue") : st("studio.status.restored"));

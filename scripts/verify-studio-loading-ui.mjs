@@ -86,6 +86,15 @@ async function screenshot(name) {
   const result = await send('Page.captureScreenshot', { format: 'png' });
   writeFileSync(output + '/' + name + '.png', Buffer.from(result.data, 'base64'));
 }
+async function setVideoPrompt(value) {
+  await evaluate(`(() => { const input = document.querySelector('[data-premium-workspace="video"] textarea'); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(input, ${JSON.stringify(value)}); input.dispatchEvent(new Event('input',{bubbles:true})); })()`);
+}
+async function setVideoDuration(value) {
+  await evaluate(`(() => { const input = document.querySelector('[data-video-config] select:has(option[value="15s"])'); input.value = ${JSON.stringify(value)}; input.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+}
+async function setVideoOption(anchor, value) {
+  await evaluate(`(() => { const input = document.querySelector('[data-video-config] select:has(option[value="' + ${JSON.stringify(anchor)} + '"])'); input.value = ${JSON.stringify(value)}; input.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+}
 try {
   mkdirSync(output, { recursive: true });
   await send('Runtime.enable');
@@ -104,7 +113,41 @@ try {
 
   await navigate('/studio?mode=video&workflow=text-to-video');
   await until(`Boolean(document.querySelector('[data-premium-workspace="video"] textarea'))`);
+  await until(`Boolean(document.querySelector('[data-signed-in="true"]'))`);
+  const longSpeech = "Hello my love how are you doing today? How was work today I hope you have a wonderful day today I just want to know what's wrong with you but I'm really worried about you";
+  await setVideoPrompt(longSpeech);
+  await until(`Boolean(document.querySelector('[data-video-dialogue-warning]') && document.querySelector('.df-composer-generate').disabled)`);
+  assert.equal(await evaluate(`document.querySelector('[data-video-dialogue-warning]').textContent.includes('16')`), true);
+  await language('zh-CN');
+  await until(`document.querySelector('[data-video-dialogue-warning]').textContent.includes('台词')`);
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true, 'Speech warning fits the mobile viewport');
+  await screenshot('dialogue-warning-mobile-zh');
+  const mediumSpeech = 'Hello my love, how are you doing today?';
+  await setVideoPrompt(mediumSpeech);
+  await until(`Boolean(document.querySelector('[data-video-dialogue-warning]') && document.querySelector('.df-composer-generate').disabled)`);
+  await setVideoDuration('10s');
+  await until(`!document.querySelector('[data-video-dialogue-warning]') && !document.querySelector('.df-composer-generate').disabled`);
+  assert.equal(await evaluate(`document.querySelector('[data-premium-workspace="video"] textarea').value`), mediumSpeech, 'Selecting a fitting duration never shortens the spoken words');
+  assert.equal(generated.length, 0, 'Checking or adjusting a script cannot submit or charge a generation');
+  await setVideoDuration('5s');
+  await language('en');
   await evaluate(`(() => { const input = document.querySelector('[data-premium-workspace="video"] textarea'); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(input, 'A paper boat sailing across a quiet lake'); input.dispatchEvent(new Event('input',{bubbles:true})); })()`);
+  await setVideoOption('16:9', '1:1');
+  await setVideoOption('1080p', '1080p');
+  await until(`(() => { const input = document.querySelector('[data-video-config] select:has(option[value="16:9"])'); return input.value === '16:9' && Array.from(input.options).map(option=>option.value).join(',') === '16:9,9:16' && Boolean(document.querySelector('[data-heygen-hd-ratios]')); })()`);
+  await language('zh-CN');
+  await until(`document.querySelector('[data-heygen-hd-ratios]').textContent.includes('仅支持')`);
+  await screenshot('heygen-hd-mobile-zh');
+  await setVideoOption('1080p', '480p');
+  await until(`!document.querySelector('[data-heygen-hd-ratios]') && Boolean(document.querySelector('[data-video-config] option[value="1:1"]'))`);
+  await setVideoOption('16:9', '3:4');
+  await setVideoOption('1080p', '2k');
+  await until(`document.querySelector('[data-video-config] select:has(option[value="16:9"])').value === '9:16'`);
+  assert.equal(await evaluate(`document.querySelector('[data-premium-workspace="video"] textarea').value`), 'A paper boat sailing across a quiet lake', 'HD normalization preserves prompt text');
+  await evaluate(`history.pushState(null, '', '/studio?mode=video&workflow=text-to-video&provider=heygen-video&resolution=2k&ratio=1:1&duration=5s')`);
+  await until(`document.querySelector('[data-video-config] select:has(option[value="16:9"])').value === '16:9' && document.querySelector('[data-video-config] select:has(option[value="1080p"])').value === '2k'`);
+  await setVideoOption('1080p', '480p');
+  await setVideoOption('16:9', '16:9');
   await language('zh-CN');
   assert.equal(await evaluate(`document.querySelector('[data-premium-workspace="video"] textarea').value`), 'A paper boat sailing across a quiet lake', 'Language switching retains the creation draft');
   await screenshot('video-mobile-zh');
@@ -144,7 +187,7 @@ try {
   await screenshot('credit-shop-desktop');
   assert.equal(errors.length, 0, JSON.stringify(errors));
   writeFileSync(output + '/browser-verification.json', JSON.stringify({ homeScripts, generatedRequests: generated.length, exceptions: errors, checks: ['mobile home excludes creation/payment/speech chunks', 'video editor loads on navigation', 'draft survives language and project transitions', 'Arabic RTL and English LTR', 'single generation request and task completion across navigation', 'image/audio/avatar workspaces', 'deferred credit shop opens'], resources: [...resources] }, null, 2));
-  console.log('Studio loading UI passed: mobile/desktop, lazy feature chunks, draft retention, language/RTL, one mock generation, task history and deferred credit shop. No live APIs or payments.');
+  console.log('Studio loading UI passed: mobile/desktop, HD ratio filtering and landscape/portrait normalization, incompatible deep links, localized speech-length warnings, unchanged prompt/duration, lazy chunks, draft/language/RTL, one mock generation and credit shop. No live APIs or payments.');
 } catch (error) {
   await screenshot('failure');
   console.error(JSON.stringify({ errors, page: await evaluate('({url:location.href,text:document.body?.innerText.slice(0,1700),workspaces:Array.from(document.querySelectorAll("[data-creation-workspace]")).map(node=>node.outerHTML.slice(0,250))})') }, null, 2));

@@ -1,6 +1,8 @@
 
 
 import { studioPromptAiMessages } from "./studio-i18n-prompt-ai";
+import { studioVideoSpeechMessages } from "./studio-i18n-video-speech";
+import { studioHeygenMessages } from "./studio-i18n-heygen";
 import { studioPolishMessages } from "./studio-i18n-polish";
 import { studioFlux3Messages } from "./studio-i18n-flux3";
 import { studioH3FreeMessages } from "./studio-i18n-h3-free";
@@ -971,6 +973,8 @@ const workflowMessages: Partial<Record<Locale, StudioMessages>> = {
 
 export function resolveStudioMessages(locale: Locale): Record<string,string> {
   const layers = [
+studioHeygenMessages[locale],
+studioVideoSpeechMessages[locale],
 studioPolishMessages[locale],
 studioFlux3Messages[locale],
 studioH3FreeMessages[locale],
