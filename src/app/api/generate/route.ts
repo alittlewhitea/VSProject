@@ -1196,7 +1196,7 @@ export async function POST(request: Request) {
     } catch (networkError) {
       if(networkError instanceof SubmissionNotStarted&&!ttsStep) {
         const settled=await settleGenerationTask(admin,user.id,taskId,{status:"failed",failure_code:"provider_not_submitted",failure_reason:"The provider request could not be prepared. No generation was submitted.",updated_at:new Date().toISOString()},estimatedCredits);
-        return NextResponse.json({error:"Generation could not be submitted. Your credits were returned.",refundedCredits:settled.refundedCredits,balance:settled.balance},{status:503});
+        return NextResponse.json({error:"Generation could not be submitted. Your credits were returned.",code:"provider_not_submitted",refundedCredits:settled.refundedCredits,balance:settled.balance},{status:503});
       }
 
       const failureInfo = falFailureInfoFromError(networkError);

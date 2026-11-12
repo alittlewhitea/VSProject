@@ -4,6 +4,7 @@ import {randomUUID,randomBytes} from 'node:crypto';
 import mysql from 'mysql2/promise';
 import {projectLoader} from './load-project-ts.mjs';
 import {verifyMysqlRecovery} from './verify-mysql-recovery.mjs';
+import {verifyMysqlModelSubmission} from './verify-mysql-model-submission.mjs';
 
 // Explicit isolated endpoint only: never load .env, reuse an application database,
 // or let an environment typo turn this destructive fixture into a production test.
@@ -55,6 +56,7 @@ try {
  const denied=await reserve(admin,{...task('insufficient',other),estimated_credits:1001});assert.equal(denied.allowed,false);assert.equal((await db.execute('SELECT COUNT(*) AS count FROM generation_tasks WHERE id=?',['insufficient']))[0][0].count,0);
  const raw=await admin.from('generation_tasks').update({status:'failed'});assert.ok(raw.error);assert.ok((await admin.from('generation_tasks').delete()).error);
  await verifyMysqlRecovery({db,admin,store});
+ await verifyMysqlModelSubmission({db,admin,store});
  console.log(`Real MySQL ${version[0].version} passed: InnoDB engines, 20-way atomic admission/charge, hidden/expired pending work, capacity release, 20-way refund, completion race, real trigger rollback for refunds and charges, ownership, idempotency, insufficient funds and guarded writes. Only generated ${database} used; providers never called.`);
 } finally {
  if(pool)await pool.end();if(db)await db.end();

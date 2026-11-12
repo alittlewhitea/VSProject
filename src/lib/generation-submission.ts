@@ -19,7 +19,10 @@ export function verifyRecoveryToken(taskId:string,attemptId:string,token:string)
 function canonical(value:any):string {return Array.isArray(value)?`[${value.map(canonical).join(",")}]`:value&&typeof value==="object"?`{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`:JSON.stringify(value);}
 export function providerInputHash(input:unknown){return createHash("sha256").update(canonical(input)).digest("hex");}
 export function providerTracking(modelId:string,requestId:string) {
-  if(!/^[a-zA-Z0-9_-]{1,191}$/.test(requestId)||!/^[-a-zA-Z0-9_]+\/[-a-zA-Z0-9_]+(?:\/[-a-zA-Z0-9_]+)*$/.test(modelId))throw new Error("Invalid provider tracking.");
+  // Model versions contain dots (nano-banana-2.1, v3.1, etc.). Validate each
+  // segment so those versions remain valid without permitting path traversal.
+  const segments=modelId.split("/");
+  if(!requestId||requestId.length>191||/[^a-zA-Z0-9_-]/.test(requestId)||segments.length<2||segments.some(segment=>!segment||segment.startsWith(".")||/[^a-zA-Z0-9_.-]/.test(segment)))throw new Error("Invalid provider tracking.");
   const base=`https://queue.fal.run/${modelId.split("/").slice(0,2).join("/")}/requests/${requestId}`;
   return {requestId,statusUrl:`${base}/status`,responseUrl:base,cancelUrl:`${base}/cancel`};
 }

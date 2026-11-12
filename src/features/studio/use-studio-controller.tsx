@@ -1500,9 +1500,21 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       });
 
       if (!response.ok) {
-        const errorPayload = (await response.json().catch(() => null)) as { error?: string; code?: string; pricingTime?:number } | null;
+        const errorPayload = (await response.json().catch(() => null)) as { error?: string; code?: string; pricingTime?:number; refundedCredits?:number; balance?:number | null } | null;
         if(errorPayload?.code?.startsWith("studio.gpt26.")) throw new Error(st(errorPayload.code));
-        clearPersistentIdempotency(idempotencyStorageKey);
+        // A generic 5xx may follow an accepted/charged task. Keep its key until
+        // the server confirms rejection, so retry cannot create a second job.
+        if (response.status < 500 || errorPayload?.code === "provider_not_submitted" || typeof errorPayload?.refundedCredits === "number") {
+          clearPersistentIdempotency(idempotencyStorageKey);
+          idempotencyStorageKey = null;
+        }
+        if (errorPayload?.code === "provider_not_submitted") {
+          if (typeof errorPayload.balance === "number") {
+            setCreditBalance(errorPayload.balance);
+            cacheCreditBalance(errorPayload.balance);
+          }
+          throw new Error(errorPayload.error || st("studio.status.submitFailed"));
+        }
         if(errorPayload?.code === "video_price_changed" || errorPayload?.code === "generation_price_changed") {
           setPricingTime(errorPayload.pricingTime || Date.now());
           throw new Error(localizeStudioError(errorPayload.error || "The price has changed. Review the updated credits and try again.", response.status));
@@ -1532,6 +1544,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
         dailyUnitsRemaining?: number | null;
       };
       clearPersistentIdempotency(idempotencyStorageKey);
+      idempotencyStorageKey = null;
       clearStudioLoginDraft();
       if (typeof payload.balance === "number") {
         setCreditBalance(payload.balance);
