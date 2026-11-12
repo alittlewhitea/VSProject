@@ -71,7 +71,7 @@ function StructuredData() {
 
 export default function SeedanceFlashPage() {
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} bg-grid`}>
       <StructuredData />
       <div className={styles.shell}>
         <TopNav />
