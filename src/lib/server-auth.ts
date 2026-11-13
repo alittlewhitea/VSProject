@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import type { RowDataPacket } from "mysql2/promise";
+import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { cookies, headers } from "next/headers";
 import { mysqlExecute, toMysqlDate } from "./mysql";
 import { bearerCredential, isSameOriginRequest } from "./session-transport";
@@ -157,15 +157,18 @@ export async function upsertGoogleUser(input: {
   return { id: userId, email: normalizedEmail, isNew };
 }
 
-export async function createSession(user: AuthUser): Promise<AppSession> {
+export async function createSession(user: AuthUser, connection?: Pick<PoolConnection, "execute">): Promise<AppSession> {
   const token = newAuthToken();
   const expiresAt = sessionExpiresAt();
-  await mysqlExecute("insert into sessions (id, user_id, expires_at, created_at) values (?, ?, ?, ?)", [
+  const values = [
     hashAuthToken(token),
     user.id,
-    toMysqlDate(expiresAt),
-    toMysqlDate(new Date())
-  ]);
+    toMysqlDate(expiresAt) as string,
+    toMysqlDate(new Date()) as string
+  ];
+  const sql = "insert into sessions (id, user_id, expires_at, created_at) values (?, ?, ?, ?)";
+  if (connection) await connection.execute(sql, values);
+  else await mysqlExecute(sql, values);
   return {
     access_token: token,
     expires_at: expiresAt.toISOString(),

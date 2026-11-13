@@ -55,6 +55,7 @@ const TABLE_CONFLICT_KEYS: Record<string, string[]> = {
 
 const TABLE_TIMESTAMP_DEFAULTS: Record<string, string[]> = {
   analytics_events: ["created_at"],
+  credit_ledger: ["created_at"],
   credit_purchases: ["created_at", "updated_at"],
   generation_tasks: ["created_at", "updated_at"],
   public_gallery_items: ["published_at", "created_at"],
@@ -192,7 +193,9 @@ export class MysqlQueryBuilder {
   select(columns?: string) {
     this.operation = this.operation || "select";
     this.hasSelect = true;
-    this.selectColumns = normalizeSelectColumns(columns);
+    // Keep the requested fields intact when insert/upsert readback builds a
+    // second query. Quote identifiers only when producing the final SQL.
+    this.selectColumns = columns || "*";
     return this;
   }
 
@@ -312,7 +315,7 @@ export class MysqlQueryBuilder {
     const limit = this.rangeValue ? this.rangeValue[1] - this.rangeValue[0] + 1 : this.limitCount;
     const offset = this.rangeValue ? this.rangeValue[0] : null;
     const limitSql = limit != null ? ` limit ${Number(limit)}${offset != null ? ` offset ${Number(offset)}` : ""}` : "";
-    const sql = `select ${this.selectColumns} from ${quoteIdent(this.table)}${where.sql}${orderSql}${limitSql}`;
+    const sql = `select ${normalizeSelectColumns(this.selectColumns)} from ${quoteIdent(this.table)}${where.sql}${orderSql}${limitSql}`;
     const rows = await mysqlExecute<RowDataPacket[]>(sql, where.params);
     const data = rows.map((row) => parseRow(row as Record<string, unknown>));
     if (this.singleMode) {

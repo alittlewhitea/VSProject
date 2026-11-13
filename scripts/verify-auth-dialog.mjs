@@ -128,13 +128,14 @@ try {
     mocks[prefix + 'supabase-admin'] = { createSupabaseAdminClient: () => null };
     mocks[prefix + 'referrals'] = { captureReferralAuth: async () => {}, completeReferralAuth: async () => {} };
     mocks[prefix + 'growth-attribution'] = { GROWTH_COOKIE: 'fixture-touch', recordSignupAttribution: async () => { if (attributionFailure) throw new Error('Fixture analytics storage unavailable'); } };
-    mocks[prefix + 'mysql'] = { getMysqlPool: () => ({ execute: async (sql, params) => {
+    const execute = async (sql, params) => {
       if (sql.startsWith('select')) return [[emailRow]];
       assert.ok(!sql.includes('now(6)'), 'OTP expiration cannot depend on the database session timezone');
       assert.equal(params[0], params[2]);
       assert.ok(params[2] < emailRow.expires_at, 'UTC cutoff accepts a new ten-minute link even when database NOW is UTC+8');
       consumed++; return [{ affectedRows: 1 }];
-    } }), toMysqlDate: utcDate };
+    };
+    mocks[prefix + 'mysql'] = { getMysqlPool: () => ({ execute }), withMysqlTransaction: fn => fn({ execute }), toMysqlDate: utcDate };
   }
   const routes = loader(mocks), { NextRequest } = native('next/server');
   const start = routes('src/app/api/auth/google/start/route.ts');

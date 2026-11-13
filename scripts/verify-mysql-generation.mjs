@@ -5,6 +5,7 @@ import mysql from 'mysql2/promise';
 import {projectLoader} from './load-project-ts.mjs';
 import {verifyMysqlRecovery} from './verify-mysql-recovery.mjs';
 import {verifyMysqlModelSubmission} from './verify-mysql-model-submission.mjs';
+import {verifyMysqlAuthSignup} from './verify-mysql-auth-signup.mjs';
 
 // Explicit isolated endpoint only: never load .env, reuse an application database,
 // or let an environment typo turn this destructive fixture into a production test.
@@ -21,6 +22,7 @@ try {
  Object.assign(process.env,{MYSQL_HOST:host,MYSQL_PORT:String(port),MYSQL_USER:config.user,MYSQL_PASSWORD:config.password,MYSQL_DATABASE:database,MYSQL_SSL:'false',MYSQL_CONNECTION_LIMIT:'20'});
  const load=projectLoader(),store=load('src/lib/mysql.ts');pool=store.getMysqlPool();
  const admin=load('src/lib/mysql-supabase-adapter.ts').createMysqlSupabaseAdapter(),settle=load('src/lib/generation-task-settlement.ts').settleGenerationTask,reserve=load('src/lib/generation-capacity.ts').reserveGenerationTask;
+ await verifyMysqlAuthSignup({db,admin,store});
  const [engines]=await db.query("SELECT TABLE_NAME,ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('generation_tasks','user_credit_accounts','credit_ledger')");
  assert.equal(engines.length,3);assert.ok(engines.every(row=>row.ENGINE==='InnoDB'));
  const [version]=await db.query('SELECT VERSION() AS version');
