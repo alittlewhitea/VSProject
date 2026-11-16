@@ -1,4 +1,5 @@
 import type { AcceptedPrompt } from "./use-video-prompt-enhancement";
+import type { SeedanceFlashOptions } from "../../lib/seedance-flash";
 import type { GeminiTtsOptions } from "../../lib/gemini-tts";
 import type { HeygenVoiceOptions } from "../../lib/heygen-voice";
 import type { GptImageOptions, GptImageQuality } from "../../lib/gpt-image-models";
@@ -48,6 +49,7 @@ export type StudioLoginDraft<
   referenceImagesText: string;
   referenceImageFiles: string[];
   referenceVideoUrl?: string;
+  seedanceOptions?: SeedanceFlashOptions;
   avatarAudioUrl?: string;
   editResolution: string;
   videoResolution: string;

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { TopNav } from "../../../components/top-nav";
 import { SiteFooter } from "../../../components/site-footer";
 import { absoluteUrl, siteUrl } from "../../../lib/site-url";
-import { DEMO_SOURCE_URL, examples, faqs, OFFICIAL_FAMILY_URL, PAGE_DESCRIPTION, PAGE_PATH, PAGE_TITLE, REVIEWED_AT, SOCIAL_IMAGE_URL, SOURCE_URL, specs } from "./content";
+import { seedanceFlashStudioHref } from "../../../lib/seedance-flash";
+import { creditExamples, DEMO_SOURCE_URL, examples, faqs, FAL_MODEL_URL, OFFICIAL_FAMILY_URL, PAGE_DESCRIPTION, PAGE_PATH, PAGE_TITLE, REVIEWED_AT, SOCIAL_IMAGE_URL, SOURCE_URL, specs, SUGGESTED_PROMPT, UPDATED_AT } from "./content";
 import styles from "./page.module.css";
 
 const baseUrl = siteUrl();
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   alternates: { canonical: pageUrl },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-video-preview": -1, "max-image-preview": "large", "max-snippet": -1 } },
   openGraph: {
-    type: "website", title: PAGE_TITLE, description: PAGE_DESCRIPTION, url: pageUrl, siteName: "DreamFace", locale: "en_US",
+    type: "article", publishedTime: REVIEWED_AT, modifiedTime: UPDATED_AT, title: PAGE_TITLE, description: PAGE_DESCRIPTION, url: pageUrl, siteName: "DreamFace", locale: "en_US",
     images: [{ url: SOCIAL_IMAGE_URL, alt: "Seedance 2.5 Flash — official Dreamina page artwork" }]
   },
   twitter: { card: "summary_large_image", title: PAGE_TITLE, description: PAGE_DESCRIPTION, images: [SOCIAL_IMAGE_URL] }
@@ -55,8 +56,8 @@ function StructuredData() {
   const graph = {
     "@context": "https://schema.org",
     "@graph": [
-      { "@type": "WebPage", "@id": pageUrl, url: pageUrl, name: PAGE_TITLE, description: PAGE_DESCRIPTION, inLanguage: "en", datePublished: REVIEWED_AT, dateModified: REVIEWED_AT, breadcrumb: { "@id": `${pageUrl}#breadcrumbs` }, mainEntity: { "@id": `${pageUrl}#guide` } },
-      { "@type": "Article", "@id": `${pageUrl}#guide`, headline: "Seedance 2.5 Flash: official examples, specifications and launch guide", description: PAGE_DESCRIPTION, inLanguage: "en", datePublished: REVIEWED_AT, dateModified: REVIEWED_AT, author: { "@type": "Organization", name: "DreamFace", url: baseUrl }, publisher: { "@type": "Organization", name: "DreamFace", url: baseUrl }, mainEntityOfPage: pageUrl, image: SOCIAL_IMAGE_URL, citation: [SOURCE_URL, OFFICIAL_FAMILY_URL, DEMO_SOURCE_URL], associatedMedia: videoNodes.map(video => ({ "@id": video["@id"] })) },
+      { "@type": "WebPage", "@id": pageUrl, url: pageUrl, name: PAGE_TITLE, description: PAGE_DESCRIPTION, inLanguage: "en", datePublished: REVIEWED_AT, dateModified: UPDATED_AT, breadcrumb: { "@id": `${pageUrl}#breadcrumbs` }, mainEntity: { "@id": `${pageUrl}#guide` } },
+      { "@type": "Article", "@id": `${pageUrl}#guide`, headline: "Seedance 2.5 Flash: official examples, specifications and DreamFace guide", description: PAGE_DESCRIPTION, inLanguage: "en", datePublished: REVIEWED_AT, dateModified: UPDATED_AT, author: { "@type": "Organization", name: "DreamFace", url: baseUrl }, publisher: { "@type": "Organization", name: "DreamFace", url: baseUrl }, mainEntityOfPage: pageUrl, image: SOCIAL_IMAGE_URL, citation: [SOURCE_URL, OFFICIAL_FAMILY_URL, DEMO_SOURCE_URL, FAL_MODEL_URL], associatedMedia: videoNodes.map(video => ({ "@id": video["@id"] })) },
       { "@type": "BreadcrumbList", "@id": `${pageUrl}#breadcrumbs`, itemListElement: [
         { "@type": "ListItem", position: 1, name: "DreamFace", item: absoluteUrl(baseUrl, "/en") },
         { "@type": "ListItem", position: 2, name: "AI video", item: absoluteUrl(baseUrl, "/video/text-to-video") },
@@ -82,8 +83,12 @@ export default function SeedanceFlashPage() {
             <h1 id="hero-title">Seedance 2.5 <span>Flash.</span></h1>
             <p className={styles.heroLead}>More ideas in motion.<br />{" "}Less time between them.</p>
             <p className={styles.heroDescription}>Explore ByteDance’s faster AI video model for text, images and multimodal references. Build stories up to 30 seconds long, with 480p or 720p output and sound.</p>
-            <div className={styles.actions}><a href="#examples" className={styles.primary}>Watch official examples <span aria-hidden="true">↗</span></a><Link href="/studio?mode=video&workflow=text-to-video" data-growth-cta="flash-explore-studio" className={styles.secondary}>Explore current video models</Link></div>
-            <p className={styles.availability}>Model guide · Flash is not yet available in DreamFace Studio.</p>
+            <div className={styles.actions}>
+              <Link href={seedanceFlashStudioHref()} data-growth-cta="flash-explore-studio" className={styles.primary}>Create from text <span aria-hidden="true">↗</span></Link>
+              <Link href={seedanceFlashStudioHref("image-to-video")} data-growth-cta="flash-image-studio" className={styles.secondary}>Animate an image</Link>
+              <Link href={seedanceFlashStudioHref("reference-to-video")} data-growth-cta="flash-reference-studio" className={styles.secondary}>Use references</Link>
+            </div>
+            <p className={styles.availability}>Available in DreamFace Studio · 720p and 5 seconds by default · <a href="#examples">Watch official examples ↓</a></p>
           </div>
           <div className={styles.heroVisual}><div className={styles.visualHeading}><span className={styles.liveDot} /> From the official Dreamina page <span>PRODUCT MOTION</span></div><Demo example={product} priority /><p className={styles.visualNote}>Explore movement, framing and light before choosing a final direction.</p></div>
         </section>
@@ -106,8 +111,8 @@ export default function SeedanceFlashPage() {
         </section>
 
         <section id="specifications" className={styles.section}>
-          <div className={styles.sectionHeading}><p className={styles.eyebrow}>At a glance</p><h2>Seedance 2.5 Flash specifications</h2><p>Announced capabilities, kept separate from the controls available in any particular app.</p></div>
-          <div className={styles.tableWrap}><table><caption className="sr-only">Seedance 2.5 Flash specifications from Volcengine’s November 12, 2026 announcement</caption><thead><tr><th scope="col">Specification</th><th scope="col">Announced capability</th></tr></thead><tbody>{specs.map(([label, value]) => <tr key={label}><th scope="row">{label}</th><td>{value}</td></tr>)}</tbody></table></div>
+          <div className={styles.sectionHeading}><p className={styles.eyebrow}>At a glance</p><h2>Seedance 2.5 Flash specifications</h2><p>Model capabilities and the controls connected to DreamFace Studio.</p></div>
+          <div className={styles.tableWrap}><table><caption className="sr-only">Seedance 2.5 Flash specifications and DreamFace Studio controls</caption><thead><tr><th scope="col">Specification</th><th scope="col">Capability or setting</th></tr></thead><tbody>{specs.map(([label, value]) => <tr key={label}><th scope="row">{label}</th><td>{value}</td></tr>)}</tbody></table></div>
           <p className={styles.note}>480p and 720p are the Flash resolutions listed in the announcement. The flagship’s 1080p and planned 4K workflow should not be treated as Flash features.</p>
         </section>
 
@@ -120,8 +125,8 @@ export default function SeedanceFlashPage() {
         </section>
 
         <section id="pricing" className={`${styles.section} ${styles.pricing}`}>
-          <div><p className={styles.eyebrow}>The announced cost</p><h2>Built for more creative iterations.</h2><p>Volcengine quotes approximately <strong>CNY 0.99 per output second</strong> for 720p text-to-video and image-to-video, about 34% below Seedance 2.5 in that comparison.</p><p>That puts a 10-second clip at approximately CNY 9.90 using the announced reference rate. Final charges depend on the provider, settings and current pricing.</p></div>
-          <aside><span>720p · provider announcement</span><p><strong>¥0.99</strong> / second</p><span>Approximate reference price in CNY</span><hr /><p className={styles.priceNote}>This is not a DreamFace credit price. DreamFace pricing for Flash has not been announced.</p></aside>
+          <div><p className={styles.eyebrow}>DreamFace credit pricing</p><h2>Choose the settings for your idea.</h2><p>A 5-second text-to-video or image-to-video request is currently quoted at <strong>{creditExamples[0].credits} credits at 480p</strong> or <strong>{creditExamples[1].credits} credits at 720p</strong>. Turning synchronized audio on or off does not change the price.</p><p>Automatic duration, automatic reference task selection and video editing are quoted at the 30-second output limit. Video references add the combined input limit of 30.2 seconds to the quote. Successful requests do not automatically receive an actual-duration refund.</p><p>Review the Generate button for your selected settings before submitting. Volcengine’s announced CNY reference price is a separate supplier announcement, not a DreamFace credit quote.</p><div className={styles.actions}><Link href={seedanceFlashStudioHref()} className={styles.primary} data-growth-cta="flash-pricing-studio">See your quote in Studio <span aria-hidden="true">↗</span></Link></div></div>
+          <aside data-flash-credit-pricing><span>720p · 5-second text or image video</span><p><strong>{creditExamples[1].credits}</strong> credits</p><span>480p · 5 seconds: {creditExamples[0].credits} credits</span><hr /><p className={styles.priceNote}>These examples use a fixed 5-second duration without input video references. Longer clips and reference-video tasks have different quotes.</p></aside>
         </section>
 
         <section className={styles.section}>
@@ -132,7 +137,7 @@ export default function SeedanceFlashPage() {
         <section id="prompt-guide" className={`${styles.section} ${styles.promptSection}`}>
           <div className={styles.sectionHeading}><p className={styles.eyebrow}>Give the scene a clear brief</p><h2>How to plan a Seedance 2.5 Flash prompt</h2><p>Start with a manageable action sequence. Add detail where it changes what the viewer sees or hears.</p></div>
           <ol className={styles.steps}><li><strong>Define the subject and setting.</strong> Identify the main character or product, its appearance, the location and the visual mood.</li><li><strong>Write the actions in order.</strong> Explain what happens first, what changes and how the scene ends. Fit those actions to the duration.</li><li><strong>Direct the camera and sound.</strong> Specify framing, movement, ambient sound and any exact spoken lines. Keep speech short enough for the clip.</li><li><strong>Assign references and review.</strong> Make each reference’s role explicit. Check consistency, small movements and audio timing before making variants.</li></ol>
-          <div className={styles.promptCard}><span>Original English example · not the official ad prompt</span><h3>A simple product scene to start with</h3><p>“Create a 10-second product scene on a wooden table beside a window. A brass telescope rests on a folded navy cloth. Start with a close-up of the metal texture, then slowly pull back to show the complete telescope. Keep its shape and proportions consistent. Warm afternoon light, subtle room ambience, no dialogue, no captions and no added logos.”</p></div>
+          <div className={styles.promptCard}><span>Original English example · not the official ad prompt</span><h3>A simple product scene to start with</h3><p>“{SUGGESTED_PROMPT}”</p><div className={styles.actions}><Link href={seedanceFlashStudioHref("text-to-video", { duration: "10s", prompt: SUGGESTED_PROMPT })} className={styles.primary} data-growth-cta="flash-prompt-studio">Use this prompt in Studio <span aria-hidden="true">↗</span></Link></div></div>
           <p className={styles.note}>This is a suggested prompt, not a tested Flash output. The official demonstration uses a much longer production brief, available in the <SourceLink />.</p>
         </section>
 
@@ -141,7 +146,12 @@ export default function SeedanceFlashPage() {
           <div className={styles.faqs}>{faqs.map(([question, answer]) => <details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div>
         </section>
 
-        <section className={styles.sources} aria-labelledby="sources-title"><div><p className={styles.eyebrow}>Sources &amp; availability</p><h2 id="sources-title">Based on the official launch announcement.</h2><p>Written by DreamFace. Facts reviewed <time dateTime={REVIEWED_AT}>November 12, 2026</time>. Model capabilities, speed comparisons and reference pricing are attributed to Volcengine. API availability was announced for November 15, 2026; it has not been verified as live on this review date.</p><p><SourceLink>Volcengine’s Seedance 2.5 Flash announcement</SourceLink><br /><a href={OFFICIAL_FAMILY_URL} target="_blank" rel="noopener noreferrer">Official Seedance 2.5 family page</a><br /><a href={DEMO_SOURCE_URL} target="_blank" rel="noopener noreferrer">Dreamina’s official Seedance 2.5 Flash examples</a></p></div><div className={styles.related}><h3>Explore DreamFace today</h3><p>Choose from the models currently connected to Studio.</p><Link href="/video/seedance-2">Seedance 2.0 examples <span aria-hidden="true">↗</span></Link><Link href="/video/text-to-video">Text-to-video generator <span aria-hidden="true">↗</span></Link><Link href="/video/image-to-video">Image-to-video generator <span aria-hidden="true">↗</span></Link><Link href="/video/examples">More sourced video examples <span aria-hidden="true">↗</span></Link></div></section>
+        <section className={styles.sources} aria-labelledby="sources-title">
+          <div><p className={styles.eyebrow}>Sources &amp; availability</p><h2 id="sources-title">Official examples, connected Studio workflows.</h2><p>Written by DreamFace. Updated <time dateTime={UPDATED_AT}>November 16, 2026</time>. The original Volcengine announcement is dated November 12, 2026; speed comparisons and announced CNY reference pricing are attributed to that source. DreamFace supports the three Flash workflows through fal. The embedded videos remain official Dreamina examples.</p>
+            <p><SourceLink>Volcengine’s Seedance 2.5 Flash announcement</SourceLink><br /><a href={OFFICIAL_FAMILY_URL} target="_blank" rel="noopener noreferrer">Official Seedance 2.5 family page</a><br /><a href={DEMO_SOURCE_URL} target="_blank" rel="noopener noreferrer">Dreamina’s official Seedance 2.5 Flash examples</a><br /><a href={FAL_MODEL_URL} target="_blank" rel="noopener noreferrer">fal model documentation</a></p>
+          </div>
+          <div className={styles.related}><h3>Create with Seedance 2.5 Flash</h3><p>Each workflow below opens Studio with Flash already selected.</p><Link href={seedanceFlashStudioHref()}>Text to Video <span aria-hidden="true">↗</span></Link><Link href={seedanceFlashStudioHref("image-to-video")}>Image to Video <span aria-hidden="true">↗</span></Link><Link href={seedanceFlashStudioHref("reference-to-video")}>Reference Video <span aria-hidden="true">↗</span></Link><Link href="/video/seedance-2">Seedance 2.0 examples <span aria-hidden="true">↗</span></Link><Link href="/video/examples">More sourced video examples <span aria-hidden="true">↗</span></Link></div>
+        </section>
         <SiteFooter />
       </div>
     </main>

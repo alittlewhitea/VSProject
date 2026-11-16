@@ -20,12 +20,18 @@ function loader(overrides={}) {
 }
 const load=loader(),release=load('src/lib/model-release.ts'),models=load('src/features/studio/video-models.ts');
 assert.equal(load("src/lib/retired-providers.ts").isRetiredProvider("dreamface-io-video"),true);
+assert.equal(load("src/lib/retired-providers.ts").isRetiredProvider("veo-video"),true);
+assert.equal(models.videoModelConfig('veo-video'),undefined);
 for(const [workflow,providers] of Object.entries(models.VIDEO_PROVIDERS_BY_WORKFLOW)) {
   assert.ok(!providers.includes('dreamface-io-video'));
-  if(workflow==='reference-to-video') assert.deepEqual(providers,['heygen-video']);
+  assert.ok(!providers.includes('veo-video'));
+  if(workflow==='reference-to-video') assert.deepEqual(providers,['heygen-video','seedance-2.5-flash-video']);
   else assert.ok(providers.includes('minimax-h3-max-turbo-video'));
 }
 assert.ok(!load('src/lib/model-pricing.ts').MODEL_PRICING_ROWS.some(row=>row.provider==='dreamface-io-video'));
+assert.ok(!load('src/lib/model-pricing.ts').MODEL_PRICING_ROWS.some(row=>row.provider==='veo-video'));
+for (const pack of load('src/lib/billing.ts').CREDIT_PACKS) assert.ok(!pack.examples.some(example=>/Veo/i.test(example.label)));
+assert.throws(()=>load('src/lib/video-prompt-enhancement.ts').validatePromptContext({model:'veo-video',mode:'text-to-video',prompt:'A camera pans.',duration:'8s',aspectRatio:'16:9',resolution:'720p'}),/Unsupported/);
 const selectors=load('src/features/studio/studio-workspace-config.ts');
 const workflows=selectors.WORKFLOW_META;
 const normalizeGptImageProvider=load('src/lib/gpt-image-models.ts').normalizeGptImageProvider;
@@ -34,16 +40,19 @@ for(const workflow of Object.keys(workflows)) {
   assert.equal(selectors.providerForWorkflow(workflow,'dreamface-io-video'),workflows[workflow].recommendedProvider);
   assert.ok(!workflows[workflow].providers.includes('mischief-video'));
   assert.equal(selectors.providerForWorkflow(workflow,'mischief-video'),workflows[workflow].recommendedProvider);
+  assert.ok(!workflows[workflow].providers.includes('veo-video'));
+  assert.equal(selectors.providerForWorkflow(workflow,'veo-video'),workflows[workflow].recommendedProvider);
 }
 for(const mode of ['image','video','avatar','audio'])assert.equal(selectors.isProviderAllowedForMode('dreamface-io-video',mode),false);
 for(const mode of ['image','video','avatar','audio'])assert.equal(selectors.isProviderAllowedForMode('mischief-video',mode),false);
+for(const mode of ['image','video','avatar','audio'])assert.equal(selectors.isProviderAllowedForMode('veo-video',mode),false);
 const NextResponse={json:(body,options={})=>({status:options.status||200,body})};
 const route=readFileSync('src/app/api/generate/route.ts','utf8');
 const prefix=route.slice(route.indexOf('export async function POST'),route.indexOf('    const taskId = generationTaskId'));
 const post=new Function('getUserFromBearerToken','isValidBody','isRetiredProvider','NextResponse','exports','normalizeGptImageProvider','MISCHIEF_PROVIDER','MISCHIEF_RETIRED','readRequestJson',
  compile(prefix+"throw new Error('Retired request reached generation processing'); } catch(error) { throw error; } }")+'\nreturn exports.POST;')(
  async()=>({id:'fixture'}),()=>true,load('src/lib/retired-providers.ts').isRetiredProvider,NextResponse,{},normalizeGptImageProvider,'mischief-video',true,async request=>request.json());
-for(const provider of ['dreamface-io-video','mischief-video'])for(const mode of ['video','avatar','image','audio']) {
+for(const provider of ['dreamface-io-video','mischief-video','veo-video'])for(const mode of ['video','avatar','image','audio']) {
  const result=await post({headers:new Headers(),json:async()=>({mode,provider})});assert.equal(result.status,410);assert.equal(result.body.code,'model_retired');
 }
 assert.equal(native('node:fs').existsSync('src/lib/dreamface-io.ts'),false);

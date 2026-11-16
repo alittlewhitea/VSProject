@@ -1,4 +1,6 @@
 import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyframes";
+import { SEEDANCE_FLASH_PROVIDER, seedanceFlashEndpoint, seedanceFlashError, seedanceFlashDuration, seedanceFlashResolution, buildSeedanceFlashInput } from "../../../lib/seedance-flash";
+import { SEEDREAM_55_PROVIDER, seedream55Endpoint, seedream55Error, buildSeedream55Input } from "../../../lib/seedream-55";
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution } from "../../../lib/gemini-omni";
 import { HEYGEN_REFERENCE_RATIOS, validateHeygenReferences } from "../../../lib/heygen-reference-video";
 import { heygenAvatarPrompt, heygenAvatarTiming } from "../../../lib/heygen-avatar";
@@ -36,8 +38,6 @@ import {
   MINIMAX_H3_MAX_VIDEO_RESOLUTIONS,
   SEEDANCE_MINI_VIDEO_RESOLUTIONS,
   SEEDANCE_VIDEO_RESOLUTIONS,
-  VEO_VIDEO_DURATIONS,
-  VEO_VIDEO_RESOLUTIONS,
   getFalImageSize,
   normalizeBillableRequest
 } from "../../../lib/generation-billing-normalize";
@@ -77,6 +77,10 @@ type GenerateRequest = {
   maskUrl?: string; markupImageUrl?: string;
   imageUrls?: string[];
   videoUrls?: string[];
+  audioUrls?: string[];
+  seedanceTask?: string;
+  bitrateMode?: string;
+  codec?: string;
   audioUrl?: string;
   resolution?: string;
   outputFormat?: string;
@@ -168,6 +172,8 @@ function isValidAudioInput(value: unknown) {
 
 function getModelId(mode: StoredGenerateMode, provider: string, editImage = false): string | null {
   const keyByProvider: Record<string, string | undefined> = {
+    [SEEDANCE_FLASH_PROVIDER]: seedanceFlashEndpoint(editImage ? "image-to-video" : "text-to-video"),
+    [SEEDREAM_55_PROVIDER]: seedream55Endpoint(editImage),
     "chatgpt-image": gptImageEndpoint("chatgpt-image", editImage),
     "gpt-image-2.6-sunburst": gptImageEndpoint("gpt-image-2.6-sunburst", editImage),
     "flux-image": process.env.FAL_MODEL_IMAGE_FLUX || "fal-ai/flux/schnell",
@@ -203,7 +209,6 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
       : process.env.FAL_MODEL_VIDEO_KLING || "fal-ai/kling-video/v3/pro/text-to-video",
     "kling-avatar-standard": process.env.FAL_MODEL_VIDEO_KLING_AVATAR_STANDARD || "fal-ai/kling-video/ai-avatar/v2/standard",
     "kling-avatar-pro": process.env.FAL_MODEL_VIDEO_KLING_AVATAR_PRO || "fal-ai/kling-video/ai-avatar/v2/pro",
-    "veo-video": process.env.FAL_MODEL_VIDEO_VEO || "fal-ai/veo3.1",
     "flux-3-max-video": editImage
       ? "blackforestlabs/flux-3-max/image-to-video"
       : "blackforestlabs/flux-3-max/text-to-video",
@@ -250,7 +255,6 @@ const VIDEO_ASPECT_RATIOS = new Set(["16:9", "4:3", "3:2", "1:1", "2:3", "3:4", 
 const SEEDANCE_VIDEO_ASPECT_RATIOS = new Set(["auto", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
 const HAPPY_HORSE_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "9:21", "5:4", "4:5"]);
 const KLING_TEXT_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16", "1:1"]);
-const VEO_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const GEMINI_OMNI_VIDEO_ASPECT_RATIOS = new Set(["16:9", "9:16"]);
 const MINIMAX_H3_MAX_VIDEO_ASPECT_RATIOS = new Set(["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
 const AVATAR_MAX_SECONDS = 15;
@@ -317,7 +321,9 @@ function cleanLanguageCode(value: unknown) {
   return typeof value === "string" && /^[a-z]{2}$/i.test(value.trim()) ? value.trim().toLowerCase() : undefined;
 }
 
-function buildFalInput(body: GenerateRequest, prompt: string) {
+function buildFalInput(body: GenerateRequest, prompt: string, endUserId?: string) {
+  if (body.provider === SEEDANCE_FLASH_PROVIDER) return buildSeedanceFlashInput(body, prompt, endUserId);
+  if (body.provider === SEEDREAM_55_PROVIDER) return buildSeedream55Input(body, prompt);
   if ((body.mode === "video" || body.mode === "avatar") && body.provider === "heygen-video") {
     const seed = optionalSeed(body.seed);
     return {
@@ -496,20 +502,6 @@ function buildFalInput(body: GenerateRequest, prompt: string) {
     };
   }
 
-  if (body.mode === "video" && body.provider === "veo-video") {
-    const seed = optionalSeed(body.seed);
-    return {
-      prompt,
-      aspect_ratio: VEO_VIDEO_ASPECT_RATIOS.has(body.ratio) ? body.ratio : "16:9",
-      duration: VEO_VIDEO_DURATIONS.has(body.duration) ? body.duration : "8s",
-      resolution: body.resolution && VEO_VIDEO_RESOLUTIONS.has(body.resolution) ? body.resolution : "720p",
-      generate_audio: Boolean(body.generateAudio),
-      auto_fix: true,
-      safety_tolerance: body.safetyTolerance && SAFETY_TOLERANCES.has(body.safetyTolerance) ? body.safetyTolerance : "4",
-      ...(seed !== undefined ? { seed } : {})
-    };
-  }
-
   if (body.mode === "video" && body.provider === "happy-horse-video" && hasInputImages(body)) {
     const duration = Number.parseInt(body.duration, 10);
     const seed = optionalSeed(body.seed);
@@ -643,6 +635,7 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     workflow:
       isAvatarRequest(body) || body.mode === "avatar"
         ? "avatar-video"
+        : body.provider === SEEDANCE_FLASH_PROVIDER ? body.videoWorkflow
         : body.mode === "video" && body.videoWorkflow === "reference-to-video"
         ? "reference-to-video"
         : body.mode === "image" && body.provider === "bria-background-remove"
@@ -660,6 +653,8 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     duration: body.duration,
     image_size: body.imageSize || null,
     image_urls: imageUrls,
+    ...(body.provider === SEEDREAM_55_PROVIDER ? { image_width: body.imageWidth ?? null, image_height: body.imageHeight ?? null, background: body.background || "auto" } : {}),
+    ...(body.provider === SEEDANCE_FLASH_PROVIDER ? { audio_urls: body.audioUrls || [], seedance_task: body.seedanceTask || "reference", bitrate_mode: body.bitrateMode || "standard", codec: body.codec || "auto" } : {}),
     ...(isGptImageProvider(body.provider) ? {image_width:body.imageWidth ?? null,image_height:body.imageHeight ?? null,background:body.background || "auto",reasoning_effort:body.imageReasoningEffort || "low",output_compression:body.outputCompression ?? null,frame_count:body.frameCount ?? null,frame_duration_ms:body.frameDurationMs ?? null,svg_model:body.svgModel || null,mask_url:body.maskUrl || null,markup_image_url:body.markupImageUrl || null} : {}),
     ...(body.mode === "video" && body.videoWorkflow === "reference-to-video" ? {video_urls: body.videoUrls?.map(url => url.trim()) || []} : {}),
     audio_url: body.audioUrl || null,
@@ -857,6 +852,13 @@ export async function POST(request: Request) {
 
     const storageMode = storedModeForRequest(body);
     const isPromptlessImageTool = body.mode === "image" && (body.provider === "topaz-image" || body.provider === "bria-background-remove");
+    if (body.provider === SEEDANCE_FLASH_PROVIDER || body.provider === SEEDREAM_55_PROVIDER) {
+      const error = body.provider === SEEDANCE_FLASH_PROVIDER ? seedanceFlashError(body) : seedream55Error(body);
+      if (error) return NextResponse.json({ error }, { status: 400 });
+      if (!process.env.FAL_KEY?.trim()) return NextResponse.json({ error: "Generation provider is not configured." }, { status: 503 });
+    }
+    if (body.audioUrls !== undefined && body.provider !== SEEDANCE_FLASH_PROVIDER) return NextResponse.json({ error: "Audio references require Seedance 2.5 Flash." }, { status: 400 });
+    const isPromptlessSeedance = body.provider === SEEDANCE_FLASH_PROVIDER && body.videoWorkflow !== "text-to-video";
     const geminiSpeech = body.provider === GEMINI_TTS_PROVIDER ? prepareGeminiTts(body.prompt, body.geminiTts) : null;
     if(body.provider === HEYGEN_VOICE_PROVIDER) {
       if(body.mode!=="audio"||(body.audioWorkflow!==undefined&&body.audioWorkflow!=="text-to-audio")||body.imageUrls?.length||body.videoUrls?.length||body.audioUrl||body.dailyFree===true)return NextResponse.json({error:"HeyGen Voice Turbo requires the text-to-speech workspace without image or video inputs.",code:"heygen_voice_invalid_workflow"},{status:400});
@@ -870,7 +872,7 @@ export async function POST(request: Request) {
       if (!process.env.FAL_KEY?.trim()) return NextResponse.json({ error: "Audio provider is not configured." }, { status: 503 });
     }
     const prompt = geminiSpeech?.transcript || body.prompt.trim() || (isAvatarProvider || isPromptlessImageTool ? "." : "");
-    if (!isPromptlessImageTool && !prompt.trim()) {
+    if (!isPromptlessImageTool && !isPromptlessSeedance && !prompt.trim()) {
       return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
     }
     if ((body.provider === "elevenlabs-tts" || (isAvatarProvider && !body.audioUrl)) && prompt.length > 5000) {
@@ -913,13 +915,13 @@ export async function POST(request: Request) {
       body.ratio = "source";
     }
 
-    if (body.videoWorkflow === "reference-to-video") {
+    if (body.videoWorkflow === "reference-to-video" && body.provider !== SEEDANCE_FLASH_PROVIDER) {
       if (body.mode !== "video" || body.provider !== "heygen-video") return NextResponse.json({error:"Reference to Video requires HeyGen Video in the video workspace."},{status:400});
       const referenceError = validateHeygenReferences(body.videoUrls, body.imageUrls);
       if (referenceError) return NextResponse.json({error:referenceError},{status:400});
       if (!process.env.FAL_KEY?.trim()) return NextResponse.json({error:"Video provider is not configured."},{status:503});
       if (!HEYGEN_REFERENCE_RATIOS.includes(body.ratio as typeof HEYGEN_REFERENCE_RATIOS[number])) return NextResponse.json({error:"Unsupported HeyGen reference aspect ratio."},{status:400});
-    } else if (body.videoUrls !== undefined) {
+    } else if (body.videoWorkflow !== "reference-to-video" && body.videoUrls !== undefined) {
       return NextResponse.json({error:"Select Reference to Video to use a video URL."},{status:400});
     }
     if (body.mode === "video" && body.videoWorkflow !== "reference-to-video") {
@@ -1001,6 +1003,13 @@ export async function POST(request: Request) {
     }
 
     // Price and provider payload must use identical values (see generation-billing-normalize).
+    if (body.provider === SEEDANCE_FLASH_PROVIDER) {
+      const seconds = body.videoWorkflow === "reference-to-video" && body.seedanceTask === "editing" ? "auto" : seedanceFlashDuration(body.duration);
+      body.duration = seconds === "auto" ? "auto" : `${seconds}s`;
+      body.resolution = seedanceFlashResolution(body.resolution);
+      if (body.videoWorkflow === "image-to-video" || body.videoWorkflow === "reference-to-video" && ["editing", "extension"].includes(body.seedanceTask || "")) body.ratio = "auto";
+      body.generateAudio ??= true;
+    }
     normalizeBillableRequest(body);
     applyGenerationSafety(body);
     const baseEstimatedCredits = await estimateGenerationCreditsWithLivePricing({
@@ -1013,6 +1022,8 @@ export async function POST(request: Request) {
           duration: body.duration,
           hasReferences: imageUrls.length > 0,
           referenceCount: imageUrls.length+Number(isGptImageProvider(body.provider)&&Boolean(body.maskUrl||body.markupImageUrl)),
+          referenceVideoCount: body.videoUrls?.length || 0,
+          seedanceTask: body.seedanceTask,
           resolution: body.resolution,
           quality: body.quality,
           numImages: body.numImages,
@@ -1027,7 +1038,7 @@ export async function POST(request: Request) {
     if (body.mode === "video" && body.provider === "flux-3-max-video" && body.videoWorkflow === "image-to-video" && !imageUrls.length) {
       return NextResponse.json({error:"FLUX 3 Max image-to-video requires a start frame."},{status:400});
     }
-    if (["heygen-video", "flux-3-max-video", "minimax-h3-max-video", "minimax-h3-max-turbo-video", "gemini-omni-flash-video"].includes(body.provider) && (body.provider === "heygen-video" || body.provider === "gemini-omni-flash-video" || body.dailyFree !== true) && body.expectedCredits !== undefined && body.expectedCredits !== baseEstimatedCredits) {
+    if ([SEEDANCE_FLASH_PROVIDER, SEEDREAM_55_PROVIDER, "heygen-video", "flux-3-max-video", "minimax-h3-max-video", "minimax-h3-max-turbo-video", "gemini-omni-flash-video"].includes(body.provider) && (body.provider === "heygen-video" || body.provider === "gemini-omni-flash-video" || body.dailyFree !== true) && body.expectedCredits !== undefined && body.expectedCredits !== baseEstimatedCredits) {
       return NextResponse.json({error:"The price has changed. Review the updated credits and try again.",code:"video_price_changed",pricingTime:Date.now(),estimatedCredits:baseEstimatedCredits},{status:409});
     }
     if (body.mode === "image" && body.provider === "nano-banana-edit") {
@@ -1060,7 +1071,7 @@ export async function POST(request: Request) {
     }
 
     const falKey = process.env.FAL_KEY;
-    const modelId = body.videoWorkflow === "reference-to-video"
+    const modelId = body.provider === SEEDANCE_FLASH_PROVIDER ? seedanceFlashEndpoint(body.videoWorkflow) : body.videoWorkflow === "reference-to-video"
       ? "heygen/heygen-video/reference-to-video" : getModelId(storageMode, body.provider, hasInputImages(body));
     if ((!falKey || !modelId) && (process.env.NODE_ENV === "production" || process.env.ALLOW_MOCK_GENERATION !== "true")) {
       return NextResponse.json({ error: "This generation model is unavailable. No credits were charged.", code: "provider_not_configured" }, { status: 503 });
@@ -1206,7 +1217,7 @@ export async function POST(request: Request) {
         };
         await recordTtsOutput(taskId, user.id, ttsStep);
       }
-      submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(body, submittedPrompt), {taskId,userId:user.id,stage:"primary"});
+      submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(body, submittedPrompt, user.id), {taskId,userId:user.id,stage:"primary"});
     } catch (networkError) {
       if(networkError instanceof SubmissionNotStarted&&!ttsStep) {
         const settled=await settleGenerationTask(admin,user.id,taskId,{status:"failed",failure_code:"provider_not_submitted",failure_reason:"The provider request could not be prepared. No generation was submitted.",updated_at:new Date().toISOString()},estimatedCredits);

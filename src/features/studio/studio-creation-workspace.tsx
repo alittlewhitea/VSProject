@@ -110,6 +110,9 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
     referenceImageUrls,
     referenceImagesText,
     referenceVideoUrl,
+      seedanceOptions,
+      setSeedanceOptions,
+      seedanceValidationError,
     safetyTolerance,
     saveLoginDraft,
     seed,
@@ -1239,6 +1242,9 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                       dailyFreeLabel={h3FreeLabel}
                       workflow={configuredVideoWorkflow}
                       referenceVideoUrl={referenceVideoUrl}
+                      seedanceOptions={seedanceOptions}
+                      seedanceValidationError={seedanceValidationError}
+                      onSeedanceOptionsChange={setSeedanceOptions}
                       onReferenceVideoUrlChange={setReferenceVideoUrl}
                       prompt={prompt}
                       referenceImageUrls={referenceImageUrls}

@@ -12,6 +12,8 @@ const MODEL_LOGO_LABS:Record<string,string> = {
   "gemini-omni-flash-video":"google",
   "veo-video":"google",
   "seedance-video":"bytedance",
+  "seedance-2.5-flash-video":"bytedance",
+  "seedream-5.5-image":"bytedance",
   "seedance-mini-video":"bytedance",
   "happy-horse-video":"alibaba",
   "kling-video":"kling",

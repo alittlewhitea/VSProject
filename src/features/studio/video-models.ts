@@ -1,4 +1,5 @@
 import { GEMINI_OMNI_RESOLUTIONS } from "../../lib/gemini-omni";
+import { SEEDANCE_FLASH_PROVIDER, SEEDANCE_FLASH_DURATIONS, SEEDANCE_FLASH_RATIOS, SEEDANCE_FLASH_RESOLUTIONS } from "../../lib/seedance-flash";
 import { HEYGEN_HD_ASPECT_RATIOS, heygenRequiresHdAspectRatio } from "../../lib/heygen-video-options";
 
 export type StudioVideoWorkflow = "text-to-video" | "image-to-video" | "reference-to-video";
@@ -112,11 +113,6 @@ const KLING_IMAGE_PROMPT = "Slow cinematic push-in through the empty ancient tem
 const KLING_ELEMENT_PROMPT = "@Element1 walks slowly into frame from the left, stepping onto the stone path toward the cliff edge. His cloak billows in the wind. Camera follows him from behind, then he stops at the edge and slowly turns, revealing his scarred face. Golden hour light hits his features. Cinematic, dramatic, anamorphic lens flare.";
 const KLING_IMAGE_URL = "https://v3b.fal.media/files/b/0a92706d/h2V27DeUiMH1Pa6lgQ5F4_Frtd4z3L.png";
 
-const VEO_TEXT_PROMPT = `Two person street interview in New York City.
-Sample Dialogue:
-Host: "Did you hear the news?"
-Person: "Yes! Veo 3.1 is now available on fal. If you want to see it, go check their website."`;
-
 const SEEDANCE_TEXT_PROMPT = `Ultra-detailed 4K wildlife macro video of a Bengal tiger resting in golden morning light. The camera begins inches from the tiger’s striped fur, revealing individual hairs, subtle color variation, dust particles, and tiny movements from breathing. Slowly rack focus from the fur texture to the tiger’s amber eye in the background.
 
 Camera: 100mm macro lens, slow lateral slide, shallow depth of field, natural handheld micro-movement.
@@ -128,6 +124,14 @@ const SEEDANCE_IMAGE_PROMPT = "Ultra high-end commercial product shot, photoreal
 const SEEDANCE_IMAGE_URL = "https://v3b.fal.media/files/b/0a95971b/bFYVNRi647e2hEFdbeU2Z_jMhj1ueK.jpg";
 
 export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
+  [SEEDANCE_FLASH_PROVIDER]: {
+    id: SEEDANCE_FLASH_PROVIDER,
+    meta: { label: "Seedance 2.5 Flash", shortLabel: "Seedance 2.5 Flash", speed: "Fast", quality: "Native audio", bestFor: "4–30s video, start/end frames and multimodal references" },
+    group: "premium", badge: "pro",
+    workflows: { "text-to-video": { ratios: SEEDANCE_FLASH_RATIOS }, "image-to-video": { ratios: ["source"] }, "reference-to-video": { ratios: SEEDANCE_FLASH_RATIOS } },
+    durations: SEEDANCE_FLASH_DURATIONS, resolutions: SEEDANCE_FLASH_RESOLUTIONS,
+    defaultDuration: "5s", defaultResolution: "720p", showResolutionControl: true, showAudioControl: true
+  },
   "heygen-video": {
     id: "heygen-video",
     meta: { label: "HeyGen Video", shortLabel: "HeyGen Video", speed: "Fast", quality: "Native audio", bestFor: "Text-to-video and image-to-video with generated sound" },
@@ -291,22 +295,6 @@ export const VIDEO_MODEL_CONFIGS: Record<string, VideoModelConfig> = {
       "text-to-video": { provider: "seedance-video", workflow: "text-to-video", modelLabel: "Seedance 2.0", prompts: [SEEDANCE_TEXT_PROMPT], videoUrl: "https://v3b.fal.media/files/b/0a9f7ecf/jQvhuOlh8iQrO38GC4K_0_video.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0a9f7ecf%2FjQvhuOlh8iQrO38GC4K_0_video.mp4/tr:so-0,w-1024,q-80/jQvhuOlh8iQrO38GC4K_0_video.webp", badgeParts: ["4K"], badgeHasAudio: true, badgeHasResolutionLabel: true, settings: { duration: "10s", ratio: "16:9", resolution: "4k", generateAudio: true } },
       "image-to-video": { provider: "seedance-video", workflow: "image-to-video", modelLabel: "Seedance 2.0", prompts: [SEEDANCE_IMAGE_PROMPT], videoUrl: "https://v3b.fal.media/files/b/0a95998b/Y2JKGGVWMyjhMKf_FoqS5_video.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2F0a95998b%2FY2JKGGVWMyjhMKf_FoqS5_video.mp4/tr:so-0,w-1024,q-80/Y2JKGGVWMyjhMKf_FoqS5_video.webp", sourceImageUrl: SEEDANCE_IMAGE_URL, sourceImageShape: "landscape", badgeParts: ["4K"], badgeHasAudio: true, badgeHasResolutionLabel: true, settings: { duration: "10s", ratio: "16:9", resolution: "4k", generateAudio: true } }
     }
-  },
-  "veo-video": {
-    id: "veo-video",
-    meta: { label: "Veo 3.1", shortLabel: "Veo 3.1", speed: "Slower", quality: "Premium", bestFor: "High-end prompt-led video with audio, 1080p, and 4k options" },
-    group: "premium",
-    badge: "premium",
-    workflows: { "text-to-video": { ratios: ["16:9", "9:16"] } },
-    durations: ["4s", "6s", "8s"],
-    resolutions: ["720p", "1080p", "4k"],
-    defaultDuration: "8s",
-    defaultResolution: "720p",
-    showResolutionControl: true,
-    showAudioControl: true,
-    examples: {
-      "text-to-video": { provider: "veo-video", workflow: "text-to-video", modelLabel: "Veo 3.1", prompts: [VEO_TEXT_PROMPT], videoUrl: "https://v3b.fal.media/files/b/kangaroo/oUCiZjQwEy6bIQdPUSLDF_output.mp4", posterUrl: "https://refinery.fal.media/url/https%3A%2F%2Fv3b.fal.media%2Ffiles%2Fb%2Fkangaroo%2FoUCiZjQwEy6bIQdPUSLDF_output.mp4/tr:so-0,w-1024,q-80/oUCiZjQwEy6bIQdPUSLDF_output.webp", badgeParts: ["720p"], badgeHasAudio: true, settings: { duration: "8s", ratio: "16:9", resolution: "720p", generateAudio: true } }
-    }
   }
 };
 
@@ -329,9 +317,9 @@ export const VIDEO_PROVIDER_META: Record<string, VideoProviderMeta> = {
 };
 
 export const VIDEO_PROVIDERS_BY_WORKFLOW: Record<StudioVideoWorkflow, string[]> = {
-  "reference-to-video": ["heygen-video"],
-  "text-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", "veo-video"],
-  "image-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video"]
+  "reference-to-video": ["heygen-video", SEEDANCE_FLASH_PROVIDER],
+  "text-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", SEEDANCE_FLASH_PROVIDER],
+  "image-to-video": ["heygen-video", "minimax-h3-max-turbo-video", "grok-video", "minimax-h3-max-video", "flux-3-max-video", "gemini-omni-flash-video", "seedance-mini-video", "happy-horse-video", "kling-video", "seedance-video", SEEDANCE_FLASH_PROVIDER]
 };
 
 export const VIDEO_EXAMPLE_PROMPTS = Object.values(VIDEO_MODEL_CONFIGS)

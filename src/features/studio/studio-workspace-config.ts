@@ -1,4 +1,5 @@
 import { GEMINI_TTS_PROVIDER } from "../../lib/gemini-tts";
+import { SEEDREAM_55_PROVIDER } from "../../lib/seedream-55";
 import { HEYGEN_VOICE_PROVIDER } from "../../lib/heygen-voice";
 import { GPT_IMAGE_EXAMPLE_PROMPTS,GPT_IMAGE_SIZES,isGptImageProvider,normalizeGptImageProvider } from "../../lib/gpt-image-models";
 import { parseStudioReferenceImages } from "../../lib/studio-workspace-inputs";
@@ -185,6 +186,10 @@ export const PROVIDER_META: Record<
     bestFor: string;
   }
 > = {
+  [SEEDREAM_55_PROVIDER]: {
+    label: "Seedream 5.5", shortLabel: "Seedream 5.5", speed: "Fast", quality: "Multi-reference editing",
+    bestFor: "Text to image, up to 10 references and transparent PNG"
+  },
   "chatgpt-image": {
     label: "GPT Image 2.6 Flare",
     shortLabel: "GPT Image 2.6 Flare",
@@ -287,13 +292,13 @@ export const WORKFLOW_META: Record<
     label: "Text to Image",
     description: "Create a new image from a prompt.",
     recommendedProvider: "chatgpt-image",
-    providers: ["chatgpt-image", "gpt-image-2.6-sunburst", "nano-banana-pro", "nano-banana-image", "nano-banana-2-lite", "nano-banana-lite", "flux-dev", "flux-image"]
+    providers: ["chatgpt-image", "gpt-image-2.6-sunburst", SEEDREAM_55_PROVIDER, "nano-banana-pro", "nano-banana-image", "nano-banana-2-lite", "nano-banana-lite", "flux-dev", "flux-image"]
   },
   "image-to-image": {
     label: "Image to Image",
     description: "Upload references and edit, restyle, or extend them.",
     recommendedProvider: "nano-banana-image",
-    providers: ["chatgpt-image", "gpt-image-2.6-sunburst", "nano-banana-image", "nano-banana-lite", "nano-banana-pro"]
+    providers: ["chatgpt-image", "gpt-image-2.6-sunburst", SEEDREAM_55_PROVIDER, "nano-banana-image", "nano-banana-lite", "nano-banana-pro"]
   },
   "enhance-cleanup": {
     label: "Image Enhance",
@@ -478,6 +483,7 @@ export function promptForProviderChange(current: string, nextDefaultPrompt: stri
 }
 
 export function defaultImageSizeForProvider(provider: string) {
+  if (provider === SEEDREAM_55_PROVIDER) return "auto_2K";
   if(provider === "gpt-image-2.6-sunburst") return "landscape_16_9";
   if (provider === "flux-image" || provider === "flux-dev") return "landscape_16_9";
   if (isNanoBananaProvider(provider)) return "default_4_3";
@@ -575,7 +581,7 @@ export function isProviderAllowedForMode(provider: string | null, mode: StudioMo
   if (!provider) return false;
   provider=normalizeGptImageProvider(provider);
 
-  if (mode === "image") return ["gpt-image-2.6-sunburst", "chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
+  if (mode === "image") return [SEEDREAM_55_PROVIDER, "gpt-image-2.6-sunburst", "chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return [GEMINI_TTS_PROVIDER, HEYGEN_VOICE_PROVIDER, "minimax-music-2.6", "elevenlabs-tts"].includes(provider);
   if (mode === "avatar") return ["heygen-video", "minimax-h3-max-turbo-video", "minimax-h3-max-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
   return Boolean(videoModelConfig(provider)) || isAvatarProvider(provider);

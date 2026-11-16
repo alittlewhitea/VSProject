@@ -1,5 +1,6 @@
 import { isGptImageProvider } from "./gpt-image-models";
 import { creditsFromFalUsd, gptImageCreditsFromCostUsd } from "./model-pricing";
+import { isSeedModelProvider, seedModelCreditsFromCostUsd } from "./seed-model-pricing";
 
 type FalModelError = {
   loc?: unknown[];
@@ -219,7 +220,9 @@ export async function falApiErrorFromResponse(response: Response) {
 
 export function falActualCreditsFromCost(costUsd: number | null, estimatedCredits: number, provider?: string | null) {
   if (!Number.isFinite(costUsd || 0) || !costUsd || costUsd <= 0) return 0;
-  return Math.min(Math.max(0, estimatedCredits), provider && isGptImageProvider(provider) ? gptImageCreditsFromCostUsd(costUsd, 0) : creditsFromFalUsd(costUsd, 1));
+  const actualCredits = isSeedModelProvider(provider) ? seedModelCreditsFromCostUsd(costUsd, 0)
+    : provider && isGptImageProvider(provider) ? gptImageCreditsFromCostUsd(costUsd, 0) : creditsFromFalUsd(costUsd, 1);
+  return Math.min(Math.max(0, estimatedCredits), actualCredits);
 }
 
 export function falRefundCreditsFromCost(costUsd: number | null, estimatedCredits: number, provider?: string | null) {

@@ -112,7 +112,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: absoluteUrl(baseUrl, "/video/seedance-2-5-flash"),
-      lastModified: "2026-11-12",
+      lastModified: "2026-11-16",
       changeFrequency: "weekly",
       priority: 0.85
     },

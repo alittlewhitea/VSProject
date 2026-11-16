@@ -18,6 +18,8 @@ import { heygenAspectRatioError, heygenRequiresHdAspectRatio, preferredHeygenHdR
 import { HEYGEN_REFERENCE_IMAGE_LIMIT,isPublicReferenceUrl } from "../../lib/heygen-reference-video";
 import { MISCHIEF_MAX_IMAGE_BYTES,MISCHIEF_PROVIDER } from "../../lib/mischief";
 import { CREDIT_LOW_BALANCE_THRESHOLD,estimateGenerationCredits } from "../../lib/model-pricing";
+import { SEEDANCE_FLASH_PROVIDER, DEFAULT_SEEDANCE_FLASH_OPTIONS, SEEDANCE_FLASH_IMAGE_LIMIT, parseReferenceMediaUrls, seedanceFlashValidationKey, type SeedanceFlashOptions } from "../../lib/seedance-flash";
+import { SEEDREAM_55_PROVIDER, SEEDREAM_55_SIZES, seedream55Error } from "../../lib/seedream-55";
 import { useStudioI18n } from "../../lib/studio-i18n";
 import { navigateStudio } from "../../lib/studio-navigation";
 import { parseStudioReferenceImages,referenceTextWithoutExamples,shouldApplyUrlInput,type AppliedUrlInput } from "../../lib/studio-workspace-inputs";
@@ -155,6 +157,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
   const referenceUploadScopeRef = useRef(0);
   const [referenceVideoUrl, setReferenceVideoUrl] = useState(sp.get("referenceVideo") || "");
+  const [seedanceOptions, setSeedanceOptions] = useState<SeedanceFlashOptions>({ ...DEFAULT_SEEDANCE_FLASH_OPTIONS });
   const lastAppliedVideoUrlRef = useRef<AppliedUrlInput | null>(null);
   const previousReferenceWorkflow = useRef(initialWorkflow === "reference-to-video");
   const homeReferenceRef = useRef<{ mode: "image" | "video"; image: string } | null>(null);
@@ -170,7 +173,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const [avatarAudioTrimSeconds, setAvatarAudioTrimSeconds] = useState<number | null>(null);
   const [editResolution, setEditResolution] = useState("1K");
   const [videoResolution, setVideoResolution] = useState(() => defaultVideoResolutionForProvider(initialProvider));
-  const [generateAudio, setGenerateAudio] = useState(initialProvider === "flux-3-max-video");
+  const [generateAudio, setGenerateAudio] = useState(initialProvider === "flux-3-max-video" || initialProvider === SEEDANCE_FLASH_PROVIDER);
   const [reasoningLevel, setReasoningLevel] = useState<"low"|"high">("high");
   const [pricingTime, setPricingTime] = useState(()=>initialPricingTime ?? Date.now());
   useEffect(()=>{
@@ -217,7 +220,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     if(mode!=="image")return;
     if(!isGptImageProvider(provider)) {
       if(!["png","jpeg","webp"].includes(outputFormat))setOutputFormat("png");
-      if(numImages>4)setNumImages(4);
+      if(numImages>(provider===SEEDREAM_55_PROVIDER?6:4))setNumImages(provider===SEEDREAM_55_PROVIDER?6:4);
+      if(provider===SEEDREAM_55_PROVIDER&&outputFormat==="webp")setOutputFormat("png");
     } else {
       if(imageWorkflow==="image-to-image"&&outputFormat==="svg")setOutputFormat("png");
       if(outputFormat==="svg"&&numImages!==1)setNumImages(1);
@@ -448,7 +452,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       if (!sp.get("reference") || sp.get("templateId")) setReferenceImageFiles([]);
     }
     const nextImageSize = mode === "image" ? isGptImageProvider(nextProvider) && sp.get("imageSize") ? sp.get("imageSize")! : defaultImageSizeForProvider(nextProvider) : "default_4_3";
-    setRatio(mode === "image" ? defaultImageRatioForProvider(nextProvider, nextImageSize) : mode === "avatar" ? "source" : workflowParam === "reference-to-video" ? "adaptive" : "16:9");
+    setRatio(mode === "image" ? defaultImageRatioForProvider(nextProvider, nextImageSize) : mode === "avatar" ? "source" : workflowParam === "reference-to-video" ? nextProvider === SEEDANCE_FLASH_PROVIDER ? "auto" : "adaptive" : nextProvider === SEEDANCE_FLASH_PROVIDER && workflowParam === "image-to-video" ? "source" : "16:9");
     setImageSize(nextImageSize);
     setDuration(current =>
       mode === "avatar" && !modeChanged && provider === nextProvider && videoModelDurations(nextProvider).includes(current)
@@ -494,7 +498,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     }
 
     const imageSizeParam = sp.get("imageSize");
-    if (provider !== "topaz-image" && imageSizeParam && (IMAGE_SIZE_PRESETS.some((preset) => preset.value === imageSizeParam) || (isGptImageProvider(provider) && ["auto","custom",...GPT_IMAGE_SIZES.map(preset=>preset.value)].includes(imageSizeParam)))) {
+    if (provider !== "topaz-image" && imageSizeParam && (IMAGE_SIZE_PRESETS.some((preset) => preset.value === imageSizeParam) || provider === SEEDREAM_55_PROVIDER && SEEDREAM_55_SIZES.includes(imageSizeParam) || (isGptImageProvider(provider) && ["auto","custom",...GPT_IMAGE_SIZES.map(preset=>preset.value)].includes(imageSizeParam)))) {
       setImageSize(imageSizeParam);
       setRatio(ratioFromImageSize(imageSizeParam));
     }
@@ -627,7 +631,11 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     pricingTime,
     mode: modeForPricing(mode),
     provider,
+    videoWorkflow: activeWorkflow === "reference-to-video" ? "reference-to-video" : undefined,
+    referenceVideoCount: activeWorkflow === "reference-to-video" ? parseReferenceMediaUrls(referenceVideoUrl).length : 0,
+    seedanceTask: activeWorkflow === "reference-to-video" ? seedanceOptions.task : undefined,
     imageSize,
+    ...(provider === SEEDREAM_55_PROVIDER ? { imageWidth: gptImageOptions.width, imageHeight: gptImageOptions.height } : {}),
     ...(isGptImageProvider(provider)?{imageWidth:gptImageOptions.width,imageHeight:gptImageOptions.height,outputFormat,imageReasoningEffort:gptImageOptions.reasoningEffort,frameCount:gptImageOptions.frameCount,svgModel:gptImageOptions.svgModel}:{}),
     duration: isAvatarWorkflow ? avatarQuoteDuration : duration,
     hasReferences: referenceImageUrls.length > 0,
@@ -678,6 +686,9 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
           pricingTime,
           mode: modeForPricing(mode),
           provider: option.value,
+          videoWorkflow: activeWorkflow === "reference-to-video" ? "reference-to-video" : undefined,
+          referenceVideoCount: activeWorkflow === "reference-to-video" ? parseReferenceMediaUrls(referenceVideoUrl).length : 0,
+          seedanceTask: activeWorkflow === "reference-to-video" ? seedanceOptions.task : undefined,
           imageSize: optionImageSize,
           duration: optionDuration,
           hasReferences: optionReferenceCount > 0,
@@ -713,11 +724,11 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       badge: option.value===HEYGEN_VOICE_PROVIDER&&isHeygenVoiceFree(pricingTime)?st("studio.heygenVoice.freeBadge"):option.value === "flux-3-max-video" && isFlux3MaxPromotion(pricingTime) ? st("studio.flux3.promotion") : badgeKey ? st(badgeKey) : undefined,
       group: st(groupKey)
     };
-  })), [activeWorkflow, avatarDuration, duration, editResolution, estCredits, geminiTts, generateAudio, gptImageOptions, h3DailyFree, imageQuality, imageSize, imageWorkflow, isAvatarWorkflow, mode, numImages, options, pricingTime, prompt, provider, recommendedProvider, referenceImageUrls, st, videoResolution]);
+  })), [activeWorkflow, avatarDuration, duration, editResolution, estCredits, geminiTts, generateAudio, gptImageOptions, h3DailyFree, imageQuality, imageSize, imageWorkflow, isAvatarWorkflow, mode, numImages, options, pricingTime, prompt, provider, recommendedProvider, referenceImageUrls, referenceVideoUrl, seedanceOptions, st, videoResolution]);
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = estCredits > 0 && typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const hasMiniMaxLyrics = isInstrumental || lyricsOptimizer || musicLyrics.trim().length > 0;
-  const isPromptValid = isPromptlessImageWorkflow || (
+  const isPromptValid = isPromptlessImageWorkflow || provider === SEEDANCE_FLASH_PROVIDER && activeWorkflow !== "text-to-video" || (
     isHeygenVoice ? !heygenVoiceError : isGeminiTts ? !geminiSpeech.error : isAvatarWorkflow
       ? prompt.trim().length > 0 && !avatarScriptTooLong
       : isMiniMaxMusic
@@ -725,12 +736,13 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
         : prompt.trim().length > 0
   );
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
-  const hasRequiredReference = activeWorkflow === "reference-to-video" ? isPublicReferenceUrl(referenceVideoUrl) : !needsReferenceImage || referenceImageUrls.length > 0;
+  const hasRequiredReference = activeWorkflow === "reference-to-video" ? provider === SEEDANCE_FLASH_PROVIDER ? true : isPublicReferenceUrl(referenceVideoUrl) : !needsReferenceImage || referenceImageUrls.length > 0;
   const gptRequestOptions = {imageSize,imageWidth:gptImageOptions.width,imageHeight:gptImageOptions.height,quality:imageQuality,outputFormat,numImages,imageUrls:referenceImageUrls,background:gptImageOptions.background,imageReasoningEffort:gptImageOptions.reasoningEffort,...(["jpeg","webp"].includes(outputFormat)?{outputCompression:gptImageOptions.outputCompression}:{}),...(outputFormat==="gif"?{frameCount:gptImageOptions.frameCount,frameDurationMs:gptImageOptions.frameDurationMs}:{}),...(outputFormat==="svg"?{svgModel:gptImageOptions.svgModel}:{}),...(activeWorkflow==="image-to-image"?{maskUrl:gptImageOptions.maskUrl,markupImageUrl:gptImageOptions.markupImageUrl}:{})};
-  const gptValidationError = mode==="image"&&isGptImageProvider(provider)?gptImageOptionError({...gptRequestOptions,prompt}):null;
+  const gptValidationError = mode==="image"&&isGptImageProvider(provider)?gptImageOptionError({...gptRequestOptions,prompt}):mode==="image"&&provider===SEEDREAM_55_PROVIDER&&seedream55Error({...gptRequestOptions,mode,imageWorkflow,prompt,imageUrls:allReferenceImageUrls})?"studio.seedream.invalid":null;
+  const seedanceValidationError = provider === SEEDANCE_FLASH_PROVIDER ? seedanceFlashValidationKey({mode,videoWorkflow,prompt,duration,ratio,resolution:videoResolution,imageUrls:videoWorkflow==="text-to-video"?undefined:allReferenceImageUrls,videoUrls:activeWorkflow==="reference-to-video"?parseReferenceMediaUrls(referenceVideoUrl):undefined,audioUrls:activeWorkflow==="reference-to-video"?parseReferenceMediaUrls(seedanceOptions.audioUrls):undefined,seedanceTask:seedanceOptions.task}) : null;
   const videoSpeechTooLong = mode === "video" && provider === "heygen-video" && videoDialogueTiming(prompt, duration)?.tooLong;
   const videoAspectRatioError = mode === "video" && provider === "heygen-video" && heygenAspectRatioError(videoWorkflow, videoResolution, ratio);
-  const canSubmit = isPromptValid && hasRequiredReference && !gptValidationError && !verifiedAvatarAudio.loading && !verifiedAvatarAudio.error && !videoSpeechTooLong && !videoAspectRatioError;
+  const canSubmit = isPromptValid && hasRequiredReference && !gptValidationError && !seedanceValidationError && !verifiedAvatarAudio.loading && !verifiedAvatarAudio.error && !videoSpeechTooLong && !videoAspectRatioError;
   const videoPromptAI = useVideoPromptEnhancement({
     mode: videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video",
     prompt, model: provider, duration, aspectRatio: ratio,
@@ -756,6 +768,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   } : null;
   const selectedImageSize = getImageSizePreset(imageSize);
   const providerNoteKey = [
+    SEEDANCE_FLASH_PROVIDER,
+    SEEDREAM_55_PROVIDER,
     "flux-image",
     "flux-dev",
     "chatgpt-image",
@@ -769,7 +783,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     "gemini-omni-flash-video",
     MISCHIEF_PROVIDER,
     "kling-video",
-    "veo-video",
     "elevenlabs-tts",
     GEMINI_TTS_PROVIDER,
     HEYGEN_VOICE_PROVIDER,
@@ -814,7 +827,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const showModernStudioChrome = showModernWorkbenchRedesign || isProjectsView || isAppsHome || isBillingView;
   const useWideStudioShell = showModernStudioChrome || isAppsHome;
   const providerSettingsLabel =
-    isGptImageProvider(provider)
+    provider === SEEDREAM_55_PROVIDER ? `${imageSize.replace("auto_", "")} / ${outputFormat.toUpperCase()} / ${numImages}` : isGptImageProvider(provider)
       ? `${imageQuality} / ${outputFormat.toUpperCase()} / ${numImages}`
     : provider === "flux-image" || provider === "flux-dev"
         ? `${numInferenceSteps} / ${guidanceScale} / ${outputFormat.toUpperCase()}`
@@ -1060,7 +1073,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
         setDuration(nextDuration);
       }
       setVideoResolution(nextResolution);
-      if(nextProvider === "flux-3-max-video" && provider !== nextProvider){setGenerateAudio(true);setReasoningLevel("high");}
+      if((nextProvider === "flux-3-max-video" || nextProvider === SEEDANCE_FLASH_PROVIDER) && provider !== nextProvider){setGenerateAudio(true);setReasoningLevel("high");}
       setRatio(nextRatio);
       const params = new URLSearchParams(sp.toString());
       params.set("mode", mode === "avatar" ? "avatar" : "video");
@@ -1094,14 +1107,15 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     const uploadScope = referenceUploadScopeRef.current;
     if (mode === "video" && videoWorkflow === "reference-to-video") {
       const selected = Array.from(files);
-      if (selected.length + referenceImageUrls.length > HEYGEN_REFERENCE_IMAGE_LIMIT || selected.some(file => !["image/jpeg","image/png","image/webp"].includes(file.type) || file.size > 30*1024*1024)) {
+      const imageLimit = provider === SEEDANCE_FLASH_PROVIDER ? SEEDANCE_FLASH_IMAGE_LIMIT : HEYGEN_REFERENCE_IMAGE_LIMIT;
+      if (selected.length + referenceImageUrls.length > imageLimit || selected.some(file => !["image/jpeg","image/png","image/webp"].includes(file.type) || file.size > 30*1024*1024)) {
         setStatusTone("error"); setStatusText(st("studio.referenceVideo.subjectHint")); return;
       }
       const uploaded = await Promise.all(selected.map(file => new Promise<string>((resolve,reject) => {
         const reader = new FileReader(); reader.onload=()=>resolve(String(reader.result)); reader.onerror=()=>reject(new Error("Image file could not be read.")); reader.readAsDataURL(file);
       })));
       if (uploadScope !== referenceUploadScopeRef.current) return;
-      setReferenceImageFiles(current => [...current,...uploaded].slice(0,HEYGEN_REFERENCE_IMAGE_LIMIT));
+      setReferenceImageFiles(current => [...current,...uploaded].slice(0,imageLimit));
       return;
     }
     if (mode === "video" && videoWorkflow === "image-to-video") {
@@ -1127,7 +1141,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       return;
     }
     const singleReferenceWorkflow = isPromptlessImageWorkflow || mode === "video" || mode === "avatar";
-    const maxFiles = singleReferenceWorkflow ? 1 : 4;
+    const maxFiles = singleReferenceWorkflow ? 1 : provider === SEEDREAM_55_PROVIDER ? 10 : 4;
+    if (provider === SEEDREAM_55_PROVIDER && (Array.from(files).length + referenceImageUrls.length > 10 || Array.from(files).some(file => !file.type.startsWith("image/") || file.size > 30 * 1024 * 1024))) { setStatusTone("error"); setStatusText(st("studio.seedream.invalid")); return; }
     const nextFiles = await Promise.all(
       Array.from(files)
         .filter((file) => file.type.startsWith("image/"))
@@ -1148,7 +1163,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     } else if (mode === "image" && nextFiles.length) {
       setReferenceImagesText(current => referenceTextWithoutExamples(current));
     }
-    setReferenceImageFiles((prev) => (singleReferenceWorkflow ? nextFiles.slice(0, 1) : [...prev, ...nextFiles].slice(0, 4)));
+    setReferenceImageFiles((prev) => (singleReferenceWorkflow ? nextFiles.slice(0, 1) : [...prev, ...nextFiles].slice(0, maxFiles)));
     if (mode === "image" && imageWorkflow === "text-to-image") {
       const nextWorkflow: StudioWorkflow = "image-to-image";
       const nextProvider = providerForWorkflow(nextWorkflow, readRememberedModel(nextWorkflow) || provider);
@@ -1268,6 +1283,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       referenceImagesText,
       referenceImageFiles,
       referenceVideoUrl,
+      seedanceOptions,
       avatarAudioUrl,
       editResolution,
       videoResolution,
@@ -1337,6 +1353,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setReferenceImagesText(draft.mode === "avatar" ? stripAvatarDefaultReferences(draft.referenceImagesText) : draft.referenceImagesText);
     setReferenceImageFiles(Array.isArray(draft.referenceImageFiles) ? draft.referenceImageFiles : []);
     setReferenceVideoUrl(draft.referenceVideoUrl || "");
+    setSeedanceOptions({ ...DEFAULT_SEEDANCE_FLASH_OPTIONS, ...draft.seedanceOptions });
     setAvatarAudioUrl(draft.avatarAudioUrl || "");
     setEditResolution(draft.editResolution);
     setVideoResolution(draft.videoResolution);
@@ -1467,12 +1484,13 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
           (mode === "image" && referenceImageUrls.length > 0) || (mode === "avatar" || (mode === "video" && (videoWorkflow === "image-to-video" || videoWorkflow === "reference-to-video")))
             ? referenceImageUrls
             : undefined,
-        videoUrls: mode === "video" && videoWorkflow === "reference-to-video" ? [referenceVideoUrl.trim()] : undefined,
+        videoUrls: mode === "video" && videoWorkflow === "reference-to-video" ? provider === SEEDANCE_FLASH_PROVIDER ? parseReferenceMediaUrls(referenceVideoUrl) : [referenceVideoUrl.trim()] : undefined,
+        ...(provider === SEEDANCE_FLASH_PROVIDER ? { seedanceTask: seedanceOptions.task, bitrateMode: seedanceOptions.bitrateMode, codec: seedanceOptions.codec, ...(videoWorkflow === "reference-to-video" ? { audioUrls: parseReferenceMediaUrls(seedanceOptions.audioUrls) } : {}) } : {}),
         audioUrl: isAvatarProvider(provider) && avatarAudioUrl.trim() ? verifiedAvatarAudio.audioUrl : undefined,
         resolution:
           mode === "image"
             ? editResolution
-            : (mode === "video" || isH3MaxAvatar || isHeygenAvatar) && (provider === "heygen-video" || provider === "flux-3-max-video" || provider === MISCHIEF_PROVIDER || isH3VideoProvider(provider) || provider === "grok-video" || provider === "gemini-omni-flash-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video")
+            : (mode === "video" || isH3MaxAvatar || isHeygenAvatar) && (provider === SEEDANCE_FLASH_PROVIDER || provider === "heygen-video" || provider === "flux-3-max-video" || provider === MISCHIEF_PROVIDER || isH3VideoProvider(provider) || provider === "grok-video" || provider === "gemini-omni-flash-video" || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video")
               ? videoResolution
               : undefined,
         generateAudio: provider === MISCHIEF_PROVIDER ? false : mode === "video" || isHeygenAvatar ? provider === "heygen-video" || provider === "gemini-omni-flash-video" || generateAudio : undefined,
@@ -1481,13 +1499,14 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
         outputFormat: mode === "image" && provider !== "bria-background-remove" ? outputFormat : undefined,
         quality: mode === "image" && !isPromptlessImageWorkflow ? imageQuality : undefined,
         ...(mode==="image"&&isGptImageProvider(provider)?{...gptRequestOptions,enableSafetyChecker:gptImageOptions.enableSafetyChecker}:{}),
+        ...(mode === "image" && provider === SEEDREAM_55_PROVIDER ? {imageWidth:gptImageOptions.width,imageHeight:gptImageOptions.height,background:gptImageOptions.background} : {}),
         numImages: mode === "image" && !isPromptlessImageWorkflow ? numImages : undefined,
         guidanceScale: mode === "image" && !isPromptlessImageWorkflow ? guidanceScale : undefined,
         numInferenceSteps: mode === "image" && !isPromptlessImageWorkflow ? numInferenceSteps : undefined,
         enableSafetyChecker: mode==="image"&&isGptImageProvider(provider)?gptImageOptions.enableSafetyChecker:(mode === "image" && !isPromptlessImageWorkflow) || ((mode === "video" || isHeygenAvatar) && (provider === "heygen-video" || provider === "happy-horse-video" || provider === "grok-video")) ? enableSafetyChecker : undefined,
         acceleration: mode === "image" && !isPromptlessImageWorkflow ? acceleration : undefined,
         limitGenerations: mode === "image" && !isPromptlessImageWorkflow ? limitGenerations : undefined,
-        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === "heygen-video" || provider === "flux-3-max-video" || provider === MISCHIEF_PROVIDER || isH3VideoProvider(provider) || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video" || provider === "veo-video") ? parsedSeed : undefined,
+        seed: Number.isSafeInteger(parsedSeed) && (mode === "image" || provider === SEEDANCE_FLASH_PROVIDER && videoWorkflow === "reference-to-video" || provider === "heygen-video" || provider === "flux-3-max-video" || provider === MISCHIEF_PROVIDER || isH3VideoProvider(provider) || provider === "seedance-video" || provider === "seedance-mini-video" || provider === "happy-horse-video") ? parsedSeed : undefined,
         safetyTolerance: mode === "image" && !isPromptlessImageWorkflow ? safetyTolerance : undefined,
         systemPrompt: mode === "image" && !isPromptlessImageWorkflow && systemPrompt.trim() ? systemPrompt.trim() : undefined,
         enableWebSearch: mode === "image" && !isPromptlessImageWorkflow ? enableWebSearch : undefined,
@@ -1967,6 +1986,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     generateDisabled,
     gptImageOptions,
     gptValidationError,
+    seedanceValidationError,
     guidanceScale,
     h3FreeLabel,
     handleGenerateClick,
@@ -2060,6 +2080,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setReferenceImageFiles,
     setReferenceImagesText,
     setReferenceVideoUrl,
+    seedanceOptions,
+    setSeedanceOptions,
     setSafetyTolerance,
     setSeed,
     setStatusText,

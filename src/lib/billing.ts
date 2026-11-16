@@ -100,8 +100,7 @@ function creditPackExamples(credits: number): CreditPack["examples"] {
     {label: "Eleven v4 Turbo", input: {mode:"audio",provider:"elevenlabs-tts",promptText:"x".repeat(1000)}, note:"1,000-character voiceovers"},
     {label: "Grok Imagine 1.5 Lite", input: {mode:"video",provider:"grok-video",duration:"6s",resolution:"720p"}, note:"6-second 720p clips without reference surcharge"},
     {label: "Kling v3 Pro", input: {mode:"video",provider:"kling-video",duration:"6s",resolution:"1080p",generateAudio:false}, note:"6-second 1080p clips without audio"},
-    {label: "Seedance 2.0", input: {mode:"video",provider:"seedance-video",duration:"6s",resolution:"720p"}, note:"6-second 720p allowance"},
-    {label: "Veo 3.1", input: {mode:"video",provider:"veo-video",duration:"4s",resolution:"720p",generateAudio:false}, note:"4-second 720p clips without audio"}
+    {label: "Seedance 2.0", input: {mode:"video",provider:"seedance-video",duration:"6s",resolution:"720p"}, note:"6-second 720p allowance"}
   ] satisfies Array<{label:string;input:Parameters<typeof estimateGenerationCredits>[0];note:string}>;
   return samples.map(sample=>({label:sample.label,count:`up to ${Math.floor(credits / estimateGenerationCredits(sample.input)).toLocaleString("en-US")}`,note:sample.note}));
 }

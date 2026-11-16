@@ -4,6 +4,15 @@
 .hint { margin-top: 5px; font-size: 12px; line-height: 19px; color: var(--df-muted); }
 .label { display: block; margin-top: 14px; margin-bottom: 7px; font-size: 12px; line-height: 18px; font-weight: 500; }
 .label span { color: var(--studio-accent); }
+.mediaLabel { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
+.mediaLabel small { margin-inline-start:auto; color:var(--df-muted); font-size:11px; font-weight:400; font-variant-numeric:tabular-nums; }
+.mediaLabel .requirement { padding:1px 6px; border:1px solid var(--df-border); border-radius:5px; background:var(--df-surface-soft); color:var(--df-muted); font-size:10px; line-height:16px; font-weight:400; }
+.mediaLabel .requirement[data-required="true"] { border-color:var(--df-primary-border); background:var(--df-primary-soft); color:var(--df-accent); font-weight:500; }
+.taskHelp { margin-top:9px; padding:9px 11px; border-radius:8px; background:var(--df-primary-soft); color:var(--df-ink); font-size:12px; line-height:20px; }
+.mediaSpecs { margin-top:4px; color:var(--df-muted); font-size:11px; line-height:18px; }
+.mediaSpecs summary { width:fit-content; min-height:32px; padding:7px 0; cursor:pointer; }
+.mediaSpecs summary:hover { color:var(--df-accent); }
+.mediaSpecs[open] { margin-bottom:8px; }
 .url { display: block; width: 100%; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid var(--df-border); border-radius: var(--df-radius-input); background: var(--df-surface); color: var(--df-ink); font-size: 12px; }
 .url:focus-visible { outline: 2px solid var(--df-primary-border); outline-offset: 2px; }
 .urlRow { display: flex; align-items: stretch; gap: 8px; min-width: 0; }

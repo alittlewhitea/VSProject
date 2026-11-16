@@ -64,7 +64,7 @@ try{
  assert.deepEqual(spends,charged);assert.equal(submissions.length,count);
  delete process.env.FAL_KEY;response=await route.POST(reference());assert.equal(response.status,503);assert.deepEqual(spends,charged);
  process.env.FAL_KEY='fixture-no-network';
- const configRef=models.VIDEO_PROVIDERS_BY_WORKFLOW['reference-to-video'];assert.deepEqual(configRef,['heygen-video']);
+ const configRef=models.VIDEO_PROVIDERS_BY_WORKFLOW['reference-to-video'];assert.deepEqual(configRef,['heygen-video','seedance-2.5-flash-video']);
  assert.deepEqual(models.videoModelRatios('heygen-video','reference-to-video'),['adaptive','21:9','16:9','4:3','1:1','3:4','9:16']);
  const links=load('src/features/studio/studio-video-template-link.ts');
  const linked=new URL(links.studioVideoTemplateHref({id:'template-id',videoUrl},'Keep my product.'),'https://dreamface.io');

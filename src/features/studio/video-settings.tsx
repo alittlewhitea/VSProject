@@ -1,4 +1,8 @@
 "use client";
+import { SEEDANCE_FLASH_PROVIDER, SEEDANCE_FLASH_GUIDE_PATH, parseReferenceMediaUrls, seedanceFlashNoticeKeys, type SeedanceFlashOptions } from "../../lib/seedance-flash";
+import { SeedanceReferencePanel } from "./seedance-reference-panel";
+import { ReferencePromptEditor } from "./reference-prompt-editor";
+import { removeReferenceImageFromPrompt } from "../../lib/reference-prompt";
 
 import type { ReactNode } from "react";
 import { StudioPanel, StudioSelectField, StudioStatusNotice, type StudioStatusTone } from "./studio-primitives";
@@ -17,6 +21,9 @@ import { heygenRequiresHdAspectRatio } from "../../lib/heygen-video-options";
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
 
 type VideoSettingsProps = {
+  seedanceOptions: SeedanceFlashOptions;
+  seedanceValidationError?: string | null;
+  onSeedanceOptionsChange: (value: SeedanceFlashOptions) => void;
   workflowTabs?: ReactNode;
   statusMessage?: string;
   statusTone?: StudioStatusTone;
@@ -73,6 +80,7 @@ const PRESETS = [
 ] as const;
 
 export function VideoSettings({
+  seedanceOptions, onSeedanceOptionsChange, seedanceValidationError,
   dailyFreeLabel, workflowTabs, statusMessage, statusTone,
   promptAI, workflow, prompt, referenceImageUrls, referenceVideoUrl, onReferenceVideoUrlChange, provider, providerOptions, duration, durationOptions, ratio, ratioOptions,
   ratioDisabled, showResolutionControl, resolution, resolutionOptions, showAudioControl, generateAudio, seed,
@@ -84,6 +92,10 @@ export function VideoSettings({
 }: VideoSettingsProps) {
   const [activePreset, setActivePreset] = useState("cinematic");
   const [moreSettingsOpen, setMoreSettingsOpen] = useState(false);
+  const [referenceNotice, setReferenceNotice] = useState("");
+  const showSeedanceNotices = provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video";
+  const flashAutomaticRatio = provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video" && ["editing", "extension"].includes(seedanceOptions.task);
+  const flashNeedsInput = seedanceValidationError && ["prompt", "startImage", "emptyReference"].some(code => seedanceValidationError === `studio.seedance.validation.${code}`);
   const speechTiming = provider === "heygen-video" ? videoDialogueTiming(prompt, duration) : null;
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -114,14 +126,18 @@ export function VideoSettings({
           <div className={styles.editorScroll} data-video-editor-scroll>
           <fieldset disabled={isSubmitting || promptAI.busy} className={styles.formGrid}>
           <div className={styles.content} data-video-prompt-section>
-          {workflow === "reference-to-video" ? <StudioVideoReferencePanel compact videoUrl={referenceVideoUrl} images={referenceImageUrls} translate={translate} onVideoUrlChange={onReferenceVideoUrlChange} onFiles={onReferenceFiles} onRemove={onReferenceRemove} onFileError={onFileError} /> : null}
+          {workflow === "reference-to-video" ? provider === SEEDANCE_FLASH_PROVIDER ? <SeedanceReferencePanel videoUrls={referenceVideoUrl} images={referenceImageUrls} options={seedanceOptions} onOptionsChange={onSeedanceOptionsChange} onVideoUrlsChange={onReferenceVideoUrlChange} onFiles={onReferenceFiles} onRemove={index => {
+            const nextPrompt = removeReferenceImageFromPrompt(prompt, index, referenceImageUrls.length);
+            if (nextPrompt !== prompt) { onPromptChange(nextPrompt); setReferenceNotice(translate("studio.mention.removed")); }
+            onReferenceRemove(index);
+          }} onFileError={onFileError} translate={translate} /> : <StudioVideoReferencePanel compact videoUrl={referenceVideoUrl} images={referenceImageUrls} translate={translate} onVideoUrlChange={onReferenceVideoUrlChange} onFiles={onReferenceFiles} onRemove={onReferenceRemove} onFileError={onFileError} /> : null}
           <div className="df-composer-prompt-label mb-2.5 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5"><label htmlFor="video-studio-prompt" className="shrink-0 text-sm font-medium text-[var(--studio-text)]">{translate("studio.field.prompt")}</label></div>
             <span className="shrink-0 text-xs tabular-nums text-[var(--studio-muted)]">{translate("studio.workbench.characters", { count: prompt.length.toLocaleString() })}</span>
           </div>
 
           <div className="df-video-composer-input">
-            <textarea dir="auto" id="video-studio-prompt" value={prompt} onChange={(event) => onPromptChange(event.target.value)} onKeyDown={(event) => { if (window.matchMedia("(min-width: 1024px)").matches && (event.ctrlKey || event.metaKey)) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onGenerate(); } }} placeholder={translate(workflow === "reference-to-video" ? "studio.referenceVideo.placeholder" : workflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")} className="h-[150px] w-full resize-none border-0 bg-transparent p-4 text-[15px] leading-[1.55] text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />
+            {showSeedanceNotices ? <ReferencePromptEditor value={prompt} images={referenceImageUrls} videos={parseReferenceMediaUrls(referenceVideoUrl)} audio={parseReferenceMediaUrls(seedanceOptions.audioUrls)} placeholder={translate("studio.referenceVideo.placeholder")} notice={referenceNotice} onChange={next => { setReferenceNotice(""); onPromptChange(next); }} onGenerate={onGenerate} translate={translate} /> : <textarea dir="auto" id="video-studio-prompt" value={prompt} onChange={(event) => onPromptChange(event.target.value)} onKeyDown={(event) => { if (window.matchMedia("(min-width: 1024px)").matches && (event.ctrlKey || event.metaKey)) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onGenerate(); } }} placeholder={translate(workflow === "reference-to-video" ? "studio.referenceVideo.placeholder" : workflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")} className="h-[150px] w-full resize-none border-0 bg-transparent p-4 text-[15px] leading-[1.55] text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />}
             {workflow === "image-to-video" ? (
               <div className="mx-3 mb-3" data-video-keyframes>
                 <p className="mb-2 text-xs text-[var(--studio-muted)]">{translate(videoSupportsEndFrame(provider) ? "studio.videoWorkbench.keyframeHint" : "studio.videoWorkbench.singleFrameHint")}</p>
@@ -160,8 +176,8 @@ export function VideoSettings({
           <div className={styles.toolbar}>
           <ModelPicker inline value={provider} options={providerOptions} translate={translate} onChange={onProviderChange} />
           <div className={styles.parameters} data-video-parameters>
-            <StudioSelectField icon="duration" label={translate("studio.field.duration")} value={duration} options={durationOptions.map(value => ({ value, label: value }))} onValueChange={onDurationChange} />
-            <StudioSelectField icon="ratio" label={translate("studio.field.aspectRatio")} value={ratio} disabled={ratioDisabled} options={ratioOptions.map(value => ({ value, label: value === "source" ? translate("studio.option.sourceImage") : value === "adaptive" ? translate("studio.option.automatic") : value }))} onValueChange={onRatioChange} />
+            <StudioSelectField icon="duration" label={translate("studio.field.duration")} value={provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video" && seedanceOptions.task === "editing" ? "auto" : duration} disabled={provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video" && seedanceOptions.task === "editing"} options={durationOptions.map(value => ({ value, label: value === "auto" ? translate("studio.option.automatic") : value }))} onValueChange={onDurationChange} />
+            <StudioSelectField icon="ratio" label={translate("studio.field.aspectRatio")} value={flashAutomaticRatio ? "auto" : ratio} disabled={ratioDisabled || flashAutomaticRatio} options={(flashAutomaticRatio ? ["auto"] : ratioOptions).map(value => ({ value, label: value === "source" ? translate("studio.option.sourceImage") : value === "adaptive" || value === "auto" ? translate("studio.option.automatic") : value }))} onValueChange={onRatioChange} />
             <StudioSelectField icon="resolution" label={translate("studio.field.resolution")} value={resolution || "auto"} disabled={!showResolutionControl} options={showResolutionControl ? resolutionOptions.map(value => ({ value, label: value })) : [{ value: resolution || "auto", label: resolution || translate("studio.option.automatic") }]} onValueChange={onResolutionChange} />
             <button type="button" data-video-advanced-trigger aria-expanded={moreSettingsOpen} onClick={() => setMoreSettingsOpen(value => !value)} className={`${styles.advancedButton} df-composer-more`}>{translate(moreSettingsOpen ? "studio.workbench.lessSettings" : "studio.workbench.moreSettings")}</button>
           </div>
@@ -172,15 +188,22 @@ export function VideoSettings({
           </div>
           {dailyFreeLabel ? <p role="status" className="df-composer-daily">{dailyFreeLabel}</p> : null}
           <GenerationCostSummary compact estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate}/>
+          {showSeedanceNotices ? <a data-seedance-guide href={SEEDANCE_FLASH_GUIDE_PATH} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-10 items-center gap-1 rounded-lg text-xs font-medium text-[var(--studio-accent)] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">{translate("studio.seedance.guide")}<span aria-hidden="true">↗</span></a> : null}
+          {showSeedanceNotices ? <p data-seedance-quote className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{seedanceFlashNoticeKeys(workflow, duration, seedanceOptions.task).map(key => translate(key, { duration: duration.replace(/s$/, "") })).join(" ")}</p> : null}
+          {showSeedanceNotices && seedanceValidationError ? <p data-seedance-validation role={flashNeedsInput ? "status" : "alert"} className={`mt-2 text-xs ${flashNeedsInput ? "text-[var(--studio-muted)]" : "text-red-600"}`}>{translate(seedanceValidationError)}</p> : null}
           {provider === "mischief-video" ? <p data-mischief-notice className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate("studio.model.mischief-video")}</p> : null}
 
           {moreSettingsOpen ? <div data-video-advanced className={`mt-3 grid gap-3 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-3 ${showAudioControl ? "sm:grid-cols-2" : ""}`}>
+            {provider === SEEDANCE_FLASH_PROVIDER ? <>
+              <label className="min-w-0 text-xs text-[var(--studio-muted)]">{translate("studio.seedance.bitrate")}<select className="mt-1 block min-h-10 w-full rounded-lg bg-[var(--studio-panel)] px-2 text-[var(--studio-text)]" value={seedanceOptions.bitrateMode} onChange={event => onSeedanceOptionsChange({ ...seedanceOptions, bitrateMode: event.target.value as SeedanceFlashOptions["bitrateMode"] })}>{["standard", "high"].map(value => <option key={value} value={value}>{translate(`studio.seedance.bitrate.${value}`)}</option>)}</select></label>
+              <label className="min-w-0 text-xs text-[var(--studio-muted)]">{translate("studio.seedance.codec")}<select className="mt-1 block min-h-10 w-full rounded-lg bg-[var(--studio-panel)] px-2 text-[var(--studio-text)]" value={seedanceOptions.codec} onChange={event => onSeedanceOptionsChange({ ...seedanceOptions, codec: event.target.value as SeedanceFlashOptions["codec"] })}>{["auto", "H264", "H265"].map(value => <option key={value} value={value}>{value === "auto" ? translate("studio.option.automatic") : value}</option>)}</select></label>
+            </> : null}
             {provider === "flux-3-max-video" ? <label className="min-w-0 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2"><span className="mb-1 block text-xs text-[var(--studio-muted)]">{translate("studio.flux3.reasoning")}</span><select data-flux3-reasoning value={reasoningLevel} onChange={event=>onReasoningLevelChange(event.target.value as "low"|"high")} className="min-h-8 w-full border-0 bg-transparent text-[13px] font-medium text-[var(--studio-text)] outline-none"><option value="low">{translate("studio.flux3.low")}</option><option value="high">{translate("studio.flux3.high")}</option></select></label> : null}
             {provider === "heygen-video" || provider === "grok-video" || provider === "happy-horse-video" ? <button type="button" role="switch" data-video-safety-checker aria-checked={enableSafetyChecker} onClick={() => onEnableSafetyCheckerChange(!enableSafetyChecker)} className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-[10px] border px-3 text-xs font-semibold ${enableSafetyChecker ? "border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-text)]"}`}><span>{translate("studio.field.safety")}</span><span>{translate(enableSafetyChecker ? "studio.state.on" : "studio.state.off")}</span></button> : null}
-            <label className="min-w-0 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2">
+            {provider !== SEEDANCE_FLASH_PROVIDER || workflow === "reference-to-video" ? <label className="min-w-0 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2">
               <span className="mb-1 block text-xs text-[var(--studio-muted)]">{translate("studio.field.seed")}</span>
               <input value={seed} onChange={(event) => onSeedChange(event.target.value.replace(/[^\d]/g, "").slice(0, 12))} placeholder={translate("studio.placeholder.random")} inputMode="numeric" className="min-h-8 w-full border-0 bg-transparent text-[13px] font-medium text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />
-            </label>
+            </label> : null}
             {showAudioControl ? <button type="button" onClick={() => onGenerateAudioChange(!generateAudio)} className={`flex min-h-11 w-full items-center justify-between rounded-[10px] border px-3 text-xs font-semibold ${generateAudio ? "border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-text)]"}`}><span>{translate("studio.field.nativeAudio")}</span><span>{translate(generateAudio ? "studio.state.on" : "studio.state.off")}</span></button> : null}
           </div> : null}
 

@@ -48,8 +48,8 @@ try{
  const core=load('src/lib/video-prompt-enhancement.ts');
  assert.throws(()=>core.validatePromptContext({model:'mischief-video',mode:'image-to-video',prompt:'A camera pans.',duration:'5s',aspectRatio:'16:9',resolution:'720p',imageUrls:['https://example.invalid/start.png']}),/Unsupported/);
  const request=extra=>({headers:new Headers(),json:async()=>({mode:'video',provider:'mischief-video',videoWorkflow:'image-to-video',duration:'5s',resolution:'720p',ratio:'16:9',prompt:'A camera pans.',imageUrls:['https://example.invalid/start.png'],...extra})});
- for(const mode of ['video','avatar','image','audio']){
-  const result=await route.POST(request({mode}));assert.equal(result.status,410,JSON.stringify(result.body));assert.equal(result.body.code,'model_retired');
+ for(const provider of ['mischief-video','veo-video'])for(const mode of ['video','avatar','image','audio']){
+  const result=await route.POST(request({mode,provider}));assert.equal(result.status,410,JSON.stringify(result.body));assert.equal(result.body.code,'model_retired');
  }
  delete process.env.FAL_KEY;assert.equal((await route.POST(request({}))).status,410);process.env.FAL_KEY='fixture-no-real-network';
  authenticated=false;assert.equal((await route.POST(request({}))).status,401);authenticated=true;
@@ -63,5 +63,12 @@ try{
  syncStatus='FAILED';records.failed=historyTask('failed');
  await taskRoute.POST(new Request('https://site.invalid/api/tasks',{method:'POST'}));assert.equal(records.failed.status,'failed');assert.deepEqual(refunds,[9]);
  await taskRoute.POST(new Request('https://site.invalid/api/tasks',{method:'POST'}));assert.deepEqual(refunds,[9]);
- console.log('Mischief retirement passed: no selectable model or public pricing/page/links, optimizer rejected, generation returns 410 before storage/billing/provider access in every workspace, historical task completion and one-time refund preserved. All external calls mocked.');
+ // Veo jobs created before retirement retain their tracking and one-time refunds.
+ const veoTask=id=>({...historyTask(id),provider:'veo-video',request_settings:{model_id:'fal-ai/veo3.1'},status_url:'https://queue.fal.run/fal-ai/veo3.1/requests/old/status',response_url:'https://queue.fal.run/fal-ai/veo3.1/requests/old'});
+ syncStatus='COMPLETED';records.veoSuccess=veoTask('veoSuccess');
+ await taskRoute.POST(new Request('https://site.invalid/api/tasks',{method:'POST'}));assert.equal(records.veoSuccess.status,'completed');assert.ok(records.veoSuccess.output_url);
+ syncStatus='FAILED';records.veoFailure=veoTask('veoFailure');
+ await taskRoute.POST(new Request('https://site.invalid/api/tasks',{method:'POST'}));assert.equal(records.veoFailure.status,'failed');assert.deepEqual(refunds,[9,9]);
+ await taskRoute.POST(new Request('https://site.invalid/api/tasks',{method:'POST'}));assert.deepEqual(refunds,[9,9]);
+ console.log('Mischief/Veo retirement passed: generation returns 410 before storage/billing/provider access in every workspace; historical tasks still complete or refund once. Mischief selectors/pricing/page/optimizer checks also passed. All external calls mocked.');
 }finally{globalThis.fetch=previousFetch;if(previousKey===undefined)delete process.env.FAL_KEY;else process.env.FAL_KEY=previousKey;}

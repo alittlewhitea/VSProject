@@ -1,4 +1,7 @@
 import { isGptImageProvider, gptImageEndpoint, gptImageQuality, gptImageSize } from "./gpt-image-models";
+import { SEEDREAM_55_PROVIDER, seedream55Endpoint, seedream55OutputCost } from "./seedream-55";
+import { isSeedModelProvider, seedModelCreditsFromCostUsd } from "./seed-model-pricing";
+import { SEEDANCE_FLASH_PROVIDER, seedanceFlashEndpoint, seedanceFlashQuoteSeconds, seedanceFlashResolution, SEEDANCE_FLASH_REFERENCE_SECONDS } from "./seedance-flash";
 import { flux3MaxDuration, flux3MaxSecondPrice } from "./flux3-max";
 import { lowestPaidCreditPriceUsd } from "./credit-pack-prices";
 import { MISCHIEF_PROVIDER, mischiefCostUsd } from "./mischief";
@@ -17,6 +20,8 @@ export type GenerationEstimateInput = {
   hasReferences?: boolean;
   videoWorkflow?: "text-to-video" | "image-to-video" | "reference-to-video";
   referenceCount?: number;
+  referenceVideoCount?: number;
+  seedanceTask?: string;
   resolution?: string | null;
   falUnitPriceUsd?: number | null;
   falUnit?: string | null;
@@ -155,6 +160,7 @@ export function creditsFromFalUsd(amountUsd: number, minimumCredits = 1, markup 
 }
 
 export function generationPricingMultiplier(input: GenerationEstimateInput) {
+  if (isSeedModelProvider(input.provider)) return 1;
   const resolution = input.provider === "gemini-omni-flash-video" ? geminiOmniResolution(input.resolution) : input.resolution?.toLowerCase();
   if (input.mode === "audio") return CREDIT_MARKUP_MULTIPLIER;
   if (input.mode === "image") {
@@ -176,6 +182,17 @@ export function generationPricingMultiplier(input: GenerationEstimateInput) {
 // Supplier cost estimates, not a promise of the final provider invoice.
 // Token/image reserves and fallback unit rates are deliberately explicit.
 export function estimateGenerationCostUsd(input: GenerationEstimateInput): number {
+  if (input.mode === "image" && input.provider === SEEDREAM_55_PROVIDER) {
+    const references = input.hasReferences ? Math.min(10, Math.max(1, input.referenceCount || 1)) : 0;
+    return (seedream55OutputCost(input) + references * 0.012) * countMultiplier(input.numImages, 6);
+  }
+  if (input.mode === "video" && input.provider === SEEDANCE_FLASH_PROVIDER) {
+    const rate = seedanceFlashResolution(input.resolution) === "480p" ? 0.1442 : 0.3094;
+    // Remote video durations are untrusted: quote the documented combined input
+    // ceiling rather than letting browser metadata reduce the charged amount.
+    const videos = input.videoWorkflow === "reference-to-video" && (input.referenceVideoCount || 0) > 0;
+    return rate * (videos ? 0.614 : 1) * (seedanceFlashQuoteSeconds(input.duration, input.videoWorkflow === "reference-to-video" ? input.seedanceTask : undefined) + (videos ? SEEDANCE_FLASH_REFERENCE_SECONDS : 0));
+  }
   const unit = normalizedFalUnit(input.falUnit);
   const live = typeof input.falUnitPriceUsd === "number" && Number.isFinite(input.falUnitPriceUsd) && input.falUnitPriceUsd > 0 ? input.falUnitPriceUsd : null;
   const resolution = input.resolution?.toLowerCase();
@@ -233,8 +250,11 @@ export function estimateGenerationCostUsd(input: GenerationEstimateInput): numbe
 export function estimateGenerationCredits(input: GenerationEstimateInput) {
   if(input.mode==="audio"&&input.provider===HEYGEN_VOICE_PROVIDER&&isHeygenVoiceFree(input.pricingTime))return 0;
   // Each output image is quoted individually; batches do not change per-image pricing.
-  const count = input.mode === "image" ? countMultiplier(input.numImages,isGptImageProvider(input.provider)?10:4) : 1;
+  const count = input.mode === "image" ? countMultiplier(input.numImages,isGptImageProvider(input.provider)?10:input.provider===SEEDREAM_55_PROVIDER?6:4) : 1;
   const unitInput = count > 1 ? { ...input, numImages: 1 } : input;
+  if (isSeedModelProvider(input.provider)) {
+    return seedModelCreditsFromCostUsd(estimateGenerationCostUsd(unitInput)) * count;
+  }
   if (input.mode === "image" && isGptImageProvider(input.provider)) {
     return gptImageCreditsFromCostUsd(estimateGenerationCostUsd(unitInput)) * count;
   }
@@ -242,6 +262,21 @@ export function estimateGenerationCredits(input: GenerationEstimateInput) {
 }
 
 export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
+  ...["text-to-video", "image-to-video", "reference-to-video"].map((workflow): ModelPricingRow => ({
+    provider: SEEDANCE_FLASH_PROVIDER, label: "Seedance 2.5 Flash", mode: "video",
+    workflow: workflow === "text-to-video" ? "Text to Video" : workflow === "image-to-video" ? "Image to Video" : "Reference to Video",
+    endpointId: seedanceFlashEndpoint(workflow), referenceDuration: "5s", referenceResolution: "720p",
+    falBasis: "$0.1442/s at 480p; $0.3094/s at 720p. Video references multiply the rate by 0.614 and bill input plus output duration. Auto/editing quotes 30s output; video inputs quote the combined 30.2s ceiling.",
+    typicalCredits: estimateGenerationCredits({ mode: "video", provider: SEEDANCE_FLASH_PROVIDER, duration: "5s", resolution: "720p" }),
+    unitNote: "Estimated credits depend on the selected settings; check Generate"
+  })),
+  ...[false, true].map((edit): ModelPricingRow => ({
+    provider: SEEDREAM_55_PROVIDER, label: edit ? "Seedream 5.5 Edit" : "Seedream 5.5", mode: "image",
+    workflow: edit ? "Image to Image" : "Text to Image", endpointId: seedream55Endpoint(edit),
+    falBasis: "$0.03/output at 1K or 1.5K, $0.0405 at 2K; custom sizes above 2,610,000 pixels use the higher rate. Editing adds $0.012 per input image per output.",
+    typicalCredits: estimateGenerationCredits({ mode: "image", provider: SEEDREAM_55_PROVIDER, imageSize: "auto_2K", hasReferences: edit, referenceCount: edit ? 1 : 0 }),
+    unitNote: "Estimated credits depend on image size, reference count and output count"
+  })),
   {
     provider: "heygen-video", label: "HeyGen Video Reference", mode: "video", workflow: "Reference to Video",
     endpointId: "heygen/heygen-video/reference-to-video", referenceDuration: "5s", referenceResolution: "480p",
@@ -585,16 +620,6 @@ export const MODEL_PRICING_ROWS: ModelPricingRow[] = [
     endpointId: "elevenlabs/tts/eleven-v4-turbo",
     falBasis: "fal lists ElevenLabs Eleven v4 Turbo text-to-speech at $0.04 per 1000 characters.",
     typicalCredits: estimateGenerationCredits({ mode: "audio", provider: "elevenlabs-tts", promptText: "x".repeat(1000) }),
-    unitNote: "Estimated credits depend on the selected model and settings; check Generate"
-  },
-  {
-    provider: "veo-video",
-    label: "Veo 3.1",
-    mode: "video",
-    workflow: "Text to Video",
-    endpointId: "fal-ai/veo3.1",
-    falBasis: "fal lists Veo 3.1 at $0.20/s without audio or $0.40/s with audio for 720p/1080p; 4k costs more.",
-    typicalCredits: estimateGenerationCredits({ mode: "video", provider: "veo-video", duration: "8s" }),
     unitNote: "Estimated credits depend on the selected model and settings; check Generate"
   }
 ];

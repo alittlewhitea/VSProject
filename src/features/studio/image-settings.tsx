@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SEEDREAM_55_PROVIDER } from "../../lib/seedream-55";
 import { StudioSelectField } from "./studio-primitives";
 import { isGptImageProvider, GPT_IMAGE_SIZES, type GptImageOptions, type GptImageQuality } from "../../lib/gpt-image-models";
 import { GptImageControls } from "./gpt-image-controls";
@@ -179,6 +180,7 @@ export function ImageSettings({
 }: ImageSettingsProps) {
   const isUtility = utilityWorkflow !== null;
   const isFlux = provider === "flux-image" || provider === "flux-dev";
+  const isSeedream = provider === SEEDREAM_55_PROVIDER;
   const [moreSettingsOpen, setMoreSettingsOpen] = useState(false);
   const [gptGuideBusy,setGptGuideBusy]=useState(false);
 
@@ -192,7 +194,7 @@ export function ImageSettings({
           ) : !isUtility && isNanoBanana ? (
             <StudioSelectField icon="ratio" label={translate("studio.field.aspectRatio")} value={ratio} options={ratioOptions.map(value => ({ value, label: value === "auto" ? translate("studio.option.autoRatio") : value }))} onValueChange={onRatioChange} />
           ) : !isUtility ? (
-            <StudioSelectField icon="resolution" label={translate("studio.field.resolution")} value={imageSize} options={isGptImageProvider(provider)?[...GPT_IMAGE_SIZES,{value:"auto",label:translate("studio.option.automatic")},{value:"custom",label:translate("studio.gpt26.customSize")}]:imageSizePresets} onValueChange={value=>{onImageSizeChange(value);if(value==="custom")setMoreSettingsOpen(true);}} />
+            <StudioSelectField icon="resolution" label={translate("studio.field.resolution")} value={imageSize} options={isSeedream?[{value:"auto_1K",label:"1K"},{value:"auto_1.5K",label:"1.5K"},{value:"auto_2K",label:"2K"},{value:"custom",label:translate("studio.gpt26.customSize")}]:isGptImageProvider(provider)?[...GPT_IMAGE_SIZES,{value:"auto",label:translate("studio.option.automatic")},{value:"custom",label:translate("studio.gpt26.customSize")}]:imageSizePresets} onValueChange={value=>{onImageSizeChange(value);if(value==="custom")setMoreSettingsOpen(true);}} />
           ) : null}
         </div>
 
@@ -202,6 +204,16 @@ export function ImageSettings({
       <GenerationCostSummary compact estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate}/>
       {gptValidationError?<p role="alert" data-gpt-validation className="df-composer-validation">{translate(gptValidationError)}</p>:null}
       {!isUtility && moreSettingsOpen ? <div data-image-advanced className="df-composer-advanced grid gap-2 sm:grid-cols-2">
+        {isSeedream ? <>
+          <SettingCard label={translate("studio.seedream.background")} value={translate(`studio.seedream.background.${gptOptions.background}`)}>
+            <ChoiceButtons values={["auto", "opaque", "transparent"].map(value => ({value,label:translate(`studio.seedream.background.${value}`)}))} selected={gptOptions.background} columns={3} onChange={value=>{onGptOptionsChange({...gptOptions,background:value as "auto"|"opaque"|"transparent"});if(value==="transparent")onOutputFormatChange("png");}} />
+          </SettingCard>
+          {imageSize === "custom" ? <SettingCard label={translate("studio.gpt26.customSize")} value={`${gptOptions.width} × ${gptOptions.height}`}>
+            <div className="grid grid-cols-2 gap-2">{(["width","height"] as const).map(key=><label key={key} className="text-xs text-[var(--studio-muted)]">{translate(`studio.seedream.${key}`)}<input type="number" min={1} max={14142} value={gptOptions[key]} onChange={event=>onGptOptionsChange({...gptOptions,[key]:Number(event.target.value)})} className="mt-1 min-h-10 w-full rounded-lg bg-[var(--studio-surface)] px-2" /></label>)}</div>
+            <p className="mt-2 text-xs text-[var(--studio-muted)]">{translate("studio.seedream.dimensionsHint")}</p>
+          </SettingCard> : null}
+          <p className="text-xs text-[var(--studio-muted)] sm:col-span-2">{translate("studio.seedream.referenceHint")}</p>
+        </> : null}
         {isGptImageProvider(provider) ? (
           <GptImageControls options={gptOptions} onChange={onGptOptionsChange} imageSize={imageSize} imageQuality={imageQuality} onQualityChange={onImageQualityChange} outputFormat={outputFormat} onFormatChange={onOutputFormatChange} numImages={numImages} onCountChange={onNumImagesChange} isEdit={isImageToImage} references={referenceImageUrls} translate={translate} onBusyChange={setGptGuideBusy} />
         ) : null}
@@ -224,12 +236,12 @@ export function ImageSettings({
         ) : null}
 
         {!isGptImageProvider(provider)?<SettingCard label={translate("studio.field.output")} value={translate("studio.field.outputFormat")}>
-          <ChoiceButtons values={(isFlux ? ["jpeg", "png"] : ["png", "jpeg", "webp"]).map((value) => ({ value }))} selected={outputFormat} columns={3} uppercase onChange={onOutputFormatChange} />
+          <ChoiceButtons values={(isSeedream && gptOptions.background === "transparent" ? ["png"] : isFlux || isSeedream ? ["jpeg", "png"] : ["png", "jpeg", "webp"]).map((value) => ({ value }))} selected={outputFormat} columns={3} uppercase onChange={onOutputFormatChange} />
         </SettingCard>:null}
         {!isGptImageProvider(provider)?<SettingCard label={translate("studio.field.count")} value={translate("studio.textImage.images")}>
-          <ChoiceButtons values={[1, 2, 3, 4].map((value) => ({ value: String(value) }))} selected={String(numImages)} columns={4} onChange={(value) => onNumImagesChange(Number(value))} />
+          <ChoiceButtons values={(isSeedream?[1,2,3,4,5,6]:[1, 2, 3, 4]).map((value) => ({ value: String(value) }))} selected={String(numImages)} columns={isSeedream?6:4} onChange={(value) => onNumImagesChange(Number(value))} />
         </SettingCard>:null}
-        {!isGptImageProvider(provider) ? <SettingCard label={translate("studio.field.seed")} value={translate("studio.textImage.optional")}>
+        {!isGptImageProvider(provider) && !isSeedream ? <SettingCard label={translate("studio.field.seed")} value={translate("studio.textImage.optional")}>
           <input value={seed} onChange={(event) => onSeedChange(event.target.value.replace(/[^\d]/g, "").slice(0, 12))} placeholder={translate("studio.placeholder.random")} inputMode="numeric" className="h-10 w-full rounded-[0.9rem] border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] px-3 text-sm font-semibold text-[var(--studio-muted)] outline-none placeholder:text-[var(--studio-muted)]" />
         </SettingCard> : null}
 

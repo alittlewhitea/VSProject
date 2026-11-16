@@ -1,4 +1,6 @@
 import { MODEL_PRICING_ROWS, estimateGenerationCredits } from "./model-pricing";
+import { SEEDANCE_FLASH_PROVIDER, seedanceFlashEndpoint } from "./seedance-flash";
+import { SEEDREAM_55_PROVIDER, seedream55Endpoint } from "./seedream-55";
 import { MISCHIEF_PROVIDER, MISCHIEF_MODEL } from "./mischief";
 import { GEMINI_TTS_PROVIDER, GEMINI_TTS_MODEL } from "./gemini-tts";
 import { HEYGEN_VOICE_PROVIDER, HEYGEN_VOICE_MODEL, isHeygenVoiceFree } from "./heygen-voice";
@@ -51,6 +53,8 @@ const EXTRA_PRICING_ENDPOINT_IDS = [
 ];
 
 function endpointForProvider(provider: string, hasReferences = false) {
+  if (provider === SEEDANCE_FLASH_PROVIDER) return seedanceFlashEndpoint(hasReferences ? "image-to-video" : "text-to-video");
+  if (provider === SEEDREAM_55_PROVIDER) return seedream55Endpoint(hasReferences);
   if (provider === HEYGEN_VOICE_PROVIDER) return HEYGEN_VOICE_MODEL;
   if (provider === GEMINI_TTS_PROVIDER) return GEMINI_TTS_MODEL;
   if (provider === MISCHIEF_PROVIDER) return MISCHIEF_MODEL;
@@ -71,7 +75,6 @@ function endpointForProvider(provider: string, hasReferences = false) {
   if (provider === "kling-video") return hasReferences ? "fal-ai/kling-video/v3/pro/image-to-video" : "fal-ai/kling-video/v3/pro/text-to-video";
   if (provider === "kling-avatar-standard") return "fal-ai/kling-video/ai-avatar/v2/standard";
   if (provider === "kling-avatar-pro") return "fal-ai/kling-video/ai-avatar/v2/pro";
-  if (provider === "veo-video") return "fal-ai/veo3.1";
   if (provider === "heygen-video") return hasReferences ? "heygen/heygen-video/image-to-video" : "heygen/heygen-video/text-to-video";
   if (provider === "flux-3-max-video") return hasReferences ? "blackforestlabs/flux-3-max/image-to-video" : "blackforestlabs/flux-3-max/text-to-video";
   if (provider === "grok-video") return hasReferences ? "xai/grok-imagine-video/v1.5/lite/image-to-video" : "xai/grok-imagine-video/v1.5/lite/text-to-video";
@@ -270,6 +273,8 @@ export async function estimateGenerationCreditsWithLivePricing(input: {
   duration?: string | null;
   hasReferences?: boolean;
   referenceCount?: number;
+  referenceVideoCount?: number;
+  seedanceTask?: string;
   resolution?: string | null;
   quality?: string | null;
   numImages?: number | null;
@@ -279,7 +284,7 @@ export async function estimateGenerationCreditsWithLivePricing(input: {
   promptText?: string | null;
 }) {
   if(input.mode==="audio"&&input.provider===HEYGEN_VOICE_PROVIDER&&isHeygenVoiceFree())return 0;
-  const endpointId = input.provider === "heygen-video" && input.videoWorkflow === "reference-to-video"
+  const endpointId = input.provider === SEEDANCE_FLASH_PROVIDER && input.videoWorkflow === "reference-to-video" ? seedanceFlashEndpoint("reference-to-video") : input.provider === "heygen-video" && input.videoWorkflow === "reference-to-video"
     ? "heygen/heygen-video/reference-to-video" : endpointForProvider(input.provider, input.hasReferences);
   const livePricing = endpointId ? await getFalModelPricing(endpointId) : null;
   return estimateGenerationCredits({
