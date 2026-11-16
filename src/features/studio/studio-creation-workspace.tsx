@@ -110,6 +110,9 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
     referenceImageUrls,
     referenceImagesText,
     referenceVideoUrl,
+    heygenReferenceOptions,
+    setHeygenReferenceOptions,
+    heygenValidationError,
       seedanceOptions,
       setSeedanceOptions,
       seedanceValidationError,
@@ -1242,6 +1245,9 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                       dailyFreeLabel={h3FreeLabel}
                       workflow={configuredVideoWorkflow}
                       referenceVideoUrl={referenceVideoUrl}
+                      heygenReferenceOptions={heygenReferenceOptions}
+                      onHeygenReferenceOptionsChange={setHeygenReferenceOptions}
+                      heygenValidationError={heygenValidationError}
                       seedanceOptions={seedanceOptions}
                       seedanceValidationError={seedanceValidationError}
                       onSeedanceOptionsChange={setSeedanceOptions}

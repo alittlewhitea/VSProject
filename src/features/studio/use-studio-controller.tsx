@@ -15,7 +15,7 @@ import { isH3DailyFreeRequest } from "../../lib/h3-daily-free-policy";
 import { heygenAvatarTiming } from "../../lib/heygen-avatar";
 import { videoDialogueTiming } from "../../lib/video-spoken-script";
 import { heygenAspectRatioError, heygenRequiresHdAspectRatio, preferredHeygenHdRatio } from "../../lib/heygen-video-options";
-import { HEYGEN_REFERENCE_IMAGE_LIMIT,isPublicReferenceUrl } from "../../lib/heygen-reference-video";
+import { DEFAULT_HEYGEN_REFERENCE_OPTIONS, HEYGEN_REFERENCE_IMAGE_LIMIT, HEYGEN_REFERENCE_PROMPT_LIMIT, heygenReferenceUploadIssue, heygenReferenceValidationKey, type HeygenReferenceOptions } from "../../lib/heygen-reference-video";
 import { MISCHIEF_MAX_IMAGE_BYTES,MISCHIEF_PROVIDER } from "../../lib/mischief";
 import { CREDIT_LOW_BALANCE_THRESHOLD,estimateGenerationCredits } from "../../lib/model-pricing";
 import { SEEDANCE_FLASH_PROVIDER, DEFAULT_SEEDANCE_FLASH_OPTIONS, SEEDANCE_FLASH_IMAGE_LIMIT, parseReferenceMediaUrls, seedanceFlashValidationKey, type SeedanceFlashOptions } from "../../lib/seedance-flash";
@@ -158,6 +158,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const referenceUploadScopeRef = useRef(0);
   const [referenceVideoUrl, setReferenceVideoUrl] = useState(sp.get("referenceVideo") || "");
   const [seedanceOptions, setSeedanceOptions] = useState<SeedanceFlashOptions>({ ...DEFAULT_SEEDANCE_FLASH_OPTIONS });
+  const [heygenReferenceOptions, setHeygenReferenceOptions] = useState<HeygenReferenceOptions>({ ...DEFAULT_HEYGEN_REFERENCE_OPTIONS });
   const lastAppliedVideoUrlRef = useRef<AppliedUrlInput | null>(null);
   const previousReferenceWorkflow = useRef(initialWorkflow === "reference-to-video");
   const homeReferenceRef = useRef<{ mode: "image" | "video"; image: string } | null>(null);
@@ -231,8 +232,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const [numInferenceSteps, setNumInferenceSteps] = useState(4);
   const [enableSafetyChecker, setEnableSafetyChecker] = useState(false);
   useEffect(() => {
-    if (provider === "heygen-video") setEnableSafetyChecker(false);
-  }, [provider]);
+    if (provider === "heygen-video") setEnableSafetyChecker(videoWorkflow === "reference-to-video");
+  }, [provider, videoWorkflow]);
   const [acceleration, setAcceleration] = useState("none");
   const [limitGenerations, setLimitGenerations] = useState(true);
   const [seed, setSeed] = useState("");
@@ -736,13 +737,16 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
         : prompt.trim().length > 0
   );
   const needsReferenceImage = activeWorkflow === "image-to-image" || activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove" || activeWorkflow === "image-to-video" || activeWorkflow === "avatar-video";
-  const hasRequiredReference = activeWorkflow === "reference-to-video" ? provider === SEEDANCE_FLASH_PROVIDER ? true : isPublicReferenceUrl(referenceVideoUrl) : !needsReferenceImage || referenceImageUrls.length > 0;
+  const hasRequiredReference = activeWorkflow === "reference-to-video" || !needsReferenceImage || referenceImageUrls.length > 0;
   const gptRequestOptions = {imageSize,imageWidth:gptImageOptions.width,imageHeight:gptImageOptions.height,quality:imageQuality,outputFormat,numImages,imageUrls:referenceImageUrls,background:gptImageOptions.background,imageReasoningEffort:gptImageOptions.reasoningEffort,...(["jpeg","webp"].includes(outputFormat)?{outputCompression:gptImageOptions.outputCompression}:{}),...(outputFormat==="gif"?{frameCount:gptImageOptions.frameCount,frameDurationMs:gptImageOptions.frameDurationMs}:{}),...(outputFormat==="svg"?{svgModel:gptImageOptions.svgModel}:{}),...(activeWorkflow==="image-to-image"?{maskUrl:gptImageOptions.maskUrl,markupImageUrl:gptImageOptions.markupImageUrl}:{})};
   const gptValidationError = mode==="image"&&isGptImageProvider(provider)?gptImageOptionError({...gptRequestOptions,prompt}):mode==="image"&&provider===SEEDREAM_55_PROVIDER&&seedream55Error({...gptRequestOptions,mode,imageWorkflow,prompt,imageUrls:allReferenceImageUrls})?"studio.seedream.invalid":null;
   const seedanceValidationError = provider === SEEDANCE_FLASH_PROVIDER ? seedanceFlashValidationKey({mode,videoWorkflow,prompt,duration,ratio,resolution:videoResolution,imageUrls:videoWorkflow==="text-to-video"?undefined:allReferenceImageUrls,videoUrls:activeWorkflow==="reference-to-video"?parseReferenceMediaUrls(referenceVideoUrl):undefined,audioUrls:activeWorkflow==="reference-to-video"?parseReferenceMediaUrls(seedanceOptions.audioUrls):undefined,seedanceTask:seedanceOptions.task}) : null;
+  const heygenValidationError = provider === "heygen-video" && mode === "video" ?
+    (activeWorkflow === "reference-to-video" ? heygenReferenceValidationKey(parseReferenceMediaUrls(referenceVideoUrl), allReferenceImageUrls, parseReferenceMediaUrls(heygenReferenceOptions.audioUrls)) || (prompt.trim().length > HEYGEN_REFERENCE_PROMPT_LIMIT ? "studio.heygen.reference.error.prompt" : null) : null) ||
+    (seed.trim() && (!/^\d+$/.test(seed.trim()) || Number(seed.trim()) > 4294967295) ? "studio.heygen.reference.error.seed" : null) : null;
   const videoSpeechTooLong = mode === "video" && provider === "heygen-video" && videoDialogueTiming(prompt, duration)?.tooLong;
   const videoAspectRatioError = mode === "video" && provider === "heygen-video" && heygenAspectRatioError(videoWorkflow, videoResolution, ratio);
-  const canSubmit = isPromptValid && hasRequiredReference && !gptValidationError && !seedanceValidationError && !verifiedAvatarAudio.loading && !verifiedAvatarAudio.error && !videoSpeechTooLong && !videoAspectRatioError;
+  const canSubmit = isPromptValid && hasRequiredReference && !gptValidationError && !seedanceValidationError && !heygenValidationError && !verifiedAvatarAudio.loading && !verifiedAvatarAudio.error && !videoSpeechTooLong && !videoAspectRatioError;
   const videoPromptAI = useVideoPromptEnhancement({
     mode: videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video",
     prompt, model: provider, duration, aspectRatio: ratio,
@@ -1108,8 +1112,12 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     if (mode === "video" && videoWorkflow === "reference-to-video") {
       const selected = Array.from(files);
       const imageLimit = provider === SEEDANCE_FLASH_PROVIDER ? SEEDANCE_FLASH_IMAGE_LIMIT : HEYGEN_REFERENCE_IMAGE_LIMIT;
-      if (selected.length + referenceImageUrls.length > imageLimit || selected.some(file => !["image/jpeg","image/png","image/webp"].includes(file.type) || file.size > 30*1024*1024)) {
-        setStatusTone("error"); setStatusText(st("studio.referenceVideo.subjectHint")); return;
+      if (provider !== "heygen-video" && (selected.length + referenceImageUrls.length > imageLimit || selected.some(file => !["image/jpeg","image/png","image/webp"].includes(file.type) || file.size > 30*1024*1024))) {
+        setStatusTone("error"); setStatusText(st("studio.seedance.validation.media")); return;
+      }
+      const uploadIssue = provider === "heygen-video" ? heygenReferenceUploadIssue(selected, referenceImageUrls) : null;
+      if (uploadIssue) {
+        setStatusTone("error"); setStatusText(st(`studio.heygen.reference.error.${uploadIssue}`)); return;
       }
       const uploaded = await Promise.all(selected.map(file => new Promise<string>((resolve,reject) => {
         const reader = new FileReader(); reader.onload=()=>resolve(String(reader.result)); reader.onerror=()=>reject(new Error("Image file could not be read.")); reader.readAsDataURL(file);
@@ -1284,6 +1292,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       referenceImageFiles,
       referenceVideoUrl,
       seedanceOptions,
+      heygenReferenceOptions,
       avatarAudioUrl,
       editResolution,
       videoResolution,
@@ -1354,6 +1363,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setReferenceImageFiles(Array.isArray(draft.referenceImageFiles) ? draft.referenceImageFiles : []);
     setReferenceVideoUrl(draft.referenceVideoUrl || "");
     setSeedanceOptions({ ...DEFAULT_SEEDANCE_FLASH_OPTIONS, ...draft.seedanceOptions });
+    setHeygenReferenceOptions({ ...DEFAULT_HEYGEN_REFERENCE_OPTIONS, ...draft.heygenReferenceOptions });
     setAvatarAudioUrl(draft.avatarAudioUrl || "");
     setEditResolution(draft.editResolution);
     setVideoResolution(draft.videoResolution);
@@ -1379,7 +1389,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setNumImages(draft.numImages || 1);
     setGuidanceScale(draft.guidanceScale || 3.5);
     setNumInferenceSteps(draft.numInferenceSteps || 4);
-    setEnableSafetyChecker(draft.enableSafetyChecker === true);
+    setEnableSafetyChecker(typeof draft.enableSafetyChecker === "boolean" ? draft.enableSafetyChecker : draft.provider === "heygen-video" && draft.videoWorkflow === "reference-to-video");
     setAcceleration(draft.acceleration || "none");
     setLimitGenerations(draft.limitGenerations !== false);
     setSeed(draft.seed || "");
@@ -1484,7 +1494,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
           (mode === "image" && referenceImageUrls.length > 0) || (mode === "avatar" || (mode === "video" && (videoWorkflow === "image-to-video" || videoWorkflow === "reference-to-video")))
             ? referenceImageUrls
             : undefined,
-        videoUrls: mode === "video" && videoWorkflow === "reference-to-video" ? provider === SEEDANCE_FLASH_PROVIDER ? parseReferenceMediaUrls(referenceVideoUrl) : [referenceVideoUrl.trim()] : undefined,
+        videoUrls: mode === "video" && videoWorkflow === "reference-to-video" ? parseReferenceMediaUrls(referenceVideoUrl) : undefined,
+        ...(provider === "heygen-video" && mode === "video" && videoWorkflow === "reference-to-video" ? { audioUrls: parseReferenceMediaUrls(heygenReferenceOptions.audioUrls), heygenPromptEnhancement: heygenReferenceOptions.promptEnhancement } : {}),
         ...(provider === SEEDANCE_FLASH_PROVIDER ? { seedanceTask: seedanceOptions.task, bitrateMode: seedanceOptions.bitrateMode, codec: seedanceOptions.codec, ...(videoWorkflow === "reference-to-video" ? { audioUrls: parseReferenceMediaUrls(seedanceOptions.audioUrls) } : {}) } : {}),
         audioUrl: isAvatarProvider(provider) && avatarAudioUrl.trim() ? verifiedAvatarAudio.audioUrl : undefined,
         resolution:
@@ -2036,6 +2047,9 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     referenceImagesText,
     referenceVideoUrl,
     referralsVisible,
+    heygenReferenceOptions,
+    setHeygenReferenceOptions,
+    heygenValidationError,
     safetyTolerance,
     saveLoginDraft,
     seed,

@@ -29,7 +29,7 @@ function findNode(predicate){let found;function visit(node){if(!found&&predicate
 function executeFunction(name,context){const node=findNode(node=>ts.isFunctionDeclaration(node)&&node.name?.text===name);const compiled=ts.transpileModule(node.getText(ast),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;return new Function('context',`with(context){${compiled};return ${name};}`)(context);}
 const WORKFLOW_META=load('src/features/studio/studio-workspace-config.ts').WORKFLOW_META;
 function context(mode,workflow) {
-  const c={...models,...gpt,...frames,...policy,...load('src/lib/seedance-flash.ts'),...load('src/lib/seedream-55.ts'),...load('src/lib/mischief.ts'),...load('src/lib/gemini-tts.ts'),...load('src/lib/heygen-voice.ts'),WORKFLOW_META,mode,activeWorkflow:workflow,imageWorkflow:workflow,videoWorkflow:workflow,
+  const c={...models,...gpt,...frames,...policy,...load('src/lib/heygen-reference-video.ts'),...load('src/lib/seedance-flash.ts'),...load('src/lib/seedream-55.ts'),...load('src/lib/mischief.ts'),...load('src/lib/gemini-tts.ts'),...load('src/lib/heygen-voice.ts'),WORKFLOW_META,mode,activeWorkflow:workflow,imageWorkflow:workflow,videoWorkflow:workflow,
     provider:mode==='image'?'chatgpt-image':'minimax-h3-max-turbo-video',prompt:'',referenceImagesText:'',referenceImageFiles:[],
     duration:'5s',ratio:mode==='image'?'auto':'source',videoResolution:'480p',imageSize:'square',hasCompletedCreation:false,accessToken:null,isPromptlessImageWorkflow:false,
     sp:new URLSearchParams({mode,workflow}),MINIMAX_MUSIC_DEFAULT_PROMPT:'music-default',KLING_AVATAR_DEFAULT_SCRIPT:'avatar-script',
@@ -171,7 +171,7 @@ for(const [mode,workflow,nextWorkflow] of [['avatar','avatar-video','image-to-vi
   assert.deepEqual(c.referenceImageUrls,[]);
 }
 for(const [mode,workflow] of [['avatar','avatar-video'],['video','image-to-video'],['video','reference-to-video']]) {
-  const c=context(mode,workflow);c.HEYGEN_REFERENCE_IMAGE_LIMIT=4;
+  const c=context(mode,workflow);
   let finishRead;
   c.FileReader=class{readAsDataURL(file){finishRead=()=>{this.result=file.dataUrl;this.onload();};}};
   const pending=c.upload([file]);

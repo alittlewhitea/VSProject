@@ -2,7 +2,7 @@ import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyf
 import { SEEDANCE_FLASH_PROVIDER, seedanceFlashEndpoint, seedanceFlashError, seedanceFlashDuration, seedanceFlashResolution, buildSeedanceFlashInput } from "../../../lib/seedance-flash";
 import { SEEDREAM_55_PROVIDER, seedream55Endpoint, seedream55Error, buildSeedream55Input } from "../../../lib/seedream-55";
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution } from "../../../lib/gemini-omni";
-import { HEYGEN_REFERENCE_RATIOS, validateHeygenReferences } from "../../../lib/heygen-reference-video";
+import { HEYGEN_REFERENCE_RATIOS, HEYGEN_REFERENCE_PROMPT_LIMIT, HEYGEN_PROMPT_ENHANCEMENTS, validateHeygenReferences } from "../../../lib/heygen-reference-video";
 import { heygenAvatarPrompt, heygenAvatarTiming } from "../../../lib/heygen-avatar";
 import { heygenVideoSpokenPrompt, shouldDisableHeygenEnhancement, videoDialogueTiming } from "../../../lib/video-spoken-script";
 import { heygenAspectRatioError } from "../../../lib/heygen-video-options";
@@ -78,6 +78,7 @@ type GenerateRequest = {
   imageUrls?: string[];
   videoUrls?: string[];
   audioUrls?: string[];
+  heygenPromptEnhancement?: string;
   seedanceTask?: string;
   bitrateMode?: string;
   codec?: string;
@@ -330,10 +331,10 @@ function buildFalInput(body: GenerateRequest, prompt: string, endUserId?: string
       prompt,
       duration: Number.parseInt(body.duration, 10),
       resolution: body.resolution || "768p",
-      prompt_enhancement: shouldDisableHeygenEnhancement(prompt, body.promptEnhancement) ? "disabled" : "turbo",
-      enable_safety_checker: body.enableSafetyChecker === true,
+      prompt_enhancement: shouldDisableHeygenEnhancement(prompt, body.promptEnhancement) ? "disabled" : body.videoWorkflow === "reference-to-video" ? body.heygenPromptEnhancement || "turbo" : "turbo",
+      enable_safety_checker: body.enableSafetyChecker !== false,
       ...(body.videoWorkflow === "reference-to-video"
-        ? { reference_video_urls: body.videoUrls?.map(url => url.trim()), ...(body.imageUrls?.length ? {reference_image_urls: body.imageUrls.map(url => url.trim())} : {}), aspect_ratio: body.ratio }
+        ? { ...(body.videoUrls?.length ? {reference_video_urls: body.videoUrls.map(url => url.trim())} : {}), ...(body.imageUrls?.length ? {reference_image_urls: body.imageUrls.map(url => url.trim())} : {}), ...(body.audioUrls?.length ? {reference_audio_urls: body.audioUrls.map(url => url.trim())} : {}), aspect_ratio: body.ratio }
         : body.videoWorkflow === "image-to-video" || body.mode === "avatar"
         ? { image_url: firstInputImage(body) }
         : { aspect_ratio: body.ratio }),
@@ -657,6 +658,7 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     ...(body.provider === SEEDANCE_FLASH_PROVIDER ? { audio_urls: body.audioUrls || [], seedance_task: body.seedanceTask || "reference", bitrate_mode: body.bitrateMode || "standard", codec: body.codec || "auto" } : {}),
     ...(isGptImageProvider(body.provider) ? {image_width:body.imageWidth ?? null,image_height:body.imageHeight ?? null,background:body.background || "auto",reasoning_effort:body.imageReasoningEffort || "low",output_compression:body.outputCompression ?? null,frame_count:body.frameCount ?? null,frame_duration_ms:body.frameDurationMs ?? null,svg_model:body.svgModel || null,mask_url:body.maskUrl || null,markup_image_url:body.markupImageUrl || null} : {}),
     ...(body.mode === "video" && body.videoWorkflow === "reference-to-video" ? {video_urls: body.videoUrls?.map(url => url.trim()) || []} : {}),
+    ...(body.provider === "heygen-video" && body.videoWorkflow === "reference-to-video" ? { audio_urls: body.audioUrls?.map(url => url.trim()) || [], heygen_prompt_enhancement: shouldDisableHeygenEnhancement(body.prompt, body.promptEnhancement) ? "disabled" : body.heygenPromptEnhancement || "turbo" } : {}),
     audio_url: body.audioUrl || null,
     ...(body.provider === GEMINI_TTS_PROVIDER ? { gemini_tts: prepareGeminiTts(body.geminiTts?.mode === "dialogue" ? "" : body.prompt, body.geminiTts).input } : {}),
     ...(body.provider === HEYGEN_VOICE_PROVIDER ? {heygen_voice:prepareHeygenVoice(body.prompt,body.heygenVoice).input} : {}),
@@ -857,7 +859,8 @@ export async function POST(request: Request) {
       if (error) return NextResponse.json({ error }, { status: 400 });
       if (!process.env.FAL_KEY?.trim()) return NextResponse.json({ error: "Generation provider is not configured." }, { status: 503 });
     }
-    if (body.audioUrls !== undefined && body.provider !== SEEDANCE_FLASH_PROVIDER) return NextResponse.json({ error: "Audio references require Seedance 2.5 Flash." }, { status: 400 });
+    if (body.audioUrls !== undefined && body.provider !== SEEDANCE_FLASH_PROVIDER && !(body.mode === "video" && body.provider === "heygen-video" && body.videoWorkflow === "reference-to-video")) return NextResponse.json({ error: "Audio references require a supported Reference to Video workflow." }, { status: 400 });
+    if (body.heygenPromptEnhancement !== undefined && !(body.mode === "video" && body.provider === "heygen-video" && body.videoWorkflow === "reference-to-video")) return NextResponse.json({ error: "HeyGen reference prompt settings require the HeyGen Reference to Video workflow." }, { status: 400 });
     const isPromptlessSeedance = body.provider === SEEDANCE_FLASH_PROVIDER && body.videoWorkflow !== "text-to-video";
     const geminiSpeech = body.provider === GEMINI_TTS_PROVIDER ? prepareGeminiTts(body.prompt, body.geminiTts) : null;
     if(body.provider === HEYGEN_VOICE_PROVIDER) {
@@ -917,8 +920,10 @@ export async function POST(request: Request) {
 
     if (body.videoWorkflow === "reference-to-video" && body.provider !== SEEDANCE_FLASH_PROVIDER) {
       if (body.mode !== "video" || body.provider !== "heygen-video") return NextResponse.json({error:"Reference to Video requires HeyGen Video in the video workspace."},{status:400});
-      const referenceError = validateHeygenReferences(body.videoUrls, body.imageUrls);
+      const referenceError = validateHeygenReferences(body.videoUrls, body.imageUrls, body.audioUrls);
       if (referenceError) return NextResponse.json({error:referenceError},{status:400});
+      if (prompt.length > HEYGEN_REFERENCE_PROMPT_LIMIT) return NextResponse.json({error:"HeyGen reference prompts support up to 32,000 characters."},{status:400});
+      if (body.heygenPromptEnhancement !== undefined && !HEYGEN_PROMPT_ENHANCEMENTS.some(value => value === body.heygenPromptEnhancement)) return NextResponse.json({error:"Unsupported HeyGen prompt enhancement option."},{status:400});
       if (!process.env.FAL_KEY?.trim()) return NextResponse.json({error:"Video provider is not configured."},{status:503});
       if (!HEYGEN_REFERENCE_RATIOS.includes(body.ratio as typeof HEYGEN_REFERENCE_RATIOS[number])) return NextResponse.json({error:"Unsupported HeyGen reference aspect ratio."},{status:400});
     } else if (body.videoWorkflow !== "reference-to-video" && body.videoUrls !== undefined) {
@@ -990,6 +995,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "HeyGen Video seed must be an integer from 0 to 4294967295." }, { status: 400 });
       }
       body.resolution ||= "480p";
+      body.enableSafetyChecker ??= true;
     }
     if(isGptImageProvider(body.provider)) {
       if(body.mode!=="image") return NextResponse.json({error:"GPT Image requires the image workspace."},{status:400});
@@ -1077,6 +1083,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "This generation model is unavailable. No credits were charged.", code: "provider_not_configured" }, { status: 503 });
     }
     const submittedPrompt = isHeygenAvatar ? heygenAvatarPrompt(prompt) : body.mode === "video" && body.provider === "heygen-video" ? heygenVideoSpokenPrompt(prompt) : prompt;
+    if (body.provider === "heygen-video" && body.videoWorkflow === "reference-to-video" && submittedPrompt.length > HEYGEN_REFERENCE_PROMPT_LIMIT) return NextResponse.json({error:"Shorten the prompt so the submitted instructions fit within 32,000 characters."},{status:400});
 
     const creditAccount = await ensureRequestCreditAccount(admin, user.id, request);
     let estimatedCredits = baseEstimatedCredits;

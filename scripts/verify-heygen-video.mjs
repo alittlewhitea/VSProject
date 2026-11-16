@@ -55,11 +55,32 @@ try{
  response=await route.POST(reference({imageUrls:refImages,ratio:'9:16',resolution:'2k',duration:'15s',expectedCredits:162,seed:0,enableSafetyChecker:true}));
  assert.equal(response.status,200);assert.equal(response.body.estimatedCredits,162);
  assert.deepEqual(submissions.at(-1).input,{prompt:'A peaceful landscape.',duration:15,resolution:'2k',prompt_enhancement:'turbo',enable_safety_checker:true,reference_video_urls:[videoUrl],reference_image_urls:refImages,aspect_ratio:'9:16',seed:0});
+ const referenceTools=load('src/lib/heygen-reference-video.ts');
+ assert.equal(referenceTools.HEYGEN_REFERENCE_IMAGE_LIMIT,9);assert.equal(referenceTools.HEYGEN_REFERENCE_VIDEO_LIMIT,3);assert.equal(referenceTools.HEYGEN_REFERENCE_AUDIO_LIMIT,3);
+ const nineImages=Array.from({length:9},(_,index)=>`https://cdn.example.test/image-${index}.png`);
+ const threeVideos=Array.from({length:3},(_,index)=>`https://cdn.example.test/video-${index}.mp4`);
+ const threeAudio=Array.from({length:3},(_,index)=>`https://cdn.example.test/audio-${index}.wav`);
+ for(const extra of [{videoUrls:undefined},{videoUrls:[]},{videoUrls:[],imageUrls:nineImages},{videoUrls:[],audioUrls:threeAudio},{videoUrls:threeVideos,imageUrls:nineImages,audioUrls:threeAudio}]){
+  response=await route.POST(reference(extra));assert.equal(response.status,200,JSON.stringify(response));
+  const input=submissions.at(-1).input,settings=Object.values(records).at(-1).request_settings;
+  if(extra.videoUrls===undefined||extra.videoUrls.length===0)assert.ok(!('reference_video_urls' in input),'Absent video input must be omitted, never an empty URL');
+  if(extra.imageUrls)assert.deepEqual(input.reference_image_urls,extra.imageUrls);
+  if(extra.audioUrls){assert.deepEqual(input.reference_audio_urls,extra.audioUrls);assert.deepEqual(settings.audio_urls,extra.audioUrls);}
+ }
+ for(const enhancement of ['turbo','quality','ultraquality','disabled']){
+  response=await route.POST(reference({videoUrls:[],heygenPromptEnhancement:enhancement}));assert.equal(response.status,200);assert.equal(submissions.at(-1).input.prompt_enhancement,enhancement);
+  assert.equal(Object.values(records).at(-1).request_settings.heygen_prompt_enhancement,enhancement);
+ }
+ response=await route.POST(reference({videoUrls:[],prompt:'x'.repeat(32000)}));assert.equal(response.status,200);
+ assert.equal(referenceTools.heygenReferenceImageBytes('data:image/png;base64,aGVsbG8='),5);
+ assert.equal(referenceTools.validateHeygenReferences(undefined,undefined,undefined),null);
  const count=submissions.length,charged=[...spends];
- for(const extra of [{videoUrls:[]},{videoUrls:'wrong'},{videoUrls:[videoUrl,videoUrl]},{videoUrls:['javascript:alert(1)']},{videoUrls:['http://127.0.0.1/a.mp4']},{videoUrls:['https://user:password@host.test/a.mp4']},{videoUrls:['https://192.168.0.1/a.mp4']},{videoUrls:['https://[::1]/a.mp4']},{imageUrls:[...refImages,...refImages,...refImages]},{imageUrls:['data:image/gif;base64,aGVsbG8=']},{imageUrls:'wrong'},{ratio:'source'},{resolution:'720p'},{provider:'grok-video'},{mode:'image'},{duration:'16s'}]) {
+ for(const extra of [{videoUrls:'wrong'},{videoUrls:Array(4).fill(videoUrl)},{videoUrls:['javascript:alert(1)']},{videoUrls:['http://127.0.0.1/a.mp4']},{videoUrls:['https://user:password@host.test/a.mp4']},{videoUrls:['https://192.168.0.1/a.mp4']},{videoUrls:['https://[::1]/a.mp4']},{imageUrls:Array(10).fill(refImages[0])},{imageUrls:['data:image/gif;base64,aGVsbG8=']},{imageUrls:'wrong'},{audioUrls:Array(4).fill(threeAudio[0])},{audioUrls:'wrong'},{audioUrls:['http://127.0.0.1/audio.mp3']},{audioUrls:['https://user:pass@cdn.example.test/audio.mp3']},{heygenPromptEnhancement:'invalid'},{prompt:'x'.repeat(32001)},{prompt:''},{ratio:'source'},{resolution:'720p'},{provider:'grok-video'},{mode:'image'},{duration:'16s'}]) {
   response=await route.POST(reference(extra));assert.equal(response.status,400,JSON.stringify(extra));
  }
  response=await route.POST(request({videoUrls:[videoUrl],expectedCredits:18}));assert.equal(response.status,400);
+ response=await route.POST(request({audioUrls:threeAudio,expectedCredits:18}));assert.equal(response.status,400);
+ response=await route.POST(request({heygenPromptEnhancement:'quality',expectedCredits:18}));assert.equal(response.status,400);
  response=await route.POST(reference({expectedCredits:9}));assert.equal(response.status,409);
  assert.deepEqual(spends,charged);assert.equal(submissions.length,count);
  delete process.env.FAL_KEY;response=await route.POST(reference());assert.equal(response.status,503);assert.deepEqual(spends,charged);
@@ -145,5 +166,5 @@ try{
  const completePrompt='A steady natural shot. Dialogue: "Hello my love, how are you doing today?"';
  response=await route.POST(request({prompt:completePrompt,duration:'10s',expectedCredits:36}));assert.equal(response.status,200);
  assert.equal(submissions.at(-1).input.prompt,completePrompt);assert.equal(submissions.at(-1).input.prompt_enhancement,'disabled');assert.equal(submissions.at(-1).input.duration,10);
- console.log('HeyGen Video passed: existing workflows; Avatar native speech; verbatim Video dialogue and metadata; no double enhancement; overlong scripts rejected before charging or submission; explicit durations and existing pricing. No paid calls or database.');
+ console.log('HeyGen Video passed: optional video/image/audio references, 9/3/3 media limits, all prompt-enhancement modes, 32,000-character bound, unsafe/oversized inputs rejected before charging; existing Avatar, speech fidelity, HD aspect ratios, seeds and post-promotion pricing preserved. No paid calls or database.');
 }finally{Date.now=oldNow;globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.FAL_KEY;else process.env.FAL_KEY=oldKey;}

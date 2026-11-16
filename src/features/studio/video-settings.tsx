@@ -3,6 +3,7 @@ import { SEEDANCE_FLASH_PROVIDER, SEEDANCE_FLASH_GUIDE_PATH, parseReferenceMedia
 import { SeedanceReferencePanel } from "./seedance-reference-panel";
 import { ReferencePromptEditor } from "./reference-prompt-editor";
 import { removeReferenceImageFromPrompt } from "../../lib/reference-prompt";
+import { DEFAULT_HEYGEN_REFERENCE_OPTIONS, HEYGEN_PROMPT_ENHANCEMENTS, HEYGEN_REFERENCE_PROMPT_LIMIT, type HeygenReferenceOptions } from "../../lib/heygen-reference-video";
 
 import type { ReactNode } from "react";
 import { StudioPanel, StudioSelectField, StudioStatusNotice, type StudioStatusTone } from "./studio-primitives";
@@ -21,6 +22,9 @@ import { heygenRequiresHdAspectRatio } from "../../lib/heygen-video-options";
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
 
 type VideoSettingsProps = {
+  heygenReferenceOptions: HeygenReferenceOptions;
+  heygenValidationError?: string | null;
+  onHeygenReferenceOptionsChange: (value: HeygenReferenceOptions) => void;
   seedanceOptions: SeedanceFlashOptions;
   seedanceValidationError?: string | null;
   onSeedanceOptionsChange: (value: SeedanceFlashOptions) => void;
@@ -80,6 +84,7 @@ const PRESETS = [
 ] as const;
 
 export function VideoSettings({
+  heygenReferenceOptions = DEFAULT_HEYGEN_REFERENCE_OPTIONS, onHeygenReferenceOptionsChange, heygenValidationError,
   seedanceOptions, onSeedanceOptionsChange, seedanceValidationError,
   dailyFreeLabel, workflowTabs, statusMessage, statusTone,
   promptAI, workflow, prompt, referenceImageUrls, referenceVideoUrl, onReferenceVideoUrlChange, provider, providerOptions, duration, durationOptions, ratio, ratioOptions,
@@ -115,7 +120,7 @@ export function VideoSettings({
     if (!ratioDisabled && ratioOptions.includes(preset.ratio)) onRatioChange(preset.ratio);
   };
   const inspire = () => {
-    if (workflow === "reference-to-video") { promptAI.reset(translate("studio.referenceVideo.templatePrompt")); return; }
+    if (workflow === "reference-to-video") { promptAI.reset(translate(provider === "heygen-video" && !parseReferenceMediaUrls(referenceVideoUrl).length ? "studio.heygen.reference.templatePrompt" : "studio.referenceVideo.templatePrompt")); return; }
     const currentIndex = PRESETS.findIndex((preset) => preset.id === activePreset);
     applyPreset(PRESETS[(currentIndex + 1) % PRESETS.length]);
   };
@@ -130,10 +135,10 @@ export function VideoSettings({
             const nextPrompt = removeReferenceImageFromPrompt(prompt, index, referenceImageUrls.length);
             if (nextPrompt !== prompt) { onPromptChange(nextPrompt); setReferenceNotice(translate("studio.mention.removed")); }
             onReferenceRemove(index);
-          }} onFileError={onFileError} translate={translate} /> : <StudioVideoReferencePanel compact videoUrl={referenceVideoUrl} images={referenceImageUrls} translate={translate} onVideoUrlChange={onReferenceVideoUrlChange} onFiles={onReferenceFiles} onRemove={onReferenceRemove} onFileError={onFileError} /> : null}
+          }} onFileError={onFileError} translate={translate} /> : <StudioVideoReferencePanel compact videoUrl={referenceVideoUrl} images={referenceImageUrls} audioUrls={heygenReferenceOptions.audioUrls} onAudioUrlsChange={audioUrls => onHeygenReferenceOptionsChange({ ...heygenReferenceOptions, audioUrls })} translate={translate} onVideoUrlChange={onReferenceVideoUrlChange} onFiles={onReferenceFiles} onRemove={onReferenceRemove} onFileError={onFileError} /> : null}
           <div className="df-composer-prompt-label mb-2.5 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5"><label htmlFor="video-studio-prompt" className="shrink-0 text-sm font-medium text-[var(--studio-text)]">{translate("studio.field.prompt")}</label></div>
-            <span className="shrink-0 text-xs tabular-nums text-[var(--studio-muted)]">{translate("studio.workbench.characters", { count: prompt.length.toLocaleString() })}</span>
+            <span className="shrink-0 text-xs tabular-nums text-[var(--studio-muted)]">{translate("studio.workbench.characters", { count: prompt.length.toLocaleString() })}{provider === "heygen-video" && workflow === "reference-to-video" ? ` / ${HEYGEN_REFERENCE_PROMPT_LIMIT.toLocaleString("en-US")}` : ""}</span>
           </div>
 
           <div className="df-video-composer-input">
@@ -198,6 +203,7 @@ export function VideoSettings({
               <label className="min-w-0 text-xs text-[var(--studio-muted)]">{translate("studio.seedance.bitrate")}<select className="mt-1 block min-h-10 w-full rounded-lg bg-[var(--studio-panel)] px-2 text-[var(--studio-text)]" value={seedanceOptions.bitrateMode} onChange={event => onSeedanceOptionsChange({ ...seedanceOptions, bitrateMode: event.target.value as SeedanceFlashOptions["bitrateMode"] })}>{["standard", "high"].map(value => <option key={value} value={value}>{translate(`studio.seedance.bitrate.${value}`)}</option>)}</select></label>
               <label className="min-w-0 text-xs text-[var(--studio-muted)]">{translate("studio.seedance.codec")}<select className="mt-1 block min-h-10 w-full rounded-lg bg-[var(--studio-panel)] px-2 text-[var(--studio-text)]" value={seedanceOptions.codec} onChange={event => onSeedanceOptionsChange({ ...seedanceOptions, codec: event.target.value as SeedanceFlashOptions["codec"] })}>{["auto", "H264", "H265"].map(value => <option key={value} value={value}>{value === "auto" ? translate("studio.option.automatic") : value}</option>)}</select></label>
             </> : null}
+            {provider === "heygen-video" && workflow === "reference-to-video" ? <label className="min-w-0 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2"><span className="mb-1 block text-xs text-[var(--studio-muted)]">{translate("studio.heygen.reference.enhancement")}</span><select data-heygen-reference-enhancement value={heygenReferenceOptions.promptEnhancement} onChange={event => onHeygenReferenceOptionsChange({ ...heygenReferenceOptions, promptEnhancement: event.target.value as HeygenReferenceOptions["promptEnhancement"] })} className="min-h-8 w-full border-0 bg-transparent text-[13px] text-[var(--studio-text)]">{HEYGEN_PROMPT_ENHANCEMENTS.map(value => <option key={value} value={value}>{translate(`studio.heygen.reference.enhancement.${value}`)}</option>)}</select><span className="mt-1 block text-xs leading-5 text-[var(--studio-muted)]">{translate("studio.heygen.reference.enhancementHint")}</span></label> : null}
             {provider === "flux-3-max-video" ? <label className="min-w-0 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2"><span className="mb-1 block text-xs text-[var(--studio-muted)]">{translate("studio.flux3.reasoning")}</span><select data-flux3-reasoning value={reasoningLevel} onChange={event=>onReasoningLevelChange(event.target.value as "low"|"high")} className="min-h-8 w-full border-0 bg-transparent text-[13px] font-medium text-[var(--studio-text)] outline-none"><option value="low">{translate("studio.flux3.low")}</option><option value="high">{translate("studio.flux3.high")}</option></select></label> : null}
             {provider === "heygen-video" || provider === "grok-video" || provider === "happy-horse-video" ? <button type="button" role="switch" data-video-safety-checker aria-checked={enableSafetyChecker} onClick={() => onEnableSafetyCheckerChange(!enableSafetyChecker)} className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-[10px] border px-3 text-xs font-semibold ${enableSafetyChecker ? "border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-text)]"}`}><span>{translate("studio.field.safety")}</span><span>{translate(enableSafetyChecker ? "studio.state.on" : "studio.state.off")}</span></button> : null}
             {provider !== SEEDANCE_FLASH_PROVIDER || workflow === "reference-to-video" ? <label className="min-w-0 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-2">
@@ -208,6 +214,7 @@ export function VideoSettings({
           </div> : null}
 
           {provider === "heygen-video" && heygenRequiresHdAspectRatio(workflow, resolution) ? <p data-heygen-hd-ratios className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate("studio.heygen.hdRatios")}</p> : null}
+          {provider === "heygen-video" && heygenValidationError ? <p data-heygen-validation role="alert" className="mt-2 text-xs text-red-600">{translate(heygenValidationError)}</p> : null}
           <StudioStatusNotice message={statusMessage} tone={statusTone} />
 
           </div>

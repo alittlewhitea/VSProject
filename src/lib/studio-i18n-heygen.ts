@@ -19,6 +19,80 @@ const hdRatios: Record<Locale, string> = {
   ar: "يدعم 1080p و2K نسبتي 16:9 و9:16 فقط، ويتم ضبط النسبة وفقًا لذلك. للنسب الأخرى اختر 480p أو 768p."
 };
 
+const referenceEn: Record<string, string> = {
+  "studio.heygen.reference.title": "Reference media",
+  "studio.heygen.reference.hint": "Only the prompt is required. Images, videos and audio are optional; use whichever references you need.",
+  "studio.heygen.reference.optional": "Optional",
+  "studio.heygen.reference.images": "Reference images",
+  "studio.heygen.reference.videos": "Video URLs",
+  "studio.heygen.reference.audio": "Audio URLs",
+  "studio.heygen.reference.uploadHint": "Up to 9 JPEG, PNG or WebP images. Platform upload limits: 30 MB per image and 40 MB total.",
+  "studio.heygen.reference.videoHint": "Up to 3 public video links, one per line. You can also choose a template. Local video uploads are not supported yet.",
+  "studio.heygen.reference.audioHint": "Up to 3 public audio links, one per line, to guide the sound. Audio references are optional.",
+  "studio.heygen.reference.error.videos": "Use up to 3 valid, publicly accessible HTTP(S) video links, or leave this field empty.",
+  "studio.heygen.reference.error.audio": "Use up to 3 valid, publicly accessible HTTP(S) audio links, or leave this field empty.",
+  "studio.heygen.reference.error.images": "Use up to 9 JPEG, PNG or WebP images, or public image links.",
+  "studio.heygen.reference.error.upload": "Platform upload limits are 30 MB per image and 40 MB total. Reduce the image sizes before uploading.",
+  "studio.heygen.reference.error.prompt": "Keep the prompt within 32,000 characters.",
+  "studio.heygen.reference.error.seed": "The seed must be an integer from 0 to 4,294,967,295, or left blank for random.",
+  "studio.heygen.reference.enhancement": "Model prompt enhancement",
+  "studio.heygen.reference.enhancement.turbo": "Turbo (default)",
+  "studio.heygen.reference.enhancement.quality": "Quality",
+  "studio.heygen.reference.enhancement.ultraquality": "Ultra quality",
+  "studio.heygen.reference.enhancement.disabled": "Off",
+  "studio.heygen.reference.enhancementHint": "For verbatim dialogue, rewriting is automatically disabled to preserve your words.",
+  "studio.heygen.reference.templatePrompt": "Create a coherent cinematic scene. If reference images are provided, preserve their main subject, identity, shape, colors and details. Use any supplied video or audio references for motion, style or sound. Add natural movement, clear camera direction and matching ambient audio. Do not introduce unrelated logos, captions or duplicate subjects. Follow the user's scene description and preserve any quoted dialogue exactly."
+};
+const referenceZh: Record<string, string> = {
+  "studio.heygen.reference.title": "参考素材",
+  "studio.heygen.reference.hint": "仅提示词必填。图片、视频和音频均为选填，按需选择即可，无需全部添加。",
+  "studio.heygen.reference.optional": "选填",
+  "studio.heygen.reference.images": "参考图片",
+  "studio.heygen.reference.videos": "视频链接",
+  "studio.heygen.reference.audio": "音频链接",
+  "studio.heygen.reference.uploadHint": "最多 9 张 JPEG、PNG 或 WebP 图片。平台上传限制：单张不超过 30 MB，总计不超过 40 MB。",
+  "studio.heygen.reference.videoHint": "最多 3 个公开视频链接，每行一个，也可从模板选择。目前暂不支持本地视频上传。",
+  "studio.heygen.reference.audioHint": "最多 3 个公开音频链接，每行一个，用于参考声音，可留空。",
+  "studio.heygen.reference.error.videos": "请填写最多 3 个有效、可公开访问的 HTTP(S) 视频链接，或留空。",
+  "studio.heygen.reference.error.audio": "请填写最多 3 个有效、可公开访问的 HTTP(S) 音频链接，或留空。",
+  "studio.heygen.reference.error.images": "请使用最多 9 张 JPEG、PNG、WebP 图片或公开图片链接。",
+  "studio.heygen.reference.error.upload": "平台上传限制为单张 30 MB、总计 40 MB，请压缩图片后重试。",
+  "studio.heygen.reference.error.prompt": "提示词请控制在 32,000 字符以内。",
+  "studio.heygen.reference.error.seed": "随机种子须为 0–4,294,967,295 的整数，留空则随机生成。",
+  "studio.heygen.reference.enhancement": "模型提示词增强",
+  "studio.heygen.reference.enhancement.turbo": "快速（默认）",
+  "studio.heygen.reference.enhancement.quality": "高质量",
+  "studio.heygen.reference.enhancement.ultraquality": "超高质量",
+  "studio.heygen.reference.enhancement.disabled": "关闭",
+  "studio.heygen.reference.enhancementHint": "包含需要逐字保留的对白时，会自动关闭改写，避免修改台词。",
+  "studio.heygen.reference.templatePrompt": "生成连贯的电影感场景。如果提供了参考图片，保留主体身份、形状、颜色和细节；如果提供了视频或音频，参考其动作、风格或声音。加入自然运动、清晰运镜和匹配的环境音，不添加无关标志、字幕或重复主体。遵循用户的场景描述，并逐字保留明确指定的对白。"
+};
+const referenceZhTw: Record<string, string> = {
+  "studio.heygen.reference.title": "參考素材",
+  "studio.heygen.reference.hint": "僅提示詞必填。圖片、影片和音訊均為選填，按需選擇即可，無需全部新增。",
+  "studio.heygen.reference.optional": "選填",
+  "studio.heygen.reference.images": "參考圖片",
+  "studio.heygen.reference.videos": "影片連結",
+  "studio.heygen.reference.audio": "音訊連結",
+  "studio.heygen.reference.uploadHint": "最多 9 張 JPEG、PNG 或 WebP 圖片。平台上傳限制：單張不超過 30 MB，總計不超過 40 MB。",
+  "studio.heygen.reference.videoHint": "最多 3 個公開影片連結，每行一個，也可從範本選擇。目前暫不支援本機影片上傳。",
+  "studio.heygen.reference.audioHint": "最多 3 個公開音訊連結，每行一個，用於參考聲音，可留空。",
+  "studio.heygen.reference.error.videos": "請填寫最多 3 個有效、可公開存取的 HTTP(S) 影片連結，或留空。",
+  "studio.heygen.reference.error.audio": "請填寫最多 3 個有效、可公開存取的 HTTP(S) 音訊連結，或留空。",
+  "studio.heygen.reference.error.images": "請使用最多 9 張 JPEG、PNG、WebP 圖片或公開圖片連結。",
+  "studio.heygen.reference.error.upload": "平台上傳限制為單張 30 MB、總計 40 MB，請壓縮圖片後重試。",
+  "studio.heygen.reference.error.prompt": "提示詞請控制在 32,000 字元以內。",
+  "studio.heygen.reference.error.seed": "隨機種子須為 0–4,294,967,295 的整數，留空則隨機生成。",
+  "studio.heygen.reference.enhancement": "模型提示詞增強",
+  "studio.heygen.reference.enhancement.turbo": "快速（預設）",
+  "studio.heygen.reference.enhancement.quality": "高品質",
+  "studio.heygen.reference.enhancement.ultraquality": "超高品質",
+  "studio.heygen.reference.enhancement.disabled": "關閉",
+  "studio.heygen.reference.enhancementHint": "包含需要逐字保留的對白時，會自動關閉改寫，避免修改台詞。",
+  "studio.heygen.reference.templatePrompt": "生成連貫的電影感場景。如果提供了參考圖片，保留主體身分、形狀、顏色和細節；如果提供了影片或音訊，參考其動作、風格或聲音。加入自然運動、清晰運鏡和匹配的環境音，不新增無關標誌、字幕或重複主體。遵循使用者的場景描述，並逐字保留明確指定的對白。"
+};
 export const studioHeygenMessages = Object.fromEntries(Object.entries(hdRatios).map(([locale, text]) => [locale, {
+  ...referenceEn,
+  ...(locale === "zh-CN" ? referenceZh : locale === "zh-TW" ? referenceZhTw : {}),
   "studio.heygen.hdRatios": text
 }]));

@@ -13,6 +13,9 @@
 .mediaSpecs summary { width:fit-content; min-height:32px; padding:7px 0; cursor:pointer; }
 .mediaSpecs summary:hover { color:var(--df-accent); }
 .mediaSpecs[open] { margin-bottom:8px; }
+.referenceMediaGroup { margin-top:16px; padding-top:14px; border-top:1px solid var(--df-border); }
+.mediaUrlRow { align-items:flex-start; }
+.url.mediaUrls { min-height:72px; height:72px; padding:9px 12px; line-height:20px; resize:vertical; }
 .url { display: block; width: 100%; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid var(--df-border); border-radius: var(--df-radius-input); background: var(--df-surface); color: var(--df-ink); font-size: 12px; }
 .url:focus-visible { outline: 2px solid var(--df-primary-border); outline-offset: 2px; }
 .urlRow { display: flex; align-items: stretch; gap: 8px; min-width: 0; }
