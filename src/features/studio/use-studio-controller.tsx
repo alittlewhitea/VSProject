@@ -15,7 +15,7 @@ import { isH3DailyFreeRequest } from "../../lib/h3-daily-free-policy";
 import { heygenAvatarTiming } from "../../lib/heygen-avatar";
 import { videoDialogueTiming } from "../../lib/video-spoken-script";
 import { heygenAspectRatioError, heygenRequiresHdAspectRatio, preferredHeygenHdRatio } from "../../lib/heygen-video-options";
-import { DEFAULT_HEYGEN_REFERENCE_OPTIONS, HEYGEN_REFERENCE_IMAGE_LIMIT, HEYGEN_REFERENCE_PROMPT_LIMIT, heygenReferenceUploadIssue, heygenReferenceValidationKey, type HeygenReferenceOptions } from "../../lib/heygen-reference-video";
+import { DEFAULT_HEYGEN_REFERENCE_OPTIONS, HEYGEN_REFERENCE_IMAGE_LIMIT, HEYGEN_REFERENCE_PROMPT_LIMIT, heygenReferenceUploadIssue, heygenReferenceValidationKey, prepareHeygenReferencePrompt, type HeygenReferenceOptions } from "../../lib/heygen-reference-video";
 import { MISCHIEF_MAX_IMAGE_BYTES,MISCHIEF_PROVIDER } from "../../lib/mischief";
 import { CREDIT_LOW_BALANCE_THRESHOLD,estimateGenerationCredits } from "../../lib/model-pricing";
 import { SEEDANCE_FLASH_PROVIDER, DEFAULT_SEEDANCE_FLASH_OPTIONS, SEEDANCE_FLASH_IMAGE_LIMIT, parseReferenceMediaUrls, seedanceFlashValidationKey, type SeedanceFlashOptions } from "../../lib/seedance-flash";
@@ -160,6 +160,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const [seedanceOptions, setSeedanceOptions] = useState<SeedanceFlashOptions>({ ...DEFAULT_SEEDANCE_FLASH_OPTIONS });
   const [heygenReferenceOptions, setHeygenReferenceOptions] = useState<HeygenReferenceOptions>({ ...DEFAULT_HEYGEN_REFERENCE_OPTIONS });
   const lastAppliedVideoUrlRef = useRef<AppliedUrlInput | null>(null);
+  const lastAssistantTaskRef = useRef<string | null>(null);
+  const lastAssistantImageSettingsRef = useRef<string | null>(null);
   const previousReferenceWorkflow = useRef(initialWorkflow === "reference-to-video");
   const homeReferenceRef = useRef<{ mode: "image" | "video"; image: string } | null>(null);
   const lastAppliedPromptUrlRef = useRef<AppliedUrlInput | null>(null);
@@ -432,7 +434,9 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setAudioWorkflow(mode === "audio" && workflowParam === "text-to-music" ? "text-to-music" : "text-to-audio");
     const enteringReference = mode === "video" && workflowParam === "reference-to-video";
     if (enteringReference && !previousReferenceWorkflow.current) {
-      setReferenceImagesText(""); setReferenceImageFiles([]);
+      if (sp.get("source") === "assistant") {
+        setReferenceImagesText(current=>isModelSampleReference(current) ? "" : current);
+      } else { setReferenceImagesText(""); setReferenceImageFiles([]); }
     }
     previousReferenceWorkflow.current = enteringReference;
     const validProviderParam = isProviderAllowedForMode(providerParam, mode) ? providerParam : null;
@@ -443,7 +447,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     );
     if(mode==="image"&&isGptImageProvider(nextProvider)&&(modeChanged||!isGptImageProvider(selectedProvider)))setImageQuality("low");
     setProvider(nextProvider === "nano-banana-edit" ? "nano-banana-image" : nextProvider);
-    if (!sp.get("prompt") && (modeChanged || nextProvider !== initialProvider)) {
+    if (sp.get("source") !== "assistant" && !sp.get("prompt") && (modeChanged || nextProvider !== initialProvider)) {
       setPrompt(current => mode === "avatar" && !modeChanged
         ? promptForProviderChange(current, "", st("studio.music.defaultPrompt"))
         : defaultPromptForProvider(nextProvider, workflowParam, st("studio.music.defaultPrompt")));
@@ -513,6 +517,21 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     if (resolutionParam && isKnownVideoResolution(resolutionParam)) {
       setVideoResolution(resolutionParam);
     }
+    const taskParam = sp.get("seedanceTask");
+    if (sp.get("source") === "assistant" && workflowForMode(mode, sp.get("workflow")) === "reference-to-video" && providerParam === SEEDANCE_FLASH_PROVIDER && ["reference","editing","extension"].includes(taskParam || "")) {
+      const key = `${providerParam}:${taskParam}`;
+      if (lastAssistantTaskRef.current !== key) setSeedanceOptions(current=>({...current,task:taskParam as SeedanceFlashOptions["task"]}));
+      lastAssistantTaskRef.current = key;
+    } else lastAssistantTaskRef.current = null;
+    if (sp.get("source") === "assistant" && mode === "image") {
+      const key = `${providerParam}:${sp.get("workflow")}:${imageSizeParam}:${sp.get("quality")}:${sp.get("numImages")}:${sp.get("imageResolution")}`;
+      if (lastAssistantImageSettingsRef.current !== key) {
+        if (sp.get("numImages") === "1") setNumImages(1);
+        if (sp.get("imageResolution") === "1K") setEditResolution("1K");
+        if (sp.get("quality")) setImageQuality(isGptImageProvider(providerParam || "") ? gptImageQuality(sp.get("quality")) : "high");
+      }
+      lastAssistantImageSettingsRef.current = key;
+    } else lastAssistantImageSettingsRef.current = null;
 
     const referenceParam = sp.get("reference");
     const applyReferenceParam = shouldApplyUrlInput(lastAppliedReferenceUrlRef.current, mode, referenceParam);
@@ -539,6 +558,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       return;
     }
     const value = sp.get("referenceVideo");
+    if (sp.get("source") === "assistant" && value === null) return;
     if (shouldApplyUrlInput(lastAppliedVideoUrlRef.current, mode, value)) setReferenceVideoUrl(value || "");
     lastAppliedVideoUrlRef.current = {mode, value};
   }, [mode, sp]);
@@ -741,9 +761,20 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const gptRequestOptions = {imageSize,imageWidth:gptImageOptions.width,imageHeight:gptImageOptions.height,quality:imageQuality,outputFormat,numImages,imageUrls:referenceImageUrls,background:gptImageOptions.background,imageReasoningEffort:gptImageOptions.reasoningEffort,...(["jpeg","webp"].includes(outputFormat)?{outputCompression:gptImageOptions.outputCompression}:{}),...(outputFormat==="gif"?{frameCount:gptImageOptions.frameCount,frameDurationMs:gptImageOptions.frameDurationMs}:{}),...(outputFormat==="svg"?{svgModel:gptImageOptions.svgModel}:{}),...(activeWorkflow==="image-to-image"?{maskUrl:gptImageOptions.maskUrl,markupImageUrl:gptImageOptions.markupImageUrl}:{})};
   const gptValidationError = mode==="image"&&isGptImageProvider(provider)?gptImageOptionError({...gptRequestOptions,prompt}):mode==="image"&&provider===SEEDREAM_55_PROVIDER&&seedream55Error({...gptRequestOptions,mode,imageWorkflow,prompt,imageUrls:allReferenceImageUrls})?"studio.seedream.invalid":null;
   const seedanceValidationError = provider === SEEDANCE_FLASH_PROVIDER ? seedanceFlashValidationKey({mode,videoWorkflow,prompt,duration,ratio,resolution:videoResolution,imageUrls:videoWorkflow==="text-to-video"?undefined:allReferenceImageUrls,videoUrls:activeWorkflow==="reference-to-video"?parseReferenceMediaUrls(referenceVideoUrl):undefined,audioUrls:activeWorkflow==="reference-to-video"?parseReferenceMediaUrls(seedanceOptions.audioUrls):undefined,seedanceTask:seedanceOptions.task}) : null;
-  const heygenValidationError = provider === "heygen-video" && mode === "video" ?
-    (activeWorkflow === "reference-to-video" ? heygenReferenceValidationKey(parseReferenceMediaUrls(referenceVideoUrl), allReferenceImageUrls, parseReferenceMediaUrls(heygenReferenceOptions.audioUrls)) || (prompt.trim().length > HEYGEN_REFERENCE_PROMPT_LIMIT ? "studio.heygen.reference.error.prompt" : null) : null) ||
-    (seed.trim() && (!/^\d+$/.test(seed.trim()) || Number(seed.trim()) > 4294967295) ? "studio.heygen.reference.error.seed" : null) : null;
+  let heygenValidationError = null;
+  if (provider === "heygen-video" && mode === "video") {
+    if (activeWorkflow === "reference-to-video") {
+      const videos = parseReferenceMediaUrls(referenceVideoUrl);
+      const audio = parseReferenceMediaUrls(heygenReferenceOptions.audioUrls);
+      const prepared = prepareHeygenReferencePrompt(prompt.trim(), referenceImageUrls, videos, audio);
+      heygenValidationError = heygenReferenceValidationKey(videos, allReferenceImageUrls, audio)
+        || (prepared.missing ? "studio.mention.missing" : null)
+        || (prepared.prompt.length > HEYGEN_REFERENCE_PROMPT_LIMIT ? "studio.heygen.reference.error.prompt" : null);
+    }
+    if (!heygenValidationError && seed.trim() && (!/^\d+$/.test(seed.trim()) || Number(seed.trim()) > 4294967295)) {
+      heygenValidationError = "studio.heygen.reference.error.seed";
+    }
+  }
   const videoSpeechTooLong = mode === "video" && provider === "heygen-video" && videoDialogueTiming(prompt, duration)?.tooLong;
   const videoAspectRatioError = mode === "video" && provider === "heygen-video" && heygenAspectRatioError(videoWorkflow, videoResolution, ratio);
   const canSubmit = isPromptValid && hasRequiredReference && !gptValidationError && !seedanceValidationError && !heygenValidationError && !verifiedAvatarAudio.loading && !verifiedAvatarAudio.error && !videoSpeechTooLong && !videoAspectRatioError;

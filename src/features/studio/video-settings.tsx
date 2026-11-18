@@ -2,7 +2,7 @@
 import { SEEDANCE_FLASH_PROVIDER, SEEDANCE_FLASH_GUIDE_PATH, parseReferenceMediaUrls, seedanceFlashNoticeKeys, type SeedanceFlashOptions } from "../../lib/seedance-flash";
 import { SeedanceReferencePanel } from "./seedance-reference-panel";
 import { ReferencePromptEditor } from "./reference-prompt-editor";
-import { removeReferenceImageFromPrompt } from "../../lib/reference-prompt";
+import { remapReferenceUrlsInPrompt, removeReferenceImageFromPrompt } from "../../lib/reference-prompt";
 import { DEFAULT_HEYGEN_REFERENCE_OPTIONS, HEYGEN_PROMPT_ENHANCEMENTS, HEYGEN_REFERENCE_PROMPT_LIMIT, type HeygenReferenceOptions } from "../../lib/heygen-reference-video";
 
 import type { ReactNode } from "react";
@@ -11,6 +11,7 @@ import type { useVideoPromptEnhancement } from "./use-video-prompt-enhancement";
 import styles from "./video-settings.module.css";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
 import { StudioVideoReferencePanel } from "./studio-video-reference-panel";
+import { StudioImagePreview, StudioImageUpload } from "./studio-image-upload";
 import { useEffect, useState } from "react";
 import { StudioComposerGenerate } from "./studio-composer-controls";
 import { GenerationCostSummary } from "./generation-cost-summary";
@@ -18,6 +19,7 @@ import type { StudioVideoWorkflow } from "./video-models";
 import { ModelPicker, type ModelPickerOption } from "./model-picker";
 import { videoDialogueTiming } from "../../lib/video-spoken-script";
 import { heygenRequiresHdAspectRatio } from "../../lib/heygen-video-options";
+import { StudioIcon } from "./studio-navigation";
 
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
 
@@ -99,6 +101,9 @@ export function VideoSettings({
   const [moreSettingsOpen, setMoreSettingsOpen] = useState(false);
   const [referenceNotice, setReferenceNotice] = useState("");
   const showSeedanceNotices = provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video";
+  const isHeygenReference = provider === "heygen-video" && workflow === "reference-to-video";
+  const referenceVideos = parseReferenceMediaUrls(referenceVideoUrl);
+  const referenceAudio = parseReferenceMediaUrls(isHeygenReference ? heygenReferenceOptions.audioUrls : showSeedanceNotices ? seedanceOptions.audioUrls : "");
   const flashAutomaticRatio = provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video" && ["editing", "extension"].includes(seedanceOptions.task);
   const flashNeedsInput = seedanceValidationError && ["prompt", "startImage", "emptyReference"].some(code => seedanceValidationError === `studio.seedance.validation.${code}`);
   const speechTiming = provider === "heygen-video" ? videoDialogueTiming(prompt, duration) : null;
@@ -125,39 +130,63 @@ export function VideoSettings({
     applyPreset(PRESETS[(currentIndex + 1) % PRESETS.length]);
   };
 
+  function updateReferencePrompt(nextPrompt: string) {
+    if (nextPrompt === prompt) return;
+    onPromptChange(nextPrompt);
+    setReferenceNotice(translate("studio.mention.removed"));
+  }
+
+  function removeReferenceImage(index: number) {
+    updateReferencePrompt(removeReferenceImageFromPrompt(prompt, index, referenceImageUrls.length));
+    onReferenceRemove(index);
+  }
+
+  function changeHeygenVideoUrls(value: string) {
+    updateReferencePrompt(remapReferenceUrlsInPrompt(prompt, "video", referenceVideos, parseReferenceMediaUrls(value)));
+    onReferenceVideoUrlChange(value);
+  }
+
+  function changeHeygenAudioUrls(value: string) {
+    updateReferencePrompt(remapReferenceUrlsInPrompt(prompt, "audio", referenceAudio, parseReferenceMediaUrls(value)));
+    onHeygenReferenceOptionsChange({ ...heygenReferenceOptions, audioUrls: value });
+  }
+
   return (
     <div className={`${styles.workbench} df-compact-composer df-premium-composer text-start`} data-premium-workspace="video" data-video-workspace={workflow}>
         <StudioPanel className={`${styles.editor} df-premium-panel`} header={workflowTabs}>
           <div className={styles.editorScroll} data-video-editor-scroll>
           <fieldset disabled={isSubmitting || promptAI.busy} className={styles.formGrid}>
           <div className={styles.content} data-video-prompt-section>
-          {workflow === "reference-to-video" ? provider === SEEDANCE_FLASH_PROVIDER ? <SeedanceReferencePanel videoUrls={referenceVideoUrl} images={referenceImageUrls} options={seedanceOptions} onOptionsChange={onSeedanceOptionsChange} onVideoUrlsChange={onReferenceVideoUrlChange} onFiles={onReferenceFiles} onRemove={index => {
-            const nextPrompt = removeReferenceImageFromPrompt(prompt, index, referenceImageUrls.length);
-            if (nextPrompt !== prompt) { onPromptChange(nextPrompt); setReferenceNotice(translate("studio.mention.removed")); }
-            onReferenceRemove(index);
-          }} onFileError={onFileError} translate={translate} /> : <StudioVideoReferencePanel compact videoUrl={referenceVideoUrl} images={referenceImageUrls} audioUrls={heygenReferenceOptions.audioUrls} onAudioUrlsChange={audioUrls => onHeygenReferenceOptionsChange({ ...heygenReferenceOptions, audioUrls })} translate={translate} onVideoUrlChange={onReferenceVideoUrlChange} onFiles={onReferenceFiles} onRemove={onReferenceRemove} onFileError={onFileError} /> : null}
+          {showSeedanceNotices ? <SeedanceReferencePanel videoUrls={referenceVideoUrl} images={referenceImageUrls} options={seedanceOptions} onOptionsChange={onSeedanceOptionsChange} onVideoUrlsChange={onReferenceVideoUrlChange} onFiles={onReferenceFiles} onRemove={removeReferenceImage} onFileError={onFileError} translate={translate} /> : null}
+          {isHeygenReference ? <StudioVideoReferencePanel compact videoUrl={referenceVideoUrl} images={referenceImageUrls} audioUrls={heygenReferenceOptions.audioUrls} onAudioUrlsChange={changeHeygenAudioUrls} translate={translate} onVideoUrlChange={changeHeygenVideoUrls} onFiles={onReferenceFiles} onRemove={removeReferenceImage} onFileError={onFileError} /> : null}
           <div className="df-composer-prompt-label mb-2.5 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5"><label htmlFor="video-studio-prompt" className="shrink-0 text-sm font-medium text-[var(--studio-text)]">{translate("studio.field.prompt")}</label></div>
             <span className="shrink-0 text-xs tabular-nums text-[var(--studio-muted)]">{translate("studio.workbench.characters", { count: prompt.length.toLocaleString() })}{provider === "heygen-video" && workflow === "reference-to-video" ? ` / ${HEYGEN_REFERENCE_PROMPT_LIMIT.toLocaleString("en-US")}` : ""}</span>
           </div>
 
           <div className="df-video-composer-input">
-            {showSeedanceNotices ? <ReferencePromptEditor value={prompt} images={referenceImageUrls} videos={parseReferenceMediaUrls(referenceVideoUrl)} audio={parseReferenceMediaUrls(seedanceOptions.audioUrls)} placeholder={translate("studio.referenceVideo.placeholder")} notice={referenceNotice} onChange={next => { setReferenceNotice(""); onPromptChange(next); }} onGenerate={onGenerate} translate={translate} /> : <textarea dir="auto" id="video-studio-prompt" value={prompt} onChange={(event) => onPromptChange(event.target.value)} onKeyDown={(event) => { if (window.matchMedia("(min-width: 1024px)").matches && (event.ctrlKey || event.metaKey)) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onGenerate(); } }} placeholder={translate(workflow === "reference-to-video" ? "studio.referenceVideo.placeholder" : workflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")} className="h-[150px] w-full resize-none border-0 bg-transparent p-4 text-[15px] leading-[1.55] text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />}
+            {showSeedanceNotices || isHeygenReference ? <ReferencePromptEditor value={prompt} images={referenceImageUrls} videos={referenceVideos} audio={referenceAudio} placeholder={translate("studio.referenceVideo.placeholder")} notice={referenceNotice} onChange={next => { setReferenceNotice(""); onPromptChange(next); }} onGenerate={onGenerate} translate={translate} /> : <textarea dir="auto" id="video-studio-prompt" value={prompt} onChange={(event) => onPromptChange(event.target.value)} onKeyDown={(event) => { if (window.matchMedia("(min-width: 1024px)").matches && (event.ctrlKey || event.metaKey)) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onGenerate(); } }} placeholder={translate(workflow === "reference-to-video" ? "studio.referenceVideo.placeholder" : workflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")} className="h-[150px] w-full resize-none border-0 bg-transparent p-4 text-[15px] leading-[1.55] text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />}
             {workflow === "image-to-video" ? (
               <div className="mx-3 mb-3" data-video-keyframes>
                 <p className="mb-2 text-xs text-[var(--studio-muted)]">{translate(videoSupportsEndFrame(provider) ? "studio.videoWorkbench.keyframeHint" : "studio.videoWorkbench.singleFrameHint")}</p>
-                <div className={`grid gap-2 ${videoSupportsEndFrame(provider) ? "grid-cols-2" : "grid-cols-1"}`}>
-                  {Array.from({ length: videoSupportsEndFrame(provider) ? 2 : 1 }, (_, index) => (
-                    <div key={index} className="min-w-0 rounded-xl border border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] p-2" data-frame-index={index}>
-                      <p className="mb-2 text-xs font-medium text-[var(--studio-text)]">{translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame")}</p>
-                      {referenceImageUrls[index] ? <img src={referenceImageUrls[index]} alt={translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame")} className="mb-2 h-24 w-full rounded-lg object-contain" /> : null}
-                      <label className={`df-reference-upload block cursor-pointer rounded-lg bg-[var(--studio-panel)] p-2 text-center text-xs font-medium text-[var(--studio-accent)] ${index === 1 && !referenceImageUrls[0] ? "opacity-40" : ""}`}>
-                        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>{translate("studio.action.chooseImage")}
-                        <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame")} className="sr-only" disabled={index === 1 && !referenceImageUrls[0]} onChange={event => { void onReferenceFiles(event.target.files, index).catch(onFileError); event.target.value = ""; }} />
-                      </label>
-                      {referenceImageUrls[index] ? <button type="button" onClick={() => onReferenceRemove(index)} className="mt-1 min-h-9 w-full text-xs text-[var(--studio-muted)]">{translate("studio.action.clear")}</button> : null}
-                    </div>
-                  ))}
+                <div className={styles.frameGrid}>
+                  {Array.from({ length: videoSupportsEndFrame(provider) ? 2 : 1 }, (_, index) => {
+                    const name = translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame");
+                    const image = referenceImageUrls[index];
+                    return (
+                      <div key={index} className={styles.frameSlot} data-frame-index={index} role="group" aria-label={name}>
+                        <p>{name}</p>
+                        <div className={styles.frameMedia}>
+                          {image ? <StudioImagePreview src={image} alt={name} index={index}
+                            removeLabel={`${translate("studio.action.clear")} ${name}`} onRemove={() => onReferenceRemove(index)} /> : null}
+                          <StudioImageUpload compact={Boolean(image)} label={translate(image ? "studio.action.chooseImage" : "studio.references.upload")}
+                            hint={image ? undefined : translate("studio.references.uploadHint")} disabled={index === 1 && !referenceImageUrls[0]}
+                            inputProps={{ accept: "image/jpeg,image/png,image/webp", "aria-label": name }}
+                            onFiles={files => onReferenceFiles(files, index).catch(onFileError)} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
@@ -169,8 +198,8 @@ export function VideoSettings({
                 <span className={`absolute start-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${promptAI.enabled ? "translate-x-4 rtl:-translate-x-4" : "translate-x-0"}`} />
               </span>
             </button> : null}
-              <button type="button" onClick={inspire} className="min-h-10 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-xs font-semibold text-[var(--studio-text)] transition hover:bg-[var(--studio-surface)]">{"\uD83D\uDCA1"} {translate("studio.workbench.inspire")}</button>
-              <button type="button" onClick={() => onPromptChange("")} disabled={!prompt.length} className="min-h-10 rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-xs font-semibold text-[var(--studio-muted)] transition hover:border-[var(--studio-accent-border)] hover:bg-[var(--studio-accent-soft)] hover:text-[var(--studio-accent)] disabled:cursor-not-allowed disabled:opacity-45"><span aria-hidden="true">{"\u21ba"}</span> {translate("studio.action.clear")}</button>
+              <button type="button" onClick={inspire}><StudioIcon name="sparkles" className={styles.inspireIcon} />{translate("studio.workbench.inspire")}</button>
+              <button type="button" onClick={() => onPromptChange("")} disabled={!prompt.length} className={styles.clearPrompt}><span aria-hidden="true">↺</span>{translate("studio.action.clear")}</button>
           </div>
           {workflow !== "reference-to-video" && ((promptAI.notice && promptAI.notice !== "login") || promptAI.busy) ? <p role="status" aria-live="polite" className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate(`studio.promptAI.${promptAI.busy ? "optimizing" : promptAI.notice}`)}</p> : null}
           {workflow !== "reference-to-video" && promptAI.current ? <div className="mt-2 flex flex-wrap items-start justify-between gap-2"><details className="min-w-0 flex-1 text-xs text-[var(--studio-muted)]"><summary className="min-h-9 cursor-pointer">{translate("studio.promptAI.original")}</summary><p dir="auto" className="mt-1 whitespace-pre-wrap break-words">{promptAI.current.original}</p></details><button type="button" onClick={promptAI.restore} className="min-h-9 rounded-lg border border-[var(--studio-border)] px-3 text-xs font-semibold text-[var(--studio-text)]">{translate("studio.promptAI.restore")}</button></div> : null}
@@ -179,12 +208,16 @@ export function VideoSettings({
           </div>
           <div className={`${styles.configuration} df-premium-config`} data-video-config>
           <div className={styles.toolbar}>
-          <ModelPicker inline value={provider} options={providerOptions} translate={translate} onChange={onProviderChange} />
+          <ModelPicker inline videoAppearance value={provider} options={providerOptions} translate={translate} onChange={onProviderChange} />
           <div className={styles.parameters} data-video-parameters>
             <StudioSelectField icon="duration" label={translate("studio.field.duration")} value={provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video" && seedanceOptions.task === "editing" ? "auto" : duration} disabled={provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video" && seedanceOptions.task === "editing"} options={durationOptions.map(value => ({ value, label: value === "auto" ? translate("studio.option.automatic") : value }))} onValueChange={onDurationChange} />
             <StudioSelectField icon="ratio" label={translate("studio.field.aspectRatio")} value={flashAutomaticRatio ? "auto" : ratio} disabled={ratioDisabled || flashAutomaticRatio} options={(flashAutomaticRatio ? ["auto"] : ratioOptions).map(value => ({ value, label: value === "source" ? translate("studio.option.sourceImage") : value === "adaptive" || value === "auto" ? translate("studio.option.automatic") : value }))} onValueChange={onRatioChange} />
             <StudioSelectField icon="resolution" label={translate("studio.field.resolution")} value={resolution || "auto"} disabled={!showResolutionControl} options={showResolutionControl ? resolutionOptions.map(value => ({ value, label: value })) : [{ value: resolution || "auto", label: resolution || translate("studio.option.automatic") }]} onValueChange={onResolutionChange} />
-            <button type="button" data-video-advanced-trigger aria-expanded={moreSettingsOpen} onClick={() => setMoreSettingsOpen(value => !value)} className={`${styles.advancedButton} df-composer-more`}>{translate(moreSettingsOpen ? "studio.workbench.lessSettings" : "studio.workbench.moreSettings")}</button>
+            <button type="button" data-video-advanced-trigger aria-expanded={moreSettingsOpen} onClick={() => setMoreSettingsOpen(value => !value)} className={`${styles.advancedButton} df-composer-more`}>
+              <StudioIcon name="sliders" className={styles.advancedIcon} />
+              <span>{translate(moreSettingsOpen ? "studio.workbench.lessSettings" : "studio.workbench.moreSettings")}</span>
+              <StudioIcon name="chevron-down" className={styles.advancedChevron} />
+            </button>
           </div>
 
           <div className={styles.actionBar} data-video-action-bar>
@@ -194,7 +227,10 @@ export function VideoSettings({
           {dailyFreeLabel ? <p role="status" className="df-composer-daily">{dailyFreeLabel}</p> : null}
           <GenerationCostSummary compact estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate}/>
           {showSeedanceNotices ? <a data-seedance-guide href={SEEDANCE_FLASH_GUIDE_PATH} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-10 items-center gap-1 rounded-lg text-xs font-medium text-[var(--studio-accent)] underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">{translate("studio.seedance.guide")}<span aria-hidden="true">↗</span></a> : null}
-          {showSeedanceNotices ? <p data-seedance-quote className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{seedanceFlashNoticeKeys(workflow, duration, seedanceOptions.task).map(key => translate(key, { duration: duration.replace(/s$/, "") })).join(" ")}</p> : null}
+          {showSeedanceNotices ? <p data-seedance-quote className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">
+            {seedanceFlashNoticeKeys(workflow, duration, seedanceOptions.task).map(key => translate(key, { duration: duration.replace(/s$/, "") })).join(" ")}
+            {referenceVideos.length ? ` ${translate("studio.seedance.videoQuote")}` : null}
+          </p> : null}
           {showSeedanceNotices && seedanceValidationError ? <p data-seedance-validation role={flashNeedsInput ? "status" : "alert"} className={`mt-2 text-xs ${flashNeedsInput ? "text-[var(--studio-muted)]" : "text-red-600"}`}>{translate(seedanceValidationError)}</p> : null}
           {provider === "mischief-video" ? <p data-mischief-notice className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate("studio.model.mischief-video")}</p> : null}
 
@@ -214,7 +250,7 @@ export function VideoSettings({
           </div> : null}
 
           {provider === "heygen-video" && heygenRequiresHdAspectRatio(workflow, resolution) ? <p data-heygen-hd-ratios className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate("studio.heygen.hdRatios")}</p> : null}
-          {provider === "heygen-video" && heygenValidationError ? <p data-heygen-validation role="alert" className="mt-2 text-xs text-red-600">{translate(heygenValidationError)}</p> : null}
+          {provider === "heygen-video" && heygenValidationError && heygenValidationError !== "studio.mention.missing" ? <p data-heygen-validation role="alert" className="mt-2 text-xs text-red-600">{translate(heygenValidationError)}</p> : null}
           <StudioStatusNotice message={statusMessage} tone={statusTone} />
 
           </div>

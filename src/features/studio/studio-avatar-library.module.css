@@ -7,7 +7,7 @@
 .search input { width: 100%; min-width: 0; background: transparent; color: var(--df-ink); font-size: 13px; outline: none; }
 .filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 22px; }
 .filters button { flex-shrink: 0; min-height: 44px; padding: 8px 16px; border: 1px solid var(--df-border); border-radius: 100px; background: var(--df-surface); font-size: 13px; color: var(--df-muted); }
-.filters button[aria-pressed="true"] { color: var(--df-primary); background: var(--df-primary-soft); border-color: var(--df-primary-border); }
+.filters button[aria-pressed="true"] { color: var(--df-accent); background: var(--df-primary-soft); border-color: var(--df-primary-border); }
 .grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 28px 24px; }
 .looksGrid { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
 .card { min-width: 0; position: relative; }
@@ -61,15 +61,15 @@
 @media(prefers-reduced-motion:reduce) { .actions { transition: none; } }
 
 .filterTrigger { display:flex; flex-shrink:0; align-items:center; gap:8px; min-height:44px; padding:10px 14px; border:1px solid var(--df-border); border-radius:var(--df-radius-input); background:var(--df-surface); font-size:13px; }
-.filterTrigger[aria-expanded="true"] { color:var(--df-primary); border-color:var(--df-primary-border); }
-.filterTrigger > span { display:grid; place-items:center; min-width:20px; height:20px; border-radius:50%; background:var(--df-primary-soft); color:var(--df-primary); font-size:11px; }
+.filterTrigger[aria-expanded="true"] { color:var(--df-accent); border-color:var(--df-primary-border); }
+.filterTrigger > span { display:grid; place-items:center; min-width:20px; height:20px; border-radius:50%; background:var(--df-primary-soft); color:var(--df-accent); font-size:11px; }
 .filterShade { position:fixed; inset:0; z-index:220; cursor:default; }
 .filterPanel { position:absolute; z-index:230; inset-inline-end:0; top:calc(100% + 8px); width:min(320px,100%); max-height:min(600px,calc(100dvh - var(--df-sticky-header-height,72px) - 96px)); overflow-y:auto; overscroll-behavior:contain; padding:24px; border:1px solid var(--df-border); border-radius:18px; background:var(--df-surface); color:var(--df-ink); box-shadow:0 12px 40px rgb(0 0 0 / .12); }
 .filterPanel fieldset { min-width:0; margin-bottom:24px; }
 .filterPanel legend { margin-bottom:12px; font-size:14px; font-weight:600; }
 .filterChoices { display:flex; flex-wrap:wrap; gap:8px; }
 .filterChoices button { min-height:44px; padding:8px 14px; border:1px solid var(--df-border); border-radius:100px; font-size:13px; }
-.filterChoices button[aria-pressed="true"] { color:var(--df-primary); background:var(--df-primary-soft); border-color:var(--df-primary-border); }
+.filterChoices button[aria-pressed="true"] { color:var(--df-accent); background:var(--df-primary-soft); border-color:var(--df-primary-border); }
 .filterPanel fieldset:disabled { opacity:.45; }
 .filterPanel fieldset:disabled button { cursor:not-allowed; }
 .filterHelp { color:var(--df-muted); font-size:12px; line-height:1.7; margin-bottom:20px; }

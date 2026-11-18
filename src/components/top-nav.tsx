@@ -11,7 +11,7 @@ import { defaultLocale, getLocaleFromPathname, localizeMarketingHref, stripLocal
 import { trackEvent } from "../lib/analytics";
 import { createBrowserSupabaseClient } from "../lib/supabase-client";
 
-export function TopNav() {
+export function TopNav({ compact = false }: { compact?: boolean }) {
   const t = useTranslations();
   const pathname = usePathname();
   const cleanPathname = stripLocaleFromPathname(pathname || "/");
@@ -98,7 +98,7 @@ export function TopNav() {
       }`}
     >
       <div className="flex items-center justify-between gap-3 sm:gap-5">
-        <div className="flex min-w-0 items-center gap-5 lg:gap-10">
+        <div className={`flex min-w-0 items-center gap-5 ${compact ? "xl:gap-6" : "lg:gap-10"}`}>
           <Link
             href={localizedHref("/")}
             onClick={() => trackEvent("nav_clicked", { item: "logo", target: "/" })}
@@ -111,10 +111,10 @@ export function TopNav() {
               height={40}
               className="h-8 w-8 shrink-0 rounded-[10px] object-cover shadow-[0_7px_18px_rgba(16,130,101,0.18)] sm:h-10 sm:w-10 sm:rounded-[13px]"
             />
-            <span>{t("nav.logo")}</span>
+            <span className={compact ? "max-[479px]:sr-only" : undefined}>{t("nav.logo")}</span>
           </Link>
-          <span className="hidden h-7 w-px bg-black/12 lg:block" />
-          <nav className="hidden gap-7 whitespace-nowrap text-base font-bold text-[#2f2f32] lg:flex">
+          <span className={`hidden h-7 w-px bg-black/12 ${compact ? "xl:block" : "lg:block"}`} />
+          <nav className={`hidden gap-7 whitespace-nowrap text-base font-bold text-[#2f2f32] ${compact ? "xl:flex" : "lg:flex"}`}>
             <div onMouseEnter={openPlatformMenu} onMouseLeave={schedulePlatformMenuClose}>
               <a
                 onClick={() => trackEvent("nav_clicked", { item: "platform", target: "/#platform" })}
@@ -191,7 +191,7 @@ export function TopNav() {
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {email ? (
             <>
-              <p className="hidden max-w-[160px] truncate text-xs font-semibold text-[#5f6779] 2xl:block">{email}</p>
+              {!compact ? <p className="hidden max-w-[160px] truncate text-xs font-semibold text-[#5f6779] 2xl:block">{email}</p> : null}
               <button
                 onClick={async () => {
                   const supabase = createBrowserSupabaseClient();
@@ -205,9 +205,9 @@ export function TopNav() {
                 {t("nav.projects")}
               </Link>
               <LanguageSwitcher />
-              <Link href={localizedHref("/price")} onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex lg:hidden">
+              {!compact ? <Link href={localizedHref("/price")} onClick={() => trackEvent("nav_clicked", { item: "pricing", target: "/price" })} className="hidden rounded-full border border-black/10 px-4 py-2 text-sm font-bold text-[#1d1d1f] md:inline-flex lg:hidden">
                 {t("nav.pricing")}
-              </Link>
+              </Link> : null}
               <Link href="/studio?view=home" onClick={() => trackEvent("nav_clicked", { item: "open_studio", target: "/studio?view=home" })} className="rounded-2xl bg-[#0b0b0d] px-4 py-2.5 text-xs font-black text-white transition-transform duration-150 active:scale-[0.97] sm:px-5 sm:text-sm">
                 <span className="sm:hidden">{t("nav.studio")}</span>
                 <span className="hidden sm:inline">{t("nav.openStudio")}</span>

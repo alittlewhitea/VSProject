@@ -36,14 +36,6 @@
 .df-composer-daily { flex-basis:100%; color:var(--df-success); font-size:12px; }
 .df-composer-music-options { border-top:1px solid var(--df-border); padding-top:8px; }
 .df-composer-music-options > button { font-size:12px; }
-.df-composer-utility-reference { padding:4px 0; }
-.df-composer-utility-reference > div:first-child { align-items:center; }
-.df-composer-utility-reference > div:first-child p { display:none; }
-.df-composer-utility-reference > div:last-child > div:last-child { display:flex; flex-wrap:wrap; }
-.df-composer-utility-reference img { width:112px; height:112px; object-fit:contain; }
-.df-composer-utility-reference > div:last-child > div:last-child > div { width:112px; height:112px; }
-.df-composer-reference-urls { margin-top:8px; }
-.df-composer-reference-urls summary { min-height:44px; padding:10px 0; color:var(--df-muted); cursor:pointer; font-size:12px; }
 @media(max-width:767px) {
   .df-compact-composer .df-unified-inspector { padding:18px 14px; }
   .df-compact-composer .df-unified-inspector > .df-panel-heading { padding:0 0 16px; }

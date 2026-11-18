@@ -770,7 +770,7 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                               if (!groupOptions.length) return null;
                               return (
                                 <div key={group.key}>
-                                  <div className="bg-gradient-to-b from-[#f8fafc] to-white/0 px-4 py-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)]">
+                                  <div className="bg-[var(--studio-surface)] px-4 py-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)]">
                                     {group.label}
                                   </div>
                                   {groupOptions.map((option) => {
@@ -802,7 +802,7 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                                           applyProvider(option.value);
                                           setToolbarModelSelectOpen(false);
                                         }}
-                                        className={`flex w-full items-center justify-between gap-4 border-t border-[var(--studio-border)] px-4 py-3.5 text-left transition hover:bg-[var(--studio-accent-soft)] ${active ? "bg-gradient-to-r from-[#eef8ff] to-white" : "bg-transparent"}`}
+                                        className={`flex w-full items-center justify-between gap-4 border-t border-[var(--studio-border)] px-4 py-3.5 text-left transition hover:bg-[var(--studio-accent-soft)] ${active ? "bg-[var(--studio-accent-soft)]" : "bg-transparent"}`}
                                       >
                                         <span className="min-w-0">
                                           <span className="block text-[15px] font-semibold text-[var(--studio-text)]">{meta.label}</span>
@@ -817,7 +817,7 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                                               badge === "free"
                                                 ? "bg-[var(--studio-surface)] text-[var(--studio-muted)]"
                                                 : badge === "recommended"
-                                                  ? "bg-gradient-to-br from-[#2563eb] to-[#0ea5e9] text-white"
+                                                  ? "bg-[var(--studio-primary)] text-white"
                                                   : badge === "pro"
                                                     ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
                                                     : "bg-[var(--studio-warning-soft)] text-[var(--studio-warning)]"

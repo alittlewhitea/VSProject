@@ -87,6 +87,14 @@ try {
   assert.equal(await evaluate(`!!document.querySelector('[data-payment-provider="dodo"]')`),false,'Suspended card checkout stays suspended');
   assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
   await shot(name+'-ready');
+  const ordersBeforeSwitch=orderCount;
+  await evaluate(`document.querySelector('[data-payment-provider="paypal-card"]').click()`);
+  await wait(`document.querySelector('[data-alternative-payments]')?.hidden`);
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('[data-wallet-container], [data-payment-provider="paypal"]')).every(element=>!element.getClientRects().length)`),true,'Card view hides every ready alternative');
+  await evaluate(`document.querySelector('[data-payment-provider="paypal-card"]').click()`);
+  await wait(`document.querySelector('[data-wallet-container="googlepay"] button')?.getClientRects().length>0`);
+  assert.ok(await evaluate(`document.querySelector('apple-pay-button')?.getClientRects().length>0 && document.querySelector('[data-payment-provider="paypal"]').getClientRects().length>0`));
+  assert.equal(orderCount,ordersBeforeSwitch,'Changing the selected method creates no order');
   await evaluate(`document.querySelector('[data-payment-provider="paypal"]').click()`);await wait(`document.querySelector('[data-credit-payment-dialog] [role="alert"]')?.innerText.includes('Fixture checkout unavailable')`);
   await evaluate(`document.querySelector('apple-pay-button').click()`);await wait(`document.querySelector('[data-credit-payment-dialog]')?.innerText.includes('Payment confirmed')`);
   await wait(`document.querySelector('[data-order-balance]')?.innerText===${JSON.stringify(balance.toLocaleString('en-US')+' credits')}`);

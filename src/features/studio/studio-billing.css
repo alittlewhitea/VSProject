@@ -1,7 +1,7 @@
 .df-billing-workspace { min-height: 0; width: 100%; padding: 0; background: transparent; color: var(--df-ink); }
 .df-billing-workspace > div:empty { display: none; }
 .df-billing-workspace > section { width: 100%; max-width: none; padding: 0; margin: 0; }
-.df-billing-summary { display: grid; grid-template-columns: minmax(0,1fr) minmax(260px,.42fr); gap: 32px; padding: 28px; background: var(--df-surface-warm); border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); }
+.df-billing-summary { display: grid; grid-template-columns: minmax(0,1fr) minmax(260px,.42fr); gap: 32px; padding: 28px; background: var(--df-surface); border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); }
 .df-billing-summary h2 { margin-top: 12px; font-size: 32px; line-height: 40px; letter-spacing: -.035em; font-weight: 600; }
 .df-billing-summary > div > p:last-child { margin-top: 12px; max-width: 580px; font-size: 14px; line-height: 22px; color: var(--df-muted); }
 .df-balance-card { background: var(--df-surface); border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); padding: 20px; }

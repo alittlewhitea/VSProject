@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { filterReferenceAssets, insertReferenceToken, referenceMentionQuery, referencePromptAssets, referencePromptParts, removeReferenceImageFromPrompt } from "../src/lib/reference-prompt";
+import { filterReferenceAssets, insertReferenceToken, referenceMentionQuery, referencePromptAssets, referencePromptParts, remapReferenceUrlsInPrompt, removeReferenceImageFromPrompt } from "../src/lib/reference-prompt";
 
 const assets = referencePromptAssets(["first.png", "second.png"], ["clip.mp4"], ["voice.wav"]);
 
@@ -41,4 +41,11 @@ test("removing an image keeps remaining mentions bound to their original images"
   assert.equal(removeReferenceImageFromPrompt("@Image1 follows @Image2 past @Image3.", 0, 3), " follows @Image1 past @Image2.");
   assert.equal(removeReferenceImageFromPrompt("@image1，@IMAGE2，@Image10，x@Image2，@Video1", 1, 10), "@image1，，@Image9，x@Image2，@Video1");
   assert.equal(removeReferenceImageFromPrompt("@Image11 was already missing", 0, 10), "@Image11 was already missing");
+});
+
+test("reordering and deleting links preserves the surviving media references", () => {
+  const prompt = "Use @Video1 with @Video2, @Audio1, and mail x@Video2.test.";
+  assert.equal(remapReferenceUrlsInPrompt(prompt, "video", ["a", "b"], ["b", "a"]), "Use @Video2 with @Video1, @Audio1, and mail x@Video2.test.");
+  assert.equal(remapReferenceUrlsInPrompt(prompt, "video", ["a", "b"], ["b"]), "Use  with @Video1, @Audio1, and mail x@Video2.test.");
+  assert.equal(remapReferenceUrlsInPrompt(prompt, "audio", ["voice"], ["voice-edited"]), prompt);
 });

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GPT_IMAGE_QUALITIES, GPT_IMAGE_SVG_MODELS, type GptImageOptions, type GptImageQuality } from "../../lib/gpt-image-models";
 import { StudioSelectField } from "./studio-primitives";
+import { StudioImagePreview, StudioImageUpload } from "./studio-image-upload";
 
 type Translate = (key: string, values?: Record<string,string|number|null|undefined>) => string;
 export function GptImageControls({ options, onChange, imageSize, imageQuality, onQualityChange, outputFormat, onFormatChange, numImages, onCountChange, isEdit, references, translate:t, onBusyChange }: {
@@ -55,8 +56,13 @@ export function GptImageControls({ options, onChange, imageSize, imageQuality, o
     {outputFormat==="svg"?<StudioSelectField label={t("studio.gpt26.svgModel")} value={options.svgModel} options={GPT_IMAGE_SVG_MODELS.map(value=>({value,label:value}))} onValueChange={value=>change({svgModel:value as GptImageOptions["svgModel"]})} />:null}
     {isEdit?<><StudioSelectField label={t("studio.gpt26.editGuide")} value={guide} options={[{value:"none",label:t("studio.gpt26.noGuide")},{value:"mask",label:t("studio.gpt26.mask")},{value:"markup",label:t("studio.gpt26.markup")}]} onValueChange={value=>{setGuide(value as typeof guide);setFileError("");change({maskUrl:"",markupImageUrl:""});}} />
       {guide!=="none"?<div className="col-span-full min-w-0 rounded-xl border border-[var(--studio-border)] p-3"><label className="mb-2 block text-xs text-[var(--studio-muted)]">{t(guide==="mask"?"studio.gpt26.maskHint":"studio.gpt26.markupHint")}</label><input data-gpt-guide-url dir="ltr" type="text" value={guideValue.startsWith("data:")?"":guideValue} placeholder="https://…/guide.png" onChange={e=>changeGuide(e.target.value)} className="min-h-11 w-full rounded-[10px] border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-xs text-[var(--studio-text)]" />
-      <label className="mt-2 inline-flex min-h-11 cursor-pointer items-center rounded-[10px] border border-[var(--studio-border)] px-3 text-xs text-[var(--studio-accent)]">{t(reading?"studio.references.reading":"studio.action.chooseImage")}<input data-gpt-guide-file type="file" hidden disabled={reading} accept={guide==="markup"?"image/png":"image/png,image/jpeg,image/webp"} onChange={e=>{void uploadGuide(e.target.files?.[0]);e.target.value="";}} /></label>
-      {guideValue?<div className="mt-2 flex items-center gap-2"><img src={guideValue} alt={t(guide==="mask"?"studio.gpt26.mask":"studio.gpt26.markup")} className="h-16 w-16 rounded-lg border border-[var(--studio-border)] object-contain" /><button type="button" onClick={()=>changeGuide("")} className="min-h-11 px-3 text-xs text-[var(--studio-muted)]">{t("studio.action.clear")}</button></div>:null}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {guideValue ? <StudioImagePreview src={guideValue} alt={t(guide==="mask" ? "studio.gpt26.mask" : "studio.gpt26.markup")}
+          removeLabel={t("studio.action.clear")} onRemove={() => changeGuide("")} /> : null}
+        <StudioImageUpload compact label={t(reading ? "studio.references.reading" : "studio.action.chooseImage")} disabled={reading}
+          inputProps={{ "data-gpt-guide-file": "", accept: guide==="markup" ? "image/png" : "image/png,image/jpeg,image/webp" }}
+          onFiles={files => uploadGuide(files[0])} />
+      </div>
       {fileError?<p role="alert" className="mt-2 text-xs leading-5 text-[var(--df-error)]">{fileError}</p>:null}</div>:null}
     </>:null}
     <p className="col-span-full text-xs leading-5 text-[var(--studio-muted)]">{t("studio.gpt26.costHint")}</p>

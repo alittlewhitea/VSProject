@@ -39,15 +39,23 @@ assert.equal(failure.searchParams.get('error'), 'expired_link');
 const saved = { fetch: globalThis.fetch, window: globalThis.window, document: globalThis.document };
 const env = { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET };
 try {
-  let session = null, reads = 0;
+  let session = null, reads = 0, logoutStatus = 200, holdSessionRead = false, finishSessionRead;
   const writes = [];
   globalThis.window = new EventTarget();
   window.location = { pathname: '/studio', search: '?mode=avatar', hash: '', origin: 'https://fixture.invalid' };
   window.localStorage = { setItem: (key, value) => writes.push({ key, value }) };
   globalThis.document = new EventTarget(); document.visibilityState = 'visible';
   globalThis.fetch = async url => {
-    if (url === '/api/auth/logout') { session = null; return Response.json({ ok: true }); }
-    assert.equal(url, '/api/auth/session'); reads++; return Response.json({ session });
+    if (url === '/api/auth/logout') {
+      if (logoutStatus !== 200) return Response.json({ error: 'Unavailable' }, { status: logoutStatus });
+      session = null;
+      return Response.json({ ok: true });
+    }
+    assert.equal(url, '/api/auth/session');
+    reads++;
+    const response = Response.json({ session });
+    if (holdSessionRead) return new Promise(resolve => { finishSessionRead = () => resolve(response); });
+    return response;
   };
   const browser = load('src/lib/supabase-client.ts');
   const client = browser.createBrowserSupabaseClient();
@@ -64,7 +72,22 @@ try {
   const beforePageShow=reads;
   window.dispatchEvent(new Event('pageshow'));await new Promise(resolve=>setTimeout(resolve,0));
   assert.equal(reads,beforePageShow+1,'Restoring a mobile page refreshes its authenticated session');
-  await client.auth.signOut(); await new Promise(resolve => setTimeout(resolve, 0)); assert.equal(calls.at(-1).event, 'SIGNED_OUT');
+  logoutStatus = 503;
+  const beforeFailedLogout = writes.length;
+  assert.ok((await client.auth.signOut()).error);
+  assert.equal(writes.length, beforeFailedLogout, 'Failed logout must not notify other tabs');
+  assert.equal((await client.auth.getSession()).data.session.user.id, 'owner');
+  logoutStatus = 200;
+  holdSessionRead = true;
+  const staleRead = client.auth.getSession();
+  holdSessionRead = false;
+  const logout = client.auth.signOut();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  finishSessionRead();
+  await staleRead;
+  assert.equal((await logout).error, null);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(calls.at(-1).event, 'SIGNED_OUT', 'Logout refreshes session even when a signed-in read was already in flight');
   subscription.data.subscription.unsubscribe(); const before = reads;
   window.dispatchEvent(new Event('focus')); await new Promise(resolve => setTimeout(resolve, 0)); assert.equal(reads, before);
 

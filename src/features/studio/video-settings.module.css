@@ -1,30 +1,235 @@
-/* Full-width composer; all scrolling stays with the page. */
-.workbench { width:100%; max-width:none; min-width:0; margin-inline:auto; }
-.editor { min-width:0; overflow:visible; }
-.editor :global(.df-panel-heading) { padding:18px 24px 0; border:0; }
-.editor :global(.df-workflow-nav) { margin:0; max-width:none; }
-.editorScroll { min-width:0; padding:20px 24px 24px; overflow:visible; overscroll-behavior-y:auto; }
-.formGrid { display:flex; flex-direction:column; gap:18px; min-width:0; margin:0; border:0; padding:0; }
-.content, .configuration { min-width:0; }
-.toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
-.configuration { padding-top:16px; border-top:1px solid var(--df-border); }
-.content :global(#video-studio-prompt) { display:block; width:100%; height:180px; min-height:140px; max-height:480px; padding:18px 0; resize:vertical; border:0; background:transparent; color:var(--df-ink); font:inherit; font-size:18px; line-height:1.7; }
-.content :global(#video-studio-prompt):focus-visible { outline:none; box-shadow:inset 0 -2px var(--df-primary-border); }
-.content :global([data-video-reference-panel]) { margin-bottom:18px; }
-.content :global([data-video-keyframes]) { margin:8px 0 14px; }
-.content :global([data-video-keyframes]) > div { display:flex; flex-wrap:wrap; }
-.content :global([data-frame-index]) { position:relative; flex:0 1 160px; min-width:0; padding:10px; border:1px dashed var(--df-primary-border); border-radius:var(--df-radius-input); background:var(--df-surface-soft); }
-.content :global([data-frame-index]) > img { height:84px; object-fit:contain; }
-.content :global([data-frame-index]) label { display:flex; min-height:44px; align-items:center; justify-content:center; background:var(--df-surface); }
-.promptActions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
-.promptActions > button { min-height:44px; border-color:transparent; background:transparent; font-size:12px; font-weight:400; }
-.parameters, .actionBar { display:contents; }
-.advancedButton { flex:0 1 auto; min-height:44px; padding:8px 10px; border:0; border-radius:8px; background:transparent; color:var(--df-muted); font-size:12px; line-height:20px; font-weight:400; }
-.advancedButton:hover { color:var(--df-accent); background:var(--df-surface-soft); }
-@media(max-width:767px) {
-  .editor :global(.df-panel-heading) { padding:14px 14px 0; }
-  .editorScroll { padding:16px 14px 18px; }
-  .content :global(#video-studio-prompt) { height:160px; min-height:140px; font-size:16px; }
-  .content :global([data-frame-index]) { flex-basis:calc(50% - 4px); padding:8px; }
-  .configuration { gap:8px; }
+.workbench { width: 100%; min-width: 0; }
+
+:global(.df-video-studio) .workbench .editor:global(.df-premium-panel) {
+  --video-editor-inset: 28px;
+  padding: 0;
+  overflow: visible;
+  border-color: var(--df-border);
+  border-radius: 24px;
+  box-shadow: var(--df-video-elevation);
+}
+
+:global(.df-video-studio) .workbench .editor:focus-within { box-shadow: var(--df-video-elevation); }
+.workbench .editor:global(.df-premium-panel)::before { display: none; }
+
+.workbench .editor:global(.df-premium-panel) > :global(.df-panel-heading) {
+  padding: 22px var(--video-editor-inset) 16px;
+  border-bottom: 1px solid var(--df-border);
+}
+
+.editor :global(.df-workflow-nav) { margin: 0; max-width: 440px; }
+.workbench .editor :global(.df-workflow-nav .df-segmented) {
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--df-surface-soft);
+}
+
+.workbench .editor :global(.df-workflow-nav .df-segmented button) {
+  flex: 1 1 0;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--df-muted);
+  font-size: 13px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.workbench .editor :global(.df-workflow-nav .df-segmented button:hover) { color: var(--df-ink); }
+.workbench .editor :global(.df-workflow-nav .df-segmented button:focus-visible) { outline-offset: -2px; }
+.workbench .editor :global(.df-workflow-nav .df-segmented button[aria-pressed="true"]) {
+  background: var(--df-video-tab-active, var(--df-surface));
+  color: var(--df-ink);
+  box-shadow: var(--df-pill-shadow);
+  font-weight: 650;
+}
+
+.workbench .editor .editorScroll { min-width: 0; padding: 18px var(--video-editor-inset) 24px; }
+.formGrid { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin: 0; border: 0; padding: 0; }
+.content, .configuration { min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.workbench .content :global(.df-composer-prompt-label > span) {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 100px;
+  font-family: inherit;
+}
+
+:global(.df-video-studio) .workbench .content :global(#video-studio-prompt) {
+  height: 128px;
+  min-height: 118px;
+  max-height: 480px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+:global(.df-video-studio) .workbench .content :global(#video-studio-prompt:focus-visible) {
+  box-shadow: inset 0 -2px var(--df-primary-border);
+}
+
+.content :global([data-video-reference-panel]) { margin-bottom: 18px; }
+.content :global([data-video-keyframes]) { margin: 12px 0 0; }
+.frameGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 10px; }
+.frameSlot { min-width: 0; }
+.frameSlot > p { margin-bottom: 6px; color: var(--df-ink); font-size: 12px; font-weight: 600; }
+.frameMedia { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.frameMedia > :only-child { flex: 1 1 0; }
+
+.promptActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--df-border);
+}
+
+.promptActions > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding-inline: 8px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.promptActions > button:hover:not(:disabled) { background: var(--df-surface-soft); }
+.promptActions > button:disabled { opacity: .45; }
+.inspireIcon { width: 16px; height: 16px; color: var(--df-accent); }
+.clearPrompt { margin-inline-start: auto; color: var(--df-muted); }
+
+:global(.df-video-studio) .workbench .configuration { padding-top: 16px; border-top: 1px solid var(--df-border); }
+.configuration:global(.df-premium-config)::before { display: none; }
+.parameters, .actionBar { display: contents; }
+
+.workbench .toolbar :global(.df-inline-model-picker),
+.workbench .toolbar :global(.df-select-control > select),
+.workbench .toolbar .advancedButton {
+  min-height: 42px;
+  border-color: transparent;
+  border-radius: 100px;
+  background: var(--df-surface-soft);
+  font-weight: 550;
+}
+
+.workbench .toolbar :global(.df-inline-model-picker:hover:not(:disabled)),
+.workbench .toolbar :global(.df-select-control > select:hover:not(:disabled)),
+.workbench .toolbar .advancedButton:hover:not(:disabled) {
+  transform: none;
+  border-color: var(--df-primary-border);
+  background: var(--df-primary-soft);
+  box-shadow: none;
+}
+
+.toolbar :global(.df-model-trigger-icon) { color: var(--df-accent); }
+.workbench .toolbar :global(.df-select-control > select:focus-visible) { box-shadow: 0 0 0 3px var(--df-primary-soft); }
+.advancedButton { flex: 0 1 auto; }
+.advancedButton[aria-expanded="true"] { color: var(--df-accent); }
+.advancedIcon, .advancedChevron { display: none; }
+
+:global(.df-video-studio) .workbench .toolbar :global(.df-composer-generate) {
+  min-height: 44px;
+  border-radius: 100px;
+  background: var(--df-primary);
+  box-shadow: none;
+  font-weight: 650;
+}
+
+:global(.df-video-studio) .workbench .toolbar :global(.df-composer-generate:hover:not(:disabled)) { background: var(--df-primary-hover); }
+.workbench .toolbar :global(.df-composer-generate::before) { display: none; }
+.workbench .toolbar :global(.df-composer-quote) { border-radius: 100px; color: white; font-family: inherit; }
+
+@media (max-width: 767px) {
+  :global(.df-video-studio) .workbench .editor:global(.df-premium-panel) { --video-editor-inset: 16px; border-radius: 20px; }
+  .workbench .editor:global(.df-premium-panel) > :global(.df-panel-heading) { padding-block: 14px 12px; }
+  .workbench .editor .editorScroll { padding-block: 14px 18px; }
+  .workbench .editor :global(.df-workflow-nav .df-segmented button) { min-height: 44px; padding-inline: 4px; font-size: 12px; }
+  .promptActions { column-gap: 4px; }
+  .toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+
+  .workbench .toolbar > :global(.df-inline-model-picker) {
+    width: 100%;
+    max-width: none;
+    min-height: 46px;
+    padding-inline: 12px;
+    border-radius: 12px;
+  }
+
+  .toolbar :global(.df-model-trigger-name) { flex: 1; text-align: start; }
+
+  .parameters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .workbench .parameters > :global(.df-select-field) { justify-content: space-between; gap: 4px; }
+
+  .workbench .parameters > :global(.df-select-field > span:first-child) {
+    position: static;
+    width: auto;
+    height: auto;
+    padding-inline: 4px;
+    overflow: visible;
+    clip-path: none;
+    font-size: 11px;
+    line-height: 15px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .workbench .toolbar .parameters :global(.df-select-control > select) {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    max-width: none;
+    padding-inline: 24px 18px;
+    border-radius: 12px;
+  }
+
+  .workbench .parameters :global(.df-select-control > [data-select-icon]) {
+    inset-inline-start: 8px;
+    top: 16px;
+    width: 12px;
+    height: 12px;
+  }
+
+  .workbench .parameters :global(.df-select-control > svg:not([data-select-icon])) { inset-inline-end: 6px; }
+
+  .workbench .toolbar .advancedButton {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: 44px;
+    padding-inline: 11px;
+    border-color: var(--df-border);
+    border-radius: 12px;
+    background: var(--df-surface);
+    color: var(--df-muted);
+    text-align: start;
+  }
+
+  .workbench .toolbar .advancedButton[aria-expanded="true"] {
+    border-color: var(--df-primary-border);
+    background: var(--df-primary-soft);
+    color: var(--df-accent);
+  }
+
+  .advancedIcon, .advancedChevron { display: block; flex: none; width: 15px; height: 15px; }
+  .advancedChevron { margin-inline-start: auto; transition: transform var(--df-transition); }
+  .advancedButton[aria-expanded="true"] .advancedChevron { transform: rotate(180deg); }
+  .actionBar { display: block; }
+  .workbench .toolbar .actionBar :global(.df-composer-generate) { margin-top: 0; }
+}
+
+@media (max-width: 359px) {
+  .workbench .parameters :global(.df-select-control > [data-select-icon]) { display: none; }
+  .workbench .toolbar .parameters :global(.df-select-control > select) { padding-inline-start: 8px; }
 }

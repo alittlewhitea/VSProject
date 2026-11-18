@@ -21,6 +21,7 @@ export type ModelPickerOption = {
 type ModelPickerProps = {
   compact?: boolean;
   inline?: boolean;
+  videoAppearance?: boolean;
   value: string;
   options: ModelPickerOption[];
   translate: (key: string, values?: Record<string, string | number | null | undefined>) => string;
@@ -31,13 +32,13 @@ function ModelMark({provider,compact=false}:{provider?:string;compact?:boolean})
   const logo=modelLogoForProvider(provider);
   const [failedLogo,setFailedLogo]=useState<string|null>(null);
   return (
-    <span aria-hidden="true" className={`df-model-mark grid shrink-0 place-items-center rounded-xl bg-white text-lg font-semibold text-[var(--studio-accent)] shadow-none ${compact ? "mt-0.5 h-9 w-9" : "h-10 w-10"}`}>
+    <span aria-hidden="true" className={`df-model-mark grid shrink-0 place-items-center rounded-xl bg-white text-lg font-semibold text-[var(--df-primary)] shadow-none ${compact ? "mt-0.5 h-9 w-9" : "h-10 w-10"}`}>
       {logo && failedLogo !== logo ? <img src={logo} alt="" width={28} height={28} loading="lazy" decoding="async" onError={()=>setFailedLogo(logo)} className="h-7 w-7 object-contain" /> : "\u2723"}
     </span>
   );
 }
 
-export function ModelPicker({ value, options, translate, onChange, compact = false, inline = false }: ModelPickerProps) {
+export function ModelPicker({ value, options, translate, onChange, compact = false, inline = false, videoAppearance = false }: ModelPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -103,7 +104,7 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
   }, [options, query]);
 
   const panel = open && mounted && hasChoices ? createPortal(
-    <div data-premium-model-picker={isPremiumPicker ? "true" : undefined} data-avatar-model-picker={isAvatarPicker ? "true" : undefined} dir={triggerRef.current?.closest("[dir]")?.getAttribute("dir") || undefined} className="studio-overlay fixed inset-0 z-[300] flex items-end justify-center sm:items-center sm:p-6" role="presentation">
+    <div data-premium-model-picker={isPremiumPicker ? "true" : undefined} data-avatar-model-picker={isAvatarPicker ? "true" : undefined} data-video-model-picker={videoAppearance || undefined} dir={triggerRef.current?.closest("[dir]")?.getAttribute("dir") || undefined} className="studio-overlay fixed inset-0 z-[300] flex items-end justify-center sm:items-center sm:p-6" role="presentation">
       <button type="button" aria-label={translate("studio.modelPicker.close")} onClick={closePicker} className="df-model-backdrop absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
       <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="model-picker-title" aria-describedby="model-picker-description" className="df-model-modal relative z-10 flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-[var(--studio-border)] bg-[var(--studio-panel)] shadow-none sm:max-w-[660px] sm:rounded-[24px] sm:shadow-none">
         <div className="df-model-modal-header flex items-start justify-between gap-4 border-b border-[var(--studio-border)] px-5 py-4 sm:px-6 sm:py-5">

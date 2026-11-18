@@ -115,9 +115,9 @@ try {
   const workspace = '/studio?mode=avatar&workflow=avatar-video&provider=minimax-h3-max-turbo-video';
   await navigate(workspace); await waitFor("Object.keys(document.querySelector('#avatar-spoken-script')||{}).some(key=>key.startsWith('__reactProps'))");
   await field('#avatar-spoken-script', 'Welcome! This script must stay exactly where I left it.');
-  await evaluate(`(() => {const dt=new DataTransfer();dt.items.add(new File([Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII='),x=>x.charCodeAt(0))],'portrait.png',{type:'image/png'}));const input=document.querySelector('.df-avatar-upload input');input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
-  await waitFor("!!document.querySelector('.df-avatar-subject img')");
-  const portrait = await evaluate("document.querySelector('.df-avatar-subject img').src");
+  await evaluate(`(() => {const dt=new DataTransfer();dt.items.add(new File([Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII='),x=>x.charCodeAt(0))],'portrait.png',{type:'image/png'}));const input=document.querySelector('.df-avatar-subjects input[type=file]');input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  await waitFor("!!document.querySelector('.df-avatar-subjects [data-upload-preview] img')");
+  const portrait = await evaluate("document.querySelector('.df-avatar-subjects [data-upload-preview] img').src");
   const initialUrl = await evaluate('location.href');
   await openLogin();
   assert.equal(await evaluate("document.querySelector('#auth-dialog-title').textContent"), 'Welcome to Dreamface');
@@ -129,7 +129,7 @@ try {
   assert.equal(await evaluate("!!document.activeElement.closest('[data-auth-dialog]')"), true);
   await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape' }, page.sessionId);
   await waitFor("!document.querySelector('[data-auth-dialog]')");
-  assert.equal(await evaluate("document.querySelector('.df-avatar-subject img').src"), portrait);
+  assert.equal(await evaluate("document.querySelector('.df-avatar-subjects [data-upload-preview] img').src"), portrait);
   assert.equal(generations.length, 0);
 
   googleFailure = true;
@@ -155,7 +155,7 @@ try {
   const emailTab = await target(origin + '/api/auth/verify?' + new URLSearchParams({ token: 'a'.repeat(64), next: emails[0].next }));
   await waitFor("!document.querySelector('[data-auth-dialog]') && !document.querySelector('a.df-sign-in')");
   assert.equal(await evaluate('location.href'), initialUrl);
-  assert.equal(await evaluate("document.querySelector('.df-avatar-subject img').src"), portrait);
+  assert.equal(await evaluate("document.querySelector('.df-avatar-subjects [data-upload-preview] img').src"), portrait);
   assert.equal(await evaluate("document.querySelector('#avatar-spoken-script').value"), 'Welcome! This script must stay exactly where I left it.');
   assert.equal(generations.length, 0, 'Ordinary login cannot start generation');
   await waitLoginCount(1);

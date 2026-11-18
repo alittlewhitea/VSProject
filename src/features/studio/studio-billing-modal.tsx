@@ -25,12 +25,12 @@ export function StudioBillingModal({ open, t, loadingItem, message, creditBalanc
   const close = () => { if (!loadingItem) onClose(); };
   const shortfall = generationContext ? Math.max(0, generationContext.requiredCredits - generationContext.balance) : 0;
   return (
-    <div className={styles.modalBackdrop} onClick={close}>
+    <div className={`${styles.modalBackdrop} ${styles.studioTheme}`} onClick={close}>
       <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="credit-shop-title" className={styles.modal} onClick={event => event.stopPropagation()}>
         <button type="button" aria-label={t("studio.billing.close")} disabled={Boolean(loadingItem)} onClick={close} className={styles.close}>×</button>
         <div ref={scrollRef} className={styles.modalScroll}>
           <CreditPackGrid appearance="studio" titleId="credit-shop-title" balance={creditBalance} t={t} loadingPack={loadingItem?.replace(/^credits:/, "") || null} onCheckout={onCreditCheckout} shortfall={shortfall} accessToken={accessToken} message={message}>
-            {generationContext ? <div className="mb-5 rounded-2xl border border-[#e3d9fc] bg-white p-4 text-sm text-[#604d7b]">
+            {generationContext ? <div className="mb-5 rounded-2xl border border-[var(--df-primary-border)] bg-[var(--df-primary-soft)] p-4 text-sm text-[var(--df-ink)]">
               <p className="font-semibold">{t("studio.cost.insufficientTitle", { credits: shortfall.toLocaleString() })}</p>
               <p className="mt-1">{generationContext.providerLabel} · {t("studio.cost.insufficientBody", { required: generationContext.requiredCredits.toLocaleString(), balance: generationContext.balance.toLocaleString() })}</p>
             </div> : null}

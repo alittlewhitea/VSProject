@@ -1,5 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { AuthLink } from "../../components/auth-link";
 import { isRtlLocale } from "../../i18n/routing";
 import { trackEvent } from "../../lib/analytics";
@@ -19,7 +20,15 @@ import { STUDIO_SIGN_IN_URL,providerLabel } from "./studio-workspace-config";
 
 import type { StudioController } from "./use-studio-controller";
 const StudioCreationWorkspace = dynamic(() => import("./studio-creation-workspace"), {loading:()=> <div className="min-h-72 animate-pulse rounded-2xl bg-[var(--studio-panel)]" aria-busy="true" />});
+const StudioAssistantPreview = dynamic(() => import("./studio-assistant-preview").then(module => module.StudioAssistantPreview), { ssr: false });
 export function StudioShell({model}:{model:StudioController}) {
+  const [assistantEnabled, setAssistantEnabled] = useState(false);
+  const assistantPreview = model.sp.get("assistant") === "preview";
+  useEffect(() => {
+    // Keep the server and first browser render identical. Load the UI preview
+    // after hydration; local development also exposes it on ordinary studio URLs.
+    setAssistantEnabled(process.env.NODE_ENV === "development" || assistantPreview);
+  }, [assistantPreview]);
   const {
     accessToken,
     applyWorkflow,
@@ -52,6 +61,8 @@ export function StudioShell({model}:{model:StudioController}) {
     setPreviewModal,
     setVideoSidebarCollapsed,
     showModernStudioChrome,
+    showModernWorkbenchRedesign,
+    showVideoWorkbenchRedesign,
     sp,
     st,
     startHomeCreation,
@@ -62,10 +73,17 @@ export function StudioShell({model}:{model:StudioController}) {
     useWideStudioShell,
     videoSidebarCollapsed,
   } = model;
+  const showMobileNavigation = isAppsHome || showModernWorkbenchRedesign;
+  const routeKey = sp.toString();
+  const expandedSidebarColumns = showModernWorkbenchRedesign ? "xl:grid-cols-[240px_minmax(0,1fr)]" : "xl:grid-cols-[216px_minmax(0,1fr)]";
+  const gridColumns = showModernStudioChrome
+    ? `md:grid-cols-[76px_minmax(0,1fr)] ${videoSidebarCollapsed ? "" : expandedSidebarColumns}`
+    : "lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]";
   return (
     <main
       dir={isRtlLocale(studioI18n.locale) ? "rtl" : "ltr"}
-      className="creative-studio relative min-h-screen w-full max-w-full overflow-x-clip"
+      data-mobile-studio-navigation={showMobileNavigation || undefined}
+      className={`creative-studio relative min-h-screen w-full max-w-full overflow-x-clip${showVideoWorkbenchRedesign ? " df-video-studio" : ""}`}
     >
       <div className={showModernStudioChrome ? "w-full" : useWideStudioShell ? "mx-auto my-3 w-[calc(100vw-24px)] max-w-[1760px] md:my-7 md:w-[calc(100vw-56px)]" : "mx-auto w-full max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5"}>
         {!authReady && !showModernStudioChrome ? (
@@ -91,7 +109,7 @@ export function StudioShell({model}:{model:StudioController}) {
         /> : null}
 
         <section className={showModernStudioChrome ? "relative min-h-screen w-full max-w-full bg-transparent" : "relative min-h-[calc(100vh-1rem)] w-full max-w-full overflow-hidden rounded-[1.35rem] border border-[var(--studio-border)] bg-[var(--studio-panel)] shadow-none backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-none"}>
-          <div className={`grid min-h-screen min-w-0 transition-[grid-template-columns] duration-300 ease-out ${showModernStudioChrome ? videoSidebarCollapsed ? "md:grid-cols-[76px_minmax(0,1fr)]" : "md:grid-cols-[76px_minmax(0,1fr)] xl:grid-cols-[216px_minmax(0,1fr)]" : "lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]"}`}>
+          <div className={`grid min-h-screen min-w-0 transition-[grid-template-columns] duration-300 ease-out ${gridColumns}`}>
             <StudioSidebar
               referralsVisible={referralsVisible}
               referralLocale={studioI18n.locale}
@@ -101,6 +119,7 @@ export function StudioShell({model}:{model:StudioController}) {
               t={st}
               modern={showModernStudioChrome}
               videoStudio={showModernStudioChrome}
+              filledNavigation={showVideoWorkbenchRedesign}
               collapsed={videoSidebarCollapsed}
               creditBalance={creditBalance}
               signedIn={Boolean(accessToken)}
@@ -113,8 +132,7 @@ export function StudioShell({model}:{model:StudioController}) {
               }
             />
 
-            <StudioBottomNavigation isBillingView={isBillingView} billingHref={billingHref} t={st} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} isReferralsView={isReferralsView && referralsVisible} />
-            <div className={`studio-content relative min-w-0 max-w-full ${showModernStudioChrome ? "px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-7 lg:pb-8" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
+            <div className={`studio-content relative min-w-0 max-w-full ${showModernWorkbenchRedesign ? "df-workbench-content" : ""} ${showVideoWorkbenchRedesign ? "" : showModernStudioChrome ? "px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-7 lg:pb-8" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
               <StudioHeader
                 referralsVisible={referralsVisible}
                 isBillingView={isBillingView}
@@ -123,6 +141,7 @@ export function StudioShell({model}:{model:StudioController}) {
                 t={st}
                 modern={showModernStudioChrome}
                 videoStudio={showModernStudioChrome}
+                filledNavigation={showVideoWorkbenchRedesign}
                 mode={mode}
                 isAppsHome={isAppsHome}
                 isProjectsView={isProjectsView}
@@ -175,7 +194,11 @@ export function StudioShell({model}:{model:StudioController}) {
                 />
               ) : null}
 
-              {!isAppsHome && !isProjectsView && !isBillingView ? <StudioCreationWorkspace model={model} /> : null}
+              {!isAppsHome && !isProjectsView && !isBillingView ? (
+                <div className={showModernWorkbenchRedesign ? "df-workbench-canvas" : "contents"}>
+                  <StudioCreationWorkspace model={model} />
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
@@ -201,7 +224,9 @@ export function StudioShell({model}:{model:StudioController}) {
           </div>
         ) : null}
       </div>
-      <StudioScrollToBottom translate={st} routeKey={sp.toString()} />
+      {showMobileNavigation ? <StudioBottomNavigation t={st} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} currentHref={routeKey ? `/studio?${routeKey}` : "/studio"} /> : null}
+      <StudioScrollToBottom translate={st} routeKey={routeKey} />
+      {assistantEnabled && !isProjectsView && !isBillingView && !isReferralsView && !billingModalOpen && !previewModal && !mobileStudioMenuOpen ? <StudioAssistantPreview model={model} /> : null}
     </main>
   );
 }

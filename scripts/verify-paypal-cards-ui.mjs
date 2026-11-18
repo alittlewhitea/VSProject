@@ -59,6 +59,7 @@ try{
   await wait("Object.keys(document.querySelector('[data-credit-pack-select=starter]')||{}).some(key=>key.startsWith('__reactProps'))");
   const before=orders.length;await open();assert.equal(await evaluate("document.querySelector('[data-card-status]').dataset.cardStatus"),'ready');assert.equal(orders.length,before,'Rendering card fields cannot create a purchase');
   assert.equal(await evaluate("document.querySelectorAll('[data-card-field] iframe').length"),4);assert.equal(await evaluate("!!document.querySelector('[data-payment-provider=dodo]')"),false);
+  assert.ok(await evaluate("document.querySelector('[data-card-pay]').getBoundingClientRect().height>=52 && !document.querySelector('[data-payment-provider=paypal]').getClientRects().length"));
   await checkFieldLayout();
   await evaluate("document.querySelectorAll('[data-card-sdk-wrapper]').forEach(wrapper=>wrapper.style.height='112px')");await checkFieldLayout();
   await evaluate("document.querySelectorAll('[data-card-sdk-wrapper]').forEach(wrapper=>wrapper.style.height='90px')");
@@ -69,7 +70,11 @@ try{
   await evaluate("document.querySelector('[data-card-pay]').click();document.querySelector('[data-card-pay]').click()");await wait("!!document.querySelector('[data-wallet-retry]')&&!document.querySelector('[data-wallet-retry]').disabled");
   assert.equal(orders.length,before+1);assert.equal(captures.length,captureBefore+1);assert.equal(await evaluate("document.querySelector('[data-payment-provider=paypal]').disabled"),true);
   await evaluate("document.querySelector('[data-wallet-retry]').click()");await wait("document.querySelector('[data-credit-payment-dialog]').innerText.includes('Payment confirmed')");assert.equal(orders.length,before+1);assert.equal(captures.at(-1).orderId,captures.at(-2).orderId);await close();
-  await open();await address();captureMode='auth-failed';await evaluate("document.querySelector('[data-card-pay]').click()");await wait("!!document.querySelector('[data-credit-payment-dialog] [role=alert]')&&!document.querySelector('[data-payment-provider=paypal]').disabled");assert.equal(await evaluate("!!document.querySelector('[data-wallet-retry]')"),false,'An explicitly rejected, uncaptured order does not block another payment method');captureMode='success';await close();
+  await open();await address();captureMode='auth-failed';await evaluate("document.querySelector('[data-card-pay]').click()");await wait("!!document.querySelector('[data-credit-payment-dialog] [role=alert]')&&!document.querySelector('[data-payment-provider=paypal-card]').disabled");
+  assert.equal(await evaluate("!!document.querySelector('[data-wallet-retry]')"),false,'An explicitly rejected, uncaptured order does not block another payment method');
+  await evaluate("document.querySelector('[data-payment-provider=paypal-card]').click()");
+  assert.ok(await evaluate("document.querySelector('[data-payment-provider=paypal]').getClientRects().length>0 && !document.querySelector('[data-payment-provider=paypal]').disabled"));
+  captureMode='success';await close();
   await evaluate("window.cardIneligible=true");const noOrder=orders.length;await open();assert.equal(await evaluate("document.querySelector('[data-card-status]').dataset.cardStatus"),'unavailable');assert.equal(orders.length,noOrder);assert.equal(await evaluate("document.querySelector('[data-payment-provider=paypal]').disabled"),false);await close();await evaluate("window.cardIneligible=false;window.cardRenderFailure=true");
   await open();assert.equal(await evaluate("document.querySelector('[data-card-status]').dataset.cardStatus"),'error');await evaluate("window.cardRenderFailure=false;document.querySelector('[data-card-load-retry]').click()");await wait("document.querySelector('[data-card-status]')?.dataset.cardStatus==='ready'");await close();
  }

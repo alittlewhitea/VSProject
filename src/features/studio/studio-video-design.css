@@ -1,0 +1,110 @@
+.df-video-studio {
+  --df-video-elevation: 0 12px 32px -8px rgb(29 29 31 / .07), 0 2px 6px rgb(29 29 31 / .025);
+}
+
+html[data-studio-theme="dark"] .df-video-studio {
+  --df-video-tab-active: #585e65;
+  --df-video-elevation: 0 10px 24px -12px rgb(0 0 0 / .24);
+}
+
+.creative-studio.df-video-studio {
+  --df-template-sticky-top: 64px;
+  --df-font: var(--df-system-font);
+}
+
+.df-video-studio .df-workbench-content { padding-block: 0; }
+.df-video-studio .df-workbench-canvas { padding-block: clamp(24px, 3vw, 36px) 64px; }
+
+.creative-studio.df-video-studio .studio-topbar.df-app-header {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  min-height: var(--df-template-sticky-top);
+  margin: 0;
+  padding: 8px var(--df-workbench-gutter);
+  border-color: var(--df-border);
+  background: transparent;
+}
+
+/* Keep fixed-position menu overlays attached to the viewport. */
+.df-video-studio .df-app-header::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--df-bg) 86%, transparent);
+  backdrop-filter: saturate(150%) blur(16px);
+  content: "";
+  pointer-events: none;
+}
+
+.df-video-studio .df-header-home-link { width: 36px; height: 36px; border-radius: 12px; color: var(--df-muted); box-shadow: var(--df-pill-shadow); }
+
+.df-video-studio .df-header-actions :is(.df-button, .studio-theme-toggle) {
+  min-height: 36px;
+  padding-block: 6px;
+  border-radius: 100px;
+}
+
+.df-video-studio .df-header-actions .studio-theme-toggle { width: 36px; height: 36px; }
+.df-video-studio .df-header-actions .df-credit-balance { background: var(--df-surface); box-shadow: var(--df-pill-shadow); }
+.df-video-studio .df-header-actions[data-signed-in="false"] .df-credit-balance { display: none; }
+
+.df-video-studio .studio-sidebar { padding-block: 20px 16px; background: var(--df-surface); }
+.df-video-studio .studio-sidebar > a strong { font-size: 15px; font-weight: 650; }
+.df-video-studio .studio-sidebar > a > span:first-child { width: 36px; height: 36px; border-radius: 11px; }
+.df-video-studio .studio-sidebar nav { margin-top: 24px; }
+.df-video-studio .studio-sidebar nav .df-sidebar-item { border-radius: 12px; color: var(--df-muted); font-size: 13.5px; font-weight: 500; }
+.df-video-studio .studio-sidebar nav .df-sidebar-item:hover { color: var(--df-ink); }
+.df-video-studio .studio-sidebar nav .df-sidebar-item[aria-current="page"] { color: var(--df-accent); font-weight: 650; }
+
+.df-video-studio .df-sidebar-footer {
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.df-video-studio .df-sidebar-account {
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--df-surface-soft);
+}
+
+.df-video-studio .df-sidebar-account > span:first-child {
+  width: 32px;
+  height: 32px;
+  background: var(--df-ink);
+  color: var(--df-surface);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.df-video-studio .df-sidebar-footer[data-signed-in="false"] .df-sidebar-account > span:last-child > span { display: none; }
+
+@media (min-width: 1280px) {
+  .df-video-studio .studio-sidebar:not([data-collapsed="true"]) nav .df-sidebar-item[aria-current="page"]::after {
+    width: 6px;
+    height: 6px;
+    flex: none;
+    margin-inline-start: auto;
+    border-radius: 50%;
+    background: var(--df-icon);
+    content: "";
+  }
+  .df-video-studio .studio-sidebar nav .df-sidebar-item:nth-child(6) { margin-top: 12px; }
+}
+
+.df-video-studio [data-studio-video-templates] { margin-top: 36px; }
+.df-video-studio [data-template-toolbar] button { border-radius: 100px; }
+.df-video-studio [data-studio-video-templates] [data-template-id] { border-radius: 18px; }
+
+.studio-overlay[data-video-model-picker] .df-model-modal::before { display: none; }
+.studio-overlay[data-video-model-picker] .df-model-search label:focus-within { box-shadow: 0 0 0 3px var(--df-primary-soft); }
+.studio-overlay[data-video-model-picker] .df-model-option[aria-pressed="true"] { background: var(--df-primary-soft); box-shadow: none; }
+
+@media (max-width: 767px) {
+  .creative-studio.df-video-studio .studio-topbar.df-app-header { gap: 6px; padding-inline: 12px; }
+  .df-video-studio .df-workbench-canvas { padding-bottom: calc(36px + env(safe-area-inset-bottom)); }
+  .df-video-studio .df-header-actions .df-button { min-height: 44px; }
+  .df-video-studio [data-studio-video-templates] { margin-top: 26px; }
+  .df-video-studio [data-studio-video-templates] [data-template-id] { border-radius: 14px; }
+}

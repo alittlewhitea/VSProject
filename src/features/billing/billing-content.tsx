@@ -725,23 +725,31 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
 
   return (
     <main className={creditShopStyles.pricingPage}>
-      <div className="mx-auto max-w-[1400px] px-4 pt-4 md:px-8"><TopNav /></div>
-      <div className="px-3 sm:px-6"><section className={creditShopStyles.pricingPanel}>
+      <div className={creditShopStyles.pricingNav}><TopNav compact /></div>
+      <div className={creditShopStyles.pricingContent}>
         <CreditPackGrid headingLevel={1} balance={balance} t={t} loadingPack={loadingPack} onCheckout={startCheckout} accessToken={accessToken} message={message} />
-      </section></div>
-      <section className="mx-3 mt-6 max-w-[1140px] rounded-3xl border border-slate-200 bg-white p-6 sm:mx-6 sm:p-8 xl:mx-auto">
-        <h2 className="text-xl font-black">{t("creditShop.howTitle")}</h2>
-        <div className="mt-5 grid gap-5 text-sm leading-6 text-[#80718c] sm:grid-cols-3">
-          {["step1","step2","step3"].map((key,index) => <p key={key}><span className="me-2 font-black text-[#7655ed]">0{index+1}</span>{t(`creditShop.${key}`)}</p>)}
-        </div>
-      </section>
-      <section className="mx-auto max-w-[1140px] px-4 pt-12 xl:px-0">
-        <h2 className="text-2xl font-black">{t("pricing.modelGuide.title")}</h2>
-        <p className="mt-3 text-sm leading-6 text-[#82748f]">{t("creditShop.modelNote")}</p>
-        <div className="mt-5 overflow-hidden rounded-2xl border border-[#e7e1f0] bg-white">
-          {pricingRows.slice(0,7).map(row => <div key={`${row.provider}-${row.workflow}`} className="flex flex-wrap justify-between gap-3 border-b border-[#eee9f4] p-5 last:border-0"><div><p className="font-bold">{row.label}</p><p className="text-xs text-[#82748f]">{t(row.workflow === "Image to Video" ? "nav.imageToVideo" : "nav.textToVideo")} &middot; {row.referenceResolution} &middot; {t("pricing.modelGuide.duration", {seconds: Number.parseInt(row.referenceDuration || "5s", 10)})}</p></div><p className="text-sm font-bold text-[#7554df]">{t("pricing.modelGuide.estimatedCredits", {credits: row.typicalCredits})}</p></div>)}
-        </div>
-      </section>
+        <section className={creditShopStyles.pricingSection}>
+          <h2>{t("creditShop.howTitle")}</h2>
+          <ol className={creditShopStyles.pricingSteps}>
+            {["step1", "step2", "step3"].map(key => <li key={key}>{t(`creditShop.${key}`)}</li>)}
+          </ol>
+        </section>
+        <section className={creditShopStyles.pricingSection}>
+          <h2>{t("pricing.modelGuide.title")}</h2>
+          <p>{t("creditShop.modelNote")}</p>
+          <ul className={creditShopStyles.pricingModels}>
+            {pricingRows.slice(0, 7).map(row => (
+              <li key={`${row.provider}-${row.workflow}`}>
+                <div>
+                  <p className={creditShopStyles.modelName}>{row.label}</p>
+                  <p className={creditShopStyles.modelSpec}>{t(row.workflow === "Image to Video" ? "nav.imageToVideo" : "nav.textToVideo")} &middot; {row.referenceResolution} &middot; {t("pricing.modelGuide.duration", { seconds: Number.parseInt(row.referenceDuration || "5s", 10) })}</p>
+                </div>
+                <p className={creditShopStyles.modelCredits}>{t("pricing.modelGuide.estimatedCredits", { credits: row.typicalCredits })}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
     </main>
   );
 }

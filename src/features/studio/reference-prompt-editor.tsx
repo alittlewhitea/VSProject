@@ -1,10 +1,18 @@
 "use client";
 
-import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { filterReferenceAssets, insertReferenceToken, referenceMentionQuery, referencePromptAssets, referencePromptParts, type ReferenceAsset } from "../../lib/reference-prompt";
 import styles from "./reference-prompt-editor.module.css";
 
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
+
+function referenceFilename(asset: ReferenceAsset) {
+  if (asset.kind === "image") return "";
+  try {
+    const url = new URL(asset.url);
+    return url.pathname.split("/").filter(Boolean).pop() || url.hostname;
+  } catch { return ""; }
+}
 
 function AssetThumbnail({ asset, large = false }: { asset: ReferenceAsset; large?: boolean }) {
   return <span className={`${styles.thumbnail} ${large ? styles.largeThumbnail : ""}`} data-kind={asset.kind}>
@@ -18,7 +26,7 @@ export function ReferencePromptEditor({ value, images, videos, audio, placeholde
   value: string; images: string[]; videos: string[]; audio: string[]; placeholder: string; notice?: string;
   onChange: (value: string) => void; onGenerate: () => void; translate: Translate;
 }) {
-  const id = useId();
+  const id = "studio-reference-mention";
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
   const caretRef = useRef<HTMLSpanElement>(null);
@@ -82,17 +90,25 @@ export function ReferencePromptEditor({ value, images, videos, audio, placeholde
 
   useLayoutEffect(() => {
     if (!open) return;
+    const viewport = window.visualViewport;
     const updatePosition = () => {
       const root = rootRef.current, caret = caretRef.current, popup = popupRef.current;
       if (!root || !caret || !popup) return;
       const rootRect = root.getBoundingClientRect(), caretRect = caret.getBoundingClientRect();
       const inputRect = inputRef.current!.getBoundingClientRect();
       const anchorTop = Math.max(inputRect.top + 12, Math.min(caretRect.top, inputRect.bottom - 28));
+      const viewportTop = viewport?.offsetTop ?? 0;
+      const viewportBottom = viewportTop + (viewport?.height ?? window.innerHeight);
+      const dock = document.querySelector(".df-mobile-dock");
+      const bottom = dock?.getClientRects().length ? Math.min(viewportBottom, dock.getBoundingClientRect().top) : viewportBottom;
+      popup.style.maxHeight = `${Math.max(0, bottom - viewportTop - 16)}px`;
       const popupHeight = popup.offsetHeight;
-      const above = window.innerHeight - anchorTop - 36 < popupHeight && anchorTop > popupHeight + 16;
+      const belowSpace = bottom - anchorTop - 36;
+      const above = belowSpace < popupHeight && anchorTop - viewportTop - 16 > belowSpace;
+      const anchoredTop = above ? anchorTop - popupHeight - 8 : anchorTop + 28;
       setPosition({
         left: Math.max(8, Math.min(caretRect.left - rootRect.left, rootRect.width - popup.offsetWidth - 8)),
-        top: (above ? anchorTop - popupHeight - 8 : anchorTop + 28) - rootRect.top,
+        top: Math.max(viewportTop + 8, Math.min(anchoredTop, bottom - popupHeight - 8)) - rootRect.top,
       });
     };
     updatePosition();
@@ -100,7 +116,15 @@ export function ReferencePromptEditor({ value, images, videos, audio, placeholde
     if (rootRef.current) observer.observe(rootRef.current);
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);
-    return () => { observer.disconnect(); window.removeEventListener("resize", updatePosition); window.removeEventListener("scroll", updatePosition, true); };
+    viewport?.addEventListener("resize", updatePosition);
+    viewport?.addEventListener("scroll", updatePosition);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      viewport?.removeEventListener("resize", updatePosition);
+      viewport?.removeEventListener("scroll", updatePosition);
+    };
   }, [open, selection.start, value, options.length, scrollTop]);
 
   // The mirror uses the exact textarea typography, without inline boxes that move the caret.
@@ -164,7 +188,7 @@ export function ReferencePromptEditor({ value, images, videos, audio, placeholde
       <div id={`${id}-list`} className={styles.options} role="listbox" aria-label={t("studio.mention.title")}>
         {options.length ? options.map((asset, index) => <button key={asset.token} id={`${id}-option-${index}`} type="button" role="option" aria-selected={index === selectedIndex} tabIndex={-1}
           className={styles.option} onMouseMove={() => setActiveIndex(index)} onClick={() => insert(asset)} data-mention-option={asset.token}>
-          <AssetThumbnail asset={asset} large /><span className={styles.optionText}><strong>{asset.token}</strong><span>{t(`studio.mention.${asset.kind}`, { index: asset.index })}</span></span>
+          <AssetThumbnail asset={asset} large /><span className={styles.optionText}><strong>{asset.token}</strong><span>{referenceFilename(asset) || t(`studio.mention.${asset.kind}`, { index: asset.index })}</span></span>
           {index === selectedIndex ? <kbd aria-hidden="true">↵</kbd> : null}
         </button>) : <div className={styles.empty}>{t(assets.length ? "studio.mention.noMatch" : "studio.mention.uploadHint")}</div>}
       </div>

@@ -2,7 +2,7 @@ import { validateVideoImages, videoEndFrameInput } from "../../../lib/video-keyf
 import { SEEDANCE_FLASH_PROVIDER, seedanceFlashEndpoint, seedanceFlashError, seedanceFlashDuration, seedanceFlashResolution, buildSeedanceFlashInput } from "../../../lib/seedance-flash";
 import { SEEDREAM_55_PROVIDER, seedream55Endpoint, seedream55Error, buildSeedream55Input } from "../../../lib/seedream-55";
 import { GEMINI_OMNI_TEXT_MODEL, GEMINI_OMNI_IMAGE_MODEL, geminiOmniDuration, geminiOmniResolution } from "../../../lib/gemini-omni";
-import { HEYGEN_REFERENCE_RATIOS, HEYGEN_REFERENCE_PROMPT_LIMIT, HEYGEN_PROMPT_ENHANCEMENTS, validateHeygenReferences } from "../../../lib/heygen-reference-video";
+import { HEYGEN_REFERENCE_RATIOS, HEYGEN_REFERENCE_PROMPT_LIMIT, HEYGEN_PROMPT_ENHANCEMENTS, prepareHeygenReferencePrompt, validateHeygenReferences } from "../../../lib/heygen-reference-video";
 import { heygenAvatarPrompt, heygenAvatarTiming } from "../../../lib/heygen-avatar";
 import { heygenVideoSpokenPrompt, shouldDisableHeygenEnhancement, videoDialogueTiming } from "../../../lib/video-spoken-script";
 import { heygenAspectRatioError } from "../../../lib/heygen-video-options";
@@ -918,11 +918,15 @@ export async function POST(request: Request) {
       body.ratio = "source";
     }
 
+    let promptForProvider = prompt;
     if (body.videoWorkflow === "reference-to-video" && body.provider !== SEEDANCE_FLASH_PROVIDER) {
       if (body.mode !== "video" || body.provider !== "heygen-video") return NextResponse.json({error:"Reference to Video requires HeyGen Video in the video workspace."},{status:400});
       const referenceError = validateHeygenReferences(body.videoUrls, body.imageUrls, body.audioUrls);
       if (referenceError) return NextResponse.json({error:referenceError},{status:400});
-      if (prompt.length > HEYGEN_REFERENCE_PROMPT_LIMIT) return NextResponse.json({error:"HeyGen reference prompts support up to 32,000 characters."},{status:400});
+      const prepared = prepareHeygenReferencePrompt(prompt, body.imageUrls, body.videoUrls, body.audioUrls);
+      if (prepared.missing) return NextResponse.json({error:"Update any prompt references that do not have matching media.",code:"heygen_reference_mention_missing"},{status:400});
+      promptForProvider = prepared.prompt;
+      if (promptForProvider.length > HEYGEN_REFERENCE_PROMPT_LIMIT) return NextResponse.json({error:"HeyGen reference prompts support up to 32,000 characters."},{status:400});
       if (body.heygenPromptEnhancement !== undefined && !HEYGEN_PROMPT_ENHANCEMENTS.some(value => value === body.heygenPromptEnhancement)) return NextResponse.json({error:"Unsupported HeyGen prompt enhancement option."},{status:400});
       if (!process.env.FAL_KEY?.trim()) return NextResponse.json({error:"Video provider is not configured."},{status:503});
       if (!HEYGEN_REFERENCE_RATIOS.includes(body.ratio as typeof HEYGEN_REFERENCE_RATIOS[number])) return NextResponse.json({error:"Unsupported HeyGen reference aspect ratio."},{status:400});
@@ -1082,7 +1086,7 @@ export async function POST(request: Request) {
     if ((!falKey || !modelId) && (process.env.NODE_ENV === "production" || process.env.ALLOW_MOCK_GENERATION !== "true")) {
       return NextResponse.json({ error: "This generation model is unavailable. No credits were charged.", code: "provider_not_configured" }, { status: 503 });
     }
-    const submittedPrompt = isHeygenAvatar ? heygenAvatarPrompt(prompt) : body.mode === "video" && body.provider === "heygen-video" ? heygenVideoSpokenPrompt(prompt) : prompt;
+    const submittedPrompt = isHeygenAvatar ? heygenAvatarPrompt(prompt) : body.mode === "video" && body.provider === "heygen-video" ? heygenVideoSpokenPrompt(promptForProvider) : prompt;
     if (body.provider === "heygen-video" && body.videoWorkflow === "reference-to-video" && submittedPrompt.length > HEYGEN_REFERENCE_PROMPT_LIMIT) return NextResponse.json({error:"Shorten the prompt so the submitted instructions fit within 32,000 characters."},{status:400});
 
     const creditAccount = await ensureRequestCreditAccount(admin, user.id, request);

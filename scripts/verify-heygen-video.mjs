@@ -60,6 +60,14 @@ try{
  const nineImages=Array.from({length:9},(_,index)=>`https://cdn.example.test/image-${index}.png`);
  const threeVideos=Array.from({length:3},(_,index)=>`https://cdn.example.test/video-${index}.mp4`);
  const threeAudio=Array.from({length:3},(_,index)=>`https://cdn.example.test/audio-${index}.wav`);
+ const taggedPrompt='The person in @Image2 follows @Video1 and uses @Audio2. Keep <Picture 1> in view. Mail example@Image1.test.';
+ response=await route.POST(reference({prompt:taggedPrompt,imageUrls:refImages,audioUrls:threeAudio}));
+ assert.equal(response.status,200);
+ assert.equal(submissions.at(-1).input.prompt,'The person in <Picture 2> follows <Video 1> and uses <Audio 2>. Keep <Picture 1> in view. Mail example@Image1.test.');
+ assert.deepEqual(submissions.at(-1).input.reference_image_urls,refImages);
+ assert.deepEqual(submissions.at(-1).input.reference_video_urls,[videoUrl]);
+ assert.deepEqual(submissions.at(-1).input.reference_audio_urls,threeAudio);
+ assert.equal(Object.values(records).at(-1).prompt,taggedPrompt,'Task history retains the Studio prompt');
  for(const extra of [{videoUrls:undefined},{videoUrls:[]},{videoUrls:[],imageUrls:nineImages},{videoUrls:[],audioUrls:threeAudio},{videoUrls:threeVideos,imageUrls:nineImages,audioUrls:threeAudio}]){
   response=await route.POST(reference(extra));assert.equal(response.status,200,JSON.stringify(response));
   const input=submissions.at(-1).input,settings=Object.values(records).at(-1).request_settings;
@@ -75,6 +83,10 @@ try{
  assert.equal(referenceTools.heygenReferenceImageBytes('data:image/png;base64,aGVsbG8='),5);
  assert.equal(referenceTools.validateHeygenReferences(undefined,undefined,undefined),null);
  const count=submissions.length,charged=[...spends];
+ response=await route.POST(reference({prompt:'Use @Image2 and @Video1.',imageUrls:[refImages[0]]}));
+ assert.equal(response.status,400);assert.equal(response.body.code,'heygen_reference_mention_missing');
+ response=await route.POST(reference({prompt:'x'.repeat(31992)+' @Image1',imageUrls:[refImages[0]]}));
+ assert.equal(response.status,400,'Expanded tags count towards the provider prompt limit');
  for(const extra of [{videoUrls:'wrong'},{videoUrls:Array(4).fill(videoUrl)},{videoUrls:['javascript:alert(1)']},{videoUrls:['http://127.0.0.1/a.mp4']},{videoUrls:['https://user:password@host.test/a.mp4']},{videoUrls:['https://192.168.0.1/a.mp4']},{videoUrls:['https://[::1]/a.mp4']},{imageUrls:Array(10).fill(refImages[0])},{imageUrls:['data:image/gif;base64,aGVsbG8=']},{imageUrls:'wrong'},{audioUrls:Array(4).fill(threeAudio[0])},{audioUrls:'wrong'},{audioUrls:['http://127.0.0.1/audio.mp3']},{audioUrls:['https://user:pass@cdn.example.test/audio.mp3']},{heygenPromptEnhancement:'invalid'},{prompt:'x'.repeat(32001)},{prompt:''},{ratio:'source'},{resolution:'720p'},{provider:'grok-video'},{mode:'image'},{duration:'16s'}]) {
   response=await route.POST(reference(extra));assert.equal(response.status,400,JSON.stringify(extra));
  }

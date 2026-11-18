@@ -33,13 +33,21 @@ async function shot(name){await evaluate('document.fonts.ready');const result=aw
 async function click(selector){await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);}
 async function loaded(){await until("Object.keys(document.querySelector('[data-credit-pack-select=creator]')||{}).some(key=>key.startsWith('__reactProps'))");await until("document.querySelector('[data-store-balance]')?.innerText.includes('120')");}
 async function assertNoOverflow(){assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);assert.equal(await evaluate("[...document.querySelectorAll('[data-credit-payment-dialog] [role=dialog],[aria-labelledby=credit-shop-title]')].every(node=>node.scrollWidth<=node.clientWidth+1)"),true);}
+async function assertPricingNavFits(){
+  assert.ok(await evaluate(`(() => {
+    const nav = document.querySelector('main header > div');
+    const left = [...nav.firstElementChild.children].map(node => node.getBoundingClientRect()).filter(rect => rect.width);
+    const actions = nav.lastElementChild.getBoundingClientRect();
+    return left.every(rect => rect.right <= actions.left);
+  })()`), 'Pricing navigation keeps the brand and links clear of account controls');
+}
 const packs=[['starter',800,'4.99'],['creator',1800,'9.99'],['studio',4800,'24.99'],['pro-topup',11000,'49.99']];
 try{
   await send('Page.enable');await send('Runtime.enable');await send('Network.enable');
   await send('Network.setCacheDisabled',{cacheDisabled:true});
   await send('Fetch.enable',{patterns:[{urlPattern:origin+'/api/*'},{urlPattern:'https://*'}]});
   await send('Page.addScriptToEvaluateOnNewDocument',{source:"try{localStorage.setItem('dreamface_locale','en');sessionStorage.removeItem('dreamface_wallet_pending_order');}catch{}"});
-  for(const [width,height] of [[1440,1000],[768,1024],[640,960],[390,844],[320,740]]){
+  for(const [width,height] of [[1440,1000],[1024,900],[768,1024],[640,960],[390,844],[320,740]]){
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
     await send('Page.navigate',{url:origin+'/en/price'});await loaded();
     assert.equal(await evaluate("document.querySelectorAll('[data-credit-packs] article').length"),4);
@@ -48,8 +56,8 @@ try{
     const columns=await evaluate("getComputedStyle(document.querySelector('[data-credit-packs]')).gridTemplateColumns.split(' ').length");
     assert.equal(columns,width>=1024?4:width>=768?2:1);
     const cardColors=await evaluate("[...document.querySelectorAll('[data-credit-pack-select]')].map(node=>getComputedStyle(node).backgroundColor)");
-    assert.equal(cardColors[1],'rgb(124, 58, 237)');assert.notEqual(cardColors[0],cardColors[1]);
-    await assertNoOverflow();await shot('price-'+width);
+    assert.equal(cardColors[1],'rgb(4, 120, 87)');assert.notEqual(cardColors[0],cardColors[1]);
+    await assertNoOverflow();await assertPricingNavFits();await shot('price-'+width);
     for(const mode of ['video','image','avatar','all']){
       await click(`[role=tab][data-mode=${mode}]`);
       assert.equal(await evaluate(`document.querySelectorAll('[data-usage-estimate=${mode}]').length`),mode==='all'?0:4);
@@ -100,14 +108,17 @@ try{
     await assertNoOverflow();await shot('localized-checkout-'+locale);await click('[data-credit-payment-close]');
   }
   authenticated=false;
+  await send('Emulation.setDeviceMetricsOverride',{width:320,height:740,deviceScaleFactor:1,mobile:true});
   await send('Page.navigate',{url:origin+'/en/price'});
   await until("Object.keys(document.querySelector('[data-credit-pack-select=creator]')||{}).some(key=>key.startsWith('__reactProps'))");
   await until("!document.querySelector('[data-store-balance]')");
+  await assertNoOverflow();
+  await assertPricingNavFits();
   const before=checkout.length;await click('[data-credit-pack-select=creator]');
   await until("!!document.querySelector('[data-auth-dialog]')");
   assert.equal(await evaluate("!!document.querySelector('[data-credit-payment-dialog]')"),false);assert.equal(checkout.length,before);
   assert.equal(unexpected.length,0);assert.deepEqual(errors,[]);
-  console.log('Credit shop design UI passed: four/two/one-column layout at 1440/768/640/390/320, shared price/modal design, real pack quotes, projected balance, four estimator modes, all four packs, rejected-checkout recovery, unchanged balance, nested Escape/focus/scroll, localized and RTL layouts, sign-in gate and no payment orders. All APIs mocked.');
+  console.log('Credit shop design UI passed: responsive pricing navigation and four/two/one-column layout at 1440/1024/768/640/390/320, shared price/modal design, real pack quotes, projected balance, four estimator modes, all four packs, rejected-checkout recovery, unchanged balance, nested Escape/focus/scroll, localized and RTL layouts, sign-in gate and no payment orders. All APIs mocked.');
 }finally{
   await send('Page.navigate',{url:'about:blank'}).catch(()=>{});
   await new Promise(resolve=>{socket.addEventListener('close',resolve,{once:true});socket.close();});

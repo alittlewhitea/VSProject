@@ -11,15 +11,7 @@
 .df-avatar-composer-input > textarea:focus-visible { outline: 0; box-shadow: inset 0 -2px var(--df-primary-border); }
 .df-avatar-composer-input > textarea::placeholder { color: var(--df-faint); }
 .df-avatar-subjects { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-block: 10px 24px; }
-.df-avatar-upload, .df-avatar-subject { position: relative; width: 72px; height: 72px; border: 1px solid var(--df-border); border-radius: 14px; background: var(--df-surface-soft); }
-.df-avatar-upload { display: grid; place-items: center; cursor: pointer; border-style: dashed; color: var(--df-muted); }
-.df-avatar-upload > span { font-size: 30px; font-weight: 300; }
-.df-avatar-upload > input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-.df-avatar-upload:focus-within { outline: 2px solid var(--df-primary); outline-offset: 3px; }
-.df-reference-upload { position: relative; }
-.df-reference-upload:focus-within { outline: 2px solid var(--df-primary); outline-offset: 3px; }
-.df-avatar-subject img { height: 100%; width: 100%; object-fit: cover; border-radius: inherit; }
-.df-avatar-subject button { position: absolute; top: -5px; inset-inline-end: -5px; display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--df-border); border-radius: 50%; background: var(--df-surface); color: var(--df-muted); }
+.df-avatar-image-upload { min-width: 0; flex: 1 1 220px; }
 .df-avatar-choose { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 12px; color: var(--df-muted); font-size: 13px; }
 .df-avatar-voice { border-top: 1px solid var(--df-border); }
 .df-avatar-composer-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid var(--df-border); }
@@ -38,7 +30,6 @@
   .df-avatar-settings > div > div { justify-self: end; }
   .df-avatar-settings .df-generate-button { grid-column: 1 / -1; width: 100%; min-width: 0; }
   .df-avatar-settings [role="status"] { grid-column: 1 / -1; }
-  .df-avatar-subject button { min-height: 30px; width: 30px; }
 }
 .df-unified-inspector { min-width: 0; overflow: visible; }
 .df-unified-inspector > .df-panel-heading { padding: 16px 24px; border-radius: var(--df-radius-panel) var(--df-radius-panel) 0 0; }
@@ -48,7 +39,7 @@
 .df-creation-config { border-top: 1px solid var(--df-border); padding-top: 20px; }
 .df-creation-settings-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 0 16px; }
 .df-creation-settings-heading h2 { font-size: 13px; line-height: 20px; font-weight: 500; color: var(--df-ink); }
-.df-creation-settings-heading a { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 12px; color: var(--df-primary); }
+.df-creation-settings-heading a { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 12px; color: var(--df-accent); }
 .df-creation-model-selector { padding: 12px 16px 0; }
 .df-unified-settings { min-width: 0; }
 .df-mode-image .df-segmented { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -76,7 +67,7 @@
 .df-projects .df-project-media { color-scheme: dark; }
 .df-project-media .rounded-3xl { background: var(--df-stage-elevated); color: var(--df-stage-text); }
 .df-referrals { max-width: 1100px; padding: 0; }
-.df-referrals .df-referral-intro { padding: 28px; border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); background: var(--df-surface-warm); }
+.df-referrals .df-referral-intro { padding: 28px; border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); background: var(--df-surface); }
 .df-referrals :is(.rounded-2xl,.rounded-3xl) { border-radius: var(--df-radius-panel); }
 @media(min-width:1100px) {
   .df-unified-inspector .df-inspector-scroll { grid-template-columns: minmax(0,1.6fr) minmax(320px,1fr); gap: 12px; align-items: start; padding: 12px 8px; }
@@ -99,3 +90,4 @@
 @media(max-width:767px) { .df-avatar-composer-footer { grid-template-columns:minmax(0,1fr) auto; gap:10px 8px; } .df-inline-model-picker { width:100%; max-width:none; padding-inline:8px; font-size:12px; } .df-avatar-settings select { padding-inline:8px; } }
 
 .df-inline-model-picker > svg { flex-shrink:0; }
+.df-project-preview-stage { background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--df-stage-accent) 14%, transparent), transparent 38%), var(--df-stage); }

@@ -100,7 +100,9 @@ const nextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=31536000, immutable"
+            // Dev filenames are stable while module factories change on rebuild.
+            // Caching them mixes old layout chunks with the new webpack runtime.
+            value: isProduction ? "public, max-age=31536000, immutable" : "no-store, must-revalidate"
           },
           {
             key: "X-DreamFace-Deploy",

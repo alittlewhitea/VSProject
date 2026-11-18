@@ -1,3 +1,5 @@
+import { referencePromptAssets, referencePromptParts } from "./reference-prompt";
+
 // fal OpenAPI: HeygenVideoReferenceToVideoInput (checked 2026-11-16).
 export const HEYGEN_REFERENCE_IMAGE_LIMIT = 9;
 export const HEYGEN_REFERENCE_VIDEO_LIMIT = 3;
@@ -13,6 +15,15 @@ export const HEYGEN_REFERENCE_RATIOS = ["adaptive", "21:9", "16:9", "4:3", "1:1"
 
 export function heygenReferenceMediaUrls(value: string) {
   return value.split(/\r?\n/).map(url => url.trim()).filter(Boolean);
+}
+
+export function prepareHeygenReferencePrompt(prompt: string, images?: string[], videos?: string[], audio?: string[]) {
+  const parts = referencePromptParts(prompt, referencePromptAssets(images ?? [], videos, audio));
+  const labels = { image: "Picture", video: "Video", audio: "Audio" };
+  return {
+    prompt: parts.map(({ text, asset }) => asset ? `<${labels[asset.kind]} ${asset.index}>` : text).join(""),
+    missing: parts.some(part => part.missing)
+  };
 }
 
 export function heygenReferenceImageBytes(url: string) {

@@ -79,7 +79,18 @@ async function navigate(href) {
   await until(`location.pathname + location.search === ${JSON.stringify(href)}`);
 }
 async function language(locale) {
-  await evaluate(`(() => { const input = document.querySelector('select:has(option[value="zh-CN"])'); input.value = ${JSON.stringify(locale)}; input.dispatchEvent(new Event('change', {bubbles:true})); })()`);
+  const mobile = await evaluate(`matchMedia('(max-width: 767px)').matches`);
+  const trigger = mobile ? '[data-mobile-menu-trigger]' : '[data-studio-language-trigger]';
+  await evaluate(`document.querySelector(${JSON.stringify(trigger)}).click()`);
+  if (mobile) {
+    const summary = `document.querySelector('[data-mobile-menu-language] > summary')`;
+    await until(`Boolean(${summary})`);
+    await evaluate(`${summary}.click()`);
+    await until(`Boolean(document.querySelector('[data-mobile-menu-language][open]'))`);
+  }
+  const option = `document.querySelector(${JSON.stringify(`[data-studio-language-option="${locale}"]`)})`;
+  await until(`Boolean(${option})`);
+  await evaluate(`${option}.click()`);
   await until(`document.documentElement.lang === ${JSON.stringify(locale)}`);
 }
 async function screenshot(name) {
@@ -104,7 +115,7 @@ try {
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `localStorage.setItem('dreamface_locale','en'); document.cookie='dreamface_locale=en;path=/';` });
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await send('Page.navigate', { url: origin + '/studio?view=home' });
-  await until(`Boolean(document.querySelector('textarea') && document.querySelector('select:has(option[value="zh-CN"])'))`);
+  await until(`Boolean(document.querySelector('textarea') && document.querySelector('[data-mobile-menu-trigger]'))`);
   await new Promise(resolve => setTimeout(resolve, 400));
   assert.equal(await evaluate(`Boolean(document.querySelector('[data-creation-workspace], [data-video-workspace]'))`), false, 'Home has no hidden creation workspace');
   for (const chunk of [...creationChunks, ...paymentChunks, ...speechChunks]) assert.equal(resources.has(chunk), false, 'Home must defer feature chunk: ' + chunk);

@@ -9,6 +9,6 @@ assert.match(page,/initialMessages=\{await loadStudioMessages\(locale\)\}/,'Stud
 assert.match(client,/initialMessages/);assert.doesNotMatch(marketing,/import \{ creditShopMessages/);
 assert.match(hook,/version!==requestVersion.current/,'A late language request cannot overwrite a newer selection');
 assert.match(hook,/useCallback/,'Translations keep stable identity between unrelated task updates');
-assert.match(readFileSync('src/features/studio/studio-shell.tsx','utf8'),/!isAppsHome && !isProjectsView && !isBillingView \? <StudioCreationWorkspace/);
+assert.match(readFileSync('src/features/studio/studio-shell.tsx','utf8'),/!isAppsHome && !isProjectsView && !isBillingView \?\s*(?:\(\s*<div\b[^\n]*>\s*)?<StudioCreationWorkspace/);
 assert.match(readFileSync('src/features/studio/studio-shell.tsx','utf8'),/billingModalOpen \? <StudioBillingModal/);
 console.log('Studio messages verified: all 16 merged catalogues, server-provided initial dictionary, split CreditShop messages, no all-locale browser imports, stale-language guard and explicit creation/payment lazy boundaries.');

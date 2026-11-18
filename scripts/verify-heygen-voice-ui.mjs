@@ -77,7 +77,12 @@ try{
   assert.equal(generated.length,beforePaid);assert.equal(await evaluate("document.querySelector('[data-heygen-voice]').value"),'Soren');assert.equal(await evaluate("document.querySelector('[data-heygen-language]').value"),'zh');
   assert.equal(await evaluate("document.querySelector('[data-composer-prompt]').value"),'Preserve my voice and language.');
   await evaluate("localStorage.removeItem('nova_studio_login_draft')");await setClock(initial);await send('Page.navigate',{url:href});await ready();
-  await value('.df-language-select select','zh-CN','change');await until("document.querySelector('[data-heygen-voice-free]')?.innerText.includes('北京时间')");await noOverflow();await shot('mobile-zh-CN');
+  await click('[data-mobile-menu-trigger]');
+  await until("Boolean(document.querySelector('[data-mobile-menu-language] > summary'))");
+  await click('[data-mobile-menu-language] > summary');
+  await until("Boolean(document.querySelector('[data-mobile-menu-language][open] [data-studio-language-option=zh-CN]'))");
+  await click('[data-studio-language-option=zh-CN]');
+  await until("document.querySelector('[data-heygen-voice-free]')?.innerText.includes('北京时间')");await noOverflow();await shot('mobile-zh-CN');
   assert.doesNotMatch(await evaluate("document.querySelector('.df-audio-settings').innerText"),/studio\.heygenVoice/);
   assert.deepEqual(errors,[]);
   console.log('HeyGen Voice UI passed: desktop/390/320, 24 voices and 39 languages, expression/reference controls, invalid-reference prevention, zero-balance 0-credit generation, exact request options, localized WAV/free copy, live cutoff repricing, insufficient-credit gate after expiry, and no automatic paid generation after popup or persisted-draft sign-in. All APIs mocked.');

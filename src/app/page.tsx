@@ -14,6 +14,7 @@ import { CREDIT_PACKS, formatUsd } from "../lib/billing";
 import { galleryItemPath, mapGalleryRow } from "../lib/gallery";
 import { fetchHomeGalleryItems } from "../lib/gallery-server";
 import { siteUrl } from "../lib/site-url";
+import { LandingAssistantPreview } from "../components/landing-assistant-preview";
 
 const homeFaqKeys = [
   "whatIsDreamFace",
@@ -321,7 +322,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="section-shell mt-14 md:mt-20">
+        <section className="section-shell mt-14 md:mt-20" id="faq">
           <Reveal>
             <div className="max-w-4xl">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#637084]">{t("home.faq.eyebrow")}</p>
@@ -362,6 +363,7 @@ export default async function HomePage() {
 
         <SiteFooter />
       </div>
+      <LandingAssistantPreview locale={locale} />
     </main>
   );
 }

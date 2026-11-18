@@ -37,10 +37,12 @@ function context(mode,workflow) {
     YOUNG_KOREAN_WOMAN_PROMPT:'young-korean',EASTBOURNE_KOREAN_WOMAN_PROMPT:'eastbourne',SPORTS_BROADCAST_PROMPT:'sports',
     st:key=>key,trackEvent(){},safeSetLocalStorage(){},lastModelStorageKey:workflow=>workflow,
     defaultImageSizeForProvider:()=> 'square',defaultImageRatioForProvider:()=> 'auto',
+    ratioFromImageSize:load('src/features/studio/studio-workspace-config.ts').ratioFromImageSize,
     defaultVideoResolutionForProvider:provider=>models.videoModelDefaultResolution(provider),
     modelSampleReferenceForProvider:provider=>models.videoExampleSourceFor(provider),
     stripAvatarDefaultReferences:value=>policy.referenceTextWithoutExamples(value),
     lastAppliedPromptUrlRef:{current:null},lastAppliedReferenceUrlRef:{current:null},
+    lastAssistantTaskRef:{current:null},lastAssistantImageSettingsRef:{current:null},seedanceOptions:{task:'reference'},
     lastStudioModeRef:{current:mode},referenceUploadScopeRef:{current:0},previousReferenceWorkflow:{current:workflow==='reference-to-video'},
     initialProvider:mode==='image'?'chatgpt-image':'minimax-h3-max-turbo-video',selectedProvider:mode==='image'?'chatgpt-image':'minimax-h3-max-turbo-video',
     readRememberedModel:()=>null,
@@ -50,7 +52,7 @@ function context(mode,workflow) {
     FileReader:class{readAsDataURL(file){this.result=file.dataUrl;queueMicrotask(()=>this.onload());}}
   };
   Object.defineProperty(c,'referenceImageUrls',{get:()=>[...policy.parseStudioReferenceImages(c.referenceImagesText),...c.referenceImageFiles]});
-  for(const [setter,field] of Object.entries({setReferenceImagesText:'referenceImagesText',setReferenceImageFiles:'referenceImageFiles',setPrompt:'prompt',setProvider:'provider',setImageWorkflow:'imageWorkflow',setVideoWorkflow:'videoWorkflow',setAudioWorkflow:'audioWorkflow',setDuration:'duration',setRatio:'ratio',setVideoResolution:'videoResolution',setImageSize:'imageSize',setImageQuality:'imageQuality',setStatusTone:'statusTone',setStatusText:'statusText',setAvatarAudioUrl:'avatarAudioUrl'}))c[setter]=value=>{c[field]=typeof value==='function'?value(c[field]):value;};
+  for(const [setter,field] of Object.entries({setReferenceImagesText:'referenceImagesText',setReferenceImageFiles:'referenceImageFiles',setPrompt:'prompt',setProvider:'provider',setImageWorkflow:'imageWorkflow',setVideoWorkflow:'videoWorkflow',setAudioWorkflow:'audioWorkflow',setDuration:'duration',setRatio:'ratio',setVideoResolution:'videoResolution',setImageSize:'imageSize',setImageQuality:'imageQuality',setStatusTone:'statusTone',setStatusText:'statusText',setAvatarAudioUrl:'avatarAudioUrl',setSeedanceOptions:'seedanceOptions',setNumImages:'numImages',setEditResolution:'editResolution'}))c[setter]=value=>{c[field]=typeof value==='function'?value(c[field]):value;};
   for(const name of ['isAvatarProvider','isH3MaxProvider','isH3VideoProvider','isNanoBananaProvider','isSamplePrompt','isProviderDefaultPrompt','promptForProviderChange','defaultPromptForProvider','isModelSampleReference','workflowForMode','providerForWorkflow'])c[name]=executeFunction(name,c);
   c.applyProvider=executeFunction('applyProvider',c);c.applyWorkflow=executeFunction('applyWorkflow',c);c.upload=executeFunction('handleReferenceFiles',c);
   return c;
@@ -144,6 +146,18 @@ function applyRoute(c, mode, workflow, params={}) {
   new Function('context',`with(context){${routeEffectCode};apply();}`)(c);
   new Function('context',`with(context){${effectCode};apply();}`)(c);
 }
+const assistantVideo=context('video','image-to-video');await assistantVideo.upload([file],0);
+assistantVideo.referenceImagesText='https://user.test/second-reference.png';assistantVideo.prompt='Preserve my product details.';
+applyRoute(assistantVideo,'video','reference-to-video',{provider:'heygen-video',source:'assistant',duration:'5s',resolution:'480p'});
+assert.equal(assistantVideo.videoWorkflow,'reference-to-video');assert.equal(assistantVideo.provider,'heygen-video');
+assert.equal(assistantVideo.referenceImageUrls.length,2);assert.equal(assistantVideo.prompt,'Preserve my product details.');
+applyRoute(assistantVideo,'video','reference-to-video',{provider:'seedance-2.5-flash-video',source:'assistant',duration:'4s',resolution:'480p',seedanceTask:'reference'});
+assistantVideo.seedanceOptions.task='editing';
+new Function('context',`with(context){${effectCode};apply();}`)(assistantVideo);
+assert.equal(assistantVideo.seedanceOptions.task,'editing','Unchanged URL effects must not undo a manual task choice');
+const assistantImage=context('image','text-to-image');assistantImage.numImages=5;assistantImage.editResolution='4K';
+applyRoute(assistantImage,'image','text-to-image',{provider:'seedream-5.5-image',source:'assistant',imageSize:'auto_1K',imageResolution:'1K',quality:'high',numImages:'1'});
+assert.equal(assistantImage.numImages,1);assert.equal(assistantImage.editResolution,'1K');assert.equal(assistantImage.imageSize,'auto_1K');
 for(const script of ['', 'My own speaking script']) for(const reference of ['upload','url']) {
   const avatar=context('avatar','avatar-video');avatar.prompt=script;
   if(reference==='upload')await avatar.upload([file]);else avatar.referenceImagesText='https://user.test/portrait.png';
@@ -187,7 +201,7 @@ const react={useEffect(){},useMemo:fn=>fn(),useRef:value=>({current:value}),useS
 const Settings=loader({react,'./video-settings.module.css':{default:{}},'./studio-link':{default:()=>null},'./studio-navigation':{StudioIcon:()=>null},'./model-picker':{ModelPicker:()=>null},'./generation-cost-summary':{GenerationCostSummary:()=>null}})('src/features/studio/video-settings.tsx').VideoSettings;
 const props={workflow:'text-to-video',prompt:'My real prompt',referenceImageUrls:[],referenceVideoUrl:'https://video.test/reference.mp4',provider:'heygen-video',providerOptions:[],duration:'5s',durationOptions:['5s','10s'],ratio:'16:9',ratioOptions:['16:9','9:16'],showResolutionControl:true,resolution:'768p',resolutionOptions:['768p','1080p'],estimatedCredits:18,creditBalance:1000,generateDisabled:false,isSubmitting:false,isAuthenticated:true,translate:key=>key,promptAI:{enabled:true,busy:false,edit(){},reset(){},setEnabled(){}},onPromptChange:value=>applied.push(['prompt',value]),onGenerate:()=>applied.push(['generate']),onDurationChange:value=>applied.push(['duration',value]),onRatioChange:value=>applied.push(['ratio',value]),onResolutionChange:value=>applied.push(['resolution',value]),onReferenceFiles:async(files,index)=>applied.push(['file',files,index]),onFileError(){}};
 function render(){cursor=0;return Settings(props);}
-function elements(node,result=[]){if(!node)return result;if(node.type?.name==="StudioComposerGenerate")return elements(node.type(node.props),result);if(Array.isArray(node)){for(const child of node)elements(child,result);}else if(node.props){result.push(node);elements(node.props.children,result);}return result;}
+function elements(node,result=[]){if(!node)return result;if(["StudioComposerGenerate","StudioImageUpload"].includes(node.type?.name))return elements(node.type(node.props),result);if(Array.isArray(node)){for(const child of node)elements(child,result);}else if(node.props){result.push(node);elements(node.props.children,result);}return result;}
 for(const workflow of ['text-to-video','image-to-video','reference-to-video']) {
  cells=[];applied=[];props.workflow=workflow;props.referenceImageUrls=['data:image/png;base64,fixture'];
  let tree=render(),nodes=elements(tree);
@@ -195,8 +209,13 @@ for(const workflow of ['text-to-video','image-to-video','reference-to-video']) {
  assert.equal(nodes.some(node=>node.props['data-video-prompt-section']!==undefined),true);
  assert.equal(nodes.some(node=>node.props['data-video-config']!==undefined),true);
  assert.equal(nodes.some(node=>node.type==='video'||String(node.props.className||'').includes('df-preview-stage')),false,'Removed side preview must not mount media');
- assert.equal(nodes.find(node=>node.type==='textarea').props.value,props.prompt);
- nodes.find(node=>node.type==='textarea').props.onChange({target:{value:'Keep this revised prompt'}});
+ const promptEditor=workflow==='reference-to-video' ? nodes.find(node=>node.type?.name==='ReferencePromptEditor') : nodes.find(node=>node.type==='textarea');
+ assert.equal(promptEditor.props.value,props.prompt);
+ if(workflow==='reference-to-video') {
+  assert.deepEqual(promptEditor.props.images,props.referenceImageUrls);
+  assert.deepEqual(promptEditor.props.videos,[props.referenceVideoUrl]);
+  promptEditor.props.onChange('Keep this revised prompt');
+ } else promptEditor.props.onChange({target:{value:'Keep this revised prompt'}});
  for(const [label,value] of [['duration','10s'],['aspectRatio','9:16'],['resolution','1080p']])nodes.find(node=>node.props.label==='studio.field.'+label).props.onValueChange(value);
  const action=nodes.find(node=>node.props['data-video-action-bar']!==undefined);
  elements(action).find(node=>node.type==='button').props.onClick();
@@ -204,7 +223,7 @@ for(const workflow of ['text-to-video','image-to-video','reference-to-video']) {
  assert.ok(applied.some(item=>item[0]==='generate'));
  if(workflow==='image-to-video') {
   const fileInput=nodes.find(node=>node.type==='input'&&node.props.type==='file');
-  await fileInput.props.onChange({target:{files:['fixture-file'],value:'fixture'}});
+  fileInput.props.onChange({currentTarget:{files:['fixture-file'],value:'fixture',matches:()=>false}});
   assert.ok(applied.some(item=>item[0]==='file'&&item[2]===0));
  }
  if(workflow==='reference-to-video')assert.ok(nodes.some(node=>node.props.videoUrl===props.referenceVideoUrl&&node.props.images===props.referenceImageUrls));

@@ -6,6 +6,7 @@
 @import "./avatar-premium.css";
 @import "./studio-premium.css";
 @import "./studio-billing.css";
+@import "./studio-video-design.css";
 
 .creative-studio, .studio-overlay {
   color: var(--studio-text);

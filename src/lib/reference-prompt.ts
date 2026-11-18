@@ -51,6 +51,25 @@ export function insertReferenceToken(text: string, start: number, end: number, t
   return { value: text.slice(0, start) + insertion + suffix, insertion, caret: start + insertion.length };
 }
 
+/** A single in-place URL edit keeps its slot. Reordering or dropping lines follows the original URLs. */
+export function remapReferenceUrlsInPrompt(text: string, kind: "video" | "audio", previousUrls: string[], nextUrls: string[]) {
+  if (previousUrls.length === nextUrls.length && previousUrls.filter((url, index) => url !== nextUrls[index]).length <= 1) return text;
+  const previousAssets = kind === "video" ? referencePromptAssets([], previousUrls) : referencePromptAssets([], [], previousUrls);
+  const taken = new Set<number>();
+  const indices = previousUrls.map(url => {
+    const index = nextUrls.findIndex((nextUrl, position) => nextUrl === url && !taken.has(position));
+    if (index !== -1) taken.add(index);
+    return index + 1;
+  });
+  const prefix = kind === "video" ? "@Video" : "@Audio";
+  return referencePromptParts(text, previousAssets).map(part => {
+    if (!part.asset) return part.text;
+    const index = indices[part.asset.index - 1];
+    if (index === part.asset.index) return part.text;
+    return index ? `${prefix}${index}` : "";
+  }).join("");
+}
+
 /** Keep surviving mentions attached to the same image when an earlier image is removed. */
 export function removeReferenceImageFromPrompt(text: string, removedIndex: number, imageCount: number) {
   return text.replace(/@Image([1-9]\d*)(?![a-z0-9_])/gi, (token: string, number: string, offset: number) => {

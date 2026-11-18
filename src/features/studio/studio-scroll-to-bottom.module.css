@@ -9,4 +9,6 @@
 :global(body:has([role="dialog"][aria-modal="true"])) .button,
 :global(body:has(:fullscreen)) .button { display: none; }
 @media(hover:hover) { .button:hover > span { opacity: 1; } }
-@media(max-width:767px) { .button { inset-inline-end: 16px; } }
+@media(max-width:767px) {
+  .button { inset-inline-end: 16px; bottom: calc(max(20px, env(safe-area-inset-bottom) + 12px) + var(--df-mobile-nav-height, 0px)); }
+}

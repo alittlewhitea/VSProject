@@ -1,0 +1,85 @@
+.upload { min-width: 0; }
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 68px;
+  padding: 10px 12px;
+  border: 1px dashed var(--df-primary-border);
+  border-radius: var(--df-radius-input);
+  background: var(--df-surface-soft);
+  color: var(--df-ink);
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--df-transition), border-color var(--df-transition);
+}
+.trigger:hover:not(:disabled),
+.upload[data-dragging] .trigger {
+  border-color: var(--df-accent);
+  background: var(--df-primary-soft);
+}
+.trigger:disabled { opacity: .5; cursor: not-allowed; }
+.icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: var(--df-primary-soft);
+  color: var(--df-accent);
+}
+.icon svg { width: 18px; height: 18px; }
+.text { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.text strong { font-size: 13px; line-height: 18px; font-weight: 600; }
+.text > span { color: var(--df-muted); font-size: 12px; line-height: 16px; }
+.upload[data-compact] { width: fit-content; max-width: 100%; }
+.upload[data-compact] .trigger { min-height: 44px; padding-block: 7px; }
+.upload[data-compact] .icon { width: 26px; height: 26px; border-radius: 7px; }
+.upload[data-compact] .icon svg { width: 15px; height: 15px; }
+
+.preview {
+  position: relative;
+  width: var(--image-preview-width, 88px);
+  height: var(--image-preview-height, 88px);
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  border: 1px solid var(--df-border);
+  border-radius: var(--df-radius-input);
+  background: var(--df-surface-soft);
+}
+.preview img { display: block; width: 100%; height: 100%; border-radius: inherit; object-fit: contain; }
+.caption {
+  position: absolute;
+  inset-inline-start: 4px;
+  bottom: 4px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--df-surface);
+  color: var(--df-ink);
+  font-size: 11px;
+  line-height: 16px;
+}
+.remove {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--df-ink);
+}
+.remove::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid var(--df-border);
+  border-radius: 50%;
+  background: var(--df-surface);
+}
+.remove svg { position: relative; width: 14px; height: 14px; }
+.remove:hover:not(:disabled) { color: var(--df-error); }
+.remove:disabled { opacity: .5; }

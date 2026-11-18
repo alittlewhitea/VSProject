@@ -105,7 +105,10 @@ function makeClient() {
         };
       },
       async signOut() {
-        await fetch(authUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
+        const response = await fetch(authUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
+        if (!response.ok) return { error: new Error("Unable to sign out.") };
+        // Let any earlier session read finish before subscribers read the cleared session.
+        await sessionRead?.catch(() => null);
         notifyAuthChange();
         return { error: null };
       },

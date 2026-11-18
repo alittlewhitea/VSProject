@@ -49,7 +49,7 @@
 .df-home-masthead { margin: 0 0 20px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .df-home-masthead h2 { font-size: 40px; line-height: 48px; letter-spacing: -.035em; font-weight: 600; max-width: 720px; text-wrap: balance; }
 .df-home-masthead > p { max-width: 650px; color: var(--df-muted); font-size: 14px; line-height: 22px; }
-.df-home-create { background: var(--df-surface-warm); padding: 28px; border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); margin-bottom: 36px; }
+.df-home-create { background: var(--df-surface); padding: 28px; border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); margin-bottom: 36px; }
 .df-home-create .studio-composer { max-width: none; padding: 16px 20px; background: var(--df-surface); border-radius: var(--df-radius-input); }
 .df-home-create .studio-composer textarea { min-height: 60px; font-size: 16px; line-height: 24px; resize: vertical; }
 .df-home-create .studio-composer-actions { margin-top: 8px; }
@@ -95,7 +95,7 @@
 .df-stage-rail [data-video-showcases] > button { width: 36px; height: 44px; color: var(--df-stage-muted); }
 .df-stage-thumbnails { display: flex; gap: 10px; overflow-x: auto; padding: 3px; scrollbar-width: thin; scrollbar-color: var(--df-stage-border) transparent; }
 .df-stage-thumbnail { position: relative; min-width: 84px; flex: 1 0 0; aspect-ratio: 16/10; border-radius: 8px; overflow: hidden; background: var(--df-stage); border: 1px solid var(--df-stage-border); }
-.df-stage-thumbnail[aria-pressed="true"] { outline: 2px solid #b6a2ff; outline-offset: 1px; }
+.df-stage-thumbnail[aria-pressed="true"] { outline: 2px solid var(--df-stage-accent); outline-offset: 1px; }
 .df-stage-thumbnail :is(img,video) { width: 100%; height: 100%; object-fit: cover; }
 .df-stage-thumbnail > span { position: absolute; inset-inline-start: 5px; bottom: 5px; background: #111318cc; color: var(--df-stage-text); padding: 2px 5px; border-radius: 4px; font-size: 10px; }
 .df-stage-history { display: flex; gap: 10px; overflow-x: auto; padding: 3px; scrollbar-width: thin; }
