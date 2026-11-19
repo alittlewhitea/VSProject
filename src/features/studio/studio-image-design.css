@@ -1,0 +1,116 @@
+.creative-studio .df-mode-image .df-premium-panel { padding: 24px; }
+.df-mode-image .df-unified-inspector > .df-panel-heading { padding-bottom: 16px; }
+
+.df-mode-image .df-workflow-nav .df-segmented {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--df-surface-soft);
+  overflow: visible;
+}
+
+.df-mode-image .df-workflow-nav .df-segmented button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--df-muted);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.df-mode-image .df-workflow-nav .df-segmented button:hover { color: var(--df-ink); }
+.df-mode-image .df-workflow-nav .df-segmented button[aria-pressed="true"] {
+  border-color: var(--df-border);
+  background: var(--df-surface);
+  color: var(--df-accent);
+  font-weight: 600;
+}
+
+.df-image-editor .df-composer-prompt {
+  min-width: 0;
+  border: 1px solid var(--df-border);
+  border-radius: 14px;
+  background: var(--df-surface);
+}
+
+.df-image-editor .df-composer-prompt:focus-within { border-color: var(--df-primary-border); }
+.df-mode-image .df-composer-prompt-label { align-items: baseline; margin: 12px 12px 8px; }
+.df-mode-image .df-composer-prompt-label label {
+  color: var(--df-ink);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.df-mode-image .df-composer-prompt-label label::before { display: none; }
+.df-mode-image .df-composer-prompt-label > span {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.creative-studio .df-mode-image .df-image-editor textarea[data-composer-prompt] {
+  height: 128px;
+  min-height: 112px;
+  margin: 0;
+  padding: 0 12px 8px;
+  font-size: 16px;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+.df-mode-image .df-composer-prompt-actions {
+  gap: 2px;
+  margin: 0;
+  padding: 0 4px;
+  border-top: 1px solid var(--df-border);
+}
+.df-mode-image .df-composer-prompt-actions > :is(button, a) { padding-inline: 10px; }
+
+.creative-studio .df-mode-image [data-creation-config] { margin-top: 16px; padding-top: 14px; }
+.df-image-settings .df-composer-more { gap: 6px; }
+.df-mode-image .df-image-settings .df-composer-generate { box-shadow: none; }
+.df-image-settings .df-composer-generate::before { display: none; }
+.df-image-settings .df-composer-cost { padding-top: 8px; font-size: 11px; line-height: 1.45; }
+
+@media (max-width: 767px) {
+  .creative-studio .df-mode-image .df-premium-panel { padding: 14px; }
+  .df-mode-image .df-workflow-nav .df-segmented { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .creative-studio .df-mode-image .df-image-editor textarea[data-composer-prompt] { height: 136px; resize: none; }
+
+  .df-image-settings > .df-composer-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .df-mode-image .df-image-settings > .df-composer-toolbar > :is(.df-inline-model-picker, .df-composer-generate) {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+  .df-image-settings .df-inline-model-picker > .df-model-trigger-name { flex: 1; text-align: start; }
+  .df-image-settings [data-image-parameters] :is(.df-select-field, .df-select-control, select) {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+  .df-image-settings [data-image-parameters] select { padding-inline-end: 26px; }
+  .df-image-settings[data-utility-workflow] [data-image-parameters] > .df-select-field { grid-column: 1 / -1; }
+  .df-image-settings .df-composer-more { line-height: 1.35; text-align: center; }
+  .df-image-settings .df-composer-more > span { overflow-wrap: anywhere; }
+  .df-image-settings .df-composer-cost { gap: 3px; }
+}
+
+@media (max-width: 359px) {
+  .creative-studio .df-mode-image .df-image-editor textarea[data-composer-prompt] { height: 152px; }
+  .df-image-settings [data-image-parameters] .df-select-control > [data-select-icon] { display: none; }
+  .df-image-settings [data-image-parameters] .df-select-control[data-has-icon="true"] > select { padding-inline-start: 10px; }
+}

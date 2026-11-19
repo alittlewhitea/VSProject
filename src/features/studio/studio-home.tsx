@@ -1,12 +1,10 @@
 "use client";
 import {StudioDeferredSection} from "./studio-deferred-section";
 
-import Link from "./studio-link";
 import { useEffect, useRef, useState } from "react";
-import { StudioButton, StudioSectionHeading, StudioSegmentedControl } from "./studio-primitives";
+import { StudioButton, StudioSegmentedControl } from "./studio-primitives";
 import type { Locale } from "../../i18n/routing";
 import { StudioIcon } from "./studio-navigation";
-import { ViewportVideo } from "../../components/viewport-video";
 import dynamic from "next/dynamic";
 
 const HomeTemplateCarousel = dynamic(() => import("./studio-home-template-carousel"), { ssr: false });
@@ -14,38 +12,8 @@ const CombinedTemplateGallery = dynamic(() => import("./studio-combined-template
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 export type HomeCreationInput = { mode: "video" | "image" | "audio"; prompt: string; image?: string };
-const VIDEO_BASE_URL = "https://media.dreamface.io/ai_video";
-const SHOWCASES: Array<{
-  key: "baseball" | "cgi" | "tokyo" | "spectator";
-  file: string;
-  prompt: string;
-  labelKey: string;
-  titleKey: string;
-  metaKey: string;
-  desktopRatio?: "16x9" | "1x1";
-}> = [
-  { key: "baseball", file: "baseball-game-broadcast-shot", prompt: "A baseball game broadcast shot - person sits in stadium stands in a team jersey, watching the field and posing softly like a viral stargirl moment caught on live TV.", labelKey: "studio.workspace.showcase.baseball.label", titleKey: "studio.workspace.showcase.baseball.title", metaKey: "studio.workspace.showcase.baseball.meta" },
-  { key: "cgi", file: "cgi-breakdown-reveal", prompt: "CGI breakdown reveal - mesh to beauty pass, each render layer cuts in sequence, turntable camera, ending on the final polished visual.", labelKey: "studio.workspace.showcase.cgi.label", titleKey: "studio.workspace.showcase.cgi.title", metaKey: "studio.workspace.showcase.cgi.meta" },
-  { key: "tokyo", file: "tokyo-night-street-racing", prompt: "Tokyo night street racing - cars drift and donut around the character, low angles and 35mm film grain, blockbuster reveal.", labelKey: "studio.workspace.showcase.tokyo.label", titleKey: "studio.workspace.showcase.tokyo.title", metaKey: "studio.workspace.showcase.tokyo.meta" },
-  { key: "spectator", file: "spectator-sprints-from-the-stands", prompt: "Spectator sprints from the stands, jumps fences, evades security, charges onto the pitch and strikes - all in one continuous telephoto take.", labelKey: "studio.workspace.showcase.spectator.label", titleKey: "studio.workspace.showcase.spectator.title", metaKey: "studio.workspace.showcase.spectator.meta", desktopRatio: "1x1" }
-];
-
-function showcaseHref(prompt: string) {
-  return `/studio?mode=video&workflow=text-to-video&duration=5s&prompt=${encodeURIComponent(prompt)}`;
-}
-
-function ShowcaseVideo({ file, desktopRatio = "16x9", mobileRatio = "1x1", className = "" }: { file: string; desktopRatio?: "16x9" | "1x1"; mobileRatio?: "16x9" | "1x1"; className?: string }) {
-  return (
-    <ViewportVideo
-      muted loop playsInline className={className}
-      mobileSrc={`${VIDEO_BASE_URL}/${mobileRatio}/${file}-${mobileRatio}.mp4`}
-      src={`${VIDEO_BASE_URL}/${desktopRatio}/${file}-${desktopRatio}.mp4`}
-    />
-  );
-}
 
 export function StudioHome({ t, locale, onCreate }: { t: Translate; locale: Locale; onCreate: (input: HomeCreationInput) => void }) {
-  const [videoTemplatesRequest, setVideoTemplatesRequest] = useState(0);
   const [draft, setDraft] = useState("");
   const [intent, setIntent] = useState<"video" | "image" | "audio">("video");
   const [upload, setUpload] = useState<{ dataUrl: string; name: string } | null>(null);
@@ -101,18 +69,7 @@ export function StudioHome({ t, locale, onCreate }: { t: Translate; locale: Loca
         </div>
       </section>
 
-      <section className="df-home-gallery" aria-labelledby="studio-featured-title">
-        <StudioSectionHeading id="studio-featured-title" title={t("studio.workspace.featuredTitle")} description={t("studio.workspace.featuredHint")} action={<StudioButton variant="ghost" data-open-video-templates onClick={() => setVideoTemplatesRequest(value => value + 1)}>{t("studio.templates.viewVideos")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></StudioButton>} />
-        <div className="studio-showcase-grid">
-          {SHOWCASES.map(item => <Link key={item.key} href={showcaseHref(item.prompt)} className="studio-showcase">
-            <ShowcaseVideo file={item.file} desktopRatio={item.desktopRatio} />
-            <span className="df-tile-type"><StudioIcon name="video" className="h-3 w-3" />{t("studio.workbench.sampleVideo")}</span>
-            <span className="studio-showcase-caption"><strong>{t(item.titleKey)}</strong><small>{t(item.labelKey)}<span className="inline-flex items-center gap-1">{t("studio.workspace.start")}<StudioIcon name="chevron-right" className="h-3 w-3 rtl:rotate-180" /></span></small></span>
-          </Link>)}
-        </div>
-      </section>
-
-      <StudioDeferredSection><CombinedTemplateGallery translate={t} locale={locale} videoFocusRequest={videoTemplatesRequest} /></StudioDeferredSection>
+      <StudioDeferredSection><CombinedTemplateGallery translate={t} locale={locale} /></StudioDeferredSection>
     </div>
   );
 }

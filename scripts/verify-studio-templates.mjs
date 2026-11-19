@@ -9,15 +9,21 @@ assert.equal(new Set(catalog.items.map(item => item.id)).size, catalog.items.len
 assert.equal(catalog.selection.limitPerCategory, null, "Import the complete public category lists without a per-category cap");
 assert.equal(catalog.selection.coverage, "all-public-category-videos");
 assert.equal(catalog.selection.publishedAtAvailable, false, "Do not invent publication dates for the public feed");
-for (const category of ["motion", "ugc", "tiktok"]) {
+for (const category of ["motion", "ugc", "tiktok", "shorts"]) {
   const count = catalog.items.filter(item => item.categories.includes(category)).length;
-  assert.ok(count >= 25);
+  assert.ok(count >= (category === "shorts" ? 1 : 25));
   assert.equal(count, catalog.categoryCounts[category]);
 }
 assert.ok(catalog.categoryCounts.motion > 25 && catalog.categoryCounts.ugc > 25, "Retain entries beyond the previous 25-item selection");
 for (const item of catalog.items) {
   assert.ok(item.id && item.title && item.width > 0 && item.height > 0);
   assert.ok(!("prompt" in item), "Preview assets must not invent an executable generation preset");
+  if (item.categories.includes("shorts")) {
+    assert.equal(item.sourceUrl, "https://higgsfield.ai/shorts-studio");
+    assert.match(item.videoUrl, /^https:\/\/static-public-media\.higgsfield\.ai\/ai-reels-presets\/[\da-f-]+\.mp4$/);
+    assert.match(item.posterUrl, /^https:\/\/static-public-media\.higgsfield\.ai\/ai-reels-presets\/[\da-f-]+\.webp$/);
+    continue;
+  }
   for (const key of ["videoUrl", "posterUrl", "sourceUrl"]) {
     const url = new URL(item[key]);
     assert.equal(url.protocol, "https:");
@@ -67,6 +73,6 @@ assert.ok(source.includes('<VideoTemplateGallery translate={st} locale={studioI1
 const videoSettings=readFileSync("src/features/studio/video-settings.tsx","utf8");
 assert.ok(videoSettings.includes('data-video-workspace={workflow}'));
 assert.ok(!videoSettings.includes('df-preview-stage')&&!videoSettings.includes('promptShowcases'),"Side preview and sample rail were intentionally removed from video creation");
-console.log(`Studio templates passed: all ${catalog.categoryCounts.motion} Motion + ${catalog.categoryCounts.ugc} UGC + ${catalog.categoryCounts.tiktok} TikTok public video references, valid metadata and source links, and template gallery retained below the creation form. No network or paid calls.`);
+console.log(`Studio templates passed: ${catalog.categoryCounts.motion} Motion + ${catalog.categoryCounts.ugc} UGC + ${catalog.categoryCounts.tiktok} TikTok + ${catalog.categoryCounts.shorts} Shorts. Valid metadata and source links. No network or paid calls.`);
 console.log(`Image templates passed: all ${images.items.length} public CDN images with complete Product shot/Ads/Posters/Marketplace and All ordering; no local pictures or executable generation presets.`);
 console.log(`Title localization passed: all ${titles.length} unique source titles covered in 16 locale files; source hash and complete nonempty display strings verified.`);

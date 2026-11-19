@@ -94,9 +94,7 @@ document.hidden=true;for(const cb of listeners)cb();assert.equal(videos.filter(v
 document.hidden=false;for(const cb of listeners)cb();assert.equal(videos.filter(v=>v.playing).length,1);
 for(const preview of previews)preview.cleanup();assert.equal(videos.filter(v=>v.playing).length,0);assert.equal(listeners.size,0);
 
-// Home now restores all four original examples; each visible tile can play.
-const homeSource=readFileSync('src/features/studio/studio-home.tsx','utf8');
-assert.doesNotMatch(homeSource,/playbackGroup=/);
+// Visible videos without a playback group can play independently.
 const offset=observers.length;
 const independent=Array.from({length:4},(_,i)=>runner({src:`https://media.test/home-${i}.mp4`}));
 for(let i=0;i<independent.length;i++){observers[offset+i].notify(true);independent[i].render();}
@@ -106,4 +104,4 @@ document.hidden=true;for(const cb of listeners)cb();assert.equal(videos.filter(v
 document.hidden=false;for(const cb of listeners)cb();assert.equal(videos.filter(v=>v.playing).length,3);
 for(const preview of independent)preview.cleanup();assert.equal(videos.filter(v=>v.playing).length,0);assert.equal(listeners.size,0);
 globalThis.window=oldWindow;globalThis.document=oldDocument;globalThis.IntersectionObserver=oldObserver;
-console.log('Studio performance regression passed: no-fetch navigation and history semantics preserved; grouped previews remain exclusive; all four visible home examples can play independently; offscreen/hidden/unmounted videos pause. No database or paid API calls.');
+console.log('Studio performance regression passed: no-fetch navigation and history semantics preserved; grouped previews remain exclusive; ungrouped videos can play independently; offscreen/hidden/unmounted videos pause. No database or paid API calls.');

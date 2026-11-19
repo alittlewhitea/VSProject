@@ -945,7 +945,7 @@
   "studio.videoWorkbench.ready": "Sẵn sàng tạo",
   "studio.videoWorkbench.referenceHint": "Upload or paste one image to animate into video.",
   "studio.videoWorkbench.referenceImage": "Reference image",
-  "studio.videoWorkbench.singleFrameHint": "This model accepts one image only.",
+  "studio.videoWorkbench.singleFrameHint": "Nhiều ảnh? Dùng Tham chiếu",
   "studio.videoWorkbench.startFrame": "Start frame",
   "studio.videoWorkbench.textHeroDescription": "Mô tả cảnh, camera, phong cách và mục đích rồi tạo video với chi phí rõ ràng.",
   "studio.videoWorkbench.uploadError": "Choose up to {count} JPEG, PNG or WebP images, each no larger than 30 MB.",

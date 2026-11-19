@@ -945,7 +945,7 @@
   "studio.videoWorkbench.ready": "Listo para generar",
   "studio.videoWorkbench.referenceHint": "Upload or paste one image to animate into video.",
   "studio.videoWorkbench.referenceImage": "Reference image",
-  "studio.videoWorkbench.singleFrameHint": "This model accepts one image only.",
+  "studio.videoWorkbench.singleFrameHint": "¿Varias imágenes? Usa Referencia",
   "studio.videoWorkbench.startFrame": "Start frame",
   "studio.videoWorkbench.textHeroDescription": "Describe the scene, camera motion, style and final use, then generate video with clear credit cost.",
   "studio.videoWorkbench.uploadError": "Choose up to {count} JPEG, PNG or WebP images, each no larger than 30 MB.",

@@ -12,13 +12,11 @@ type UnifiedWorkbenchLayoutProps = {
   editor: ReactNode;
   settings: ReactNode;
   modelSelector?: ReactNode;
-  translate: (key: string, values?: Record<string, string | number | null | undefined>) => string;
 };
 
 /** Creation controls only; generated media stays available in Projects. */
-export function UnifiedWorkbenchLayout({ mode, editor, settings, modelSelector, translate, workflowTabs, statusMessage, statusTone }: UnifiedWorkbenchLayoutProps) {
+export function UnifiedWorkbenchLayout({ mode, editor, settings, modelSelector, workflowTabs, statusMessage, statusTone }: UnifiedWorkbenchLayoutProps) {
   if(mode==="avatar") return <div className="df-unified-workspace df-mode-avatar df-avatar-composer" data-creation-workspace="avatar">
-    <div className="df-avatar-composer-heading"><h2>{translate("studio.avatarWorkbench.studio")}</h2></div>
     <StudioPanel className="df-unified-inspector">
       <div data-creation-input>{editor}</div>
       <div data-creation-config className="df-avatar-composer-footer">

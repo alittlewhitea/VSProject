@@ -6,7 +6,7 @@ const en: StudioMessages = {
   "studio.videoWorkbench.startFrame": "Start frame",
   "studio.videoWorkbench.endFrame": "End frame (optional)",
   "studio.videoWorkbench.keyframeHint": "Up to 2 images: start frame first, end frame second. Not multiple subject references.",
-  "studio.videoWorkbench.singleFrameHint": "This model accepts one image only.",
+  "studio.videoWorkbench.singleFrameHint": "Multiple images? Use Reference",
   "studio.videoWorkbench.uploadError": "Choose up to {count} JPEG, PNG or WebP images, each no larger than 30 MB.",
   "studio.videoWorkbench.endFrameRemoved": "This model only accepts one image. The end frame was removed.",
   "studio.videoWorkbench.textHeroDescription": "Describe the scene, camera motion, style and final use, then generate video with clear credit cost.",
@@ -39,7 +39,7 @@ const zhCN: StudioMessages = {
   "studio.videoWorkbench.startFrame": "首帧",
   "studio.videoWorkbench.endFrame": "尾帧（可选）",
   "studio.videoWorkbench.keyframeHint": "最多两张：第一张为首帧，第二张为尾帧，并非多主体参考图。",
-  "studio.videoWorkbench.singleFrameHint": "当前模型仅支持一张图片。",
+  "studio.videoWorkbench.singleFrameHint": "多图？用参考生视频",
   "studio.videoWorkbench.uploadError": "请选择最多 {count} 张 JPEG、PNG 或 WebP 图片，每张不超过 30 MB。",
   "studio.videoWorkbench.endFrameRemoved": "当前模型只支持单图，已移除尾帧。",
   "studio.videoWorkbench.textHeroDescription": "描述场景、镜头运动、风格和最终用途，并在生成前清楚看到积分成本。",
@@ -73,7 +73,7 @@ export const studioVideoWorkbenchMessages: Partial<Record<Locale, StudioMessages
     "studio.videoWorkbench.startFrame": "Fotogramma iniziale",
     "studio.videoWorkbench.endFrame": "Fotogramma finale (facoltativo)",
     "studio.videoWorkbench.keyframeHint": "Fino a 2 immagini: prima quella iniziale, poi quella finale. Non riferimenti di soggetti multipli.",
-    "studio.videoWorkbench.singleFrameHint": "Questo modello accetta una sola immagine.",
+    "studio.videoWorkbench.singleFrameHint": "Più immagini? Usa Riferimenti",
     "studio.videoWorkbench.uploadError": "Scegli fino a {count} immagini JPEG, PNG o WebP, massimo 30 MB ciascuna.",
     "studio.videoWorkbench.endFrameRemoved": "Questo modello accetta una sola immagine. Il fotogramma finale è stato rimosso."
   },
@@ -81,7 +81,7 @@ export const studioVideoWorkbenchMessages: Partial<Record<Locale, StudioMessages
     "studio.videoWorkbench.startFrame": "إطار البداية",
     "studio.videoWorkbench.endFrame": "إطار النهاية (اختياري)",
     "studio.videoWorkbench.keyframeHint": "صورتان كحد أقصى: إطار البداية ثم إطار النهاية، وليست مراجع متعددة للعناصر.",
-    "studio.videoWorkbench.singleFrameHint": "يدعم هذا النموذج صورة واحدة فقط.",
+    "studio.videoWorkbench.singleFrameHint": "عدة صور؟ استخدم المراجع",
     "studio.videoWorkbench.uploadError": "اختر حتى {count} صور JPEG أو PNG أو WebP بحجم لا يتجاوز 30 ميغابايت لكل صورة.",
     "studio.videoWorkbench.endFrameRemoved": "يدعم هذا النموذج صورة واحدة فقط. تمت إزالة إطار النهاية."
   },
@@ -91,7 +91,7 @@ export const studioVideoWorkbenchMessages: Partial<Record<Locale, StudioMessages
     "studio.videoWorkbench.startFrame": "首幀",
     "studio.videoWorkbench.endFrame": "尾幀（可選）",
     "studio.videoWorkbench.keyframeHint": "最多兩張：第一張為首幀，第二張為尾幀，並非多主體參考圖。",
-    "studio.videoWorkbench.singleFrameHint": "目前模型僅支援一張圖片。",
+    "studio.videoWorkbench.singleFrameHint": "多圖？用參考生成影片",
     "studio.videoWorkbench.uploadError": "請選擇最多 {count} 張 JPEG、PNG 或 WebP 圖片，每張不超過 30 MB。",
     "studio.videoWorkbench.endFrameRemoved": "目前模型只支援單圖，已移除尾幀。",
     "studio.videoWorkbench.textHeroDescription": "描述場景、鏡頭運動、風格和最終用途，並在生成前清楚看到點數成本。",
@@ -105,6 +105,7 @@ export const studioVideoWorkbenchMessages: Partial<Record<Locale, StudioMessages
   },
   "pt-BR": {
     ...en,
+    "studio.videoWorkbench.singleFrameHint": "Várias imagens? Use Referência",
     "studio.videoWorkbench.textHeroDescription": "Descreva cena, câmera, estilo e uso final, e gere vídeo com custo claro.",
     "studio.videoWorkbench.imageHeroDescription": "Envie uma imagem de referência, descreva o movimento e gere vídeo com custo claro.",
     "studio.videoWorkbench.promptStudio": "Estúdio de prompt de vídeo",
@@ -115,6 +116,7 @@ export const studioVideoWorkbenchMessages: Partial<Record<Locale, StudioMessages
   },
   ru: {
     ...en,
+    "studio.videoWorkbench.singleFrameHint": "Несколько изображений? Откройте референсы",
     "studio.videoWorkbench.textHeroDescription": "Опишите сцену, камеру, стиль и назначение, затем создайте видео с понятной стоимостью.",
     "studio.videoWorkbench.imageHeroDescription": "Загрузите референс, опишите движение и создайте видео с понятной стоимостью.",
     "studio.videoWorkbench.promptStudio": "Студия видео-промпта",
@@ -125,6 +127,7 @@ export const studioVideoWorkbenchMessages: Partial<Record<Locale, StudioMessages
   },
   vi: {
     ...en,
+    "studio.videoWorkbench.singleFrameHint": "Nhiều ảnh? Dùng Tham chiếu",
     "studio.videoWorkbench.textHeroDescription": "Mô tả cảnh, camera, phong cách và mục đích rồi tạo video với chi phí rõ ràng.",
     "studio.videoWorkbench.imageHeroDescription": "Tải ảnh tham chiếu, mô tả chuyển động rồi tạo video với chi phí rõ ràng.",
     "studio.videoWorkbench.promptStudio": "Studio prompt video",
@@ -133,12 +136,12 @@ export const studioVideoWorkbenchMessages: Partial<Record<Locale, StudioMessages
     "studio.videoWorkbench.waitingPrompt": "Thêm prompt",
     "studio.videoWorkbench.waitingImage": "Thêm ảnh và prompt"
   },
-  de: { ...en, "studio.videoWorkbench.promptStudio": "Video Prompt Studio", "studio.videoWorkbench.motionStudio": "Motion Studio", "studio.videoWorkbench.ready": "Bereit zum Generieren", "studio.videoWorkbench.waitingPrompt": "Prompt hinzufügen", "studio.videoWorkbench.waitingImage": "Bild und Prompt hinzufügen" },
-  fr: { ...en, "studio.videoWorkbench.promptStudio": "Studio de prompt vidéo", "studio.videoWorkbench.motionStudio": "Studio de mouvement", "studio.videoWorkbench.ready": "Prêt à générer", "studio.videoWorkbench.waitingPrompt": "Ajoutez un prompt", "studio.videoWorkbench.waitingImage": "Ajoutez image et prompt" },
-  ja: { ...en, "studio.videoWorkbench.promptStudio": "動画プロンプトスタジオ", "studio.videoWorkbench.motionStudio": "モーションスタジオ", "studio.videoWorkbench.ready": "生成準備完了", "studio.videoWorkbench.waitingPrompt": "プロンプトを追加", "studio.videoWorkbench.waitingImage": "画像とプロンプトを追加" },
-  th: { ...en, "studio.videoWorkbench.promptStudio": "สตูดิโอพรอมป์ตวิดีโอ", "studio.videoWorkbench.motionStudio": "สตูดิโอการเคลื่อนไหว", "studio.videoWorkbench.ready": "พร้อมสร้าง", "studio.videoWorkbench.waitingPrompt": "เพิ่มพรอมป์ต", "studio.videoWorkbench.waitingImage": "เพิ่มภาพและพรอมป์ต" },
-  nl: { ...en, "studio.videoWorkbench.promptStudio": "Video promptstudio", "studio.videoWorkbench.motionStudio": "Motion studio", "studio.videoWorkbench.ready": "Klaar om te genereren", "studio.videoWorkbench.waitingPrompt": "Voeg een prompt toe", "studio.videoWorkbench.waitingImage": "Voeg afbeelding en prompt toe" },
-  he: { ...en, "studio.videoWorkbench.promptStudio": "סטודיו פרומפט וידאו", "studio.videoWorkbench.motionStudio": "סטודיו תנועה", "studio.videoWorkbench.ready": "מוכן ליצירה", "studio.videoWorkbench.waitingPrompt": "הוסף פרומפט", "studio.videoWorkbench.waitingImage": "הוסף תמונה ופרומפט" },
-  ko: { ...en, "studio.videoWorkbench.promptStudio": "비디오 프롬프트 스튜디오", "studio.videoWorkbench.motionStudio": "모션 스튜디오", "studio.videoWorkbench.ready": "생성 준비 완료", "studio.videoWorkbench.waitingPrompt": "프롬프트 추가", "studio.videoWorkbench.waitingImage": "이미지와 프롬프트 추가" },
-  es: { ...en, "studio.videoWorkbench.promptStudio": "Estudio de prompt de video", "studio.videoWorkbench.motionStudio": "Estudio de movimiento", "studio.videoWorkbench.ready": "Listo para generar", "studio.videoWorkbench.waitingPrompt": "Añade un prompt", "studio.videoWorkbench.waitingImage": "Añade imagen y prompt" }
+  de: { ...en, "studio.videoWorkbench.singleFrameHint": "Mehrere Bilder? Nutze Referenzen", "studio.videoWorkbench.promptStudio": "Video Prompt Studio", "studio.videoWorkbench.motionStudio": "Motion Studio", "studio.videoWorkbench.ready": "Bereit zum Generieren", "studio.videoWorkbench.waitingPrompt": "Prompt hinzufügen", "studio.videoWorkbench.waitingImage": "Bild und Prompt hinzufügen" },
+  fr: { ...en, "studio.videoWorkbench.singleFrameHint": "Plusieurs images ? Utilisez Référence", "studio.videoWorkbench.promptStudio": "Studio de prompt vidéo", "studio.videoWorkbench.motionStudio": "Studio de mouvement", "studio.videoWorkbench.ready": "Prêt à générer", "studio.videoWorkbench.waitingPrompt": "Ajoutez un prompt", "studio.videoWorkbench.waitingImage": "Ajoutez image et prompt" },
+  ja: { ...en, "studio.videoWorkbench.singleFrameHint": "複数の画像なら参照モードへ", "studio.videoWorkbench.promptStudio": "動画プロンプトスタジオ", "studio.videoWorkbench.motionStudio": "モーションスタジオ", "studio.videoWorkbench.ready": "生成準備完了", "studio.videoWorkbench.waitingPrompt": "プロンプトを追加", "studio.videoWorkbench.waitingImage": "画像とプロンプトを追加" },
+  th: { ...en, "studio.videoWorkbench.singleFrameHint": "หลายภาพ? ใช้โหมดอ้างอิง", "studio.videoWorkbench.promptStudio": "สตูดิโอพรอมป์ตวิดีโอ", "studio.videoWorkbench.motionStudio": "สตูดิโอการเคลื่อนไหว", "studio.videoWorkbench.ready": "พร้อมสร้าง", "studio.videoWorkbench.waitingPrompt": "เพิ่มพรอมป์ต", "studio.videoWorkbench.waitingImage": "เพิ่มภาพและพรอมป์ต" },
+  nl: { ...en, "studio.videoWorkbench.singleFrameHint": "Meerdere beelden? Gebruik Referentie", "studio.videoWorkbench.promptStudio": "Video promptstudio", "studio.videoWorkbench.motionStudio": "Motion studio", "studio.videoWorkbench.ready": "Klaar om te genereren", "studio.videoWorkbench.waitingPrompt": "Voeg een prompt toe", "studio.videoWorkbench.waitingImage": "Voeg afbeelding en prompt toe" },
+  he: { ...en, "studio.videoWorkbench.singleFrameHint": "כמה תמונות? השתמשו במצב רפרנס", "studio.videoWorkbench.promptStudio": "סטודיו פרומפט וידאו", "studio.videoWorkbench.motionStudio": "סטודיו תנועה", "studio.videoWorkbench.ready": "מוכן ליצירה", "studio.videoWorkbench.waitingPrompt": "הוסף פרומפט", "studio.videoWorkbench.waitingImage": "הוסף תמונה ופרומפט" },
+  ko: { ...en, "studio.videoWorkbench.singleFrameHint": "여러 이미지라면 참조 모드로", "studio.videoWorkbench.promptStudio": "비디오 프롬프트 스튜디오", "studio.videoWorkbench.motionStudio": "모션 스튜디오", "studio.videoWorkbench.ready": "생성 준비 완료", "studio.videoWorkbench.waitingPrompt": "프롬프트 추가", "studio.videoWorkbench.waitingImage": "이미지와 프롬프트 추가" },
+  es: { ...en, "studio.videoWorkbench.singleFrameHint": "¿Varias imágenes? Usa Referencia", "studio.videoWorkbench.promptStudio": "Estudio de prompt de video", "studio.videoWorkbench.motionStudio": "Estudio de movimiento", "studio.videoWorkbench.ready": "Listo para generar", "studio.videoWorkbench.waitingPrompt": "Añade un prompt", "studio.videoWorkbench.waitingImage": "Añade imagen y prompt" }
 };

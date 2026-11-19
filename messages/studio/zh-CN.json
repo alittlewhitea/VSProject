@@ -945,7 +945,7 @@
   "studio.videoWorkbench.ready": "可以生成",
   "studio.videoWorkbench.referenceHint": "上传或粘贴一张图片，将它驱动成视频。",
   "studio.videoWorkbench.referenceImage": "参考图片",
-  "studio.videoWorkbench.singleFrameHint": "当前模型仅支持一张图片。",
+  "studio.videoWorkbench.singleFrameHint": "多图？用参考生视频",
   "studio.videoWorkbench.startFrame": "首帧",
   "studio.videoWorkbench.textHeroDescription": "描述场景、镜头运动、风格和最终用途，并在生成前清楚看到积分成本。",
   "studio.videoWorkbench.uploadError": "请选择最多 {count} 张 JPEG、PNG 或 WebP 图片，每张不超过 30 MB。",

@@ -5,7 +5,8 @@
   "categoryCounts": {
     "motion": 235,
     "ugc": 61,
-    "tiktok": 25
+    "tiktok": 25,
+    "shorts": 40
   },
   "items": [
     {
@@ -3859,6 +3860,486 @@
       "width": 1080,
       "height": 1440,
       "sourceUrl": "https://higgsfield.ai/marketing-studio/preset/mess-to-fresh-1a129f19-4c5c-40f9-9318-a7ebcc9ee531"
+    },
+    {
+      "id": "81a377f1-3986-4524-ba72-38f555cffb9b",
+      "title": "Garden Storytime",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/2dfd9fdb-4c03-4fba-8a77-0ea9e16cc2ce.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/fd2a36ff-a8ad-45bb-a436-25a303fe7fae.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "6850c551-da96-4a99-b317-20002e5add29",
+      "title": "Starting a Clothing Brand",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/aad4cd21-791d-4ec7-8f86-f64d34de535f.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/d1b52b79-b9f9-445f-be0e-819f05f73d5e.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "71e5083a-2374-47ae-a1ac-83fe4c227af2",
+      "title": "An Unforgettable Party",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/7427d6be-b0eb-41f6-ae97-d08bcf12d568.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/542a9b20-78f5-40fb-a70b-7f35fc04b39d.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "f2f8f72f-becb-460a-bc3f-d644f6634f49",
+      "title": "Colosseum Secrets",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/28563ed1-a6a3-4c1f-b85a-7a07fc0ad281.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/4674c1de-0260-4496-b22a-6cd8d34314db.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "fadb40f2-9af4-4985-a2b1-a1964e0c5cf8",
+      "title": "The Film Look",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/b9013fb5-25ab-4649-8fb0-0a45ea0b910f.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/2119dadf-0d0f-4d94-966d-80f0d4922846.webp",
+      "width": 1440,
+      "height": 1080,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "cc854b92-7643-4c5d-8489-564f6968f9e1",
+      "title": "Learn to Draw",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/ecca5e81-5381-4b1d-b06d-d6368de62a1c.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/96f9dd58-999f-41ee-b086-82474803007b.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "c5a3cefc-952a-4fb1-bc35-8a566dfa85ba",
+      "title": "Mosaics and Stained Glass",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/d0231f66-a813-4e42-8a02-40d368fe1be7.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/1c2cbbc7-d232-42af-815f-a9448df220f8.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "b2648193-71ad-450f-a6e6-ce0b45073704",
+      "title": "Your First Tattoo",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/8fcf83dd-e3aa-4e01-a187-2d2e9e540eac.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/34212850-d43c-447d-936c-f2c3391ad320.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "ed06e83a-0fed-414a-a69d-c77a3633c1d1",
+      "title": "Three Projects, Better Portfolio",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/568a6457-73b1-4aa3-88b7-82f2f6e3faa9.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/dc478277-311c-4c10-a3e4-fda1b044be0a.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "270adbc2-45d6-43cb-b1c9-d60b56e3a189",
+      "title": "Time with Your Parents",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/df511172-8abe-40ac-ae2d-813c74ef64e4.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/528efe16-53f1-4f88-82a5-ba9970f78f0f.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "46e50abb-5f83-4f9a-99d8-a2a8a602ad48",
+      "title": "Toykind Sunday",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/1575b25e-fdf8-418e-aadf-0c0ec5200bb3.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/fa3341aa-f825-4df6-9998-ef0be2781545.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "44eaf126-47a3-4926-ad56-fcdcafec73e9",
+      "title": "Why Serifs Feel Trustworthy",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/2248e6c9-b5da-4c78-8e06-de4aab73d529.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/5db4dcd4-73a5-4aaa-850a-dfed57f87c0a.webp",
+      "width": 1920,
+      "height": 1080,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "a282be1f-25f5-4ffb-8515-8e96a38b4d4b",
+      "title": "Speak with Confidence",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/93936c47-e5a7-4e17-b1f3-8fb40ae44da2.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/54ac29ee-6343-45e6-9ca3-9b4c0a8ad6f2.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "206e7238-93b7-4c23-847b-7bcce2b40472",
+      "title": "Talking Head Setup 006",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/38abb925-60f2-4abf-920a-5a903b79094b.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/f2307b68-8fe5-4379-916c-9cd61080246c.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "0569e61d-ae45-48b9-8f60-67c06757a3ea",
+      "title": "Chase Your Dreams",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/7cc20516-8826-402e-bc76-095e48502528.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/ef9cd437-d00a-4ee8-93dc-bb70030e84e6.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "faece888-6d58-4b53-a678-712fd41b72ef",
+      "title": "AI Agent Demo",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/690f25ef-ef8e-4cf3-b189-d5710f7d68d5.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/b1448382-9d49-4e47-94f9-8e6fa01ea955.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "50ad20da-b1ec-4cf0-ab5a-b0641c433a56",
+      "title": "Outfit Second Thoughts",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/49360d81-5154-42c6-a06a-ee4cdefcae5f.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/34b66c6b-69d5-476b-9034-f2947092404c.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "d58a8b46-6f35-4237-b0d5-86370427a79b",
+      "title": "Gifts with a Story",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/d16f83d3-d4bb-48eb-9c9f-f5d49131f921.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/7e5201b6-79ad-481a-a020-b5cbf9d97eca.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "ba834e0d-4d70-4d71-bdf0-22efcc8888bf",
+      "title": "Storm to Summer",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/d6de364e-4e3f-4c20-9996-36e8de4e6b99.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/cead8890-323b-47a0-bfd3-8243227e3285.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "f5e36771-2d17-4d0a-890e-e3a7566504cf",
+      "title": "Pixel Avatar",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/151c3495-8cda-4adb-ade0-3485ee6acbf5.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/9353ebf7-6063-4ee1-a8ee-c057835c0b54.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "7fa22707-49c6-42fb-92e6-facc9b16cc52",
+      "title": "Bonsai Patience",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/2de11892-e38b-4e0e-982c-e1ec4dee4599.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/3f7b4c63-e7ea-4e95-a812-2fec956c635c.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "93384eba-f263-42db-8769-e6fb404d26f9",
+      "title": "Redesign Your Room",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/7956b34f-2054-4be4-a082-ed6052298b56.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/2a3cdc71-4a49-49da-ac5e-0e6fabfea239.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "e0b7fa90-8421-47c0-931c-15a097f97715",
+      "title": "From Images to Anime",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/dfbd4bf0-fb3c-4f19-bcee-d306cbe5db72.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/00ccf0ec-15e4-4650-b661-4011e64e8c50.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "2f6a2299-6b02-4f9f-b56c-907554e1093e",
+      "title": "One Hour of Focus",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/3ef84cfa-6c7f-431f-8700-002c925da408.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/12741510-b52a-48c5-8a12-fc6c9af65e51.webp",
+      "width": 960,
+      "height": 720,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "76ec0a3e-bac6-4d62-8063-60cdff8fef51",
+      "title": "Build Your Keyboard",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/99369d17-2860-42e9-9ada-ef083ffaccd6.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/59327d56-f168-4bf5-bc92-ac8019c10687.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "d6d6369f-3f6c-4181-be19-bd13f8b81b63",
+      "title": "Scan Your Street",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/844c7bab-687c-44a6-ab07-d02b3870d919.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/bee2e014-67a9-4284-8afd-50aeb1e3f5c5.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "3d7d5e17-8dab-4fb4-a541-e93bc6aa76a3",
+      "title": "Know Your Creative Value",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/71251a1d-642e-40fa-9679-7c6da8a5ea5e.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/53ab355d-2584-459e-85e2-d73d2f846049.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "19a769d8-548c-44e0-ad2f-151a5a2b2969",
+      "title": "Perfume Shot Ideas",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/c7bab600-93f2-4df7-bbad-12a567d9cdb7.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/2629a5c8-9e61-4601-a265-79659cf1a0c7.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "09d6e7b4-387e-418f-8b96-d49fb9b5e76c",
+      "title": "Better Phone Videos",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/ee643d81-f848-4ff2-a1ac-227fbfc71b50.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/b042ed6a-0bd1-432b-98fd-6502d7a0072b.webp",
+      "width": 1200,
+      "height": 720,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "55e82c61-b533-468c-8949-5d28d36bbcf7",
+      "title": "Better Date Questions",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/5a389cf0-c8bd-4c39-b238-83850f26c5d4.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/f8768ad7-992f-45c8-8df7-ecba46a976ed.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "1559f396-e8a2-4528-9cd4-85cc4f05493e",
+      "title": "Pack More Travel Light",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/edf2326a-c168-4331-b200-6dc350448c3a.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/489bfbff-23a8-4863-8c3b-1a354199a845.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "cd41c39a-7193-47a2-bf89-4d523c4b0d91",
+      "title": "Faceless Content Page",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/4c0a7adb-85d6-4187-be6f-87a9964b3cf7.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/08acb433-d7d3-46ca-ad24-47a9379ff247.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "d71ffd35-1d19-41f3-8ad1-c2dba77d3ad7",
+      "title": "A Room with Personality",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/4d300970-6871-42b8-aa04-7f9a74c7818d.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/4f9f1775-8253-4e57-b9af-0fa22b07345f.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "2251acbd-3ea4-422e-ab61-ae80d84f64fa",
+      "title": "Places That Look Unreal",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/dcd2bf45-d401-4227-896f-73bc3ee2ae05.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/2cd026be-06f9-44c2-8752-933bbe131b09.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "bc2c3138-9f1b-4751-928a-5a6069204f3d",
+      "title": "English That Matters",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/01d97285-5ec0-445c-848c-e42c14423cb6.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/91a66614-8e50-4d4b-83a6-c767f62353f1.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "8c107a29-e669-45f0-a327-a68732e14899",
+      "title": "Phone Battery Habits",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/2fff4830-583e-4ede-91d1-28f79129c41d.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/99a5dc7d-6bb0-4429-8311-3685a46bef4e.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "5aaccbac-e67b-4eae-97f0-0dd5544c9fb9",
+      "title": "Better Snack Combos",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/f9941391-d4ad-422f-9ff6-3dc7351538af.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/f7f51f98-4bba-473b-90cc-943033d1932c.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "70e0919c-59f8-4e6f-9b8e-4629b97e77a7",
+      "title": "Freelance Freedom",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/6a45a394-2195-4bbb-b0c9-7e6308cf8aa4.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/efa0d7d6-404c-4935-90ea-9fe97e347fe0.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "d66e2b94-e8c8-4b9f-82a9-e1ba8507076f",
+      "title": "Your First Solo Weekend",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/0331869f-3736-4e8c-b40c-142548eef3a9.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/9d0ff878-12e8-4754-a818-381d42c6ff8f.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
+    },
+    {
+      "id": "e32de215-055e-4ea0-8900-75010040ec06",
+      "title": "Supermarket Bouquet Upgrade",
+      "categories": [
+        "shorts"
+      ],
+      "videoUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/f087f48a-d3ec-46b7-9323-2f0aadbd5d24.mp4",
+      "posterUrl": "https://static-public-media.higgsfield.ai/ai-reels-presets/e6e3d617-714f-49d1-9277-16371b20649a.webp",
+      "width": 1080,
+      "height": 1920,
+      "sourceUrl": "https://higgsfield.ai/shorts-studio"
     }
   ],
   "selection": {
@@ -4189,7 +4670,89 @@
       "6d054dab-fe89-4ed0-ae5a-503088d4b1ee",
       "e2713991-c79d-424c-ad39-74d85d56e502",
       "db167689-c484-4108-9bc7-842356e3018c",
-      "71111362-f613-4ffd-8804-ea776e79d342"
+      "71111362-f613-4ffd-8804-ea776e79d342",
+      "81a377f1-3986-4524-ba72-38f555cffb9b",
+      "6850c551-da96-4a99-b317-20002e5add29",
+      "71e5083a-2374-47ae-a1ac-83fe4c227af2",
+      "f2f8f72f-becb-460a-bc3f-d644f6634f49",
+      "fadb40f2-9af4-4985-a2b1-a1964e0c5cf8",
+      "cc854b92-7643-4c5d-8489-564f6968f9e1",
+      "c5a3cefc-952a-4fb1-bc35-8a566dfa85ba",
+      "b2648193-71ad-450f-a6e6-ce0b45073704",
+      "ed06e83a-0fed-414a-a69d-c77a3633c1d1",
+      "270adbc2-45d6-43cb-b1c9-d60b56e3a189",
+      "46e50abb-5f83-4f9a-99d8-a2a8a602ad48",
+      "44eaf126-47a3-4926-ad56-fcdcafec73e9",
+      "a282be1f-25f5-4ffb-8515-8e96a38b4d4b",
+      "206e7238-93b7-4c23-847b-7bcce2b40472",
+      "0569e61d-ae45-48b9-8f60-67c06757a3ea",
+      "faece888-6d58-4b53-a678-712fd41b72ef",
+      "50ad20da-b1ec-4cf0-ab5a-b0641c433a56",
+      "d58a8b46-6f35-4237-b0d5-86370427a79b",
+      "ba834e0d-4d70-4d71-bdf0-22efcc8888bf",
+      "f5e36771-2d17-4d0a-890e-e3a7566504cf",
+      "7fa22707-49c6-42fb-92e6-facc9b16cc52",
+      "93384eba-f263-42db-8769-e6fb404d26f9",
+      "e0b7fa90-8421-47c0-931c-15a097f97715",
+      "2f6a2299-6b02-4f9f-b56c-907554e1093e",
+      "76ec0a3e-bac6-4d62-8063-60cdff8fef51",
+      "d6d6369f-3f6c-4181-be19-bd13f8b81b63",
+      "3d7d5e17-8dab-4fb4-a541-e93bc6aa76a3",
+      "19a769d8-548c-44e0-ad2f-151a5a2b2969",
+      "09d6e7b4-387e-418f-8b96-d49fb9b5e76c",
+      "55e82c61-b533-468c-8949-5d28d36bbcf7",
+      "1559f396-e8a2-4528-9cd4-85cc4f05493e",
+      "cd41c39a-7193-47a2-bf89-4d523c4b0d91",
+      "d71ffd35-1d19-41f3-8ad1-c2dba77d3ad7",
+      "2251acbd-3ea4-422e-ab61-ae80d84f64fa",
+      "bc2c3138-9f1b-4751-928a-5a6069204f3d",
+      "8c107a29-e669-45f0-a327-a68732e14899",
+      "5aaccbac-e67b-4eae-97f0-0dd5544c9fb9",
+      "70e0919c-59f8-4e6f-9b8e-4629b97e77a7",
+      "d66e2b94-e8c8-4b9f-82a9-e1ba8507076f",
+      "e32de215-055e-4ea0-8900-75010040ec06"
+    ],
+    "shorts": [
+      "81a377f1-3986-4524-ba72-38f555cffb9b",
+      "6850c551-da96-4a99-b317-20002e5add29",
+      "71e5083a-2374-47ae-a1ac-83fe4c227af2",
+      "f2f8f72f-becb-460a-bc3f-d644f6634f49",
+      "fadb40f2-9af4-4985-a2b1-a1964e0c5cf8",
+      "cc854b92-7643-4c5d-8489-564f6968f9e1",
+      "c5a3cefc-952a-4fb1-bc35-8a566dfa85ba",
+      "b2648193-71ad-450f-a6e6-ce0b45073704",
+      "ed06e83a-0fed-414a-a69d-c77a3633c1d1",
+      "270adbc2-45d6-43cb-b1c9-d60b56e3a189",
+      "46e50abb-5f83-4f9a-99d8-a2a8a602ad48",
+      "44eaf126-47a3-4926-ad56-fcdcafec73e9",
+      "a282be1f-25f5-4ffb-8515-8e96a38b4d4b",
+      "206e7238-93b7-4c23-847b-7bcce2b40472",
+      "0569e61d-ae45-48b9-8f60-67c06757a3ea",
+      "faece888-6d58-4b53-a678-712fd41b72ef",
+      "50ad20da-b1ec-4cf0-ab5a-b0641c433a56",
+      "d58a8b46-6f35-4237-b0d5-86370427a79b",
+      "ba834e0d-4d70-4d71-bdf0-22efcc8888bf",
+      "f5e36771-2d17-4d0a-890e-e3a7566504cf",
+      "7fa22707-49c6-42fb-92e6-facc9b16cc52",
+      "93384eba-f263-42db-8769-e6fb404d26f9",
+      "e0b7fa90-8421-47c0-931c-15a097f97715",
+      "2f6a2299-6b02-4f9f-b56c-907554e1093e",
+      "76ec0a3e-bac6-4d62-8063-60cdff8fef51",
+      "d6d6369f-3f6c-4181-be19-bd13f8b81b63",
+      "3d7d5e17-8dab-4fb4-a541-e93bc6aa76a3",
+      "19a769d8-548c-44e0-ad2f-151a5a2b2969",
+      "09d6e7b4-387e-418f-8b96-d49fb9b5e76c",
+      "55e82c61-b533-468c-8949-5d28d36bbcf7",
+      "1559f396-e8a2-4528-9cd4-85cc4f05493e",
+      "cd41c39a-7193-47a2-bf89-4d523c4b0d91",
+      "d71ffd35-1d19-41f3-8ad1-c2dba77d3ad7",
+      "2251acbd-3ea4-422e-ab61-ae80d84f64fa",
+      "bc2c3138-9f1b-4751-928a-5a6069204f3d",
+      "8c107a29-e669-45f0-a327-a68732e14899",
+      "5aaccbac-e67b-4eae-97f0-0dd5544c9fb9",
+      "70e0919c-59f8-4e6f-9b8e-4629b97e77a7",
+      "d66e2b94-e8c8-4b9f-82a9-e1ba8507076f",
+      "e32de215-055e-4ea0-8900-75010040ec06"
     ]
   }
 }

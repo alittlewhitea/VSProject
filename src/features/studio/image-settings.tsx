@@ -8,6 +8,7 @@ import { GptImageControls } from "./gpt-image-controls";
 import { StudioComposerGenerate } from "./studio-composer-controls";
 import { GenerationCostSummary } from "./generation-cost-summary";
 import { ModelPicker, type ModelPickerOption } from "./model-picker";
+import { StudioIcon } from "./studio-navigation";
 
 type Translate = (
   key: string,
@@ -198,7 +199,10 @@ export function ImageSettings({
           ) : null}
         </div>
 
-      {!isUtility ? <button type="button" onClick={() => setMoreSettingsOpen((value) => !value)} data-image-advanced-trigger aria-expanded={moreSettingsOpen} className="df-composer-more">{"\u2637"} &nbsp; {translate(moreSettingsOpen ? "studio.workbench.lessSettings" : "studio.workbench.moreSettings")}</button> : null}
+        {!isUtility ? <button type="button" onClick={() => setMoreSettingsOpen((value) => !value)} data-image-advanced-trigger aria-expanded={moreSettingsOpen} className="df-composer-more">
+          <StudioIcon name="sliders" className="h-4 w-4 shrink-0" />
+          <span>{translate(moreSettingsOpen ? "studio.workbench.lessSettings" : "studio.workbench.moreSettings")}</span>
+        </button> : null}
         <StudioComposerGenerate disabled={generateDisabled||gptGuideBusy} submitting={isSubmitting} authenticated={isAuthenticated} credits={estimatedCredits} translate={translate} onGenerate={onGenerate}/>
       </div>
       <GenerationCostSummary compact estimatedCredits={estimatedCredits} creditBalance={creditBalance} translate={translate}/>

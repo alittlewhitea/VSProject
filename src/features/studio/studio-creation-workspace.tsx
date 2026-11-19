@@ -373,7 +373,6 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                         statusMessage={statusText}
                         statusTone={statusTone}
                         mode="image"
-                        translate={st}
                         editor={<ImageWorkbench
                           workflow={imageWorkflow}
                           prompt={prompt}
@@ -410,7 +409,6 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                         statusMessage={statusText}
                         statusTone={statusTone}
                         mode="audio"
-                        translate={st}
                         editor={<AudioWorkbench
                           workflow={audioWorkflow}
                           speechEditor={isGeminiTts ? <GeminiTtsEditor prompt={prompt} options={geminiTts} onPromptChange={setPrompt} onChange={setGeminiTts} translate={st} /> : undefined}
@@ -440,7 +438,6 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                         statusMessage={statusText}
                         statusTone={statusTone}
                         mode="avatar"
-                        translate={st}
                         modelSelector={avatarModelSelector}
                         editor={<AvatarWorkbench
                           compact
@@ -1244,6 +1241,7 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                         statusTone={statusTone}
                       dailyFreeLabel={h3FreeLabel}
                       workflow={configuredVideoWorkflow}
+                      onUseReference={() => applyWorkflow("reference-to-video")}
                       referenceVideoUrl={referenceVideoUrl}
                       heygenReferenceOptions={heygenReferenceOptions}
                       onHeygenReferenceOptionsChange={setHeygenReferenceOptions}

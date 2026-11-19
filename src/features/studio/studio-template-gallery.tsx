@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Locale } from "../../i18n/routing";
 import { createPortal } from "react-dom";
 import { StudioIcon } from "./studio-navigation";
@@ -12,31 +12,45 @@ import { useStudioTemplateTitles } from "./use-studio-template-titles";
 import Link from "./studio-link";
 import { focusStudioTemplateReference, studioImageTemplateHref } from "./studio-image-template-link";
 import { focusStudioVideoReference, studioVideoTemplateHref } from "./studio-video-template-link";
+import { studioFeaturedVideoHref, studioFeaturedVideos, studioFeaturedVideoUrl } from "./studio-featured-videos";
 import styles from "./studio-template-gallery.module.css";
 
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
 type Kind = "image" | "video" | "combined";
-type Category = "all" | "motion" | "ugc" | "tiktok" | "product-shot" | "ads" | "posters" | "marketplace";
+type Category = "all" | "motion" | "ugc" | "tiktok" | "shorts" | "product-shot" | "ads" | "posters" | "marketplace";
 type BaseTemplate = {
   id: string; title: string; categories: Category[];
   width: number; height: number; sourceUrl: string;
 };
 type VideoTemplate = BaseTemplate & { videoUrl: string; posterUrl: string };
 type ImageTemplate = BaseTemplate & { imageUrl: string };
-type Template = VideoTemplate | ImageTemplate;
-type Catalog = { version: 1; capturedAt: string; items: Template[]; categoryOrder?: Record<string, string[]> };
-const templateCategories: Record<Kind, { id: Category; label: string }[]> = {
-  video: [{ id: "all", label: "All" }, { id: "motion", label: "Motion" }, { id: "ugc", label: "UGC" }, { id: "tiktok", label: "TikTok" }],
-  image: [{ id: "all", label: "All" }, { id: "product-shot", label: "Product shot" }, { id: "ads", label: "Ads" }, { id: "posters", label: "Posters" }, { id: "marketplace", label: "Marketplace" }],
-  combined: [{ id: "all", label: "All" }, { id: "product-shot", label: "Product shot" }, { id: "motion", label: "Motion" }, { id: "ugc", label: "UGC" }, { id: "tiktok", label: "TikTok" }, { id: "ads", label: "Ads" }, { id: "posters", label: "Posters" }, { id: "marketplace", label: "Marketplace" }]
+type CatalogTemplate = VideoTemplate | ImageTemplate;
+type FeaturedTemplate = Omit<VideoTemplate, "title" | "sourceUrl"> & { titleKey: string; createHref: string };
+type Template = CatalogTemplate | FeaturedTemplate;
+type Catalog = { version: 1; capturedAt: string; items: CatalogTemplate[]; categoryOrder?: Record<string, string[]> };
+const featuredTemplates = studioFeaturedVideos.map((item): FeaturedTemplate => ({
+  id: `featured-${item.key}`,
+  categories: ["shorts"],
+  width: item.width,
+  height: item.height,
+  titleKey: `studio.workspace.showcase.${item.key}.title`,
+  videoUrl: studioFeaturedVideoUrl(item.file, item.ratio),
+  posterUrl: `/images/studio/${item.file}.webp`,
+  createHref: studioFeaturedVideoHref(item.prompt)
+}));
+const videoCategories = ["motion", "ugc", "tiktok", "shorts"] as const;
+const templateCategories: Record<Kind, readonly Category[]> = {
+  video: ["all", ...videoCategories],
+  image: ["all", "product-shot", "ads", "posters", "marketplace"],
+  combined: ["all", "product-shot", ...videoCategories, "ads", "posters", "marketplace"]
 };
 const cachedCatalogs: Partial<Record<Kind, Catalog>> = {};
 
-function isVideo(item: Template): item is VideoTemplate { return "videoUrl" in item; }
+function isVideo(item: Template): item is VideoTemplate | FeaturedTemplate { return "videoUrl" in item; }
 
-function validTemplate(item: Template, kind: Kind) {
+function validTemplate(item: CatalogTemplate, kind: Kind) {
   return item && typeof item.id === "string" && typeof item.title === "string" &&
-    Array.isArray(item.categories) && item.categories.some(value => value !== "all" && templateCategories[kind].some(category => category.id === value)) &&
+    Array.isArray(item.categories) && item.categories.some(value => value !== "all" && templateCategories[kind].includes(value)) &&
     Number.isFinite(item.width) && item.width > 0 && Number.isFinite(item.height) && item.height > 0 &&
     typeof item.sourceUrl === "string" && item.sourceUrl.startsWith("https://") &&
     (isVideo(item) ? kind !== "image" && [item.videoUrl, item.posterUrl].every(value => typeof value === "string" && value.startsWith("https://")) : kind !== "video" && typeof item.imageUrl === "string" && item.imageUrl.startsWith("https://"));
@@ -67,7 +81,9 @@ async function loadCatalog(kind: Kind, signal: AbortSignal): Promise<Catalog> {
     const byId = new Map([...images.items, ...videos.items].map(item => [item.id, item]));
     if (order.version !== 1 || !Array.isArray(order.ids) || order.ids.length !== byId.size || new Set(order.ids).size !== byId.size || !order.ids.every(id => byId.has(id))) throw new Error("Invalid combined order");
     const categoryOrder: Record<string, string[]> = { ...images.categoryOrder, all: order.ids };
-    for (const category of ["motion", "ugc", "tiktok"] as const) categoryOrder[category] = videos.items.filter(item => item.categories.includes(category)).map(item => item.id);
+    for (const category of videoCategories) {
+      categoryOrder[category] = videos.categoryOrder?.[category] ?? videos.items.filter(item => item.categories.includes(category)).map(item => item.id);
+    }
     value = { version: 1, capturedAt: images.capturedAt, items: order.ids.map(id => byId.get(id)!), categoryOrder };
   } else {
     const response = await fetch(`/data/studio-${kind}-templates.json`, { signal });
@@ -113,8 +129,14 @@ function TemplatePreview({ item, title, translate, onClose }: { item: Template; 
   useStudioDialog(true, dialogRef, { onClose });
   useEffect(() => {
     const video = playerRef.current;
-    return () => { if (video) { video.pause(); video.removeAttribute("src"); video.load(); } };
-  }, [media.mediaKey]);
+    if (!video) return;
+    if (video.getAttribute("src") !== sourceUrl) video.src = sourceUrl;
+    return () => {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    };
+  }, [media.mediaKey, sourceUrl]);
   return createPortal(<div className={styles.backdrop} onClick={onClose}>
     <section ref={dialogRef} data-template-preview role="dialog" aria-modal="true" aria-labelledby="template-preview-title" tabIndex={-1} className={styles.dialog} onClick={event => event.stopPropagation()}>
       <header><div><span>{item.categories.map(value => studioTemplateCategoryLabel(translate, value)).join(" · ")}</span><h2 id="template-preview-title" dir="auto">{title}</h2></div><button type="button" aria-label={translate("studio.modal.close")} onClick={onClose}><StudioIcon name="x" className="h-5 w-5" /></button></header>
@@ -122,19 +144,35 @@ function TemplatePreview({ item, title, translate, onClose }: { item: Template; 
         {media.failed ? <StudioMediaLoadError translate={translate} message={translate("studio.templates.unavailable")} onRetry={media.retry} originalUrl={sourceUrl} /> : null}
         {isVideo(item) ? <video ref={playerRef} key={media.mediaKey} src={item.videoUrl} poster={thumbnail(item.posterUrl)} controls autoPlay muted playsInline hidden={media.failed} onError={media.onError} /> : <img key={media.mediaKey} src={item.imageUrl} alt={title} hidden={media.failed} onError={media.onError} />}
       </div>
-      <footer><span>Higgsfield Marketing Studio</span>{isVideo(item) ? <Link className={styles.create} href={studioVideoTemplateHref(item, translate("studio.referenceVideo.templatePrompt"))} onClick={event => {
-        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        onClose(); focusStudioVideoReference(item.videoUrl);
-      }}>{translate("studio.templates.createLike")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></Link> : <Link className={styles.create} href={studioImageTemplateHref(item, translate("studio.templates.createPrompt"))} onClick={event => {
-        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        onClose(); focusStudioTemplateReference(item.imageUrl);
-      }}>{translate("studio.templates.createLike")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></Link>}</footer>
+      <footer>
+        {"createHref" in item ? (
+          <>
+            <span>DreamFace</span>
+            <Link className={styles.create} href={item.createHref} onClick={event => {
+              if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onClose();
+            }}>{translate("studio.workspace.start")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></Link>
+          </>
+        ) : item.categories.includes("shorts") ? (
+          <a href={item.sourceUrl} target="_blank" rel="noreferrer">Higgsfield Shorts Studio ↗</a>
+        ) : (
+          <>
+            <span>Higgsfield Marketing Studio</span>
+            {isVideo(item) ? <Link className={styles.create} href={studioVideoTemplateHref(item, translate("studio.referenceVideo.templatePrompt"))} onClick={event => {
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              onClose(); focusStudioVideoReference(item.videoUrl);
+            }}>{translate("studio.templates.createLike")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></Link> : <Link className={styles.create} href={studioImageTemplateHref(item, translate("studio.templates.createPrompt"))} onClick={event => {
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              onClose(); focusStudioTemplateReference(item.imageUrl);
+            }}>{translate("studio.templates.createLike")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></Link>}
+          </>
+        )}
+      </footer>
     </section>
   </div>, document.body);
 }
 
 /** A public-media catalog only; generation, task data and billing remain in Studio. */
-export function StudioTemplateGallery({ kind, translate, locale = "en", videoFocusRequest = 0 }: { kind: Kind; translate: Translate; locale?: Locale; videoFocusRequest?: number }) {
+export function StudioTemplateGallery({ kind, translate, locale = "en" }: { kind: Kind; translate: Translate; locale?: Locale }) {
   const galleryRef = useRef<HTMLElement | null>(null);
   const headingRef = useRef<HTMLDivElement | null>(null);
   const filtersRef = useRef<HTMLDivElement | null>(null);
@@ -147,22 +185,8 @@ export function StudioTemplateGallery({ kind, translate, locale = "en", videoFoc
   const [selected, setSelected] = useState<Template | null>(null);
   const [mediaFilter, setMediaFilter] = useState<"all" | "image" | "video">("all");
   const [enabled, setEnabled] = useState(kind !== "combined");
-  const [pendingVideoFocus, setPendingVideoFocus] = useState(false);
   const templateTitle = useStudioTemplateTitles(enabled ? locale : "en");
-  useEffect(() => {
-    if (kind !== "combined" || !videoFocusRequest) return;
-    setEnabled(true); setCategory("all"); setMediaFilter("video"); setPendingVideoFocus(true);
-  }, [kind, videoFocusRequest]);
-  useLayoutEffect(() => {
-    if (!pendingVideoFocus || loading || (!catalog && !failed) || category !== "all" || mediaFilter !== "video") return;
-    // Let the newly filtered virtual list establish its full height before scrolling.
-    let frame = requestAnimationFrame(() => { frame = requestAnimationFrame(() => {
-      galleryRef.current?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
-      filtersRef.current?.querySelector<HTMLButtonElement>('[data-template-media="video"]')?.focus({ preventScroll: true });
-      setPendingVideoFocus(false);
-    }); });
-    return () => cancelAnimationFrame(frame);
-  }, [pendingVideoFocus, loading, catalog, failed, category, mediaFilter]);
+  const displayTitle = (item: Template) => "titleKey" in item ? translate(item.titleKey) : templateTitle(item.title);
   useEffect(() => {
     if (kind !== "combined") return;
     const enable = () => setEnabled(true);
@@ -193,8 +217,9 @@ export function StudioTemplateGallery({ kind, translate, locale = "en", videoFoc
     let filtered: Template[];
     if (order) { const byId = new Map(catalog.items.map(item => [item.id, item])); filtered = order.flatMap(id => { const item = byId.get(id); return item ? [item] : []; }); }
     else filtered = category === "all" ? catalog.items : catalog.items.filter(item => item.categories.includes(category));
+    if (kind !== "image" && (category === "all" || category === "shorts")) filtered = [...featuredTemplates, ...filtered];
     return mediaFilter === "all" ? filtered : filtered.filter(item => isVideo(item) === (mediaFilter === "video"));
-  }, [catalog, category, mediaFilter]);
+  }, [catalog, category, kind, mediaFilter]);
   const resetScroll = () => {
         const heading = headingRef.current;
         const filters = filtersRef.current;
@@ -205,17 +230,17 @@ export function StudioTemplateGallery({ kind, translate, locale = "en", videoFoc
     <div ref={headingRef} className={styles.heading}><div><h2 id={`${kind}-templates-title`}>{translate("studio.templates.title")}</h2><p>{translate(kind === "image" ? "studio.templates.imageHint" : kind === "combined" ? "studio.templates.combinedHint" : "studio.templates.hint")}</p></div></div>
     <div ref={filtersRef} data-template-toolbar className={styles.filterBar}>
     <div className={styles.filters} role="group" aria-label={translate("studio.templates.title")}>
-      {categories.map(value => <button type="button" key={value.id} data-template-category={value.id} aria-pressed={category === value.id} onClick={() => {
-        if (value.id === category) return;
+      {categories.map(value => <button type="button" key={value} data-template-category={value} aria-pressed={category === value} onClick={() => {
+        if (value === category) return;
         resetScroll();
-        setCategory(value.id);
-      }}>{studioTemplateCategoryLabel(translate, value.id)}</button>)}
+        setCategory(value);
+      }}>{studioTemplateCategoryLabel(translate, value)}</button>)}
     </div>
     {kind === "combined" ? <div className={styles.mediaFilters} role="group" aria-label={translate("studio.templates.media")}>
       {(["all", "image", "video"] as const).map(value => <button type="button" key={value} data-template-media={value} aria-pressed={mediaFilter === value} onClick={() => { if (value !== mediaFilter) { resetScroll(); setMediaFilter(value); } }}>{translate(value === "all" ? "studio.gallery.category.all" : value === "image" ? "studio.templates.images" : "studio.templates.videos")}</button>)}
     </div> : null}
     </div>
-    {failed ? <div className={styles.error} role="alert"><p>{translate("studio.templates.unavailable")}</p><button type="button" onClick={() => setRetry(value => value + 1)}>{translate("studio.templates.retry")}</button></div> : loading ? <div className={styles.skeletons} role="status" aria-label={translate("studio.templates.loading")}>{Array.from({ length: 8 }, (_, index) => <span key={index} />)}</div> : !items.length ? <p className={styles.empty}>{translate("studio.templates.empty")}</p> : <StudioVirtualMasonry key={`${category}:${mediaFilter}`} items={items} pinnedId={selected?.id} label={translate("studio.templates.title")} renderItem={item => <TemplateCard item={item} title={templateTitle(item.title)} translate={translate} onPreview={() => setSelected(item)} />} />}
-    {selected ? <TemplatePreview item={selected} title={templateTitle(selected.title)} translate={translate} onClose={() => setSelected(null)} /> : null}
+    {failed ? <div className={styles.error} role="alert"><p>{translate("studio.templates.unavailable")}</p><button type="button" onClick={() => setRetry(value => value + 1)}>{translate("studio.templates.retry")}</button></div> : loading ? <div className={styles.skeletons} role="status" aria-label={translate("studio.templates.loading")}>{Array.from({ length: 8 }, (_, index) => <span key={index} />)}</div> : !items.length ? <p className={styles.empty}>{translate("studio.templates.empty")}</p> : <StudioVirtualMasonry key={`${category}:${mediaFilter}`} items={items} pinnedId={selected?.id} label={translate("studio.templates.title")} renderItem={item => <TemplateCard item={item} title={displayTitle(item)} translate={translate} onPreview={() => setSelected(item)} />} />}
+    {selected ? <TemplatePreview item={selected} title={displayTitle(selected)} translate={translate} onClose={() => setSelected(null)} /> : null}
   </section>;
 }

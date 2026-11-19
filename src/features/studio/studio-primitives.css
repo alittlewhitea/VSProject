@@ -16,9 +16,7 @@
 .df-home-upload-preview > span { min-width: 0; max-width: 200px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .df-home-upload-preview > button { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; color: var(--df-muted); border-radius: 8px; }
 .df-home-upload-preview > button:hover { background: var(--df-surface-soft); }
-.df-home-gallery .studio-showcase-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-@media(min-width:1440px) { .df-home-gallery .studio-showcase-grid { grid-template-columns: repeat(4,minmax(0,1fr)); } }
-@media(max-width:767px) { .df-home-gallery .studio-showcase-grid { grid-template-columns: minmax(0,1fr); } .df-home-upload-label { display: none; } }
+@media(max-width:767px) { .df-home-upload-label { display: none; } }
 .df-status-region { margin-inline: 16px; scroll-margin-block: 88px 16px; }
 .df-status-region:empty { display: none; }
 .df-status-notice { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--df-border); border-radius: var(--df-radius-input); background: var(--df-surface-soft); color: var(--df-ink); text-align: start; font-size: 13px; line-height: 21px; overflow-wrap: anywhere; }
@@ -57,12 +55,6 @@
 .df-home-create .df-segmented button { flex: initial; }
 .df-home-create .df-segmented button[aria-pressed="true"] { background: var(--df-primary-soft); border-color: transparent; }
 .df-home-create .studio-start { margin-inline-start: auto; }
-.df-home-gallery { margin-top: 0; }
-.df-home-gallery .studio-showcase { aspect-ratio: 16/11; }
-.df-home-gallery .studio-showcase-caption { padding: 40px 18px 18px; }
-.df-home-gallery .studio-showcase-caption strong { font-size: 16px; line-height: 24px; font-weight: 500; }
-.df-home-gallery .studio-showcase-caption small { font-size: 12px; line-height: 18px; }
-.df-home-gallery .df-tile-type { position: absolute; inset-inline-start: 14px; top: 14px; display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 9px; background: #111318b3; color: #fff; font-size: 11px; }
 .df-home-recent { margin-top: 36px; }
 .df-home-recent .studio-recent-empty { background: var(--df-surface); border-style: solid; padding: 24px; }
 .df-home-recent .studio-recent-grid { gap: 16px; }

@@ -36,6 +36,7 @@ type VideoSettingsProps = {
   dailyFreeLabel?: string;
   promptAI: ReturnType<typeof useVideoPromptEnhancement>;
   workflow: StudioVideoWorkflow;
+  onUseReference: () => void;
   prompt: string;
   referenceImageUrls: string[];
   referenceVideoUrl: string;
@@ -89,7 +90,7 @@ export function VideoSettings({
   heygenReferenceOptions = DEFAULT_HEYGEN_REFERENCE_OPTIONS, onHeygenReferenceOptionsChange, heygenValidationError,
   seedanceOptions, onSeedanceOptionsChange, seedanceValidationError,
   dailyFreeLabel, workflowTabs, statusMessage, statusTone,
-  promptAI, workflow, prompt, referenceImageUrls, referenceVideoUrl, onReferenceVideoUrlChange, provider, providerOptions, duration, durationOptions, ratio, ratioOptions,
+  promptAI, workflow, onUseReference, prompt, referenceImageUrls, referenceVideoUrl, onReferenceVideoUrlChange, provider, providerOptions, duration, durationOptions, ratio, ratioOptions,
   ratioDisabled, showResolutionControl, resolution, resolutionOptions, showAudioControl, generateAudio, seed,
   enableSafetyChecker, onEnableSafetyCheckerChange, reasoningLevel, onReasoningLevelChange,
   estimatedCredits, creditBalance, generateDisabled, isSubmitting, isAuthenticated, translate,
@@ -100,6 +101,7 @@ export function VideoSettings({
   const [activePreset, setActivePreset] = useState("cinematic");
   const [moreSettingsOpen, setMoreSettingsOpen] = useState(false);
   const [referenceNotice, setReferenceNotice] = useState("");
+  const supportsEndFrame = videoSupportsEndFrame(provider);
   const showSeedanceNotices = provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video";
   const isHeygenReference = provider === "heygen-video" && workflow === "reference-to-video";
   const referenceVideos = parseReferenceMediaUrls(referenceVideoUrl);
@@ -168,9 +170,16 @@ export function VideoSettings({
             {showSeedanceNotices || isHeygenReference ? <ReferencePromptEditor value={prompt} images={referenceImageUrls} videos={referenceVideos} audio={referenceAudio} placeholder={translate("studio.referenceVideo.placeholder")} notice={referenceNotice} onChange={next => { setReferenceNotice(""); onPromptChange(next); }} onGenerate={onGenerate} translate={translate} /> : <textarea dir="auto" id="video-studio-prompt" value={prompt} onChange={(event) => onPromptChange(event.target.value)} onKeyDown={(event) => { if (window.matchMedia("(min-width: 1024px)").matches && (event.ctrlKey || event.metaKey)) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onGenerate(); } }} placeholder={translate(workflow === "reference-to-video" ? "studio.referenceVideo.placeholder" : workflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")} className="h-[150px] w-full resize-none border-0 bg-transparent p-4 text-[15px] leading-[1.55] text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />}
             {workflow === "image-to-video" ? (
               <div className="mx-3 mb-3" data-video-keyframes>
-                <p className="mb-2 text-xs text-[var(--studio-muted)]">{translate(videoSupportsEndFrame(provider) ? "studio.videoWorkbench.keyframeHint" : "studio.videoWorkbench.singleFrameHint")}</p>
+                {supportsEndFrame ? (
+                  <p className="mb-2 text-xs text-[var(--studio-muted)]">{translate("studio.videoWorkbench.keyframeHint")}</p>
+                ) : (
+                  <button type="button" onClick={onUseReference} className="mb-2 inline-flex min-h-7 items-center gap-1 rounded-sm text-xs font-medium text-[var(--studio-accent)] hover:underline">
+                    {translate("studio.videoWorkbench.singleFrameHint")}
+                    <StudioIcon name="chevron-right" className="h-3 w-3 shrink-0 rtl:rotate-180" />
+                  </button>
+                )}
                 <div className={styles.frameGrid}>
-                  {Array.from({ length: videoSupportsEndFrame(provider) ? 2 : 1 }, (_, index) => {
+                  {Array.from({ length: supportsEndFrame ? 2 : 1 }, (_, index) => {
                     const name = translate(index === 0 ? "studio.videoWorkbench.startFrame" : "studio.videoWorkbench.endFrame");
                     const image = referenceImageUrls[index];
                     return (
