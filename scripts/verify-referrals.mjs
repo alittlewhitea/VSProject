@@ -103,8 +103,8 @@ const service=loader({
     mysqlExecute:async sql=>sql.startsWith("SELECT * FROM referrals")?[structuredClone(state.r)]:[]
   }
 })("src/lib/referrals.ts");
-for (const country of ["US","CN","GB","JP","DE"]) assert.equal(service.referralRegionAllowed(new Headers({"cf-ipcountry":country})),true,country);
-for (const country of ["IN","ID","NG","PK","BD","XX",""]) assert.equal(service.referralRegionAllowed(new Headers({"cf-ipcountry":country})),false,country);
+for (const country of ["US","GB","JP","DE","TR","NZ","FI","SG","BN","ME","XK","PA","SC","PW"]) assert.equal(service.referralRegionAllowed(new Headers({"cf-ipcountry":country})),true,country);
+for (const country of ["CN","IN","ID","NG","PK","BD","HN","RU","VN","XX",""]) assert.equal(service.referralRegionAllowed(new Headers({"cf-ipcountry":country})),false,country);
 assert.equal(service.referralRegionAllowed(new Headers()),false,"Unknown region must not qualify");
 async function runReward(){return service.referralTransaction(async(db,s)=>service.processReferral(db,s,structuredClone(state.r)));}
 reset();await runReward();assert.equal(state.r.status,"pending");assert.equal(state.daily,1);assert.deepEqual(state.balances,{a:0,b:0});
