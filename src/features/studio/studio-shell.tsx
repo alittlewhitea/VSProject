@@ -111,7 +111,6 @@ export function StudioShell({model}:{model:StudioController}) {
               t={st}
               modern={showModernStudioChrome}
               videoStudio={showModernStudioChrome}
-              filledNavigation={showVideoWorkbenchRedesign}
               collapsed={videoSidebarCollapsed}
               creditBalance={creditBalance}
               signedIn={Boolean(accessToken)}
@@ -124,7 +123,7 @@ export function StudioShell({model}:{model:StudioController}) {
               }
             />
 
-            <div className={`studio-content relative min-w-0 max-w-full ${showModernWorkbenchRedesign ? "df-workbench-content" : ""} ${showVideoWorkbenchRedesign ? "" : showModernStudioChrome ? "px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-7 lg:pb-8" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
+            <div className={`studio-content relative min-w-0 max-w-full ${showModernWorkbenchRedesign ? "df-workbench-content" : ""} ${showModernStudioChrome ? "px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-7 lg:pb-8" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
               <StudioHeader
                 referralsVisible={referralsVisible}
                 isBillingView={isBillingView}
@@ -133,7 +132,6 @@ export function StudioShell({model}:{model:StudioController}) {
                 t={st}
                 modern={showModernStudioChrome}
                 videoStudio={showModernStudioChrome}
-                filledNavigation={showVideoWorkbenchRedesign}
                 mode={mode}
                 isAppsHome={isAppsHome}
                 isProjectsView={isProjectsView}

@@ -70,10 +70,8 @@ const filledNavigationPaths: Record<NavigationItem["id"], string> = {
   referrals: "M8 3.5a3 3 0 1 1-1.9 5.3L5.3 8H4a1 1 0 0 0-1 1v2h8V8.8A3 3 0 0 1 8 3.5zm0 2a1 1 0 0 0-.7 1.7l2.3 1.9-.7-2.8a1 1 0 0 0-.9-.8zm8-2a3 3 0 0 1 1.9 5.3l.8-.8H20a1 1 0 0 1 1 1v2h-8V8.8a3 3 0 0 1 3-5.3zm0 2a1 1 0 0 0-.9.8l-.7 2.8 2.3-1.9a1 1 0 0 0-.7-1.7zM4 13h7v8H6a2 2 0 0 1-2-2zm9 0h7v6a2 2 0 0 1-2 2h-5z"
 };
 
-function NavigationIcon({ item, filled }: { item: NavigationItem; filled: boolean }) {
-  const className = "h-[18px] w-[18px] shrink-0";
-  if (!filled) return <StudioIcon name={item.icon} className={className} />;
-  return <svg aria-hidden="true" className={`df-filled-nav-icon ${className}`} viewBox="0 0 24 24" fill="currentColor"><path fillRule="evenodd" d={filledNavigationPaths[item.id]} /></svg>;
+function FilledNavigationIcon({ item }: { item: NavigationItem }) {
+  return <svg aria-hidden="true" className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="currentColor"><path fillRule="evenodd" d={filledNavigationPaths[item.id]} /></svg>;
 }
 
 function navigationItems(t: Translate, state: NavigationState, homeLabelKey = "studio.nav.home", referralLabel="Invite friends"): NavigationItem[] {
@@ -159,7 +157,6 @@ type StudioSidebarProps = NavigationState & {
   t: Translate;
   modern: boolean;
   videoStudio?: boolean;
-  filledNavigation?: boolean;
   collapsed?: boolean;
   creditBalance?: number | null;
   signedIn?: boolean;
@@ -167,7 +164,7 @@ type StudioSidebarProps = NavigationState & {
   onImageWorkflowSelected: (workflowLabel: string) => void;
 };
 
-export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = false, filledNavigation = false, collapsed = false, creditBalance = null, signedIn = false, onCollapsedChange, onImageWorkflowSelected, ...state }: StudioSidebarProps) {
+export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = false, collapsed = false, creditBalance = null, signedIn = false, onCollapsedChange, onImageWorkflowSelected, ...state }: StudioSidebarProps) {
   const rt = referralTranslator(referralLocale);
   const items = navigationItems(t, state,"studio.nav.home",rt("title"));
   const imageWorkflows = [
@@ -195,7 +192,7 @@ export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = 
           {!collapsed ? <span className="min-w-0"><strong className="block text-[17px] font-semibold leading-none tracking-tight text-[var(--studio-text)]">DreamFace</strong><span className="mt-1 block text-[11px] text-[var(--studio-muted)]">AI Studio</span></span> : null}
         </a>
         <nav aria-label={t("studio.header.apps")} className="mt-8 grid gap-1.5">
-          {items.map((item) => <Link key={`${item.label}-${item.href}`} href={item.href} title={item.label} aria-current={item.active ? "page" : undefined} className={`df-sidebar-item flex h-11 items-center rounded-[10px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[var(--studio-accent-soft)] font-bold text-[var(--studio-accent)]" : "text-[var(--studio-text)] hover:bg-[var(--studio-surface)]"}`}><NavigationIcon item={item} filled={filledNavigation} />{!collapsed ? <span className="truncate">{item.label}</span> : null}</Link>)}
+          {items.map((item) => <Link key={`${item.label}-${item.href}`} href={item.href} title={item.label} aria-current={item.active ? "page" : undefined} className={`df-sidebar-item flex h-11 items-center rounded-[10px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[var(--studio-accent-soft)] font-bold text-[var(--studio-accent)]" : "text-[var(--studio-text)] hover:bg-[var(--studio-surface)]"}`}><StudioIcon name={item.icon} className="h-[18px] w-[18px] shrink-0" />{!collapsed ? <span className="truncate">{item.label}</span> : null}</Link>)}
         </nav>
         <div className="flex-1" />
         <div data-signed-in={signedIn} className="df-sidebar-footer">
@@ -262,7 +259,7 @@ export function StudioBottomNavigation({ t, currentHref, ...state }: NavigationS
           aria-current={item.active ? "page" : undefined}
           aria-label={item.id === "home" ? t("studio.menu.studioHome") : item.label}
         >
-          <span className="df-mobile-dock-icon" aria-hidden="true"><NavigationIcon item={item} filled /></span>
+          <span className="df-mobile-dock-icon" aria-hidden="true"><FilledNavigationIcon item={item} /></span>
           <span className="df-mobile-dock-label">{item.label}</span>
         </Link>
       ))}
@@ -307,7 +304,6 @@ export function StudioWorkspaceSwitcher({ t, title, open, onOpenChange, ...state
 
 type StudioMobileMenuProps = NavigationState & {
   t: Translate;
-  filledNavigation?: boolean;
   open: boolean;
   signedIn: boolean;
   signInUrl: string;
@@ -318,7 +314,7 @@ type StudioMobileMenuProps = NavigationState & {
   onLocaleChange: (locale: Locale) => void;
 };
 
-export function StudioMobileMenu({ t, filledNavigation = false, open, signedIn, signInUrl, locale, locales, localeLabels, onOpenChange, onLocaleChange, ...state }: StudioMobileMenuProps) {
+export function StudioMobileMenu({ t, open, signedIn, signInUrl, locale, locales, localeLabels, onOpenChange, onLocaleChange, ...state }: StudioMobileMenuProps) {
   const rt=referralTranslator(locale);
   const close = () => onOpenChange(false);
   const menuId = useId();
@@ -353,7 +349,7 @@ export function StudioMobileMenu({ t, filledNavigation = false, open, signedIn, 
               <nav aria-label={t("studio.header.apps")} className="df-mobile-menu-nav">
                 {navigationItems(t, state, "studio.menu.studioHome", rt("title")).map(item => (
                   <Link key={item.id} href={item.href} data-nav-item={item.id} aria-current={item.active ? "page" : undefined} onClick={close} className="df-mobile-nav-link">
-                    <NavigationIcon item={item} filled={filledNavigation} />
+                    <StudioIcon name={item.icon} className="h-[18px] w-[18px] shrink-0" />
                     <span>{item.label}</span>
                   </Link>
                 ))}

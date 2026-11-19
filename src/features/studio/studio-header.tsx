@@ -21,7 +21,6 @@ type StudioHeaderProps = {
   t: Translate;
   modern: boolean;
   videoStudio?: boolean;
-  filledNavigation?: boolean;
   mode: StudioNavigationMode;
   isAppsHome: boolean;
   isProjectsView: boolean;
@@ -140,7 +139,6 @@ export function StudioHeader({
   t,
   modern,
   videoStudio = false,
-  filledNavigation = false,
   mode,
   isAppsHome,
   isProjectsView,
@@ -167,7 +165,7 @@ export function StudioHeader({
     return (
       <header className="studio-topbar df-app-header">
         <div className="df-header-title">
-          <StudioMobileMenu isBillingView={isBillingView} billingHref={billingHref} referralsVisible={referralsVisible} t={t} open={mobileMenuOpen} signedIn={signedIn} signInUrl={signInUrl} locale={locale} locales={locales} localeLabels={localeLabels} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} isReferralsView={isReferralsView} filledNavigation={filledNavigation} onOpenChange={onMobileMenuOpenChange} onLocaleChange={onLocaleChange} />
+          <StudioMobileMenu isBillingView={isBillingView} billingHref={billingHref} referralsVisible={referralsVisible} t={t} open={mobileMenuOpen} signedIn={signedIn} signInUrl={signInUrl} locale={locale} locales={locales} localeLabels={localeLabels} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} isReferralsView={isReferralsView} onOpenChange={onMobileMenuOpenChange} onLocaleChange={onLocaleChange} />
           <h1 className="df-desktop-workspace-title">{copy.title}</h1>
         </div>
         <h1 className="df-mobile-workspace-title" title={workspaceTitle}>{workspaceTitle}</h1>
