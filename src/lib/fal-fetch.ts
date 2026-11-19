@@ -22,9 +22,13 @@ function describeError(error: unknown) {
   return error.message;
 }
 
-function getHeaderEntries(headers: HeadersInit | undefined) {
+function getHeaderEntries(headers: HeadersInit | undefined): Array<[string, string]> {
   if (!headers) return [];
-  if (headers instanceof Headers) return Array.from(headers.entries());
+  if (headers instanceof Headers) {
+    const entries: Array<[string, string]> = [];
+    headers.forEach((value, key) => entries.push([key, value]));
+    return entries;
+  }
   if (Array.isArray(headers)) return headers;
   return Object.entries(headers);
 }
