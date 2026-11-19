@@ -2,6 +2,7 @@
 
 import { trackLoginSuccess } from "./analytics";
 import type { LoginSuccessEvent } from "./login-success-receipt";
+import { EMAIL_RESEND_COOLDOWN_SECONDS } from "./auth-email-policy";
 
 export type AuthSession = {
   access_token: string;
@@ -122,11 +123,16 @@ function makeClient() {
             next: pathFromRedirect(input.options?.emailRedirectTo)
           })
         });
-        if (!res.ok) {
-          const payload = (await res.json().catch(() => null)) as { error?: string } | null;
-          return { error: new Error(payload?.error || "Unable to send sign-in email.") };
-        }
-        return { error: null };
+        const payload = await res.json().catch(() => null) as { error?: string; reason?: string; retryAfterSeconds?: number } | null;
+        const retryAfter = Number(res.ok ? payload?.retryAfterSeconds : res.headers.get("Retry-After"));
+        const retryAfterSeconds = Number.isFinite(retryAfter) && retryAfter > 0
+          ? Math.ceil(retryAfter)
+          : res.ok || res.status === 429 ? EMAIL_RESEND_COOLDOWN_SECONDS : 0;
+        return {
+          error: res.ok ? null : new Error(payload?.error || "Unable to send sign-in email."),
+          retryAfterSeconds,
+          recentEmail: res.status === 429 && payload?.reason === "recent_email"
+        };
       },
       async signInWithOAuth(input: { provider: string; options?: { redirectTo?: string } }) {
         if (input.provider !== "google") return { error: new Error("Only Google sign-in is supported.") };

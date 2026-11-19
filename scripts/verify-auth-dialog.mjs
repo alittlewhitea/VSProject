@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash, randomBytes } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
@@ -37,7 +38,7 @@ assert.equal(failure.pathname, '/auth/complete'); assert.equal(failure.searchPar
 assert.equal(failure.searchParams.get('error'), 'expired_link');
 
 const saved = { fetch: globalThis.fetch, window: globalThis.window, document: globalThis.document };
-const env = { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET };
+const env = { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET, resendKey: process.env.RESEND_API_KEY };
 try {
   let session = null, reads = 0, logoutStatus = 200, holdSessionRead = false, finishSessionRead;
   const writes = [];
@@ -222,10 +223,113 @@ try {
   emailRow={...emailRow,consumed_at:null,expires_at:utcDate(new Date(Date.now()+600000))};
   emailResult=await postEmail();assert.equal((await emailResult.json()).ok,true,'Attribution failure cannot block a valid email login');
 
+  const emailStartPath = '/api/auth/email/start';
+  const emailBegun = Date.parse('2026-11-19T03:07:45Z');
+  let clock = emailBegun, ipAllowed = true, providerUnavailable = false;
+  const reservedLinks = [], outboundEmails = [], locks = new Map();
+  const emailConnection = {
+    async execute(sql, params) {
+      assert.match(sql, /utc_timestamp\(6\)/);
+      if (sql.startsWith('select')) {
+        const [cooldown, window, address, lookback] = params;
+        assert.deepEqual([cooldown, window, lookback], [60, 600, 600]);
+        return [reservedLinks.filter(link => link.address === address && link.createdAt > clock - lookback * 1000)
+          .slice(-3).reverse().map(({ createdAt }) => ({
+            cooldown: Math.ceil((createdAt - clock) / 1000) + cooldown,
+            window_retry: Math.ceil((createdAt - clock) / 1000) + window
+          }))];
+      }
+      const [address, hash, lifetime] = params;
+      assert.match(sql, /^insert into email_otp_codes /);
+      assert.equal(lifetime, 600);
+      reservedLinks.push({ address, hash, createdAt: clock });
+      return [{ affectedRows: 1 }];
+    }
+  };
+  const singleEmailPrefix = '../../../../../lib/';
+  const emailMocks = loader({
+    [singleEmailPrefix + 'request-security']: { ...security, consumeRateLimit: async rule => {
+      assert.deepEqual(rule, { scope: 'auth_ip', subject: 'fixture-ip', limit: 10, windowSeconds: 600 });
+      return { allowed: ipAllowed, retryAfterSeconds: 35 };
+    } },
+    [singleEmailPrefix + 'server-auth']: {
+      newAuthToken: () => randomBytes(32).toString('hex'),
+      hashAuthToken: value => createHash('sha256').update(value).digest('hex')
+    },
+    [singleEmailPrefix + 'credits']: { getRequestIp: () => 'fixture-ip' },
+    [singleEmailPrefix + 'referrals']: { captureReferralAuth: async hash => { assert.ok(reservedLinks.some(link => link.hash === hash)); } },
+    [singleEmailPrefix + 'mysql']: { withMysqlAdvisoryTransaction: (name, action) => {
+      assert.match(name, /^df:otp:[a-f0-9]{56}$/);
+      const transaction = (locks.get(name) || Promise.resolve()).then(() => action(emailConnection));
+      locks.set(name, transaction.catch(() => {}));
+      return transaction;
+    } }
+  });
+  const { POST: startEmail } = emailMocks('src/app/api/auth/email/start/route.ts');
+  const ownerEmail = 'owner@example.invalid';
+  const requestEmail = (email = ownerEmail) => startEmail(new NextRequest('https://fixture.invalid' + emailStartPath, {
+    method: 'POST', body: JSON.stringify({ email, next: emailNext })
+  }));
+  process.env.RESEND_API_KEY = 'resend-fixture';
+  globalThis.fetch = async (url, init) => {
+    assert.equal(url, 'https://api.resend.com/emails');
+    const payload = JSON.parse(init.body);
+    const link = new URL(payload.html.match(/href="([^"]+)"/)[1]);
+    const hash = createHash('sha256').update(link.searchParams.get('token')).digest('hex');
+    assert.equal(link.pathname, '/api/auth/verify');
+    assert.equal(link.searchParams.get('next'), emailNext);
+    assert.ok(reservedLinks.some(row => row.hash === hash && row.address === payload.to));
+    assert.equal(init.headers['Idempotency-Key'], `auth-email/${hash}`);
+    outboundEmails.push(payload.to);
+    if (providerUnavailable) throw new Error('private provider error fixture');
+    return Response.json({ id: '00000000-0000-0000-0000-000000000001' });
+  };
+  const concurrent = await Promise.all([requestEmail(), requestEmail('  OWNER@EXAMPLE.INVALID  ')]);
+  assert.deepEqual(concurrent.map(reply => reply.status).sort(), [200, 429]);
+  assert.equal(outboundEmails.length, 1);
+  assert.equal((await concurrent.find(reply => reply.ok).json()).retryAfterSeconds, 60);
+  const limited = concurrent.find(reply => reply.status === 429);
+  assert.equal(limited.headers.get('Retry-After'), '60');
+  assert.equal((await limited.json()).reason, 'recent_email');
+  clock = emailBegun + 47_000;
+  assert.equal((await requestEmail()).headers.get('Retry-After'), '13');
+  clock = emailBegun + 60_000;
+  assert.equal((await requestEmail()).status, 200);
+  clock = emailBegun + 120_000;
+  assert.equal((await requestEmail()).status, 200);
+  clock = emailBegun + 180_000;
+  assert.equal((await requestEmail()).headers.get('Retry-After'), '420', 'Crossing the wall-clock ten-minute boundary does not permit a fourth send');
+  assert.equal(outboundEmails.length, 3);
+  assert.equal((await requestEmail('another@example.invalid')).status, 200);
+  clock = emailBegun + 600_000;
+  assert.equal((await requestEmail()).status, 200);
+  ipAllowed = false;
+  const ipLimited = await requestEmail('separate@example.invalid');
+  assert.equal(ipLimited.status, 429);
+  assert.equal((await ipLimited.json()).reason, 'ip_limit');
+  assert.equal(ipLimited.headers.get('Retry-After'), '35');
+  ipAllowed = true;
+  providerUnavailable = true;
+  const failedSend = await requestEmail('timeout@example.invalid');
+  assert.equal(failedSend.status, 503);
+  assert.equal(failedSend.headers.get('Retry-After'), '60');
+  assert.doesNotMatch(await failedSend.text(), /private provider error/);
+  assert.equal((await requestEmail('timeout@example.invalid')).status, 429, 'Ambiguous provider failure keeps the attempt and its link');
+  assert.equal((await requestEmail('invalid-address')).status, 400);
+
+  globalThis.fetch = async (url, init) => {
+    assert.equal(url, emailStartPath);
+    assert.equal(JSON.parse(init.body).next, emailNext);
+    return Response.json({ error: 'Rate-limited', reason: 'recent_email' }, { status: 429, headers: { 'Retry-After': '13' } });
+  };
+  const resend = await client.auth.signInWithOtp({ email: ownerEmail, options: { emailRedirectTo: emailNext } });
+  assert.equal(resend.retryAfterSeconds, 13);
+  assert.equal(resend.recentEmail, true);
+
   const { authDialogCopy } = load('src/components/auth-dialog-copy.ts');
   for (const locale of load('src/i18n/routing.ts').locales) assert.ok(Object.values(authDialogCopy(locale)).every(value => typeof value === 'string' && value.length > 0), locale);
-  console.log('Auth dialog passed: safe return URLs, in-place requests, shared session reads, cross-tab sign-in/out, redirect draft guard, Google popup/legacy callbacks, CSRF rejection, cookie-only tokens, email completion/expiry, and 16 locales. No live provider, email, payment or database calls.');
+  console.log('Auth dialog passed: safe return URLs, shared session reads, cross-tab sign-in/out, Google callbacks, email completion/expiry, serialized sends, rolling limits, provider timeout, Retry-After, and 16 locales. No live provider, email, payment or database calls.');
 } finally {
   Object.assign(globalThis, saved);
-  for (const [key, value] of Object.entries({ GOOGLE_CLIENT_ID: env.clientId, GOOGLE_CLIENT_SECRET: env.clientSecret })) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
+  for (const [key, value] of Object.entries({ GOOGLE_CLIENT_ID: env.clientId, GOOGLE_CLIENT_SECRET: env.clientSecret, RESEND_API_KEY: env.resendKey })) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
 }

@@ -2,15 +2,20 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 import { AppButton } from "../../components/ui/button";
 import { trackEvent } from "../../lib/analytics";
 import { ReferralSignup } from "../../components/referral-signup";
+import { authDialogCopy } from "../../components/auth-dialog-copy";
+import { isLocale } from "../../i18n/routing";
+import { useEmailSignInCooldown } from "../../lib/use-email-sign-in-cooldown";
 
 function AuthContent() {
   const t = useTranslations();
+  const locale = useLocale();
+  const copy = authDialogCopy(isLocale(locale) ? locale : "en");
   const sp = useSearchParams();
   const nextPath = sp.get("next") || "/studio?mode=image&workflow=text-to-image";
   const providerParam = sp.get("provider");
@@ -18,6 +23,8 @@ function AuthContent() {
   const [msg, setMsg] = useState("");
   const [tone, setTone] = useState<"ok" | "error" | "idle">("idle");
   const [loading, setLoading] = useState(false);
+  const [sentTo, setSentTo] = useState("");
+  const { remaining, startCooldown } = useEmailSignInCooldown(email);
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const autoGoogleStartedRef = useRef(false);
 
@@ -26,26 +33,34 @@ function AuthContent() {
   }, [nextPath]);
 
   async function signInWithEmail() {
+    const address = email.trim().toLowerCase();
+    if (loading || remaining > 0 || !address) return;
     setLoading(true);
     setMsg("");
     trackEvent("login_started", { method: "email", next: nextPath });
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
+      const result = await supabase.auth.signInWithOtp({
+        email: address,
         options: {
           emailRedirectTo: `${window.location.origin}${nextPath}`
         }
       });
-      if (error) {
-        throw error;
+      startCooldown(address, result.retryAfterSeconds);
+      if (result.recentEmail) {
+        setTone("ok");
+        setMsg(copy.inbox);
+        setSentTo(address);
+        return;
       }
+      if (result.error) throw result.error;
       setTone("ok");
       setMsg(t("auth.successMagicLink"));
+      setSentTo(address);
       trackEvent("login_magic_link_sent", { method: "email", next: nextPath });
-    } catch (error) {
+    } catch {
       setTone("error");
-      setMsg(error instanceof Error ? error.message : t("auth.emailFailed"));
-      trackEvent("login_failed", { method: "email", error: error instanceof Error ? error.message.slice(0, 180) : "unknown" });
+      setMsg(t("auth.emailFailed"));
+      trackEvent("login_failed", { method: "email", surface: "page" });
     } finally {
       setLoading(false);
     }
@@ -143,20 +158,23 @@ function AuthContent() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setMsg(""); }}
+                disabled={loading}
+                autoComplete="email"
                   className="mt-2 w-full rounded-[1rem] border border-black/[0.08] bg-[#f8fbff] px-4 py-3 text-[#171719] outline-none transition placeholder:text-[#99a1b3] focus:border-[#10bff3] focus:bg-white focus:ring-4 focus:ring-[#10bff3]/10"
                 placeholder={t("auth.emailPlaceholder")}
               />
             </label>
 
             <div className="mt-4">
-                <AppButton onClick={signInWithEmail} disabled={!email || loading} className="min-h-[56px] w-full rounded-[1.1rem] bg-[#08bdf2] text-base font-black text-[#08232d] shadow-[0_18px_38px_rgba(8,189,242,0.24)] hover:bg-[#15c8fa]">
-            {loading ? t("auth.pleaseWait") : t("auth.sendMagicLink")}
+                <AppButton onClick={signInWithEmail} disabled={!email.trim() || loading || remaining > 0} className="min-h-[56px] w-full rounded-[1.1rem] bg-[#08bdf2] text-base font-black text-[#08232d] shadow-[0_18px_38px_rgba(8,189,242,0.24)] hover:bg-[#15c8fa]">
+            {loading ? t("auth.pleaseWait") : sentTo === email.trim().toLowerCase() ? copy.resend : t("auth.sendMagicLink")}
+            {remaining > 0 ? ` (${remaining}s)` : ""}
           </AppButton>
             </div>
 
         {msg ? (
-              <p className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
+              <p role={tone === "error" ? "alert" : "status"} className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
                 tone === "ok"
                     ? "border-[#22c55e]/20 bg-[#dcfce7] text-[#16733f]"
                   : tone === "error"

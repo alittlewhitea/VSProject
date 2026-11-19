@@ -8,7 +8,7 @@ const users=Array.from({length:15},(_,n)=>({id:'user-'+n,email:'member-'+n+'@exa
 const purchases=Array.from({length:12},(_,n)=>({id:n,user_id:'user-'+n,payment_provider:'paypal',provider_transaction_id:'transaction-'+n,pack_id:'pack-'+n,credits:100,amount_cents:500,currency:'usd',status:'completed',created_at:stamp(n),updated_at:stamp(n)}));
 purchases.reverse();
 const tasks=Array.from({length:12},(_,n)=>({id:'task-'+n,user_id:'user-'+n,mode:'video',provider:'mischief-video',prompt:'Test motion '+n,status:'failed',estimated_credits:9,transport:'real',failure_reason:'Fixture failure',created_at:stamp(n)}));
-const fixture={adminEmail:'admin@example.invalid',summary:{authUsers:15},users,purchases,tasks,failedTasks:tasks,ledger:purchases.map(p=>({id:p.id,user_id:p.user_id,amount:-9,reason:'generation',created_at:p.created_at})),accounts:users.map(u=>({user_id:u.id,balance:100,free_granted:true,updated_at:u.createdAt})),subscriptions:[{id:'sub-1',user_id:'user-0',payment_provider:'paypal',plan_id:'old-plan',cycle:'monthly',status:'active',credits_per_cycle:100}],analytics:{summary:{totalEvents:12,todayEvents:12,uniqueUsers:12,uniqueSessions:12,byEvent:{},byModel:{},byMode:{},byCountry:{}},funnel:[],countries:[],recentEvents:tasks.map((t,n)=>({event_name:'event-'+n,user_id:t.user_id,created_at:t.created_at,properties:{index:n}}))}};
+const fixture={adminEmail:'admin@example.invalid',summary:{authUsers:5421},users,purchases,tasks,failedTasks:tasks,ledger:purchases.map(p=>({id:p.id,user_id:p.user_id,amount:-9,reason:'generation',created_at:p.created_at})),accounts:users.map(u=>({user_id:u.id,balance:100,free_granted:true,updated_at:u.createdAt})),subscriptions:[{id:'sub-1',user_id:'user-0',payment_provider:'paypal',plan_id:'old-plan',cycle:'monthly',status:'active',credits_per_cycle:100}],analytics:{summary:{totalEvents:12,todayEvents:12,uniqueUsers:12,uniqueSessions:12,byEvent:{},byModel:{},byMode:{},byCountry:{}},funnel:[],countries:[],recentEvents:tasks.map((t,n)=>({event_name:'event-'+n,user_id:t.user_id,created_at:t.created_at,properties:{index:n}}))}};
 
 const tab=await(await fetch('http://127.0.0.1:9564/json/new?about:blank',{method:'PUT'})).json();
 const socket=new WebSocket(tab.webSocketDebuggerUrl);await new Promise(resolve=>socket.addEventListener('open',resolve,{once:true}));
@@ -40,6 +40,7 @@ async function tap(selector,text){
 }
 let width=390;
 const rows=id=>`document.querySelector('#${id}-records .divide-y')?.children.length`;
+const totalUsersCard="[...document.querySelectorAll('#overview p')].find(node=>node.textContent==='Total users')?.nextElementSibling.textContent";
 try{
  mkdirSync('outputs/admin',{recursive:true});await send('Page.enable');await send('Runtime.enable');
  await send('Page.addScriptToEvaluateOnNewDocument',{source:"try{localStorage.setItem('dreamface_locale','en')}catch{}"});
@@ -48,6 +49,8 @@ try{
   width=size;empty=false;
   await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});
   await navigate('/admin');await wait(`${rows('users')}===3`);
+  assert.equal(await evaluate(totalUsersCard),'5,421');
+  assert.ok(await evaluate("document.querySelector('#users-records').textContent.includes('Showing the latest 15 of 5,421 registered users.')"));
   assert.equal(await evaluate("!!document.querySelector('#credit-accounts,#subscriptions,a[href=\"#credit-accounts\"],a[href=\"#subscriptions\"]')"),false);
   assert.equal(await evaluate("document.body.textContent.includes('Active subs')||document.body.textContent.includes('Past due subs')"),false);
   assert.ok(await evaluate("[...document.querySelectorAll('article[id]')].every(panel=>panel.getBoundingClientRect().width<=innerWidth)"),'Panel width '+width);
@@ -66,6 +69,7 @@ try{
   }
   await tap('#users-records .divide-y>button:first-child');await wait("document.querySelector('#user-detail').textContent.includes('member-0@')");
   await wait(`${rows('purchases')}===1`);
+  assert.equal(await evaluate(totalUsersCard),'5,421','Filtering by user does not scope the platform total');
   assert.equal(await evaluate("!!document.querySelector('#purchases [data-panel-toggle]')"),false,'No meaningless expand control for a single result');
   await tap('#user-detail button','Clear user');await wait(`${rows('purchases')}===3`);
   await evaluate("document.getElementById('purchases').scrollIntoView({block:'start',behavior:'instant'})");await pause(100);await screenshot('purchases-'+width);

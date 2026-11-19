@@ -148,7 +148,7 @@ type AnalyticsEvent = {
 
 type OpsPayload = {
   adminEmail?: string;
-  summary?: Record<string, number>;
+  summary?: Record<string, number | null>;
   analytics?: {
     summary: {
       totalEvents: number;
@@ -557,7 +557,7 @@ export default function AdminHomePage() {
 
           <div className="mt-7 grid grid-cols-2 gap-3 xl:grid-cols-4">
             {[
-              ["Users", summary.authUsers ?? users.length],
+              ["Total users", summary.authUsers?.toLocaleString("en-US") ?? "—"],
               ["Outstanding credits", summary.totalOutstandingCredits ?? 0],
               ["Revenue", formatUsd(summary.completedPurchaseRevenueCents ?? 0)],
               ["Failed tasks", summary.failedTasks ?? failedTasks.length],
@@ -873,7 +873,9 @@ export default function AdminHomePage() {
             {(limit) => <>
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <p className="text-sm text-[#6e6e73]">
-                Latest registrations first. Expand to browse {USERS_PER_PAGE} users per page.
+                {!filterUserId.trim() && summary.authUsers != null && summary.authUsers > users.length
+                  ? `Showing the latest ${users.length.toLocaleString("en-US")} of ${summary.authUsers.toLocaleString("en-US")} registered users.`
+                  : "Latest registrations first."} Expand to browse {USERS_PER_PAGE} users per page.
               </p>
               <div className="flex flex-wrap gap-2">
                 <AppButton variant="secondary" onClick={() => downloadUsersCsv(users)} disabled={!users.length}>

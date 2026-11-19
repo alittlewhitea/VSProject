@@ -75,8 +75,8 @@ html[data-studio-theme="dark"] :is(.df-avatar-composer,.df-premium-composer,:is(
 :is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) .df-model-modal-header p { color:var(--avatar-muted); font-size:12px; font-weight:400; }
 :is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) .df-model-close { width:40px; height:40px; min-width:40px; border:0; border-radius:12px; background:var(--avatar-soft); color:var(--avatar-muted); transition:background 200ms ease,color 200ms ease; }
 :is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) .df-model-search { padding:16px 24px 8px; border:0; }
-:is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) .df-model-search label { height:42px; border-radius:12px; background:var(--avatar-soft); border-color:var(--avatar-edge); }
-:is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) .df-model-search label:focus-within { border-color:var(--avatar-brand); box-shadow:0 0 0 4px color-mix(in srgb,var(--df-primary) 10%,transparent); }
+:is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) .df-model-search-field { height:42px; border-radius:12px; background:var(--avatar-soft); border-color:var(--avatar-edge); }
+:is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) .df-model-search-field:focus-within { border-color:var(--avatar-brand); box-shadow:0 0 0 4px color-mix(in srgb,var(--df-primary) 10%,transparent); }
 :is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) .df-model-search input { font-size:12px; font-weight:500; color:var(--avatar-ink); }
 :is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) .df-model-search input:focus-visible { outline:none; box-shadow:none; }
 :is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) .df-model-list { min-height:0; max-height:420px; padding:12px 24px 20px; scrollbar-width:thin; scrollbar-color:var(--avatar-edge) transparent; }

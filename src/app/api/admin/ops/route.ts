@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import type { RowDataPacket } from "mysql2/promise";
 import { getAdminUserFromRequest } from "../../../../lib/admin-auth";
+import { mysqlExecute } from "../../../../lib/mysql";
 import { addCredits, spendCredits } from "../../../../lib/credits";
 import { settleGenerationTask } from "../../../../lib/generation-task-settlement";
 import { syncFalTask, type FalTask } from "../../../../lib/fal-task-sync";
@@ -17,7 +19,6 @@ import { reconcilePayPalBilling } from "../../../../lib/paypal-reconciliation";
 
 const RECENT_LIMIT = 80;
 const ADMIN_DATA_LIMIT = 5000;
-const AUTH_USERS_PER_PAGE = 100;
 const DEFAULT_TASK_TIMEOUT_MINUTES = 45;
 const DEFAULT_ORPHAN_TASK_TIMEOUT_MINUTES = 10;
 
@@ -444,30 +445,6 @@ function formatAuthUser(user: {
   };
 }
 
-async function listAuthUsers(admin: NonNullable<ReturnType<typeof createSupabaseAdminClient>>, userId?: string) {
-  const users: AuthUserInfo[] = [];
-
-  for (let page = 1; users.length < ADMIN_DATA_LIMIT; page += 1) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: AUTH_USERS_PER_PAGE });
-    if (error) throw error;
-
-    const pageUsers = (data.users || []).map((user) => formatAuthUser(user as {
-      id: string;
-      email?: string;
-      created_at?: string;
-      last_sign_in_at?: string;
-      raw_user_meta_data?: unknown;
-      user_metadata?: unknown;
-    }));
-    users.push(...pageUsers);
-
-    if (userId && pageUsers.some((user) => user.id === userId)) break;
-    if (pageUsers.length < AUTH_USERS_PER_PAGE) break;
-  }
-
-  return userId ? users.filter((user) => user.id === userId) : users;
-}
-
 function normalizeCountryCode(value: unknown) {
   if (typeof value !== "string") return null;
   const code = value.trim().toUpperCase();
@@ -747,6 +724,10 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId")?.trim();
 
+  const authUsersQuery = admin.from("users").select("id,email,created_at,last_sign_in_at,raw_user_meta_data");
+  if (userId) authUsersQuery.eq("id", userId).limit(1);
+  else authUsersQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(ADMIN_DATA_LIMIT);
+
   let accountsQuery = admin
     .from("user_credit_accounts")
     .select("user_id,balance,free_granted,created_at,updated_at")
@@ -799,8 +780,11 @@ export async function GET(request: Request) {
     incidentsQuery = incidentsQuery.eq("user_id", userId);
   }
 
-  const [authUsersResult, accountsResult, ledgerResult, purchasesResult, subscriptionsResult, tasksResult, analyticsResult, incidentsResult] = await Promise.all([
-    listAuthUsers(admin, userId || undefined),
+  const [authUsersResult, totalAuthUsers, accountsResult, ledgerResult, purchasesResult, subscriptionsResult, tasksResult, analyticsResult, incidentsResult] = await Promise.all([
+    authUsersQuery,
+    mysqlExecute<RowDataPacket[]>("select count(*) as total from users")
+      .then(([row]) => Number(row.total))
+      .catch(() => null),
     accountsQuery,
     ledgerQuery,
     purchasesQuery,
@@ -810,6 +794,7 @@ export async function GET(request: Request) {
     incidentsQuery
   ]);
 
+  if (authUsersResult.error) return NextResponse.json({ error: authUsersResult.error.message }, { status: 500 });
   if (accountsResult.error) return NextResponse.json({ error: accountsResult.error.message }, { status: 500 });
   if (ledgerResult.error) return NextResponse.json({ error: ledgerResult.error.message }, { status: 500 });
   if (purchasesResult.error) return NextResponse.json({ error: purchasesResult.error.message }, { status: 500 });
@@ -817,7 +802,7 @@ export async function GET(request: Request) {
   if (tasksResult.error) return NextResponse.json({ error: tasksResult.error.message }, { status: 500 });
   if (incidentsResult.error) return NextResponse.json({ error: incidentsResult.error.message }, { status: 500 });
 
-  const authUsers = authUsersResult;
+  const authUsers = ((authUsersResult.data || []) as Parameters<typeof formatAuthUser>[0][]).map(formatAuthUser);
   const accounts = (accountsResult.data || []) as CreditAccountRow[];
   const ledger = (ledgerResult.data || []) as LedgerRow[];
   const purchases = (purchasesResult.data || []) as PurchaseRow[];
@@ -847,7 +832,7 @@ export async function GET(request: Request) {
       paypalPlanChecks: paypalPlans.entries
     },
     summary: {
-      authUsers: authUsers.length,
+      authUsers: totalAuthUsers,
       ...summarize(accounts, ledger, purchases, tasks, subscriptions)
     },
     analytics: {
@@ -877,7 +862,7 @@ export async function GET(request: Request) {
     paymentIncidents: incidents,
     tasks: userId ? tasks.filter((task) => task.user_id === userId) : tasks,
     failedTasks: (userId ? tasks.filter((task) => task.user_id === userId) : tasks).filter((task) => task.status === "failed")
-  });
+  }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: Request) {

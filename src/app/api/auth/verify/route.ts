@@ -62,7 +62,10 @@ export async function POST(request: NextRequest) {
       [hash]
     );
     const row = rows[0];
-    if (!row?.email || mysqlDateToUtcTime(row.expires_at) <= Date.now()) return fail("expired_link", 410);
+    if (!row?.email || mysqlDateToUtcTime(row.expires_at) <= Date.now()) {
+      console.info("Email sign-in link rejected", { attempt: hash.slice(0, 12), reason: row?.email ? "expired" : "unknown" });
+      return fail("expired_link", 410);
+    }
     if (row.consumed_at) {
       // A response can be lost after the cookie is set. Recover that same login
       // without creating another session, signup grant, referral, or login event.

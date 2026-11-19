@@ -1,0 +1,57 @@
+.df-model-overlay .df-model-backdrop { touch-action: none; }
+.df-model-overlay .df-model-modal:focus { outline: none; }
+.df-model-modal-header, .df-model-search { flex-shrink: 0; }
+.df-model-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: touch;
+}
+.df-model-search-clear {
+  align-self: stretch;
+  min-width: 44px;
+  border-radius: inherit;
+  color: var(--studio-muted);
+  font-size: 20px;
+}
+.df-model-search-clear:hover { color: var(--studio-text); }
+
+@media (max-width: 639px), (pointer: coarse) and (max-height: 639px) {
+  .studio-overlay.df-model-overlay {
+    top: var(--df-model-viewport-top, 0px);
+    bottom: auto;
+    height: 100dvh;
+    height: var(--df-model-viewport-height, 100dvh);
+    align-items: flex-end;
+    padding: 0;
+  }
+  .df-model-overlay .df-model-modal {
+    max-height: min(88dvh, calc(100% - 12px));
+    border-radius: 24px 24px 0 0;
+    animation: none;
+  }
+  .df-model-overlay .df-model-modal-header { padding: 12px 16px; }
+  .df-model-overlay .df-model-search { padding: 8px 16px; }
+  .df-model-overlay .df-model-search-field { height: 46px; }
+  .df-model-overlay .df-model-search input { font-size: 16px; }
+  .df-model-overlay .df-model-close { min-width: 44px; width: 44px; height: 44px; }
+  .df-model-overlay .df-model-list {
+    max-height: none;
+    padding: 10px 12px calc(16px + env(safe-area-inset-bottom));
+  }
+  .df-model-overlay .df-avatar-model-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .df-model-overlay .df-avatar-model-price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 5px;
+    margin-inline-start: 52px;
+    text-align: start;
+  }
+}

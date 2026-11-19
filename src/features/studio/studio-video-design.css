@@ -98,7 +98,7 @@ html[data-studio-theme="dark"] .df-video-studio {
 .df-video-studio [data-studio-video-templates] [data-template-id] { border-radius: 18px; }
 
 .studio-overlay[data-video-model-picker] .df-model-modal::before { display: none; }
-.studio-overlay[data-video-model-picker] .df-model-search label:focus-within { box-shadow: 0 0 0 3px var(--df-primary-soft); }
+.studio-overlay[data-video-model-picker] .df-model-search-field:focus-within { box-shadow: 0 0 0 3px var(--df-primary-soft); }
 .studio-overlay[data-video-model-picker] .df-model-option[aria-pressed="true"] { background: var(--df-primary-soft); box-shadow: none; }
 
 @media (max-width: 767px) {

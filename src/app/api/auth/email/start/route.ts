@@ -1,29 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { ResultSetHeader } from "mysql2/promise";
-import { mysqlExecute, toMysqlDate } from "../../../../../lib/mysql";
+import type { RowDataPacket } from "mysql2/promise";
+import { withMysqlAdvisoryTransaction } from "../../../../../lib/mysql";
 import { hashAuthToken, newAuthToken } from "../../../../../lib/server-auth";
 import { getRequestIp } from "../../../../../lib/credits";
 import { consumeRateLimit, safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
 import { captureReferralAuth } from "../../../../../lib/referrals";
+import { EMAIL_LINK_LIFETIME_SECONDS, EMAIL_RESEND_COOLDOWN_SECONDS } from "../../../../../lib/auth-email-policy";
 
 function cleanEmail(value: unknown) {
   const email = typeof value === "string" ? value.trim().toLowerCase() : "";
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
+  return email.length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
 }
 
-function originFromRequest(request: NextRequest) {
-  return trustedPublicOrigin(request.url);
+function reserveSignInLink(email: string, tokenHash: string) {
+  // Serialize the recent-history check and link creation across all app instances.
+  return withMysqlAdvisoryTransaction(`df:otp:${hashAuthToken(email).slice(0, 56)}`, async connection => {
+    const [recent] = await connection.execute<RowDataPacket[]>(
+      `select
+         ceil(timestampdiff(microsecond, utc_timestamp(6), date_add(created_at, interval ? second)) / 1000000) as cooldown,
+         ceil(timestampdiff(microsecond, utc_timestamp(6), date_add(created_at, interval ? second)) / 1000000) as window_retry
+       from email_otp_codes
+       where email = ? and created_at > date_sub(utc_timestamp(6), interval ? second)
+       order by created_at desc limit 3`,
+      [EMAIL_RESEND_COOLDOWN_SECONDS, EMAIL_LINK_LIFETIME_SECONDS, email, EMAIL_LINK_LIFETIME_SECONDS]
+    );
+    const retryAfter = Math.max(0, Number(recent[0]?.cooldown ?? 0), Number(recent[2]?.window_retry ?? 0));
+    if (retryAfter > 0) return retryAfter;
+
+    await connection.execute(
+      "insert into email_otp_codes (email, code_hash, expires_at, created_at) values (?, ?, date_add(utc_timestamp(6), interval ? second), utc_timestamp(6))",
+      [email, tokenHash, EMAIL_LINK_LIFETIME_SECONDS]
+    );
+    return 0;
+  });
 }
 
-async function sendSigninEmail(email: string, link: string) {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) throw new Error("RESEND_API_KEY is missing.");
-
+async function sendSigninEmail(apiKey: string, email: string, link: string, tokenHash: string) {
   const from = process.env.AUTH_EMAIL_FROM || process.env.RESEND_FROM_EMAIL || "DreamFace <noreply@dreamface.io>";
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
+      "Idempotency-Key": `auth-email/${tokenHash}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
@@ -37,53 +55,66 @@ async function sendSigninEmail(email: string, link: string) {
         "<p>This link expires in 10 minutes.</p>"
       ].join("")
     }),
-    cache: "no-store"
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000)
   });
 
   if (!response.ok) {
-    const payload = await response.text().catch(() => "");
-    throw new Error(payload || `Resend failed with ${response.status}.`);
+    console.warn("Email sign-in provider rejected send", { attempt: tokenHash.slice(0, 12), status: response.status });
+    throw new Error("Resend rejected the email.");
   }
+  const payload = await response.json().catch(() => null) as { id?: unknown } | null;
+  const id = payload?.id;
+  console.info("Email sign-in link sent", {
+    attempt: tokenHash.slice(0, 12),
+    ...(typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id) ? { resendId: id } : {})
+  });
+}
+
+function rateLimited(retryAfter: number, reason: "ip_limit" | "recent_email") {
+  return NextResponse.json({ error: "Too many sign-in attempts. Please try again later.", reason }, {
+    status: 429,
+    headers: { "Retry-After": String(retryAfter), "Cache-Control": "no-store" }
+  });
 }
 
 export async function POST(request: NextRequest) {
+  let stage = "rate_limit";
+  let attempt: string | undefined;
   try {
     const body = (await request.json().catch(() => null)) as { email?: string; next?: string } | null;
     const email = cleanEmail(body?.email);
     if (!email) return NextResponse.json({ error: "Invalid email." }, { status: 400 });
 
     const ip = getRequestIp(request.headers) || "unknown";
-    const [emailLimit, ipLimit] = await Promise.all([
-      consumeRateLimit({ scope: "auth_email", subject: email, limit: 3, windowSeconds: 10 * 60 }),
-      consumeRateLimit({ scope: "auth_ip", subject: ip, limit: 10, windowSeconds: 10 * 60 })
-    ]);
-    if (!emailLimit.allowed || !ipLimit.allowed) {
-      const retryAfter = Math.max(emailLimit.retryAfterSeconds, ipLimit.retryAfterSeconds);
-      return NextResponse.json(
-        { error: "Too many sign-in attempts. Please try again later." },
-        { status: 429, headers: { "Retry-After": String(retryAfter) } }
-      );
-    }
+    const ipLimit = await consumeRateLimit({ scope: "auth_ip", subject: ip, limit: 10, windowSeconds: 10 * 60 });
+    if (!ipLimit.allowed) return rateLimited(ipLimit.retryAfterSeconds, "ip_limit");
 
+    stage = "prepare_link";
+    const apiKey = process.env.RESEND_API_KEY?.trim();
+    if (!apiKey) throw new Error("Missing Resend configuration.");
     const token = newAuthToken();
-    await captureReferralAuth(hashAuthToken(token),request.headers);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    await mysqlExecute<ResultSetHeader>("insert into email_otp_codes (email, code_hash, expires_at, created_at) values (?, ?, ?, ?)", [
-      email,
-      hashAuthToken(token),
-      toMysqlDate(expiresAt),
-      toMysqlDate(new Date())
-    ]);
-
-    const next = safeInternalPath(body?.next);
-    const verifyUrl = new URL("/api/auth/verify", originFromRequest(request));
+    const tokenHash = hashAuthToken(token);
+    const verifyUrl = new URL("/api/auth/verify", trustedPublicOrigin(request.url));
     verifyUrl.searchParams.set("token", token);
-    verifyUrl.searchParams.set("next", next);
-    await sendSigninEmail(email, verifyUrl.toString());
+    verifyUrl.searchParams.set("next", safeInternalPath(body?.next));
 
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to send sign-in email.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    stage = "reserve_link";
+    const retryAfter = await reserveSignInLink(email, tokenHash);
+    if (retryAfter) return rateLimited(retryAfter, "recent_email");
+
+    attempt = tokenHash.slice(0, 12);
+    stage = "send_email";
+    await captureReferralAuth(tokenHash, request.headers);
+    await sendSigninEmail(apiKey, email, verifyUrl.toString(), tokenHash);
+
+    return NextResponse.json({ ok: true, retryAfterSeconds: EMAIL_RESEND_COOLDOWN_SECONDS }, { headers: { "Cache-Control": "no-store" } });
+  } catch {
+    console.error("Email sign-in send failed", { stage, attempt });
+    // A transport timeout can occur after Resend accepted the email. Keep the link usable.
+    return NextResponse.json({ error: "Unable to send sign-in email." }, {
+      status: 503,
+      headers: { "Cache-Control": "no-store", ...(attempt ? { "Retry-After": String(EMAIL_RESEND_COOLDOWN_SECONDS) } : {}) }
+    });
   }
 }

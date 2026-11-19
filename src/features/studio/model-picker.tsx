@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { formatApproximateCreditValue } from "../../lib/billing";
 import { modelLogoForProvider } from "../../lib/model-logos";
+import { useStudioDialog } from "./use-studio-dialog";
 
 export type ModelPickerOption = {
   value: string;
@@ -41,56 +42,53 @@ function ModelMark({provider,compact=false}:{provider?:string;compact?:boolean})
 export function ModelPicker({ value, options, translate, onChange, compact = false, inline = false, videoAppearance = false }: ModelPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [mounted, setMounted] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const dialogRef = useRef<HTMLElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
   const selected = options.find((option) => option.value === value) || options[0];
   const hasChoices = options.length > 1;
+  const showPicker = open && hasChoices;
   const isAvatarPicker = Boolean(triggerRef.current?.closest(".df-avatar-composer"));
   const isPremiumPicker = isAvatarPicker || Boolean(triggerRef.current?.closest(".df-premium-composer"));
 
-  const closePicker = () => {
+  function openPicker() {
+    if (!hasChoices) return;
+    // Touch browsers may not focus a tapped button. Move focus off the composer input.
+    triggerRef.current?.focus({ preventScroll: true });
+    setOpen(true);
+  }
+
+  function closePicker() {
     setOpen(false);
     setQuery("");
-    window.requestAnimationFrame(() => triggerRef.current?.focus());
-  };
+  }
 
-  useEffect(() => setMounted(true), []);
+  function updateQuery(value: string) {
+    setQuery(value);
+    if (listRef.current) listRef.current.scrollTop = 0;
+  }
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closePicker();
-        return;
-      }
-      if (event.key !== "Tab" || !dialogRef.current) return;
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
+  useStudioDialog(showPicker, dialogRef, { onClose: closePicker });
+
+  useLayoutEffect(() => {
+    const viewport = window.visualViewport;
+    const overlay = overlayRef.current;
+    if (!showPicker || !viewport || !overlay) return;
+    // With the keyboard open, the visual viewport can be shorter than the CSS viewport.
+    const updateViewport = () => {
+      overlay.style.setProperty("--df-model-viewport-top", `${viewport.offsetTop}px`);
+      overlay.style.setProperty("--df-model-viewport-height", `${viewport.height}px`);
     };
-    document.addEventListener("keydown", onKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const focusTimer = window.setTimeout(() => {
-      const target = dialogRef.current?.querySelector<HTMLElement>(options.length > 6 ? "[data-model-search]" : '[aria-pressed="true"]');
-      target?.focus();
-    }, 0);
+    updateViewport();
+    viewport.addEventListener("resize", updateViewport);
+    viewport.addEventListener("scroll", updateViewport);
     return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      window.clearTimeout(focusTimer);
+      viewport.removeEventListener("resize", updateViewport);
+      viewport.removeEventListener("scroll", updateViewport);
     };
-  }, [open, options.length]);
+  }, [showPicker]);
 
   const groupedOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -103,10 +101,10 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
     }));
   }, [options, query]);
 
-  const panel = open && mounted && hasChoices ? createPortal(
-    <div data-premium-model-picker={isPremiumPicker ? "true" : undefined} data-avatar-model-picker={isAvatarPicker ? "true" : undefined} data-video-model-picker={videoAppearance || undefined} dir={triggerRef.current?.closest("[dir]")?.getAttribute("dir") || undefined} className="studio-overlay fixed inset-0 z-[300] flex items-end justify-center sm:items-center sm:p-6" role="presentation">
-      <button type="button" aria-label={translate("studio.modelPicker.close")} onClick={closePicker} className="df-model-backdrop absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-      <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="model-picker-title" aria-describedby="model-picker-description" className="df-model-modal relative z-10 flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-[var(--studio-border)] bg-[var(--studio-panel)] shadow-none sm:max-w-[660px] sm:rounded-[24px] sm:shadow-none">
+  const panel = showPicker ? createPortal(
+    <div ref={overlayRef} data-premium-model-picker={isPremiumPicker ? "true" : undefined} data-avatar-model-picker={isAvatarPicker ? "true" : undefined} data-video-model-picker={videoAppearance || undefined} dir={triggerRef.current?.closest("[dir]")?.getAttribute("dir") || undefined} className="studio-overlay df-model-overlay fixed inset-0 z-[300] flex items-end justify-center sm:items-center sm:p-6" role="presentation">
+      <div aria-hidden="true" onClick={closePicker} className="df-model-backdrop absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+      <section ref={dialogRef} id="studio-model-picker" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="model-picker-title" aria-describedby="model-picker-description" className="df-model-modal relative z-10 flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-[var(--studio-border)] bg-[var(--studio-panel)] shadow-none sm:max-w-[660px] sm:rounded-[24px] sm:shadow-none">
         <div className="df-model-modal-header flex items-start justify-between gap-4 border-b border-[var(--studio-border)] px-5 py-4 sm:px-6 sm:py-5">
           <div className="flex min-w-0 items-center gap-3">
             {isPremiumPicker ? <span aria-hidden="true" className="df-model-mark grid shrink-0 place-items-center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 5.25.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 0 0-3.09 3.09L9 18.75l-.813-2.847a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.847-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25Z"/><path d="m18 2.25.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.456-2.456L14.25 6l1.035-.259a3.375 3.375 0 0 0 2.456-2.456L18 2.25Z"/></svg></span> : <ModelMark />}
@@ -120,14 +118,20 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
 
         {options.length > 6 || isPremiumPicker ? (
           <div className="df-model-search border-b border-[var(--studio-border)] px-5 py-3 sm:px-6">
-            <label className="flex h-10 items-center gap-2 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface)] px-3 focus-within:border-[var(--studio-accent-border)] focus-within:bg-[var(--studio-panel)]">
-              <span className="text-[var(--studio-muted)]">{"\u2315"}</span>
-              <input data-model-search aria-label={translate("studio.modelPicker.search")} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={translate("studio.modelPicker.search")} className="min-w-0 flex-1 border-0 bg-transparent text-sm text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />
-            </label>
+            <div className="df-model-search-field flex h-10 items-center rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface)] focus-within:border-[var(--studio-accent-border)] focus-within:bg-[var(--studio-panel)]">
+              <label className="flex min-w-0 flex-1 items-center gap-2 self-stretch ps-3 pe-2">
+                <span aria-hidden="true" className="text-[var(--studio-muted)]">{"\u2315"}</span>
+                <input ref={searchRef} data-model-search aria-label={translate("studio.modelPicker.search")} value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={translate("studio.modelPicker.search")} className="min-w-0 flex-1 self-stretch border-0 bg-transparent text-sm text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />
+              </label>
+              {query ? <button type="button" aria-label={translate("studio.action.clear")} className="df-model-search-clear" onClick={() => {
+                updateQuery("");
+                searchRef.current?.focus({ preventScroll: true });
+              }}><span aria-hidden="true">{"\u00d7"}</span></button> : null}
+            </div>
           </div>
         ) : null}
 
-        <div className="df-model-list overflow-y-auto px-3 py-3 sm:px-4 sm:py-4">
+        <div ref={listRef} className="df-model-list px-3 py-3 sm:px-4 sm:py-4">
           {groupedOptions.map(({ group, options: groupItems }) => (
             <div key={group} className="mb-4 last:mb-0">
               <div className="df-model-group-label mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--studio-muted)]">{group}</div>
@@ -140,7 +144,7 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
                       type="button"
                       aria-pressed={active}
                       onClick={() => {
-                        onChange(option.value);
+                        if (!active) onChange(option.value);
                         closePicker();
                       }}
                       className={`df-model-option w-full rounded-2xl border p-3.5 text-start transition sm:p-4 ${active ? "border-[var(--studio-accent-border)] bg-[var(--studio-surface)] shadow-none" : "border-[var(--studio-border)] bg-[var(--studio-panel)] hover:border-[var(--studio-accent-border)] hover:bg-[var(--studio-accent-soft)]"}`}
@@ -192,7 +196,7 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
               </div>
             </div>
           ))}
-          {!groupedOptions.length ? <div className="px-4 py-10 text-center text-sm font-semibold text-[var(--studio-muted)]">{translate("studio.modelPicker.noMatches")}</div> : null}
+          {!groupedOptions.length ? <div role="status" className="px-4 py-10 text-center text-sm font-semibold text-[var(--studio-muted)]">{translate("studio.modelPicker.noMatches")}</div> : null}
         </div>
       </section>
     </div>,
@@ -202,7 +206,7 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
   if (!selected) return null;
 
   if (inline) return <>
-    <button ref={triggerRef} type="button" className="df-inline-model-picker" onClick={()=>hasChoices&&setOpen(true)} aria-label={`${translate("studio.modelPicker.label")}: ${selected.label}`} aria-haspopup={hasChoices?"dialog":undefined} aria-expanded={hasChoices?open:undefined}>
+    <button ref={triggerRef} type="button" className="df-inline-model-picker" onClick={openPicker} aria-label={`${translate("studio.modelPicker.label")}: ${selected.label}`} aria-haspopup={hasChoices?"dialog":undefined} aria-expanded={hasChoices?showPicker:undefined} aria-controls={showPicker ? "studio-model-picker" : undefined}>
       <svg className="df-model-trigger-icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="m9.75 17-.75 3-1 1h8l-1-1-.75-3M3 13h18"/><rect x="3" y="3" width="18" height="14" rx="2"/></svg><span className="df-model-trigger-name" title={selected.label}>{selected.label}</span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m5 8 5 5 5-5"/></svg>
     </button>{panel}
   </>;
@@ -216,9 +220,10 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => hasChoices && setOpen(true)}
+        onClick={openPicker}
         aria-haspopup={hasChoices ? "dialog" : undefined}
-        aria-expanded={hasChoices ? open : undefined}
+        aria-expanded={hasChoices ? showPicker : undefined}
+        aria-controls={showPicker ? "studio-model-picker" : undefined}
         className={`${compact ? "df-model-card" : ""} group w-full rounded-2xl border p-3.5 text-start transition sm:p-4 ${hasChoices ? "border-[var(--studio-accent-border)] bg-[var(--studio-surface)] shadow-none hover:border-[var(--studio-accent-border)] hover:shadow-none" : "cursor-default border-[var(--studio-border)] bg-[var(--studio-surface)]"}`}
       >
         <span className="mb-2.5 flex items-center justify-between gap-3">

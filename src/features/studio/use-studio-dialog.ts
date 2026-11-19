@@ -13,7 +13,7 @@ export function useStudioDialog(open: boolean, dialogRef: RefObject<HTMLElement 
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     if (lockScroll) document.body.style.overflow = "hidden";
-    dialogRef.current?.focus();
+    dialogRef.current?.focus({ preventScroll: true });
     const keydown = (event: KeyboardEvent) => {
       if (document.querySelector("[data-auth-dialog]") && !dialogRef.current?.hasAttribute("data-auth-dialog")) return;
       if (latest.current.suspended()) return;
