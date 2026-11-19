@@ -1,6 +1,5 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 import { AuthLink } from "../../components/auth-link";
 import { isRtlLocale } from "../../i18n/routing";
 import { trackEvent } from "../../lib/analytics";
@@ -20,15 +19,8 @@ import { STUDIO_SIGN_IN_URL,providerLabel } from "./studio-workspace-config";
 
 import type { StudioController } from "./use-studio-controller";
 const StudioCreationWorkspace = dynamic(() => import("./studio-creation-workspace"), {loading:()=> <div className="min-h-72 animate-pulse rounded-2xl bg-[var(--studio-panel)]" aria-busy="true" />});
-const StudioAssistantPreview = dynamic(() => import("./studio-assistant-preview").then(module => module.StudioAssistantPreview), { ssr: false });
+const StudioAssistant = dynamic(() => import("./studio-assistant-preview").then(module => module.StudioAssistantPreview), { ssr: false });
 export function StudioShell({model}:{model:StudioController}) {
-  const [assistantEnabled, setAssistantEnabled] = useState(false);
-  const assistantPreview = model.sp.get("assistant") === "preview";
-  useEffect(() => {
-    // Keep the server and first browser render identical. Load the UI preview
-    // after hydration; local development also exposes it on ordinary studio URLs.
-    setAssistantEnabled(process.env.NODE_ENV === "development" || assistantPreview);
-  }, [assistantPreview]);
   const {
     accessToken,
     applyWorkflow,
@@ -226,7 +218,7 @@ export function StudioShell({model}:{model:StudioController}) {
       </div>
       {showMobileNavigation ? <StudioBottomNavigation t={st} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} currentHref={routeKey ? `/studio?${routeKey}` : "/studio"} /> : null}
       <StudioScrollToBottom translate={st} routeKey={routeKey} />
-      {assistantEnabled && !isProjectsView && !isBillingView && !isReferralsView && !billingModalOpen && !previewModal && !mobileStudioMenuOpen ? <StudioAssistantPreview model={model} /> : null}
+      {!isProjectsView && !isBillingView && !isReferralsView && !billingModalOpen && !previewModal && !mobileStudioMenuOpen ? <StudioAssistant model={model} /> : null}
     </main>
   );
 }
