@@ -17,14 +17,13 @@
 .dialog button:disabled{opacity:.5;cursor:not-allowed}
 .dialog button:focus-visible,.dialog summary:focus-visible{outline:3px solid #b7a7ff;outline-offset:3px}
 .secondary{border:0;background:transparent;color:#7255ed;font-size:13px;line-height:1.5;cursor:pointer;padding:12px 4px}
-.sent{text-align:center}
-.mail{display:grid;place-items:center;width:64px;height:64px;border-radius:20px;background:#f1edff;color:#7255ed;margin:4px auto 20px}
-.sent p{font-size:13px;color:#74777f;margin-bottom:24px}
+.codeInput{font-variant-numeric:tabular-nums;letter-spacing:.28em}
+.codeActions{display:flex;flex-wrap:wrap;justify-content:space-between;column-gap:12px}
 .error,.notice{font-size:13px;line-height:1.6;margin-top:18px;border-radius:10px;padding:12px 14px}
 .error{background:#fff0f1;color:#b52e43}
 .notice{background:#f5f2ff;color:#5943a9}
 :global(body:has(.creative-studio)) .dialog { border-color: var(--df-border); background: var(--df-surface); color: var(--df-ink); color-scheme: var(--df-color-scheme); }
-:global(body:has(.creative-studio)) .dialog :is(.description, .close, .divider, .sent p) { color: var(--df-muted); }
+:global(body:has(.creative-studio)) .dialog :is(.description, .close, .divider) { color: var(--df-muted); }
 :global(body:has(.creative-studio)) .dialog :is(.input, .close:hover) { background: var(--df-surface-soft); color: var(--df-ink); }
 :global(body:has(.creative-studio)) .dialog :is(.label, .input) { color: var(--df-ink); }
 :global(body:has(.creative-studio)) .dialog .input { border-color: var(--df-border); }
@@ -34,7 +33,7 @@
 :global(body:has(.creative-studio)) .dialog .primary { background: var(--df-primary); }
 :global(body:has(.creative-studio)) .dialog .primary:hover { background: var(--df-primary-hover); }
 :global(body:has(.creative-studio)) .dialog .secondary { color: var(--df-accent); }
-:global(body:has(.creative-studio)) .dialog :is(.mail, .notice) { background: var(--df-primary-soft); color: var(--df-accent); }
+:global(body:has(.creative-studio)) .dialog .notice { background: var(--df-primary-soft); color: var(--df-accent); }
 :global(body:has(.creative-studio)) .dialog .error { background: var(--df-error-soft); color: var(--df-error); }
 :global(body:has(.creative-studio)) .dialog :focus-visible { outline-color: var(--df-accent); }
 @media(max-width:480px){.backdrop{padding:16px}.dialog{max-height:calc(100dvh - 32px);padding:46px 24px 26px;border-radius:22px}.dialog h2{font-size:25px}}

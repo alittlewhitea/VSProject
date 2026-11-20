@@ -165,7 +165,7 @@ export function StudioHeader({
     return (
       <header className="studio-topbar df-app-header">
         <div className="df-header-title">
-          <StudioMobileMenu isBillingView={isBillingView} billingHref={billingHref} referralsVisible={referralsVisible} t={t} open={mobileMenuOpen} signedIn={signedIn} signInUrl={signInUrl} locale={locale} locales={locales} localeLabels={localeLabels} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} isReferralsView={isReferralsView} onOpenChange={onMobileMenuOpenChange} onLocaleChange={onLocaleChange} />
+          <StudioMobileMenu isBillingView={isBillingView} billingHref={billingHref} referralsVisible={referralsVisible} t={t} open={mobileMenuOpen} signedIn={signedIn} creditBalance={creditBalance} signInUrl={signInUrl} locale={locale} locales={locales} localeLabels={localeLabels} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} isReferralsView={isReferralsView} onOpenChange={onMobileMenuOpenChange} onOpenCredits={() => onBillingOpen("balance")} onLocaleChange={onLocaleChange} />
           <h1 className="df-desktop-workspace-title">{copy.title}</h1>
         </div>
         <h1 className="df-mobile-workspace-title" title={workspaceTitle}>{workspaceTitle}</h1>
@@ -188,6 +188,7 @@ export function StudioHeader({
           t={t}
           open={mobileMenuOpen}
           signedIn={signedIn}
+          creditBalance={creditBalance}
           signInUrl={signInUrl}
           locale={locale}
           locales={locales}
@@ -196,6 +197,7 @@ export function StudioHeader({
           isAppsHome={isAppsHome}
           isProjectsView={isProjectsView}
           onOpenChange={onMobileMenuOpenChange}
+          onOpenCredits={() => onBillingOpen("balance")}
           onLocaleChange={onLocaleChange}
         />
         <div className={`min-w-0 ${modern ? "hidden md:block" : ""}`}>

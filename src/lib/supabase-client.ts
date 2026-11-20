@@ -18,13 +18,19 @@ let browserClient: ReturnType<typeof makeClient> | null = null;
 let sessionRead: Promise<AuthSession | null> | null = null;
 let emailVerification: Promise<{ ok: boolean; error?: string }> | null = null;
 
+async function submitEmailCredential(credential?: { email: string; code: string }) {
+  const response = await fetch("/api/auth/verify", {
+    method: "POST", credentials: "include", cache: "no-store",
+    ...(credential ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(credential) } : {})
+  });
+  const body = await response.json().catch(() => null) as { ok?: boolean; error?: string } | null;
+  const ok = response.ok && body?.ok === true;
+  return { ok, error: ok ? undefined : body?.error || "signin_failed" };
+}
+
 /** Strict Mode and concurrent completion renders share one consuming request. */
 export function completeEmailSignIn() {
-  if (!emailVerification) emailVerification = (async () => {
-    const response = await fetch("/api/auth/verify", { method: "POST", credentials: "include", cache: "no-store" });
-    const body = await response.json() as { ok?: boolean; error?: string };
-    return { ok: response.ok && body.ok === true, error: body.error || (response.ok ? undefined : "signin_failed") };
-  })().finally(() => { emailVerification = null; });
+  if (!emailVerification) emailVerification = submitEmailCredential().finally(() => { emailVerification = null; });
   return emailVerification;
 }
 
@@ -113,17 +119,14 @@ function makeClient() {
         notifyAuthChange();
         return { error: null };
       },
-      async signInWithOtp(input: { email: string; options?: { emailRedirectTo?: string } }) {
+      async signInWithOtp(input: { email: string }) {
         const res = await fetch(authUrl("/api/auth/email/start"), {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: input.email,
-            next: pathFromRedirect(input.options?.emailRedirectTo)
-          })
+          body: JSON.stringify({ email: input.email })
         });
-        const payload = await res.json().catch(() => null) as { error?: string; reason?: string; retryAfterSeconds?: number } | null;
+        const payload = await res.json().catch(() => null) as { error?: string; reason?: string; retryAfterSeconds?: number; codePending?: boolean } | null;
         const retryAfter = Number(res.ok ? payload?.retryAfterSeconds : res.headers.get("Retry-After"));
         const retryAfterSeconds = Number.isFinite(retryAfter) && retryAfter > 0
           ? Math.ceil(retryAfter)
@@ -131,8 +134,17 @@ function makeClient() {
         return {
           error: res.ok ? null : new Error(payload?.error || "Unable to send sign-in email."),
           retryAfterSeconds,
-          recentEmail: res.status === 429 && payload?.reason === "recent_email"
+          recentEmail: res.status === 429 && payload?.reason === "recent_email",
+          codePending: payload?.codePending === true
         };
+      },
+      async verifyEmailCode(input: { email: string; code: string }) {
+        const result = await submitEmailCredential(input);
+        if (!result.ok) return result;
+        await sessionRead?.catch(() => null);
+        if (!await readSession()) return { ok: false, error: "session_missing" };
+        notifyAuthChange();
+        return result;
       },
       async signInWithOAuth(input: { provider: string; options?: { redirectTo?: string } }) {
         if (input.provider !== "google") return { error: new Error("Only Google sign-in is supported.") };

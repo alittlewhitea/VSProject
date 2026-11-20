@@ -114,6 +114,7 @@ export function StudioShell({model}:{model:StudioController}) {
               collapsed={videoSidebarCollapsed}
               creditBalance={creditBalance}
               signedIn={Boolean(accessToken)}
+              onOpenCredits={() => openBillingModal("balance")}
               onCollapsedChange={setVideoSidebarCollapsed}
               mode={mode}
               isAppsHome={isAppsHome}

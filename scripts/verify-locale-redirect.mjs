@@ -85,6 +85,25 @@ try {
     const response = middleware(new NextRequest('https://dreamface.io' + path + '?next=%2Fstudio', { headers: { 'accept-language': 'fr', cookie: 'dreamface_locale=de' } }));
     assert.equal(response.headers.get('location'), 'https://dreamface.io/de' + path + '?next=%2Fstudio');
   }
+  const adminLoginPath = '/auth?next=%2Fadmin%2Ftasks';
+  const proxied = middleware(new NextRequest('https://localhost:3002' + adminLoginPath, {
+    headers: { 'accept-language': 'zh-CN', 'x-forwarded-host': 'dreamface.io' }
+  }));
+  assert.equal(proxied.headers.get('location'), 'https://dreamface.io/zh-CN' + adminLoginPath);
+  assert.match(proxied.headers.get('cache-control'), /no-store/);
+  const previousEnv = process.env.NODE_ENV;
+  try {
+    process.env.NODE_ENV = 'production';
+    const proxyWithoutPublicHost = middleware(new NextRequest('https://localhost:3002' + adminLoginPath, {
+      headers: { 'accept-language': 'en', 'x-forwarded-host': 'untrusted.invalid' }
+    }));
+    assert.equal(proxyWithoutPublicHost.headers.get('location'), 'https://dreamface.io/en' + adminLoginPath);
+    const local = middleware(new NextRequest('http://localhost:3002' + adminLoginPath));
+    assert.equal(local.headers.get('location'), 'http://localhost:3002/en' + adminLoginPath);
+  } finally {
+    if (previousEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousEnv;
+  }
   const head = await worker.fetch(new Request('http://dreamface.io/?gclid=fixture', { method: 'HEAD', headers: { 'accept-language': 'fr' } }));
   assert.equal(head.headers.get('location'), 'https://dreamface.io/fr?gclid=fixture');
   assert.equal(await head.text(), '');

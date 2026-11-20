@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomInt } from "node:crypto";
 import type { RowDataPacket } from "mysql2/promise";
 import { withMysqlAdvisoryTransaction } from "../../../../../lib/mysql";
 import { hashAuthToken, newAuthToken } from "../../../../../lib/server-auth";
 import { getRequestIp } from "../../../../../lib/credits";
-import { consumeRateLimit, safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
+import { consumeRateLimit, trustedPublicOrigin } from "../../../../../lib/request-security";
 import { captureReferralAuth } from "../../../../../lib/referrals";
-import { EMAIL_LINK_LIFETIME_SECONDS, EMAIL_RESEND_COOLDOWN_SECONDS } from "../../../../../lib/auth-email-policy";
+import { EMAIL_CODE_LENGTH, EMAIL_CODE_LIFETIME_SECONDS, EMAIL_RESEND_COOLDOWN_SECONDS, normalizeSignInEmail } from "../../../../../lib/auth-email-policy";
+import { EMAIL_CODE_COOKIE, emailCodeCookieOptions, hashEmailCode } from "../../../../../lib/auth-email-code";
+import { readRequestJson, RequestBodyError } from "../../../../../lib/request-body";
 
-function cleanEmail(value: unknown) {
-  const email = typeof value === "string" ? value.trim().toLowerCase() : "";
-  return email.length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
-}
-
-function reserveSignInLink(email: string, tokenHash: string) {
-  // Serialize the recent-history check and link creation across all app instances.
+function reserveSignInCode(email: string, codeHash: string) {
+  // Serialize the recent-history check and code creation across all app instances.
   return withMysqlAdvisoryTransaction(`df:otp:${hashAuthToken(email).slice(0, 56)}`, async connection => {
     const [recent] = await connection.execute<RowDataPacket[]>(
       `select
@@ -22,37 +20,37 @@ function reserveSignInLink(email: string, tokenHash: string) {
        from email_otp_codes
        where email = ? and created_at > date_sub(utc_timestamp(6), interval ? second)
        order by created_at desc limit 3`,
-      [EMAIL_RESEND_COOLDOWN_SECONDS, EMAIL_LINK_LIFETIME_SECONDS, email, EMAIL_LINK_LIFETIME_SECONDS]
+      [EMAIL_RESEND_COOLDOWN_SECONDS, EMAIL_CODE_LIFETIME_SECONDS, email, EMAIL_CODE_LIFETIME_SECONDS]
     );
     const retryAfter = Math.max(0, Number(recent[0]?.cooldown ?? 0), Number(recent[2]?.window_retry ?? 0));
     if (retryAfter > 0) return retryAfter;
 
     await connection.execute(
       "insert into email_otp_codes (email, code_hash, expires_at, created_at) values (?, ?, date_add(utc_timestamp(6), interval ? second), utc_timestamp(6))",
-      [email, tokenHash, EMAIL_LINK_LIFETIME_SECONDS]
+      [email, codeHash, EMAIL_CODE_LIFETIME_SECONDS]
     );
     return 0;
   });
 }
 
-async function sendSigninEmail(apiKey: string, email: string, link: string, tokenHash: string) {
+async function sendSigninEmail(apiKey: string, email: string, code: string, codeHash: string) {
   const from = process.env.AUTH_EMAIL_FROM || process.env.RESEND_FROM_EMAIL || "DreamFace <noreply@dreamface.io>";
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      "Idempotency-Key": `auth-email/${tokenHash}`,
+      "Idempotency-Key": `auth-email/${codeHash}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
       from,
       to: email,
-      subject: "Sign in to DreamFace",
+      subject: "Your DreamFace sign-in code",
+      text: `Your DreamFace sign-in code is ${code}. It expires in 10 minutes. Enter it in DreamFace to sign in.`,
       html: [
-        "<p>Click the button below to sign in to DreamFace.</p>",
-        `<p><a href="${link}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#111827;color:#fff;text-decoration:none;font-weight:700">Sign in</a></p>`,
-        `<p>If the button does not work, open this link:<br><a href="${link}">${link}</a></p>`,
-        "<p>This link expires in 10 minutes.</p>"
+        "<p>Enter this code in DreamFace to sign in.</p>",
+        `<p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p>`,
+        "<p>This code expires in 10 minutes. If you didn’t request it, you can ignore this email.</p>"
       ].join("")
     }),
     cache: "no-store",
@@ -60,13 +58,13 @@ async function sendSigninEmail(apiKey: string, email: string, link: string, toke
   });
 
   if (!response.ok) {
-    console.warn("Email sign-in provider rejected send", { attempt: tokenHash.slice(0, 12), status: response.status });
+    console.warn("Email sign-in provider rejected send", { attempt: codeHash.slice(0, 12), status: response.status });
     throw new Error("Resend rejected the email.");
   }
   const payload = await response.json().catch(() => null) as { id?: unknown } | null;
   const id = payload?.id;
-  console.info("Email sign-in link sent", {
-    attempt: tokenHash.slice(0, 12),
+  console.info("Email sign-in code sent", {
+    attempt: codeHash.slice(0, 12),
     ...(typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id) ? { resendId: id } : {})
   });
 }
@@ -81,40 +79,48 @@ function rateLimited(retryAfter: number, reason: "ip_limit" | "recent_email") {
 export async function POST(request: NextRequest) {
   let stage = "rate_limit";
   let attempt: string | undefined;
+  let pendingChallenge: string | undefined;
   try {
-    const body = (await request.json().catch(() => null)) as { email?: string; next?: string } | null;
-    const email = cleanEmail(body?.email);
+    if (request.headers.get("origin") !== trustedPublicOrigin(request.url)) {
+      return NextResponse.json({ error: "Invalid origin." }, { status: 403 });
+    }
+    const body = await readRequestJson(request, 4096);
+    const email = normalizeSignInEmail(body?.email);
     if (!email) return NextResponse.json({ error: "Invalid email." }, { status: 400 });
 
     const ip = getRequestIp(request.headers) || "unknown";
     const ipLimit = await consumeRateLimit({ scope: "auth_ip", subject: ip, limit: 10, windowSeconds: 10 * 60 });
     if (!ipLimit.allowed) return rateLimited(ipLimit.retryAfterSeconds, "ip_limit");
 
-    stage = "prepare_link";
+    stage = "prepare_code";
     const apiKey = process.env.RESEND_API_KEY?.trim();
     if (!apiKey) throw new Error("Missing Resend configuration.");
-    const token = newAuthToken();
-    const tokenHash = hashAuthToken(token);
-    const verifyUrl = new URL("/api/auth/verify", trustedPublicOrigin(request.url));
-    verifyUrl.searchParams.set("token", token);
-    verifyUrl.searchParams.set("next", safeInternalPath(body?.next));
+    const challenge = newAuthToken();
+    const code = String(randomInt(10 ** EMAIL_CODE_LENGTH)).padStart(EMAIL_CODE_LENGTH, "0");
+    const codeHash = hashEmailCode(challenge, email, code);
 
-    stage = "reserve_link";
-    const retryAfter = await reserveSignInLink(email, tokenHash);
+    stage = "reserve_code";
+    const retryAfter = await reserveSignInCode(email, codeHash);
     if (retryAfter) return rateLimited(retryAfter, "recent_email");
 
-    attempt = tokenHash.slice(0, 12);
+    attempt = codeHash.slice(0, 12);
     stage = "send_email";
-    await captureReferralAuth(tokenHash, request.headers);
-    await sendSigninEmail(apiKey, email, verifyUrl.toString(), tokenHash);
+    await captureReferralAuth(codeHash, request.headers);
+    pendingChallenge = challenge;
+    await sendSigninEmail(apiKey, email, code, codeHash);
 
-    return NextResponse.json({ ok: true, retryAfterSeconds: EMAIL_RESEND_COOLDOWN_SECONDS }, { headers: { "Cache-Control": "no-store" } });
-  } catch {
+    const response = NextResponse.json({ ok: true, retryAfterSeconds: EMAIL_RESEND_COOLDOWN_SECONDS }, { headers: { "Cache-Control": "no-store" } });
+    response.cookies.set(EMAIL_CODE_COOKIE, challenge, emailCodeCookieOptions());
+    return response;
+  } catch (error) {
+    if (error instanceof RequestBodyError) return NextResponse.json({ error: "Invalid email request." }, { status: error.status });
     console.error("Email sign-in send failed", { stage, attempt });
-    // A transport timeout can occur after Resend accepted the email. Keep the link usable.
-    return NextResponse.json({ error: "Unable to send sign-in email." }, {
+    // A transport timeout can occur after Resend accepted the email. Keep the code usable.
+    const response = NextResponse.json({ error: "Unable to send sign-in email.", codePending: Boolean(pendingChallenge) }, {
       status: 503,
       headers: { "Cache-Control": "no-store", ...(attempt ? { "Retry-After": String(EMAIL_RESEND_COOLDOWN_SECONDS) } : {}) }
     });
+    if (pendingChallenge) response.cookies.set(EMAIL_CODE_COOKIE, pendingChallenge, emailCodeCookieOptions());
+    return response;
   }
 }

@@ -35,6 +35,7 @@ const ALLOWED_EVENTS = new Set([
   "login_started",
   "login_success",
   "login_magic_link_sent",
+  "login_email_code_sent",
   "login_failed",
   "billing_view",
   "balance_refreshed",

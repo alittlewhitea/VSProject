@@ -152,19 +152,43 @@ function StudioSignOutButton({ t }: { t: Translate }) {
   );
 }
 
+function StudioAccountSummary({ t, locale, signedIn, creditBalance, onOpenCredits }: {
+  t: Translate;
+  locale: Locale;
+  signedIn: boolean;
+  creditBalance: number | null;
+  onOpenCredits: () => void;
+}) {
+  const name = t(signedIn ? "studio.workbench.user" : "studio.workbench.guest");
+  const balance = creditBalance?.toLocaleString(locale) ?? "—";
+  const balanceLabel = t("studio.billing.currentBalance", { balance });
+  return <div className="df-account-summary">
+    <div className="df-sidebar-account">
+      <span className="df-sidebar-avatar" aria-hidden="true"><StudioIcon name="user" /></span>
+      <strong className="df-sidebar-account-name" title={name}>{name}</strong>
+    </div>
+    {signedIn ? <button type="button" className="df-sidebar-credits" aria-label={balanceLabel} title={balanceLabel} onClick={onOpenCredits}>
+      <StudioIcon name="billing" />
+      <span className="df-sidebar-credit-label">{t("studio.common.credits")}</span>
+      <strong dir="auto">{balance}</strong>
+    </button> : null}
+  </div>;
+}
+
 type StudioSidebarProps = NavigationState & {
-  referralLocale?: string;
+  referralLocale?: Locale;
   t: Translate;
   modern: boolean;
   videoStudio?: boolean;
   collapsed?: boolean;
   creditBalance?: number | null;
   signedIn?: boolean;
+  onOpenCredits: () => void;
   onCollapsedChange?: (collapsed: boolean) => void;
   onImageWorkflowSelected: (workflowLabel: string) => void;
 };
 
-export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = false, collapsed = false, creditBalance = null, signedIn = false, onCollapsedChange, onImageWorkflowSelected, ...state }: StudioSidebarProps) {
+export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = false, collapsed = false, creditBalance = null, signedIn = false, onOpenCredits, onCollapsedChange, onImageWorkflowSelected, ...state }: StudioSidebarProps) {
   const rt = referralTranslator(referralLocale);
   const items = navigationItems(t, state,"studio.nav.home",rt("title"));
   const imageWorkflows = [
@@ -196,10 +220,7 @@ export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = 
         </nav>
         <div className="flex-1" />
         <div data-signed-in={signedIn} className="df-sidebar-footer">
-          <div className="df-sidebar-account">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--studio-surface)] text-sm">DF</span>
-            {!collapsed ? <span className="min-w-0"><strong className="block truncate text-[13px] text-[var(--studio-text)]">{t(signedIn ? "studio.workbench.user" : "studio.workbench.guest")}</strong><span className="mt-1 block text-[11px] text-[var(--studio-muted)]">{creditBalance === null ? "--" : creditBalance.toLocaleString()} {t("studio.common.credits")}</span></span> : null}
-          </div>
+          <StudioAccountSummary t={t} locale={referralLocale} signedIn={signedIn} creditBalance={creditBalance} onOpenCredits={onOpenCredits} />
           {signedIn ? <StudioSignOutButton t={t} /> : null}
         </div>
       </aside>
@@ -238,7 +259,10 @@ export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = 
         })}
       </nav>
       <Link href={state.billingHref || "/studio?view=billing"} className="mt-5 flex w-full items-center justify-center rounded-2xl bg-[var(--studio-accent-soft)] px-2 py-2 text-center text-[11px] font-semibold leading-tight text-[var(--studio-accent)]">{t("studio.billing.open")}</Link>
-      {signedIn ? <div className="df-sidebar-legacy-footer"><StudioSignOutButton t={t} /></div> : null}
+      {signedIn ? <div className="df-sidebar-legacy-footer">
+        <StudioAccountSummary t={t} locale={referralLocale} signedIn={signedIn} creditBalance={creditBalance} onOpenCredits={onOpenCredits} />
+        <StudioSignOutButton t={t} />
+      </div> : null}
     </aside>
   );
 }
@@ -306,15 +330,17 @@ type StudioMobileMenuProps = NavigationState & {
   t: Translate;
   open: boolean;
   signedIn: boolean;
+  creditBalance: number | null;
   signInUrl: string;
   locale: Locale;
   locales: readonly Locale[];
   localeLabels: Record<Locale, string>;
   onOpenChange: (open: boolean) => void;
+  onOpenCredits: () => void;
   onLocaleChange: (locale: Locale) => void;
 };
 
-export function StudioMobileMenu({ t, open, signedIn, signInUrl, locale, locales, localeLabels, onOpenChange, onLocaleChange, ...state }: StudioMobileMenuProps) {
+export function StudioMobileMenu({ t, open, signedIn, creditBalance, signInUrl, locale, locales, localeLabels, onOpenChange, onOpenCredits, onLocaleChange, ...state }: StudioMobileMenuProps) {
   const rt=referralTranslator(locale);
   const close = () => onOpenChange(false);
   const menuId = useId();
@@ -384,7 +410,10 @@ export function StudioMobileMenu({ t, open, signedIn, signInUrl, locale, locales
               </div>
             </div>
             <div className="df-mobile-menu-footer">
-              {signedIn ? <StudioSignOutButton t={t} /> : <AuthLink href={signInUrl} onClick={close} className="df-mobile-menu-sign-in">{t("studio.auth.signIn")}</AuthLink>}
+              {signedIn ? <>
+                <StudioAccountSummary t={t} locale={locale} signedIn creditBalance={creditBalance} onOpenCredits={() => { close(); onOpenCredits(); }} />
+                <StudioSignOutButton t={t} />
+              </> : <AuthLink href={signInUrl} onClick={close} className="df-mobile-menu-sign-in">{t("studio.auth.signIn")}</AuthLink>}
             </div>
           </div>
         </>

@@ -31,6 +31,7 @@ assert.equal(navigation.authReturnPath(destination), destination);
 for (const home of ['/', '/en', '/zh-CN/', '/en?source=email']) assert.equal(navigation.authPostLoginPath(home), '/studio?view=home');
 assert.equal(navigation.authPostLoginPath(navigation.authCompletionPath('/en')), '/studio?view=home');
 assert.equal(navigation.authPostLoginPath(destination), destination);
+assert.equal(navigation.authPostLoginPath('/admin/tasks'), '/admin/tasks');
 const completion = new URL(navigation.authCompletionPath(destination), 'https://fixture.invalid');
 assert.equal(completion.searchParams.get('next'), destination);
 const failure = new URL(navigation.authFailurePath(completion.pathname + completion.search, 'expired_link'), completion);
@@ -267,27 +268,36 @@ try {
   });
   const { POST: startEmail } = emailMocks('src/app/api/auth/email/start/route.ts');
   const ownerEmail = 'owner@example.invalid';
-  const requestEmail = (email = ownerEmail) => startEmail(new NextRequest('https://fixture.invalid' + emailStartPath, {
-    method: 'POST', body: JSON.stringify({ email, next: emailNext })
+  const requestEmail = (email = ownerEmail, origin = 'https://fixture.invalid') => startEmail(new NextRequest('https://fixture.invalid' + emailStartPath, {
+    method: 'POST', headers: { origin }, body: JSON.stringify({ email })
   }));
   process.env.RESEND_API_KEY = 'resend-fixture';
   globalThis.fetch = async (url, init) => {
     assert.equal(url, 'https://api.resend.com/emails');
     const payload = JSON.parse(init.body);
-    const link = new URL(payload.html.match(/href="([^"]+)"/)[1]);
-    const hash = createHash('sha256').update(link.searchParams.get('token')).digest('hex');
-    assert.equal(link.pathname, '/api/auth/verify');
-    assert.equal(link.searchParams.get('next'), emailNext);
+    const code = payload.text.match(/\bis (\d{6})\./)[1];
+    const hash = init.headers['Idempotency-Key'].slice('auth-email/'.length);
+    assert.match(payload.html, new RegExp('>' + code + '<'));
+    assert.doesNotMatch(payload.html, /href=/i);
     assert.ok(reservedLinks.some(row => row.hash === hash && row.address === payload.to));
-    assert.equal(init.headers['Idempotency-Key'], `auth-email/${hash}`);
-    outboundEmails.push(payload.to);
+    outboundEmails.push({ code, hash });
     if (providerUnavailable) throw new Error('private provider error fixture');
     return Response.json({ id: '00000000-0000-0000-0000-000000000001' });
   };
+  assert.equal((await requestEmail(ownerEmail, 'https://evil.invalid')).status, 403);
   const concurrent = await Promise.all([requestEmail(), requestEmail('  OWNER@EXAMPLE.INVALID  ')]);
   assert.deepEqual(concurrent.map(reply => reply.status).sort(), [200, 429]);
   assert.equal(outboundEmails.length, 1);
-  assert.equal((await concurrent.find(reply => reply.ok).json()).retryAfterSeconds, 60);
+  const issued = concurrent.find(reply => reply.ok);
+  const { EMAIL_CODE_COOKIE, hashEmailCode } = load('src/lib/auth-email-code.ts');
+  const challenge = issued.cookies.get(EMAIL_CODE_COOKIE);
+  assert.match(challenge.value, /^[a-f0-9]{64}$/);
+  assert.equal(challenge.httpOnly, true);
+  assert.equal(challenge.path, '/api/auth/verify');
+  assert.equal(challenge.maxAge, 600);
+  const firstCode = outboundEmails[0];
+  assert.equal(firstCode.hash, hashEmailCode(challenge.value, ownerEmail, firstCode.code));
+  assert.deepEqual(await issued.json(), { ok: true, retryAfterSeconds: 60 }, 'The code and challenge never appear in JSON');
   const limited = concurrent.find(reply => reply.status === 429);
   assert.equal(limited.headers.get('Retry-After'), '60');
   assert.equal((await limited.json()).reason, 'recent_email');
@@ -313,18 +323,79 @@ try {
   const failedSend = await requestEmail('timeout@example.invalid');
   assert.equal(failedSend.status, 503);
   assert.equal(failedSend.headers.get('Retry-After'), '60');
-  assert.doesNotMatch(await failedSend.text(), /private provider error/);
-  assert.equal((await requestEmail('timeout@example.invalid')).status, 429, 'Ambiguous provider failure keeps the attempt and its link');
+  const failedSendBody = await failedSend.json();
+  assert.equal(failedSendBody.codePending, true);
+  assert.ok(failedSend.cookies.get(EMAIL_CODE_COOKIE)?.value, 'A delayed code remains usable after a send timeout');
+  assert.doesNotMatch(failedSendBody.error, /private provider error/);
+  assert.equal((await requestEmail('timeout@example.invalid')).status, 429, 'Ambiguous provider failure keeps the attempt and its code');
   assert.equal((await requestEmail('invalid-address')).status, 400);
+
+  const codeFixture = { id: 2, email: ownerEmail, expires_at: utcDate(new Date(Date.now() + 600000)), consumed_at: null };
+  const verificationCounts = new Map();
+  const verifyConnection = { async execute(sql, params) {
+    if (sql.startsWith('select')) {
+      assert.match(sql, /where code_hash = \? and email = \?/);
+      return [params[0] === firstCode.hash && params[1] === ownerEmail ? [{ ...codeFixture }] : []];
+    }
+    assert.match(sql, /consumed_at is null and expires_at > \?/);
+    if (codeFixture.consumed_at) return [{ affectedRows: 0 }];
+    codeFixture.consumed_at = params[0];
+    return [{ affectedRows: 1 }];
+  } };
+  const verifyPrefix = '../../../../lib/';
+  const codeRoute = loader({ ...mocks,
+    [verifyPrefix + 'request-security']: { ...security, consumeRateLimit: async ({ scope, subject, limit }) => {
+      const key = `${scope}:${subject}`;
+      const count = (verificationCounts.get(key) || 0) + 1;
+      verificationCounts.set(key, count);
+      return { allowed: count <= limit };
+    } },
+    [verifyPrefix + 'credits']: { ...mocks[verifyPrefix + 'credits'], getRequestIp: () => 'verify-fixture-ip' },
+    [verifyPrefix + 'mysql']: { getMysqlPool: () => verifyConnection, withMysqlTransaction: fn => fn(verifyConnection), toMysqlDate: utcDate }
+  })('src/app/api/auth/verify/route.ts');
+  const requestCode = (email = ownerEmail, code = firstCode.code, origin = 'https://fixture.invalid') => codeRoute.POST(new NextRequest('https://fixture.invalid/api/auth/verify', {
+    method: 'POST', headers: { origin, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code })
+  }));
+  const beforeCodeSessions = sessionsCreated;
+  assert.equal((await requestCode()).status, 400, 'A code is bound to the browser that requested it');
+  cookieValues.set(EMAIL_CODE_COOKIE, challenge.value);
+  assert.equal((await requestCode(ownerEmail, firstCode.code, 'https://evil.invalid')).status, 403);
+  assert.equal((await requestCode('different@example.invalid')).status, 400);
+  const wrongCode = firstCode.code === '000000' ? '000001' : '000000';
+  assert.equal((await requestCode(ownerEmail, wrongCode)).status, 400);
+  assert.equal(codeFixture.consumed_at, null);
+  assert.equal(sessionsCreated, beforeCodeSessions);
+  assert.equal((await requestCode(' OWNER@EXAMPLE.INVALID ')).status, 200);
+  assert.equal(sessionsCreated, beforeCodeSessions + 1);
+  assert.ok(codeFixture.consumed_at);
+  assert.equal(cookieValues.get(EMAIL_CODE_COOKIE), '');
+  existingEmailSession = null;
+  cookieValues.set(EMAIL_CODE_COOKIE, challenge.value);
+  assert.equal((await requestCode()).status, 409, 'A consumed code cannot start a second session');
+  codeFixture.expires_at = utcDate(new Date(Date.now() - 1000));
+  assert.equal((await (await requestCode()).json()).error, 'expired_code');
+  assert.equal((await requestCode(ownerEmail, wrongCode)).status, 429);
+  assert.equal(sessionsCreated, beforeCodeSessions + 1);
 
   globalThis.fetch = async (url, init) => {
     assert.equal(url, emailStartPath);
-    assert.equal(JSON.parse(init.body).next, emailNext);
+    assert.deepEqual(JSON.parse(init.body), { email: ownerEmail });
     return Response.json({ error: 'Rate-limited', reason: 'recent_email' }, { status: 429, headers: { 'Retry-After': '13' } });
   };
-  const resend = await client.auth.signInWithOtp({ email: ownerEmail, options: { emailRedirectTo: emailNext } });
+  const resend = await client.auth.signInWithOtp({ email: ownerEmail });
   assert.equal(resend.retryAfterSeconds, 13);
   assert.equal(resend.recentEmail, true);
+
+  globalThis.fetch = async (url, init) => {
+    if (url === '/api/auth/verify') {
+      assert.equal(init.credentials, 'include');
+      assert.deepEqual(JSON.parse(init.body), { email: ownerEmail, code: firstCode.code });
+      return Response.json({ ok: true });
+    }
+    assert.equal(url, '/api/auth/session');
+    return Response.json({ session: { user: { id: 'owner', email: ownerEmail } } });
+  };
+  assert.equal((await client.auth.verifyEmailCode({ email: ownerEmail, code: firstCode.code })).ok, true);
 
   const { authDialogCopy } = load('src/components/auth-dialog-copy.ts');
   for (const locale of load('src/i18n/routing.ts').locales) assert.ok(Object.values(authDialogCopy(locale)).every(value => typeof value === 'string' && value.length > 0), locale);
