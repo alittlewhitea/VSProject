@@ -52,6 +52,9 @@ import { isRetiredProvider } from "../../../lib/retired-providers";
 import { readRequestJson, RequestBodyError } from "../../../lib/request-body";
 import { settleGenerationTask } from "../../../lib/generation-task-settlement";
 import { prepareAvatarAudio, AvatarAudioError } from "../../../lib/avatar-audio";
+import { signGenerationMedia, StudioMediaError } from "../../../lib/r2-studio-media";
+import { TOPAZ_VIDEO_ENDPOINT, TOPAZ_VIDEO_PROVIDER, TOPAZ_VIDEO_WORKFLOW, buildTopazVideoInput, parseTopazVideoOptions, topazVideoQuote, type TopazVideoOptions } from "../../../lib/topaz-video-upscale";
+import { verifyTopazVideoSource } from "../../../lib/topaz-video-inspection";
 import { submitTrackedFal, recordTtsOutput, SubmissionNotStarted, type SubmissionStage } from "../../../lib/generation-submission";
 import { applyGenerationSafety } from "../../../lib/generation-safety";
 import {resolveFalTaskCostUsd} from "../../../lib/fal-billing";
@@ -63,7 +66,7 @@ type GenerateRequest = {
   dailyFree?: boolean;
   mode: GenerateMode;
   imageWorkflow?: "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
-  videoWorkflow?: "avatar-video" | "text-to-video" | "image-to-video" | "reference-to-video";
+  videoWorkflow?: "avatar-video" | "text-to-video" | "image-to-video" | "reference-to-video" | typeof TOPAZ_VIDEO_WORKFLOW;
   audioWorkflow?: "text-to-audio" | "text-to-music";
   geminiTts?: GeminiTtsOptions;
   heygenVoice?: HeygenVoiceOptions;
@@ -77,6 +80,8 @@ type GenerateRequest = {
   maskUrl?: string; markupImageUrl?: string;
   imageUrls?: string[];
   videoUrls?: string[];
+  topazVideoOptions?: TopazVideoOptions;
+  topazVideoSource?: unknown;
   audioUrls?: string[];
   heygenPromptEnhancement?: string;
   seedanceTask?: string;
@@ -180,6 +185,7 @@ function getModelId(mode: StoredGenerateMode, provider: string, editImage = fals
     "flux-image": process.env.FAL_MODEL_IMAGE_FLUX || "fal-ai/flux/schnell",
     "flux-dev": process.env.FAL_MODEL_IMAGE_FLUX_DEV || "fal-ai/flux/dev",
     "topaz-image": process.env.FAL_MODEL_IMAGE_TOPAZ || "fal-ai/topaz/upscale/image",
+    [TOPAZ_VIDEO_PROVIDER]: TOPAZ_VIDEO_ENDPOINT,
     "bria-background-remove": process.env.FAL_MODEL_IMAGE_BRIA_BACKGROUND_REMOVE || "fal-ai/bria/background/remove",
     "nano-banana-image": editImage
       ? "google/nano-banana-2.1/edit"
@@ -323,6 +329,7 @@ function cleanLanguageCode(value: unknown) {
 }
 
 function buildFalInput(body: GenerateRequest, prompt: string, endUserId?: string) {
+  if (body.provider === TOPAZ_VIDEO_PROVIDER) return buildTopazVideoInput(body.videoUrls![0], body.topazVideoOptions!);
   if (body.provider === SEEDANCE_FLASH_PROVIDER) return buildSeedanceFlashInput(body, prompt, endUserId);
   if (body.provider === SEEDREAM_55_PROVIDER) return buildSeedream55Input(body, prompt);
   if ((body.mode === "video" || body.mode === "avatar") && body.provider === "heygen-video") {
@@ -637,8 +644,8 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
       isAvatarRequest(body) || body.mode === "avatar"
         ? "avatar-video"
         : body.provider === SEEDANCE_FLASH_PROVIDER ? body.videoWorkflow
-        : body.mode === "video" && body.videoWorkflow === "reference-to-video"
-        ? "reference-to-video"
+        : body.mode === "video" && (body.videoWorkflow === "reference-to-video" || body.videoWorkflow === TOPAZ_VIDEO_WORKFLOW)
+        ? body.videoWorkflow
         : body.mode === "image" && body.provider === "bria-background-remove"
         ? "background-remove"
         : body.mode === "image" && imageUrls.length
@@ -657,7 +664,8 @@ function buildRequestSettings(body: GenerateRequest, modelId: string | null) {
     ...(body.provider === SEEDREAM_55_PROVIDER ? { image_width: body.imageWidth ?? null, image_height: body.imageHeight ?? null, background: body.background || "auto" } : {}),
     ...(body.provider === SEEDANCE_FLASH_PROVIDER ? { audio_urls: body.audioUrls || [], seedance_task: body.seedanceTask || "reference", bitrate_mode: body.bitrateMode || "standard", codec: body.codec || "auto" } : {}),
     ...(isGptImageProvider(body.provider) ? {image_width:body.imageWidth ?? null,image_height:body.imageHeight ?? null,background:body.background || "auto",reasoning_effort:body.imageReasoningEffort || "low",output_compression:body.outputCompression ?? null,frame_count:body.frameCount ?? null,frame_duration_ms:body.frameDurationMs ?? null,svg_model:body.svgModel || null,mask_url:body.maskUrl || null,markup_image_url:body.markupImageUrl || null} : {}),
-    ...(body.mode === "video" && body.videoWorkflow === "reference-to-video" ? {video_urls: body.videoUrls?.map(url => url.trim()) || []} : {}),
+    ...(body.mode === "video" && (body.videoWorkflow === "reference-to-video" || body.videoWorkflow === TOPAZ_VIDEO_WORKFLOW) ? {video_urls: body.videoUrls?.map(url => url.trim()) || []} : {}),
+    ...(body.provider === TOPAZ_VIDEO_PROVIDER ? { topaz_video_options: body.topazVideoOptions } : {}),
     ...(body.provider === "heygen-video" && body.videoWorkflow === "reference-to-video" ? { audio_urls: body.audioUrls?.map(url => url.trim()) || [], heygen_prompt_enhancement: shouldDisableHeygenEnhancement(body.prompt, body.promptEnhancement) ? "disabled" : body.heygenPromptEnhancement || "turbo" } : {}),
     audio_url: body.audioUrl || null,
     ...(body.provider === GEMINI_TTS_PROVIDER ? { gemini_tts: prepareGeminiTts(body.geminiTts?.mode === "dialogue" ? "" : body.prompt, body.geminiTts).input } : {}),
@@ -851,6 +859,23 @@ export async function POST(request: Request) {
     }
     const isAvatarProvider = isAvatarRequest(body);
     const isH3MaxAvatar = isH3MaxAvatarRequest(body);
+    const isTopazVideo = body.provider === TOPAZ_VIDEO_PROVIDER;
+    let topazQuote: ReturnType<typeof topazVideoQuote> = null;
+    if (isTopazVideo || body.videoWorkflow === TOPAZ_VIDEO_WORKFLOW) {
+      const options = parseTopazVideoOptions(body.topazVideoOptions);
+      if (!isTopazVideo || body.mode !== "video" || body.videoWorkflow !== TOPAZ_VIDEO_WORKFLOW || !options ||
+        !Array.isArray(body.videoUrls) || body.videoUrls.length !== 1 || typeof body.videoUrls[0] !== "string" ||
+        body.imageUrls?.length || body.audioUrl || body.audioUrls?.length || body.dailyFree === true) {
+        return NextResponse.json({ error: "Video Upscale requires one uploaded video and valid Topaz settings." }, { status: 400 });
+      }
+      const source = verifyTopazVideoSource(user.id, body.videoUrls[0], body.topazVideoSource);
+      topazQuote = topazVideoQuote(source, options);
+      if (!topazQuote) return NextResponse.json({ error: "Choose a lower scale to keep output within 4K." }, { status: 400 });
+      body.topazVideoOptions = options;
+      body.duration = `${source.duration}s`;
+      body.resolution = `${topazQuote.width}x${topazQuote.height}`;
+      body.ratio = "source";
+    }
 
     const storageMode = storedModeForRequest(body);
     const isPromptlessImageTool = body.mode === "image" && (body.provider === "topaz-image" || body.provider === "bria-background-remove");
@@ -874,7 +899,7 @@ export async function POST(request: Request) {
       if (geminiSpeech?.error) return NextResponse.json({ error: "Check the speech text, voices, dialogue turns and input length.", code: `gemini_tts_${geminiSpeech.error}` }, { status: 400 });
       if (!process.env.FAL_KEY?.trim()) return NextResponse.json({ error: "Audio provider is not configured." }, { status: 503 });
     }
-    const prompt = geminiSpeech?.transcript || body.prompt.trim() || (isAvatarProvider || isPromptlessImageTool ? "." : "");
+    const prompt = isTopazVideo ? "Topaz Video Upscale" : geminiSpeech?.transcript || body.prompt.trim() || (isAvatarProvider || isPromptlessImageTool ? "." : "");
     if (!isPromptlessImageTool && !isPromptlessSeedance && !prompt.trim()) {
       return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
     }
@@ -930,7 +955,7 @@ export async function POST(request: Request) {
       if (body.heygenPromptEnhancement !== undefined && !HEYGEN_PROMPT_ENHANCEMENTS.some(value => value === body.heygenPromptEnhancement)) return NextResponse.json({error:"Unsupported HeyGen prompt enhancement option."},{status:400});
       if (!process.env.FAL_KEY?.trim()) return NextResponse.json({error:"Video provider is not configured."},{status:503});
       if (!HEYGEN_REFERENCE_RATIOS.includes(body.ratio as typeof HEYGEN_REFERENCE_RATIOS[number])) return NextResponse.json({error:"Unsupported HeyGen reference aspect ratio."},{status:400});
-    } else if (body.videoWorkflow !== "reference-to-video" && body.videoUrls !== undefined) {
+    } else if (!isTopazVideo && body.videoWorkflow !== "reference-to-video" && body.videoUrls !== undefined) {
       return NextResponse.json({error:"Select Reference to Video to use a video URL."},{status:400});
     }
     if (body.mode === "video" && body.videoWorkflow !== "reference-to-video") {
@@ -1022,7 +1047,7 @@ export async function POST(request: Request) {
     }
     normalizeBillableRequest(body);
     applyGenerationSafety(body);
-    const baseEstimatedCredits = await estimateGenerationCreditsWithLivePricing({
+    const baseEstimatedCredits = topazQuote?.credits ?? await estimateGenerationCreditsWithLivePricing({
           mode: storageMode,
           provider: body.provider,
           imageSize: body.imageSize,
@@ -1124,6 +1149,15 @@ export async function POST(request: Request) {
       free_units_used: freeUnitsUsed,
       ...(body.dailyFree === true ? { free_program: H3_DAILY_FREE_PROGRAM } : {})
     };
+    const [providerImages, providerVideos, providerAudio, providerAvatarAudio, providerMask, providerMarkup, providerVoiceAudio] = await Promise.all([
+      Array.isArray(body.imageUrls) ? Promise.all(body.imageUrls.map(url => signGenerationMedia(user.id, url, "image"))) : body.imageUrls,
+      Array.isArray(body.videoUrls) ? Promise.all(body.videoUrls.map(url => signGenerationMedia(user.id, url, "video"))) : body.videoUrls,
+      Array.isArray(body.audioUrls) ? Promise.all(body.audioUrls.map(url => signGenerationMedia(user.id, url, "audio"))) : body.audioUrls,
+      body.audioUrl && signGenerationMedia(user.id, body.audioUrl, "audio"),
+      body.maskUrl && signGenerationMedia(user.id, body.maskUrl, "image"),
+      body.markupImageUrl && signGenerationMedia(user.id, body.markupImageUrl, "image"),
+      body.heygenVoice?.referenceAudioUrl && signGenerationMedia(user.id, body.heygenVoice.referenceAudioUrl, "audio")
+    ]);
     let h3FreeTaskCreated = false;
     if (body.dailyFree === true) {
       if (!isH3DailyFreeRequest(body)) {
@@ -1228,7 +1262,12 @@ export async function POST(request: Request) {
         };
         await recordTtsOutput(taskId, user.id, ttsStep);
       }
-      submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(body, submittedPrompt, user.id), {taskId,userId:user.id,stage:"primary"});
+      const providerBody = {
+        ...body, imageUrls: providerImages, videoUrls: providerVideos, audioUrls: providerAudio,
+        audioUrl: providerAvatarAudio || body.audioUrl, maskUrl: providerMask, markupImageUrl: providerMarkup,
+        heygenVoice: body.heygenVoice && { ...body.heygenVoice, referenceAudioUrl: providerVoiceAudio || body.heygenVoice.referenceAudioUrl }
+      };
+      submitPayload = await submitFalQueue(falKey as string, modelId as string, buildFalInput(providerBody, submittedPrompt, user.id), {taskId,userId:user.id,stage:"primary"});
     } catch (networkError) {
       if(networkError instanceof SubmissionNotStarted&&!ttsStep) {
         const settled=await settleGenerationTask(admin,user.id,taskId,{status:"failed",failure_code:"provider_not_submitted",failure_reason:"The provider request could not be prepared. No generation was submitted.",updated_at:new Date().toISOString()},estimatedCredits);
@@ -1310,6 +1349,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof AvatarAudioError) return NextResponse.json({error:error.message, code:"audio_verification_failed"}, {status:error.status});
+    if (error instanceof StudioMediaError) return NextResponse.json({ error: error.message, code: "media_reference_unavailable" }, { status: error.status });
     if (error instanceof GenerationCapacityError) return NextResponse.json({error:error.message, code:"generation_concurrency_limit"}, {status:429, headers:rateLimitHeaders(30)});
     return NextResponse.json(
       {

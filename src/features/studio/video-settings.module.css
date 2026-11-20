@@ -17,24 +17,28 @@
   border-bottom: 1px solid var(--df-border);
 }
 
-.editor :global(.df-workflow-nav) { margin: 0; max-width: 440px; }
+.editor :global(.df-workflow-nav) { margin: 0; max-width: none; }
 .workbench .editor :global(.df-workflow-nav .df-segmented) {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
   border-radius: 14px;
   background: var(--df-surface-soft);
+  overflow: visible;
 }
 
 .workbench .editor :global(.df-workflow-nav .df-segmented button) {
-  flex: 1 1 0;
-  min-height: 38px;
+  min-width: 0;
+  min-height: 44px;
   padding: 6px 8px;
   border: 0;
   border-radius: 10px;
   color: var(--df-muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 18px;
   overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .workbench .editor :global(.df-workflow-nav .df-segmented button:hover) { color: var(--df-ink); }
@@ -150,7 +154,7 @@
   :global(.df-video-studio) .workbench .editor:global(.df-premium-panel) { --video-editor-inset: 16px; border-radius: 20px; }
   .workbench .editor:global(.df-premium-panel) > :global(.df-panel-heading) { padding-block: 14px 12px; }
   .workbench .editor .editorScroll { padding-block: 14px 18px; }
-  .workbench .editor :global(.df-workflow-nav .df-segmented button) { min-height: 44px; padding-inline: 4px; font-size: 12px; }
+  .workbench .editor :global(.df-workflow-nav .df-segmented button) { padding-inline: 4px; font-size: 12px; }
   .promptActions { column-gap: 4px; }
   .toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 

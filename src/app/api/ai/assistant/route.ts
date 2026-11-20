@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       finally { clearTimeout(timer); }
     }
     const ip = getRequestIp(request.headers) || "unknown";
-    const reply = await replyWithCreationAssistant(input, { subject: user ? `user:${user.id}` : `guest:${ip}`, ip, authenticated: Boolean(user) });
+    const reply = await replyWithCreationAssistant(input, { subject: user ? `user:${user.id}` : `guest:${ip}`, ip, authenticated: Boolean(user), userId: user?.id });
     return NextResponse.json(reply, { headers: responseHeaders });
   } catch (error) {
     const status = error instanceof AssistantServiceError ? error.status : 503;

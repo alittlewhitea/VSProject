@@ -23,6 +23,9 @@ import { SEEDREAM_55_PROVIDER, SEEDREAM_55_SIZES, seedream55Error } from "../../
 import { useStudioI18n } from "../../lib/studio-i18n";
 import { navigateStudio } from "../../lib/studio-navigation";
 import { parseStudioReferenceImages,referenceTextWithoutExamples,shouldApplyUrlInput,type AppliedUrlInput } from "../../lib/studio-workspace-inputs";
+import { uploadStudioDataUrl, uploadStudioMedia } from "./upload-studio-media";
+import type { StudioMediaKind } from "../../lib/studio-media";
+import { TOPAZ_VIDEO_PROVIDER, defaultTopazVideoOptions, parseTopazVideoOptions, topazVideoQuote, type TopazVideoSource } from "../../lib/topaz-video-upscale";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
 import {
@@ -130,7 +133,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const initialImageWorkflow: ImageWorkflow =
     initialWorkflow === "image-to-image" || initialWorkflow === "enhance-cleanup" || initialWorkflow === "background-remove" ? initialWorkflow : "text-to-image";
   const initialVideoWorkflow: VideoWorkflow =
-    initialWorkflow === "avatar-video" || initialWorkflow === "image-to-video" || initialWorkflow === "reference-to-video" ? initialWorkflow : "text-to-video";
+    initialWorkflow === "avatar-video" || initialWorkflow === "image-to-video" || initialWorkflow === "reference-to-video" || initialWorkflow === "video-upscale" ? initialWorkflow : "text-to-video";
   const initialAudioWorkflow: AudioWorkflow = initialWorkflow === "text-to-music" ? "text-to-music" : "text-to-audio";
   const initialReferenceUrl = sp.get("reference");
   const [prompt, setPrompt] = useState(() => defaultPromptForProvider(initialProvider, initialWorkflow, st("studio.music.defaultPrompt")));
@@ -157,6 +160,17 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const [referenceImageFiles, setReferenceImageFiles] = useState<string[]>([]);
   const referenceUploadScopeRef = useRef(0);
   const [referenceVideoUrl, setReferenceVideoUrl] = useState(sp.get("referenceVideo") || "");
+  const [cloudMediaEnabled, setCloudMediaEnabled] = useState(false);
+  const [topazOptions, setTopazOptions] = useState(defaultTopazVideoOptions);
+  const [topazSource, setTopazSource] = useState<TopazVideoSource | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/media", { signal: controller.signal, cache: "no-store" })
+      .then(response => response.ok ? response.json() : null)
+      .then(value => { if (!controller.signal.aborted) setCloudMediaEnabled(value?.enabled === true); })
+      .catch(() => null);
+    return () => controller.abort();
+  }, []);
   const [seedanceOptions, setSeedanceOptions] = useState<SeedanceFlashOptions>({ ...DEFAULT_SEEDANCE_FLASH_OPTIONS });
   const [heygenReferenceOptions, setHeygenReferenceOptions] = useState<HeygenReferenceOptions>({ ...DEFAULT_HEYGEN_REFERENCE_OPTIONS });
   const lastAppliedVideoUrlRef = useRef<AppliedUrlInput | null>(null);
@@ -425,7 +439,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
         : "text-to-image"
     );
     setVideoWorkflow(
-      mode === "video" && (workflowParam === "image-to-video" || workflowParam === "reference-to-video")
+      mode === "video" && (workflowParam === "image-to-video" || workflowParam === "reference-to-video" || workflowParam === "video-upscale")
         ? workflowParam
         : mode === "avatar"
           ? "avatar-video"
@@ -489,8 +503,9 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
 
   useEffect(() => {
     const promptParam = sp.get("prompt");
-    const applyPromptParam = shouldApplyUrlInput(lastAppliedPromptUrlRef.current, mode, promptParam);
-    lastAppliedPromptUrlRef.current = { mode, value: promptParam };
+    const shortsTemplateId = sp.get("templateCategory") === "shorts" ? sp.get("templateId") ?? undefined : undefined;
+    const applyPromptParam = shouldApplyUrlInput(lastAppliedPromptUrlRef.current, mode, promptParam, shortsTemplateId);
+    lastAppliedPromptUrlRef.current = { mode, value: promptParam, templateId: shortsTemplateId };
     if (promptParam && applyPromptParam) {
       setPrompt(promptParam);
     }
@@ -648,7 +663,10 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const audioCharacterCount = mode === "audio" ? isHeygenVoice ? heygenVoiceCharacters(prompt) : isGeminiTts ? geminiTtsCharacters(speechBillableText) : prompt.trim().length : 0;
   const avatarSelectedSeconds = Math.max(1, Number.parseInt(avatarDuration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
 
-  const baseEstCredits = estimateGenerationCredits({
+  const isTopazVideo = mode === "video" && activeWorkflow === "video-upscale";
+  const validTopazOptions = isTopazVideo ? parseTopazVideoOptions(topazOptions) : null;
+  const topazQuote = topazSource && validTopazOptions ? topazVideoQuote(topazSource, validTopazOptions) : null;
+  const baseEstCredits = isTopazVideo || provider === TOPAZ_VIDEO_PROVIDER ? (topazQuote?.credits ?? 0) : estimateGenerationCredits({
     pricingTime,
     mode: modeForPricing(mode),
     provider,
@@ -677,7 +695,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     ? st(usesH3FreeAllowance ? "studio.h3Free.available" : "studio.h3Free.used") : undefined;
   const estCredits = usesH3FreeAllowance ? 0 : baseEstCredits;
   const recommendedProvider = WORKFLOW_META[activeWorkflow].recommendedProvider;
-  const modelPickerOptions = useMemo(() => (options.map((option) => {
+  const modelPickerOptions = useMemo(() => isTopazVideo ? [] : options.map((option) => {
     const meta = PROVIDER_META[option.value] || {
       label: option.label,
       shortLabel: option.label,
@@ -745,7 +763,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       badge: option.value===HEYGEN_VOICE_PROVIDER&&isHeygenVoiceFree(pricingTime)?st("studio.heygenVoice.freeBadge"):option.value === "flux-3-max-video" && isFlux3MaxPromotion(pricingTime) ? st("studio.flux3.promotion") : badgeKey ? st(badgeKey) : undefined,
       group: st(groupKey)
     };
-  })), [activeWorkflow, avatarDuration, duration, editResolution, estCredits, geminiTts, generateAudio, gptImageOptions, h3DailyFree, imageQuality, imageSize, imageWorkflow, isAvatarWorkflow, mode, numImages, options, pricingTime, prompt, provider, recommendedProvider, referenceImageUrls, referenceVideoUrl, seedanceOptions, st, videoResolution]);
+  }), [activeWorkflow, avatarDuration, duration, editResolution, estCredits, geminiTts, generateAudio, gptImageOptions, h3DailyFree, imageQuality, imageSize, imageWorkflow, isAvatarWorkflow, isTopazVideo, mode, numImages, options, pricingTime, prompt, provider, recommendedProvider, referenceImageUrls, referenceVideoUrl, seedanceOptions, st, videoResolution]);
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;
   const lowBalanceAfterGeneration = estCredits > 0 && typeof creditBalance === "number" && creditBalance - estCredits < CREDIT_LOW_BALANCE_THRESHOLD;
   const hasMiniMaxLyrics = isInstrumental || lyricsOptimizer || musicLyrics.trim().length > 0;
@@ -777,7 +795,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   }
   const videoSpeechTooLong = mode === "video" && provider === "heygen-video" && videoDialogueTiming(prompt, duration)?.tooLong;
   const videoAspectRatioError = mode === "video" && provider === "heygen-video" && heygenAspectRatioError(videoWorkflow, videoResolution, ratio);
-  const canSubmit = isPromptValid && hasRequiredReference && !gptValidationError && !seedanceValidationError && !heygenValidationError && !verifiedAvatarAudio.loading && !verifiedAvatarAudio.error && !videoSpeechTooLong && !videoAspectRatioError;
+  const canSubmit = isTopazVideo ? Boolean(topazQuote) :
+    isPromptValid && hasRequiredReference && !gptValidationError && !seedanceValidationError && !heygenValidationError && !verifiedAvatarAudio.loading && !verifiedAvatarAudio.error && !videoSpeechTooLong && !videoAspectRatioError;
   const videoPromptAI = useVideoPromptEnhancement({
     mode: videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video",
     prompt, model: provider, duration, aspectRatio: ratio,
@@ -854,7 +873,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const showTextToImageTemplates = !isAppsHome && !isProjectsView && !isBillingView && mode === "image" && imageWorkflow === "text-to-image";
   const showImageToImageRedesign = !isAppsHome && !isProjectsView && !isBillingView && mode === "image" && imageWorkflow === "image-to-image";
   const showImageUtilityRedesign = !isAppsHome && !isProjectsView && !isBillingView && mode === "image" && (imageWorkflow === "enhance-cleanup" || imageWorkflow === "background-remove");
-  const showVideoWorkbenchRedesign = !isAppsHome && !isProjectsView && !isBillingView && mode === "video" && (videoWorkflow === "text-to-video" || videoWorkflow === "image-to-video" || videoWorkflow === "reference-to-video");
+  const showVideoWorkbenchRedesign = !isAppsHome && !isProjectsView && !isBillingView && mode === "video" && (isTopazVideo || videoWorkflow === "text-to-video" || videoWorkflow === "image-to-video" || videoWorkflow === "reference-to-video");
   const showAudioWorkbenchRedesign = !isAppsHome && !isProjectsView && !isBillingView && mode === "audio" && (audioWorkflow === "text-to-audio" || audioWorkflow === "text-to-music");
   const showAvatarWorkbenchRedesign = !isAppsHome && !isProjectsView && !isBillingView && isAvatarWorkflow;
   const showImageWorkbenchRedesign = showTextToImageTemplates || showImageToImageRedesign || showImageUtilityRedesign;
@@ -1011,7 +1030,11 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       params.delete("audioUrl");
     }
     if (nextWorkflow !== "reference-to-video") params.delete("referenceVideo");
-    if (nextWorkflow === "reference-to-video" || activeWorkflow === "reference-to-video") { params.delete("reference"); params.delete("templateId"); }
+    if (nextWorkflow === "reference-to-video" || activeWorkflow === "reference-to-video") {
+      params.delete("reference");
+      params.delete("templateId");
+      params.delete("templateCategory");
+    }
     params.set("workflow", nextWorkflow);
     params.set("provider", nextProvider);
     if (nextMode === "image") {
@@ -1140,6 +1163,18 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   async function handleReferenceFiles(files: FileList | null, frameIndex?: number) {
     if (!files?.length) return;
     const uploadScope = referenceUploadScopeRef.current;
+    const readImage = async (file: File) => {
+      if (cloudMediaEnabled && accessToken) {
+        const url = await uploadStudioMedia(file, "image", accessToken);
+        if (url) return url;
+      }
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Image file could not be read."));
+        reader.readAsDataURL(file);
+      });
+    };
     if (mode === "video" && videoWorkflow === "reference-to-video") {
       const selected = Array.from(files);
       const imageLimit = provider === SEEDANCE_FLASH_PROVIDER ? SEEDANCE_FLASH_IMAGE_LIMIT : HEYGEN_REFERENCE_IMAGE_LIMIT;
@@ -1150,9 +1185,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       if (uploadIssue) {
         setStatusTone("error"); setStatusText(st(`studio.heygen.reference.error.${uploadIssue}`)); return;
       }
-      const uploaded = await Promise.all(selected.map(file => new Promise<string>((resolve,reject) => {
-        const reader = new FileReader(); reader.onload=()=>resolve(String(reader.result)); reader.onerror=()=>reject(new Error("Image file could not be read.")); reader.readAsDataURL(file);
-      })));
+      const uploaded = await Promise.all(selected.map(readImage));
       if (uploadScope !== referenceUploadScopeRef.current) return;
       setReferenceImageFiles(current => [...current,...uploaded].slice(0,imageLimit));
       return;
@@ -1166,12 +1199,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
         return;
       }
       if (frameIndex !== undefined && (frameIndex >= limit || (frameIndex === 1 && !referenceImageUrls[0]))) return;
-      const uploaded = await Promise.all(selected.map(file => new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error("Image file could not be read."));
-        reader.readAsDataURL(file);
-      })));
+      const uploaded = await Promise.all(selected.map(readImage));
       if (uploadScope !== referenceUploadScopeRef.current) return;
       const next = frameIndex === undefined ? uploaded : referenceImageUrls.slice(0, limit);
       if (frameIndex !== undefined) next[frameIndex] = uploaded[0];
@@ -1186,15 +1214,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       Array.from(files)
         .filter((file) => file.type.startsWith("image/"))
         .slice(0, maxFiles)
-        .map(
-          (file) =>
-            new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(String(reader.result));
-              reader.onerror = () => reject(new Error("Image file could not be read."));
-              reader.readAsDataURL(file);
-            })
-        )
+        .map(readImage)
     );
     if (uploadScope !== referenceUploadScopeRef.current) return;
     if (mode === "video" || mode === "avatar") {
@@ -1253,6 +1273,13 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       { mode, provider, workflow: activeWorkflow, files: nextFiles.length, total_references: referenceImageUrls.length + nextFiles.length },
       accessToken
     );
+  }
+
+  async function handleCloudMediaFile(file: File, kind: StudioMediaKind, signal?: AbortSignal) {
+    if (!accessToken) throw new Error("Sign in to upload media.");
+    const url = await uploadStudioMedia(file, kind, accessToken, signal);
+    if (!url) throw new Error("Media uploads are temporarily unavailable.");
+    return url;
   }
 
   async function handleAvatarAudioFile(file: File | null | undefined) {
@@ -1497,7 +1524,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
         return;
       }
 
-      let finalPrompt = prompt;
+      let finalPrompt = isTopazVideo ? st("studio.workflow.video-upscale") : prompt;
       let promptEnhancement;
       if (mode === "video" && (videoWorkflow === "text-to-video" || videoWorkflow === "image-to-video")) {
         if (videoPromptAI.enabled && !videoPromptAI.current) setStatusText(st("studio.promptAI.optimizing"));
@@ -1525,7 +1552,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
           (mode === "image" && referenceImageUrls.length > 0) || (mode === "avatar" || (mode === "video" && (videoWorkflow === "image-to-video" || videoWorkflow === "reference-to-video")))
             ? referenceImageUrls
             : undefined,
-        videoUrls: mode === "video" && videoWorkflow === "reference-to-video" ? parseReferenceMediaUrls(referenceVideoUrl) : undefined,
+        videoUrls: isTopazVideo && topazSource ? [topazSource.url] : mode === "video" && videoWorkflow === "reference-to-video" ? parseReferenceMediaUrls(referenceVideoUrl) : undefined,
+        ...(isTopazVideo ? { topazVideoOptions: topazOptions, topazVideoSource: topazSource } : {}),
         ...(provider === "heygen-video" && mode === "video" && videoWorkflow === "reference-to-video" ? { audioUrls: parseReferenceMediaUrls(heygenReferenceOptions.audioUrls), heygenPromptEnhancement: heygenReferenceOptions.promptEnhancement } : {}),
         ...(provider === SEEDANCE_FLASH_PROVIDER ? { seedanceTask: seedanceOptions.task, bitrateMode: seedanceOptions.bitrateMode, codec: seedanceOptions.codec, ...(videoWorkflow === "reference-to-video" ? { audioUrls: parseReferenceMediaUrls(seedanceOptions.audioUrls) } : {}) } : {}),
         audioUrl: isAvatarProvider(provider) && avatarAudioUrl.trim() ? verifiedAvatarAudio.audioUrl : undefined,
@@ -1574,6 +1602,13 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       const idempotency = getPersistentIdempotency(userId, fingerprint);
       idempotencyStorageKey = idempotency.storageKey;
 
+      const preparedPayload = cloudMediaEnabled ? {
+        ...requestPayload,
+        imageUrls: requestPayload.imageUrls && await Promise.all(requestPayload.imageUrls.map(url => uploadStudioDataUrl(url, "image", liveToken))),
+        audioUrl: requestPayload.audioUrl && await uploadStudioDataUrl(requestPayload.audioUrl, "audio", liveToken),
+        maskUrl: requestPayload.maskUrl && await uploadStudioDataUrl(requestPayload.maskUrl, "image", liveToken),
+        markupImageUrl: requestPayload.markupImageUrl && await uploadStudioDataUrl(requestPayload.markupImageUrl, "image", liveToken)
+      } : requestPayload;
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -1581,7 +1616,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
           Authorization: `Bearer ${liveToken}`
         },
         body: JSON.stringify({
-          ...requestPayload,
+          ...preparedPayload,
           idempotencyKey: idempotency.idempotencyKey
         })
       });
@@ -2033,6 +2068,14 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     h3FreeLabel,
     handleGenerateClick,
     handleReferenceFiles,
+    handleCloudMediaFile: cloudMediaEnabled && accessToken ? handleCloudMediaFile : undefined,
+    cloudMediaEnabled,
+    isTopazVideo,
+    topazOptions,
+    setTopazOptions,
+    topazSource,
+    setTopazSource,
+    topazQuote,
     imageQuality,
     imageSize,
     imageWorkflow,

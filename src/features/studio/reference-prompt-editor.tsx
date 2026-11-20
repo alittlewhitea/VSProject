@@ -22,8 +22,8 @@ function AssetThumbnail({ asset, large = false }: { asset: ReferenceAsset; large
   </span>;
 }
 
-export function ReferencePromptEditor({ value, images, videos, audio, placeholder, notice, onChange, onGenerate, translate: t }: {
-  value: string; images: string[]; videos: string[]; audio: string[]; placeholder: string; notice?: string;
+export function ReferencePromptEditor({ value, images, videos, audio, placeholder, notice, showMissingNotice = true, onChange, onGenerate, translate: t }: {
+  value: string; images: string[]; videos: string[]; audio: string[]; placeholder: string; notice?: string; showMissingNotice?: boolean;
   onChange: (value: string) => void; onGenerate: () => void; translate: Translate;
 }) {
   const id = "studio-reference-mention";
@@ -181,7 +181,7 @@ export function ReferencePromptEditor({ value, images, videos, audio, placeholde
         {asset.kind === "image" ? <span className={styles.preview} aria-hidden="true"><img src={asset.url} alt="" /><span>{asset.token}</span></span> : null}
       </button>)}
     </div> : null}
-    {missing ? <p className={styles.warning} role="status">{t("studio.mention.missing")}</p> : null}
+    {missing && showMissingNotice ? <p className={styles.warning} role="status">{t("studio.mention.missing")}</p> : null}
     {notice ? <p className={styles.warning} role="status">{notice}</p> : null}
     {open ? <div ref={popupRef} className={styles.popup} style={position} data-mention-popup onMouseDown={event => event.preventDefault()}>
       <div className={styles.popupHeader}><span>{t("studio.mention.title")}</span><span>{options.length}</span></div>

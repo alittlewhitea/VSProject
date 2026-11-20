@@ -20,7 +20,7 @@ videoModelGroup
 
 export type ImageWorkflow = "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
 
-export type VideoWorkflow = "avatar-video" | "text-to-video" | "image-to-video" | "reference-to-video";
+export type VideoWorkflow = "avatar-video" | "text-to-video" | "image-to-video" | "reference-to-video" | "video-upscale";
 
 export type AudioWorkflow = "text-to-audio" | "text-to-music";
 
@@ -253,6 +253,10 @@ export const PROVIDER_META: Record<
     quality: "Enhance",
     bestFor: "Enhance & Cleanup upscaling, clarity, and face enhancement from an uploaded image"
   },
+  "topaz-video": {
+    label: "Topaz Video Upscale", shortLabel: "Topaz Precision",
+    speed: "Source length", quality: "Up to 4K", bestFor: "Video upscaling and restoration"
+  },
   "bria-background-remove": {
     label: "Bria Background Remove",
     shortLabel: "Bria BG",
@@ -333,6 +337,11 @@ export const WORKFLOW_META: Record<
   "reference-to-video": {
     label: "Reference Video", description: "Create a new video using a reference video and optional subject images.",
     recommendedProvider: "heygen-video", providers: VIDEO_PROVIDERS_BY_WORKFLOW["reference-to-video"]
+  },
+  "video-upscale": {
+    label: "Video Upscale",
+    description: "Enhance the resolution and detail of an existing video.",
+    recommendedProvider: "topaz-video", providers: ["topaz-video"]
   },
   "text-to-audio": {
     label: "Text to Audio",
@@ -584,7 +593,7 @@ export function isProviderAllowedForMode(provider: string | null, mode: StudioMo
   if (mode === "image") return [SEEDREAM_55_PROVIDER, "gpt-image-2.6-sunburst", "chatgpt-image", "nano-banana-image", "nano-banana-pro", "nano-banana-lite", "nano-banana-2-lite", "flux-image", "flux-dev", "nano-banana-edit", "recraft-image", "topaz-image", "bria-background-remove"].includes(provider);
   if (mode === "audio") return [GEMINI_TTS_PROVIDER, HEYGEN_VOICE_PROVIDER, "minimax-music-2.6", "elevenlabs-tts"].includes(provider);
   if (mode === "avatar") return ["heygen-video", "minimax-h3-max-turbo-video", "minimax-h3-max-video", "kling-avatar-standard", "kling-avatar-pro"].includes(provider);
-  return Boolean(videoModelConfig(provider)) || isAvatarProvider(provider);
+  return provider === "topaz-video" || Boolean(videoModelConfig(provider)) || isAvatarProvider(provider);
 }
 
 export function workflowForMode(mode: StudioMode, workflow: string | null): StudioWorkflow {
@@ -594,7 +603,7 @@ export function workflowForMode(mode: StudioMode, workflow: string | null): Stud
     if (workflow === "image-to-image" || workflow === "enhance-cleanup" || workflow === "background-remove") return workflow;
     return "text-to-image";
   }
-  if (workflow === "avatar-video") return "avatar-video";
+  if (workflow === "avatar-video" || workflow === "video-upscale") return workflow;
   return workflow === "reference-to-video" ? "reference-to-video" : workflow === "image-to-video" ? "image-to-video" : "text-to-video";
 }
 

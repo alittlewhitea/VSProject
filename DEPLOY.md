@@ -29,6 +29,23 @@ mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p "$MYSQL_DATABASE" < migration/mysql-s
 
 When the app and MySQL run on the same BT server, keep `MYSQL_HOST=127.0.0.1`, bind MySQL to localhost, and remove public TCP 3306 firewall access after maintenance. Do not leave an application database user as `user@'%'` with broad privileges.
 
+## Cloudflare R2 Studio uploads
+
+To enable direct uploads of user media, set these values in the VPS project’s `.env.local` and restart DreamFace:
+
+```dotenv
+R2_ACCOUNT_ID=
+R2_BUCKET_NAME=dreamface-user-media
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+```
+
+Keep the R2 bucket private and scope the R2 token’s Object Read & Write permission to this bucket. Allow the exact Studio origin in the bucket’s CORS policy. Enable `PUT`, `GET` and `HEAD`, allow `Content-Type` and `Range`, and expose `ETag` and `Content-Range`. Use the exact development origin too when testing in a local browser. Uploaded assets are stored under `media/` after validation. Temporary objects are written under `pending/`; a lifecycle rule scoped to that prefix can expire retries and interrupted uploads without affecting completed assets.
+
+The Studio upload caps are 30 MiB per image, 100 MiB per video and 20 MiB per audio file. Individual models still enforce their own media limits. Existing `/api/uploads/` links continue to read local files. Verify a signed-in upload and preview before enabling production use.
+
+Video Upscale uses `ffprobe` to check the uploaded video and calculate the app's credit quote. Install the FFmpeg package on the application server or set `FFPROBE_PATH` to the executable's absolute path. The probe downloads the private R2 object to a temporary directory and removes it after the check. Topaz supports input videos up to five minutes, with app quotes up to 4K.
+
 For an existing database upgrading to PayPal checkout, run the focused migration before deploying the new application build. It preserves historical Stripe records and adds provider-neutral fields plus the payment incident review table:
 
 ```bash

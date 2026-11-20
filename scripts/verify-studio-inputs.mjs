@@ -31,7 +31,7 @@ const WORKFLOW_META=load('src/features/studio/studio-workspace-config.ts').WORKF
 function context(mode,workflow) {
   const c={...models,...gpt,...frames,...policy,...load('src/lib/heygen-reference-video.ts'),...load('src/lib/seedance-flash.ts'),...load('src/lib/seedream-55.ts'),...load('src/lib/mischief.ts'),...load('src/lib/gemini-tts.ts'),...load('src/lib/heygen-voice.ts'),WORKFLOW_META,mode,activeWorkflow:workflow,imageWorkflow:workflow,videoWorkflow:workflow,
     provider:mode==='image'?'chatgpt-image':'minimax-h3-max-turbo-video',prompt:'',referenceImagesText:'',referenceImageFiles:[],
-    duration:'5s',ratio:mode==='image'?'auto':'source',videoResolution:'480p',imageSize:'square',hasCompletedCreation:false,accessToken:null,isPromptlessImageWorkflow:false,
+    duration:'5s',ratio:mode==='image'?'auto':'source',videoResolution:'480p',imageSize:'square',hasCompletedCreation:false,accessToken:null,cloudMediaEnabled:false,isPromptlessImageWorkflow:false,
     sp:new URLSearchParams({mode,workflow}),MINIMAX_MUSIC_DEFAULT_PROMPT:'music-default',KLING_AVATAR_DEFAULT_SCRIPT:'avatar-script',
     MINIMAX_H3_MAX_AVATAR_PROMPT:'avatar-max',MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT:'avatar-turbo',
     YOUNG_KOREAN_WOMAN_PROMPT:'young-korean',EASTBOURNE_KOREAN_WOMAN_PROMPT:'eastbourne',SPORTS_BROADCAST_PROMPT:'sports',
@@ -73,6 +73,13 @@ assert.deepEqual(policy.parseStudioReferenceImages(`${templateUrl}, https://user
 assert.deepEqual(policy.parseStudioReferenceImages('data:image/png;base64,IMAGE_DATA'),['data:image/png;base64,IMAGE_DATA']);
 const templateImage=context('image','image-to-image');templateImage.referenceImagesText=templateUrl;
 await templateImage.upload([file]);assert.deepEqual(templateImage.referenceImageUrls,[templateUrl,file.dataUrl]);
+const cloudImage=context('image','image-to-image');
+const uploadedImage='https://dreamface.io/api/media/fixture.png';
+Object.assign(cloudImage,{cloudMediaEnabled:true,accessToken:'fixture-session',uploadStudioMedia:async (selected,kind,token)=>{
+  assert.equal(selected,file);assert.equal(kind,'image');assert.equal(token,'fixture-session');return uploadedImage;
+}});
+await cloudImage.upload([file]);
+assert.deepEqual(cloudImage.referenceImageUrls,[uploadedImage]);
 for(const provider of ['nano-banana-image','nano-banana-pro','nano-banana-lite','gpt-image-2.6-sunburst','chatgpt-image']){
   templateImage.applyProvider(provider);assert.deepEqual(templateImage.referenceImageUrls,[templateUrl,file.dataUrl],'Template must remain image 1, user upload image 2 across model changes');
 }

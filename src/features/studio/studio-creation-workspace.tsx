@@ -27,6 +27,7 @@ videoModelBadge,
 videoModelGroup
 } from "./video-models";
 const VideoSettings = dynamic(() => import("./video-settings").then(module=>module.VideoSettings));
+const TopazVideoSettings = dynamic(() => import("./topaz-video-settings").then(module=>module.TopazVideoSettings));
 import { WorkflowSwitcher } from "./workflow-switcher";
 
 import type { StudioController } from "./use-studio-controller";
@@ -71,6 +72,14 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
     h3FreeLabel,
     handleGenerateClick,
     handleReferenceFiles,
+    handleCloudMediaFile,
+    cloudMediaEnabled,
+    isTopazVideo,
+    topazOptions,
+    setTopazOptions,
+    topazSource,
+    setTopazSource,
+    topazQuote,
     imageQuality,
     imageSize,
     imageWorkflow,
@@ -1233,6 +1242,11 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                       onMusicFormatChange={setMusicFormat}
                       onGenerate={handleGenerateClick}
                     />
+                  ) : showVideoWorkbenchRedesign && isTopazVideo ? (
+                    <TopazVideoSettings workflowTabs={workflowNavigation} translate={st} token={accessToken}
+                      upload={handleCloudMediaFile} cloudEnabled={cloudMediaEnabled}
+                      source={topazSource} onSourceChange={setTopazSource} options={topazOptions} onOptionsChange={setTopazOptions}
+                      quote={topazQuote} submitting={isSubmitting} statusMessage={statusText} statusTone={statusTone} onGenerate={handleGenerateClick} />
                   ) : showVideoWorkbenchRedesign ? (
                     <>
                     <VideoSettings
@@ -1243,6 +1257,7 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                       workflow={configuredVideoWorkflow}
                       onUseReference={() => applyWorkflow("reference-to-video")}
                       referenceVideoUrl={referenceVideoUrl}
+                      shortsTemplate={sp.get("templateCategory") === "shorts" && Boolean(sp.get("templateId")) && sp.get("referenceVideo") === referenceVideoUrl}
                       heygenReferenceOptions={heygenReferenceOptions}
                       onHeygenReferenceOptionsChange={setHeygenReferenceOptions}
                       heygenValidationError={heygenValidationError}
@@ -1250,6 +1265,7 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                       seedanceValidationError={seedanceValidationError}
                       onSeedanceOptionsChange={setSeedanceOptions}
                       onReferenceVideoUrlChange={setReferenceVideoUrl}
+                      onMediaUpload={handleCloudMediaFile}
                       prompt={prompt}
                       referenceImageUrls={referenceImageUrls}
                       provider={provider}
@@ -1301,7 +1317,7 @@ export default function StudioCreationWorkspace({model}:{model:StudioController}
                       onSeedChange={setSeed}
                       onGenerate={handleGenerateClick}
                     />
-                    <StudioDeferredSection><VideoTemplateGallery translate={st} locale={studioI18n.locale} /></StudioDeferredSection>
+                    <StudioDeferredSection id="studio-video-templates"><VideoTemplateGallery translate={st} locale={studioI18n.locale} /></StudioDeferredSection>
                     </>
                   ) : showAvatarWorkbenchRedesign ? (
                     <AvatarSettings

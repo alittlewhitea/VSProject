@@ -102,6 +102,19 @@ try{
  const links=load('src/features/studio/studio-video-template-link.ts');
  const linked=new URL(links.studioVideoTemplateHref({id:'template-id',videoUrl},'Keep my product.'),'https://dreamface.io');
  assert.equal(linked.searchParams.get('referenceVideo'),videoUrl);assert.equal(linked.searchParams.get('workflow'),'reference-to-video');assert.equal(linked.searchParams.get('prompt'),'Keep my product.');
+ assert.equal(linked.searchParams.has('templateCategory'),false);
+ const shortsCopy=JSON.parse(readFileSync('messages/studio/en.json','utf8'));
+ const shortsPrompt=shortsCopy['studio.templates.shorts.prompt'];
+ const shortsLink=new URL(links.studioVideoTemplateHref({id:'shorts-id',videoUrl},shortsPrompt,'shorts'),'https://dreamface.io');
+ assert.equal(shortsLink.searchParams.get('templateCategory'),'shorts');
+ assert.equal(shortsLink.searchParams.get('provider'),'heygen-video');
+ assert.equal(shortsLink.searchParams.get('referenceVideo'),videoUrl);
+ assert.equal(shortsLink.searchParams.get('prompt'),shortsPrompt);
+ const {prepareHeygenReferencePrompt}=load('src/lib/heygen-reference-video.ts');
+ assert.equal(prepareHeygenReferencePrompt(shortsPrompt,[],[videoUrl]).missing,true);
+ assert.deepEqual(prepareHeygenReferencePrompt(shortsPrompt,['https://example.invalid/my-photo.jpg'],[videoUrl]),{
+  prompt:shortsPrompt.replace('@Video1','<Video 1>').replace('@Image1','<Picture 1>'),missing:false
+ });
  const avatarTools=load('src/lib/heygen-avatar.ts');
  const avatarRequest=(extra={})=>request({mode:'avatar',videoWorkflow:'avatar-video',imageUrls:['https://example.invalid/avatar.jpg'],ratio:'source',prompt:'Hello, welcome to our studio.',expectedCredits:18,...extra});
  response=await route.POST(avatarRequest());assert.equal(response.status,200,JSON.stringify(response));

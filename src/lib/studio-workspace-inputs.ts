@@ -1,9 +1,9 @@
 import { GPT_IMAGE_EXAMPLE_REFERENCES } from "./gpt-image-models";
 import { VIDEO_EXAMPLE_SOURCE_IMAGES } from "../features/studio/video-models";
 
-export type AppliedUrlInput = { mode: string; value: string | null };
-export function shouldApplyUrlInput(previous: AppliedUrlInput | null, mode: string, value: string | null) {
-  return !previous || previous.mode !== mode || previous.value !== value;
+export type AppliedUrlInput = { mode: string; value: string | null; templateId?: string };
+export function shouldApplyUrlInput(previous: AppliedUrlInput | null, mode: string, value: string | null, templateId?: string) {
+  return !previous || previous.mode !== mode || previous.value !== value || previous.templateId !== templateId;
 }
 
 /** Commas inside CDN transform paths and data URLs belong to the image URL. */

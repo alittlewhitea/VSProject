@@ -43,6 +43,9 @@
 .player > video:fullscreen { width: 100%; height: 100%; max-height: none; object-fit: contain; }
 .dialog footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; color: var(--df-stage-muted); font-size: 12px; }
 .dialog footer a { display: inline-flex; align-items: center; min-height: 44px; color: var(--df-stage-text); }
+.shortsDetails { flex: 1 1 230px; min-width: 0; }
+.shortsDetails p { font-size: 13px; line-height: 1.5; }
+.dialog footer .shortsDetails a { color: var(--df-stage-muted); }
 .dialog footer .create { justify-content: center; gap: 8px; padding: 10px 16px; border-radius: var(--df-radius-button); background: var(--df-primary); color: white; font-size: 14px; font-weight: 500; }
 .dialog footer .create:hover { background: var(--df-primary-hover); }
 @media(min-width:1800px) { .masonry { --template-columns: 5; } }

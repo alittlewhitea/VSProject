@@ -31,11 +31,11 @@ export function StudioComposerPrompt({label, prompt, placeholder, translate, onC
   </div>;
 }
 
-export function StudioComposerGenerate({disabled, submitting, authenticated, credits, translate, onGenerate}: {
-  disabled: boolean; submitting: boolean; authenticated: boolean; credits: number; translate: Translate; onGenerate: () => void;
+export function StudioComposerGenerate({disabled, submitting, authenticated, credits, actionLabel, translate, onGenerate}: {
+  disabled: boolean; submitting: boolean; authenticated: boolean; credits?: number; actionLabel?: string; translate: Translate; onGenerate: () => void;
 }) {
   return <button type="button" onClick={onGenerate} disabled={disabled} className="df-generate-button df-composer-generate">
-    <span>{translate(submitting ? "studio.generate.creating" : authenticated ? "studio.generate.button" : "studio.auth.signInToGenerate")}</span>
-    <span className="df-composer-quote">{credits} {translate("studio.common.credits")} · ≈{formatApproximateCreditValue(credits)}</span>
+    <span>{!submitting && authenticated && actionLabel ? actionLabel : translate(submitting ? "studio.generate.creating" : authenticated ? "studio.generate.button" : "studio.auth.signInToGenerate")}</span>
+    {credits !== undefined ? <span className="df-composer-quote">{credits} {translate("studio.common.credits")} · ≈{formatApproximateCreditValue(credits)}</span> : null}
   </button>;
 }

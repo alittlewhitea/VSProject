@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { fetchFal } from "./fal-fetch";
+import { signGenerationMedia } from "./r2-studio-media";
 import { consumeRateLimit } from "./request-security";
 import { buildEnhancementInput, parseEnhancementOutput, enhancementUsage, type VideoPromptContext, type EnhancementResult } from "./video-prompt-enhancement";
 
@@ -59,12 +60,13 @@ export async function enhanceVideoPrompt(context: VideoPromptContext, userId: st
       if (!rate.allowed) return fallback;
       const keyValue = process.env.FAL_KEY?.replace(/^Key\s+/i, "").trim();
       if (!keyValue) return fallback;
-      for (const image of context.imageUrls || []) await validateEnhancementImage(image);
+      const imageUrls = context.imageUrls && await Promise.all(context.imageUrls.map(image => signGenerationMedia(userId, image, "image")));
+      for (const image of imageUrls || []) await validateEnhancementImage(image);
       if (Date.now() - started >= 25_000) return fallback;
       const endpoint = context.mode === "image-to-video" ? "openrouter/router/vision" : "openrouter/router";
       const response = await fetchFal(`https://fal.run/${endpoint}`, {
         method: "POST", headers: { Authorization: `Key ${keyValue}`, "Content-Type": "application/json" },
-        body: JSON.stringify(buildEnhancementInput(context, llm)), attempts: 1, timeoutMs: 15000, fallback: false,
+        body: JSON.stringify(buildEnhancementInput({ ...context, imageUrls }, llm)), attempts: 1, timeoutMs: 15000, fallback: false,
         signal: AbortSignal.timeout(18000)
       });
       if (!response.ok) throw new Error("Provider unavailable");

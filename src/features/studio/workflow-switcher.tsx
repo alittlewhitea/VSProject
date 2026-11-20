@@ -4,7 +4,8 @@ import { StudioSegmentedControl } from "./studio-primitives";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 export type ImageWorkflow = "text-to-image" | "image-to-image" | "enhance-cleanup" | "background-remove";
-export type VideoWorkflow = "text-to-video" | "image-to-video" | "reference-to-video";
+export type VideoWorkflow = "text-to-video" | "image-to-video" | "reference-to-video" | "video-upscale";
+const videoWorkflows: VideoWorkflow[] = ["text-to-video", "image-to-video", "reference-to-video", "video-upscale"];
 export type AudioWorkflow = "text-to-audio" | "text-to-music";
 export type StudioWorkflow = ImageWorkflow | VideoWorkflow | AudioWorkflow | "avatar-video";
 type StudioMode = "image" | "video" | "audio" | "avatar";
@@ -59,7 +60,7 @@ export function WorkflowSwitcher({
     const workflows = mode === "image"
       ? (["text-to-image", "image-to-image", "enhance-cleanup", "background-remove"] as ImageWorkflow[])
       : mode === "video"
-        ? (["text-to-video", "image-to-video", "reference-to-video"] as VideoWorkflow[])
+        ? videoWorkflows
         : (["text-to-audio", "text-to-music"] as AudioWorkflow[]);
     const active = mode === "image" ? imageWorkflow : mode === "video" ? videoWorkflow : audioWorkflow;
     return <div className="df-workflow-nav"><StudioSegmentedControl label={t(`studio.nav.${mode}`)} options={workflows.map(workflow => ({ value: workflow, label: t(`studio.workflow.${workflow}`) }))} value={active} onChange={onWorkflowChange} /></div>;
@@ -81,7 +82,7 @@ export function WorkflowSwitcher({
           </>
         ) : mode === "video" ? (
           <div className={videoRedesign ? "grid w-full max-w-[520px] grid-cols-2 gap-1 overflow-visible rounded-[22px] border border-[var(--studio-border)] bg-[var(--studio-accent-soft)] p-1.5 shadow-none sm:rounded-full" : "mt-2 flex flex-wrap items-center justify-center gap-2 sm:mt-5 md:mt-7"}>
-            {(["text-to-video", "image-to-video", "reference-to-video"] as VideoWorkflow[]).map((workflow) => {
+            {videoWorkflows.map((workflow) => {
               const active = videoWorkflow === workflow;
               return <button key={workflow} type="button" onClick={() => onWorkflowChange(workflow)} className={`${videoRedesign ? "min-w-0 rounded-[17px] px-4 py-[13px] text-sm font-semibold sm:rounded-full" : "rounded-full border px-4 py-2 text-sm font-semibold"} transition ${active ? videoRedesign ? "bg-[var(--studio-primary)] text-white shadow-none" : "border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)] shadow-sm" : videoRedesign ? "text-[var(--studio-muted)] hover:bg-[var(--studio-accent-soft)] hover:text-[var(--studio-text)]" : "border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-muted)] hover:bg-[var(--studio-panel)] hover:text-[var(--studio-text)]"}`}>{t(`studio.workflow.${workflow}`)}</button>;
             })}

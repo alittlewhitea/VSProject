@@ -1,6 +1,7 @@
 import { isGptImageProvider } from "./gpt-image-models";
 import { creditsFromFalUsd, gptImageCreditsFromCostUsd } from "./model-pricing";
 import { isSeedModelProvider, seedModelCreditsFromCostUsd } from "./seed-model-pricing";
+import { TOPAZ_VIDEO_PROVIDER } from "./topaz-video-upscale";
 
 type FalModelError = {
   loc?: unknown[];
@@ -220,7 +221,7 @@ export async function falApiErrorFromResponse(response: Response) {
 
 export function falActualCreditsFromCost(costUsd: number | null, estimatedCredits: number, provider?: string | null) {
   if (!Number.isFinite(costUsd || 0) || !costUsd || costUsd <= 0) return 0;
-  const actualCredits = isSeedModelProvider(provider) ? seedModelCreditsFromCostUsd(costUsd, 0)
+  const actualCredits = isSeedModelProvider(provider) || provider === TOPAZ_VIDEO_PROVIDER ? seedModelCreditsFromCostUsd(costUsd, 0)
     : provider && isGptImageProvider(provider) ? gptImageCreditsFromCostUsd(costUsd, 0) : creditsFromFalUsd(costUsd, 1);
   return Math.min(Math.max(0, estimatedCredits), actualCredits);
 }

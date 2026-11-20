@@ -1,4 +1,5 @@
 import { referencePromptAssets, referencePromptParts } from "./reference-prompt";
+import { studioMediaBytes } from "./studio-media";
 
 // fal OpenAPI: HeygenVideoReferenceToVideoInput (checked 2026-11-16).
 export const HEYGEN_REFERENCE_IMAGE_LIMIT = 9;
@@ -27,7 +28,7 @@ export function prepareHeygenReferencePrompt(prompt: string, images?: string[], 
 }
 
 export function heygenReferenceImageBytes(url: string) {
-  if (!/^data:/i.test(url)) return 0;
+  if (!/^data:/i.test(url)) return studioMediaBytes(url, "image");
   const comma = url.indexOf(",");
   return comma < 0 ? 0 : Math.floor((url.length - comma - 1) * 3 / 4) - (url.endsWith("==") ? 2 : url.endsWith("=") ? 1 : 0);
 }

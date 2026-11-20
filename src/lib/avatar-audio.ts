@@ -7,6 +7,7 @@ import path from "node:path";
 import { downloadAudio, MAX_AUDIO_BYTES } from "./audio-download";
 import { wavDataUrlSeconds } from "./generation-billing-normalize";
 import { siteUrl } from "./site-url";
+import { ownStudioMediaId, r2MediaEnabled, saveStudioWav, signStudioMediaRead, StudioMediaError } from "./r2-studio-media";
 
 const run=promisify(execFile);
 export class AvatarAudioError extends Error { constructor(message:string,public status=400){super(message);} }
@@ -44,7 +45,14 @@ export async function prepareAvatarAudio(admin:any,userId:string,input:string,ma
     bytes=Buffer.from(match[1],"base64");
   } else {
     const url=new URL(input),ownOrigin=new URL(siteUrl()).origin;
-    if(url.origin===ownOrigin&&url.pathname.startsWith("/api/uploads/generation-inputs/")) {
+    const mediaId = ownStudioMediaId(input);
+    if (mediaId) {
+      try { bytes = await downloadAudio(await signStudioMediaRead(userId, mediaId, 300, "audio")); }
+      catch (error) {
+        if (error instanceof StudioMediaError) throw new AvatarAudioError(error.message, error.status);
+        throw new AvatarAudioError("This uploaded audio could not be read. Try uploading it again.");
+      }
+    } else if(url.origin===ownOrigin&&url.pathname.startsWith("/api/uploads/generation-inputs/")) {
       const match=new RegExp(`^/api/uploads/generation-inputs/${userId}/audio-([a-f0-9]{64})\\.wav$`).exec(url.pathname);
       if(!match||url.search||url.hash)throw new AvatarAudioError("Use your own verified audio upload.");
       bytes=await readFile(path.join(process.cwd(),".data","uploads","generation-inputs",userId,`audio-${match[1]}.wav`));
@@ -62,7 +70,12 @@ export async function prepareAvatarAudio(admin:any,userId:string,input:string,ma
     seconds=measured;wav=bytes;
   } else ({seconds,wav}=await decodeAudio(bytes,maxSeconds));
   const billableSeconds=audioBillableSeconds(seconds,maxSeconds);
-  const hash=createHash("sha256").update(wav).digest("hex"),objectPath=`${userId}/audio-${hash}.wav`;
+  const hash=createHash("sha256").update(wav).digest("hex");
+  if (r2MediaEnabled()) {
+    try { return { seconds, billableSeconds, audioUrl: await saveStudioWav(userId, wav, hash) }; }
+    catch { throw new AvatarAudioError("Audio could not be saved. Please try again.", 503); }
+  }
+  const objectPath=`${userId}/audio-${hash}.wav`;
   const bucket=admin.storage.from("generation-inputs");
   const {error}=await bucket.upload(objectPath,wav,{contentType:"audio/wav",upsert:true});
   if(error)throw new AvatarAudioError("Audio could not be saved. Please try again.",503);

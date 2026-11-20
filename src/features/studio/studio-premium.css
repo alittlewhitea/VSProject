@@ -40,8 +40,6 @@
 .df-premium-composer .df-composer-more:hover { transform:translateY(-2px); color:var(--avatar-accent); border-color:color-mix(in srgb,var(--avatar-brand) 40%,var(--avatar-edge)); background:var(--df-surface); box-shadow:0 2px 5px rgb(15 23 42 / .06); }
 .df-premium-composer .df-composer-cost { padding-top:12px; color:var(--avatar-muted); font-size:10px; }
 .df-premium-composer .df-composer-advanced { padding:16px; border:1px solid var(--avatar-edge); border-radius:16px; background:var(--avatar-soft); }
-.df-premium-composer [data-choose-video-template] { background:var(--avatar-brand); border-radius:12px; box-shadow:0 3px 12px color-mix(in srgb,var(--df-primary) 16%,transparent); transition:transform 200ms ease,box-shadow 200ms ease; }
-.df-premium-composer [data-choose-video-template]:hover { transform:translateY(-2px); box-shadow:0 5px 16px color-mix(in srgb,var(--df-primary) 24%,transparent); }
 .df-premium-composer [data-reference-video-url] { border-radius:12px; background:var(--avatar-soft); }
 .df-premium-composer .df-composer-music-options { margin-top:8px; border-color:var(--avatar-edge); }
 .df-premium-composer .df-composer-music-options > button { color:var(--avatar-muted); }
@@ -70,6 +68,6 @@
   .df-premium-composer .df-composer-advanced { padding:12px; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .df-premium-composer :is(.df-select-control > select,.df-composer-parameter > select,.df-composer-more,[data-choose-video-template]):hover { transform:none; }
+  .df-premium-composer :is(.df-select-control > select,.df-composer-parameter > select,.df-composer-more):hover { transform:none; }
   .df-premium-composer .df-inline-model-picker:hover > svg:last-child { transform:none; }
 }

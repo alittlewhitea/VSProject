@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { SEEDANCE_FLASH_IMAGE_LIMIT, SEEDANCE_FLASH_MEDIA_LIMIT, parseReferenceMediaUrls, type SeedanceFlashOptions } from "../../lib/seedance-flash";
 import { StudioImagePreview, StudioImageUpload } from "./studio-image-upload";
+import { StudioReferenceFileUpload, type ReferenceMediaUpload } from "./studio-reference-file-upload";
 import styles from "./studio-video-reference-panel.module.css";
 
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
-export function SeedanceReferencePanel({ videoUrls, images, options, onOptionsChange, onVideoUrlsChange, onFiles, onRemove, onFileError, translate: t }: {
+export function SeedanceReferencePanel({ videoUrls, images, options, onOptionsChange, onVideoUrlsChange, onFiles, onRemove, onFileError, onMediaUpload, translate: t }: {
   videoUrls: string; images: string[]; options: SeedanceFlashOptions;
   onOptionsChange: (value: SeedanceFlashOptions) => void; onVideoUrlsChange: (value: string) => void;
   onFiles: (files: FileList | null) => Promise<void>; onRemove: (index: number) => void; onFileError: () => void;
   translate: Translate;
+  onMediaUpload?: ReferenceMediaUpload;
 }) {
   // Only one reference form is mounted in the workspace.
   const id = "studio-seedance-reference";
@@ -49,11 +51,16 @@ export function SeedanceReferencePanel({ videoUrls, images, options, onOptionsCh
     </label>
     <textarea id={`${id}-videos`} rows={2} maxLength={40960} dir="ltr" value={videoUrls} required={needsVideo} aria-required={needsVideo} aria-describedby={`${id}-video-help`} onChange={event => onVideoUrlsChange(event.target.value)} placeholder="https://…/video.mp4" className={`${styles.url} w-full resize-y`} />
     <p id={`${id}-video-help`} className={styles.hint}>{t("studio.seedance.linkHint")}</p>
+    {onMediaUpload ? <StudioReferenceFileUpload kind="video" value={videoUrls} limit={SEEDANCE_FLASH_MEDIA_LIMIT}
+      label={t("studio.seedance.videos")} translate={t} onUpload={onMediaUpload} onChange={onVideoUrlsChange} /> : null}
     <label className={`${styles.label} ${styles.mediaLabel}`} htmlFor={`${id}-audio`}>
       {t("studio.seedance.audio")}<span className={styles.requirement}>{t("studio.seedance.optional")}</span><small>{audioCount}/{SEEDANCE_FLASH_MEDIA_LIMIT}</small>
     </label>
     <textarea id={`${id}-audio`} rows={2} maxLength={40960} dir="ltr" value={options.audioUrls} aria-describedby={`${id}-audio-help`} onChange={event => onOptionsChange({ ...options, audioUrls: event.target.value })} placeholder="https://…/audio.mp3" className={`${styles.url} w-full resize-y`} />
     <p id={`${id}-audio-help`} className={styles.hint}>{t("studio.seedance.linkHint")}</p>
+    {onMediaUpload ? <StudioReferenceFileUpload kind="audio" value={options.audioUrls} limit={SEEDANCE_FLASH_MEDIA_LIMIT}
+      label={t("studio.seedance.audio")} translate={t} onUpload={onMediaUpload}
+      onChange={audioUrls => onOptionsChange({ ...options, audioUrls })} /> : null}
     <details className={styles.mediaSpecs}>
       <summary>{t("studio.seedance.mediaSpecs")}</summary>
       <dl className={styles.mediaSpecList}>

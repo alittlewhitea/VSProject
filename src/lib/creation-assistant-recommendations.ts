@@ -87,7 +87,7 @@ export function assistantBudgetOptions(request: AssistantRequest) {
   const workflows: StudioWorkflow[] = requirement.workflow ? [requirement.workflow] : ["text-to-image", "text-to-video", "image-to-video", "reference-to-video"];
   return workflows.flatMap(workflow => WORKFLOW_META[workflow].providers.map(provider=>assistantCandidate(workflow,provider,request)).filter((value): value is AssistantCandidate=>Boolean(value)).sort((a,b)=>a.credits-b.credits).slice(0, requirement.workflow ? 3 : 1));
 }
-const zhWorkflows: Record<StudioWorkflow, string> = { "text-to-image":"文生图", "image-to-image":"图生图", "enhance-cleanup":"画质增强", "background-remove":"移除背景", "text-to-video":"文生视频", "image-to-video":"图生视频", "reference-to-video":"参考视频", "avatar-video":"数字人视频", "text-to-audio":"语音生成", "text-to-music":"音乐生成" };
+const zhWorkflows: Record<StudioWorkflow, string> = { "text-to-image":"文生图", "image-to-image":"图生图", "enhance-cleanup":"画质增强", "background-remove":"移除背景", "text-to-video":"文生视频", "image-to-video":"图生视频", "reference-to-video":"参考视频", "video-upscale":"视频超分", "avatar-video":"数字人视频", "text-to-audio":"语音生成", "text-to-music":"音乐生成" };
 export function assistantCandidateAction(candidate: AssistantCandidate, request: AssistantRequest, reason: string): AssistantAction {
   const workflow = candidate.workflow, mode = imageWorkflows.includes(workflow) ? "image" : workflow === "avatar-video" ? "avatar" : workflow === "text-to-audio" || workflow === "text-to-music" ? "audio" : "video";
   const params = new URLSearchParams({ mode, workflow, provider: candidate.provider, assistant: "preview", source: "assistant" });

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { fetchFal } from "./fal-fetch";
 import { consumeRateLimit } from "./request-security";
 import { validateEnhancementImage } from "./video-prompt-enhancer";
+import { signGenerationMedia } from "./r2-studio-media";
 import { enhancementUsage } from "./video-prompt-enhancement";
 import { buildAssistantInput, parseAssistantReply } from "./creation-assistant-context";
 import { directAssistantReply } from "./creation-assistant-direct";
@@ -32,7 +33,7 @@ async function limit(scope: string, subject: string, maximum: number, seconds: n
   entry.count++; localLimits.set(key, entry);
   if (entry.count > maximum) throw new AssistantServiceError(429, seconds);
 }
-export async function replyWithCreationAssistant(input: AssistantRequest, identity: { subject: string; ip: string; authenticated: boolean }): Promise<AssistantReply> {
+export async function replyWithCreationAssistant(input: AssistantRequest, identity: { subject: string; ip: string; authenticated: boolean; userId?: string }): Promise<AssistantReply> {
   if (process.env.AI_ASSISTANT_ENABLED?.trim().toLowerCase() === "false") throw new AssistantServiceError(503);
   const direct = directAssistantReply(input);
   if (direct) {
@@ -60,6 +61,10 @@ export async function replyWithCreationAssistant(input: AssistantRequest, identi
       await limit("creation_assistant_day", identity.subject, identity.authenticated ? 200 : 40, 86400);
       await limit("creation_assistant_ip", identity.ip, 30, 60);
       await limit("creation_assistant_global", "all", 3000, 86400);
+      const userId = identity.userId;
+      if (userId && llmInput.image_urls) {
+        llmInput.image_urls = await Promise.all(llmInput.image_urls.map(image => signGenerationMedia(userId, image, "image")));
+      }
       for (const image of llmInput.image_urls || []) await validateEnhancementImage(image);
       if (Date.now() - started > 8000) throw new AssistantServiceError(503);
       const endpoint = llmInput.image_urls?.length ? "openrouter/router/vision" : "openrouter/router";

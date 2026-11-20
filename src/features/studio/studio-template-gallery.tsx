@@ -125,6 +125,7 @@ function TemplatePreview({ item, title, translate, onClose }: { item: Template; 
   const dialogRef = useRef<HTMLElement | null>(null);
   const playerRef = useRef<HTMLVideoElement | null>(null);
   const sourceUrl = isVideo(item) ? item.videoUrl : item.imageUrl;
+  const isShortsTemplate = !("createHref" in item) && isVideo(item) && item.categories.includes("shorts");
   const media = useStudioMediaFeedback(sourceUrl);
   useStudioDialog(true, dialogRef, { onClose });
   useEffect(() => {
@@ -152,15 +153,21 @@ function TemplatePreview({ item, title, translate, onClose }: { item: Template; 
               if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onClose();
             }}>{translate("studio.workspace.start")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></Link>
           </>
-        ) : item.categories.includes("shorts") ? (
-          <a href={item.sourceUrl} target="_blank" rel="noreferrer">Higgsfield Shorts Studio ↗</a>
         ) : (
           <>
-            <span>Higgsfield Marketing Studio</span>
-            {isVideo(item) ? <Link className={styles.create} href={studioVideoTemplateHref(item, translate("studio.referenceVideo.templatePrompt"))} onClick={event => {
+            {isShortsTemplate ? <div className={styles.shortsDetails}>
+              <p>{translate("studio.templates.shorts.hint")}</p>
+              <a href={item.sourceUrl} target="_blank" rel="noreferrer">Higgsfield Shorts Studio ↗</a>
+            </div> : <span>Higgsfield Marketing Studio</span>}
+            {isVideo(item) ? <Link className={styles.create} href={studioVideoTemplateHref(
+              item,
+              translate(isShortsTemplate ? "studio.templates.shorts.prompt" : "studio.referenceVideo.templatePrompt"),
+              isShortsTemplate ? "shorts" : undefined
+            )} onClick={event => {
               if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-              onClose(); focusStudioVideoReference(item.videoUrl);
-            }}>{translate("studio.templates.createLike")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></Link> : <Link className={styles.create} href={studioImageTemplateHref(item, translate("studio.templates.createPrompt"))} onClick={event => {
+              onClose();
+              focusStudioVideoReference(item.videoUrl);
+            }}>{translate(isShortsTemplate ? "studio.templates.shorts.create" : "studio.templates.createLike")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></Link> : <Link className={styles.create} href={studioImageTemplateHref(item, translate("studio.templates.createPrompt"))} onClick={event => {
               if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
               onClose(); focusStudioTemplateReference(item.imageUrl);
             }}>{translate("studio.templates.createLike")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></Link>}

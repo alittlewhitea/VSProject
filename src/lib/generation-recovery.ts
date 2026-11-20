@@ -2,6 +2,7 @@ import {fetchFal} from "./fal-fetch";
 import {falApiErrorFromResponse,falRefundCreditsFromCost,parseFalFailure,formatFalFailureReason} from "./fal-errors";
 import {resolveFalCostUsd,resolveFalTaskCostUsd} from "./fal-billing";
 import {recoverStoredTracking,providerTracking,submitTrackedFal,recordTtsOutput,type ProviderAttempt} from "./generation-submission";
+import { signGenerationMedia } from "./r2-studio-media";
 import {settleGenerationTask} from "./generation-task-settlement";
 
 /** Only the unsent next stage may start. An unknown primary attempt is never replayed. */
@@ -34,7 +35,10 @@ export async function recoverGenerationTracking(admin:any,task:Record<string,any
   }
   if(typeof config.model_id!=="string"||!config.image_urls?.[0])return task;
   await recordTtsOutput(task.id,task.user_id,{...(config.tts_step||{}),request_id:tts.requestId,model_id:tts.modelId,audio_url:audio,recovered:true});
-  try {await submitTrackedFal(falKey,config.model_id,{image_url:config.image_urls[0],audio_url:audio,prompt:task.prompt||"."},{taskId:task.id,userId:task.user_id,stage:"primary"});}
+  try {
+    const imageUrl = await signGenerationMedia(task.user_id, config.image_urls[0], "image");
+    await submitTrackedFal(falKey,config.model_id,{image_url:imageUrl,audio_url:audio,prompt:task.prompt||"."},{taskId:task.id,userId:task.user_id,stage:"primary"});
+  }
   catch { /* The durable primary intent prevents retries after any uncertain acceptance. */ }
   const {data,error}=await admin.from("generation_tasks").select("*").eq("id",task.id).eq("user_id",task.user_id).maybeSingle();if(error)throw error;return data||task;
 }
