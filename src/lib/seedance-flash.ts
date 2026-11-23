@@ -8,6 +8,7 @@ export const SEEDANCE_FLASH_RATIOS = ["auto", "21:9", "16:9", "4:3", "1:1", "3:4
 export const SEEDANCE_FLASH_RESOLUTIONS = ["480p", "720p"];
 export const SEEDANCE_FLASH_IMAGE_LIMIT = 10;
 export const SEEDANCE_FLASH_MEDIA_LIMIT = 5;
+export const SEEDANCE_FLASH_AUDIO_BYTES = 15 * 1024 * 1024;
 export const SEEDANCE_FLASH_REFERENCE_SECONDS = 30.2;
 
 export type SeedanceFlashOptions = {

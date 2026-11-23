@@ -151,14 +151,15 @@ export function VideoSettings({
     onReferenceRemove(index);
   }
 
-  function changeHeygenVideoUrls(value: string) {
+  function changeReferenceVideoUrls(value: string) {
     updateReferencePrompt(remapReferenceUrlsInPrompt(prompt, "video", referenceVideos, parseReferenceMediaUrls(value)));
     onReferenceVideoUrlChange(value);
   }
 
-  function changeHeygenAudioUrls(value: string) {
+  function changeReferenceAudioUrls(value: string) {
     updateReferencePrompt(remapReferenceUrlsInPrompt(prompt, "audio", referenceAudio, parseReferenceMediaUrls(value)));
-    onHeygenReferenceOptionsChange({ ...heygenReferenceOptions, audioUrls: value });
+    if (showSeedanceNotices) onSeedanceOptionsChange({ ...seedanceOptions, audioUrls: value });
+    else onHeygenReferenceOptionsChange({ ...heygenReferenceOptions, audioUrls: value });
   }
 
   return (
@@ -167,8 +168,15 @@ export function VideoSettings({
           <div className={styles.editorScroll} data-video-editor-scroll>
           <fieldset disabled={isSubmitting || promptAI.busy} className={styles.formGrid}>
           <div className={styles.content} data-video-prompt-section>
-          {showSeedanceNotices ? <SeedanceReferencePanel videoUrls={referenceVideoUrl} images={referenceImageUrls} options={seedanceOptions} onOptionsChange={onSeedanceOptionsChange} onVideoUrlsChange={onReferenceVideoUrlChange} onFiles={onReferenceFiles} onRemove={removeReferenceImage} onFileError={onFileError} onMediaUpload={onMediaUpload} translate={translate} /> : null}
-          {isHeygenReference ? <StudioVideoReferencePanel compact videoUrl={referenceVideoUrl} images={referenceImageUrls} photoUploadHint={shortsPrompt ? translate("studio.templates.shorts.hint") : undefined} audioUrls={heygenReferenceOptions.audioUrls} onAudioUrlsChange={changeHeygenAudioUrls} translate={translate} onVideoUrlChange={changeHeygenVideoUrls} onFiles={onReferenceFiles} onRemove={removeReferenceImage} onFileError={onFileError} onMediaUpload={onMediaUpload} /> : null}
+          {showSeedanceNotices ? <SeedanceReferencePanel videoUrls={referenceVideoUrl} images={referenceImageUrls}
+            options={seedanceOptions} onOptionsChange={onSeedanceOptionsChange} onVideoUrlsChange={changeReferenceVideoUrls}
+            onAudioUrlsChange={changeReferenceAudioUrls} onFiles={onReferenceFiles} onRemove={removeReferenceImage}
+            onFileError={onFileError} onMediaUpload={onMediaUpload} authenticated={isAuthenticated} translate={translate} /> : null}
+          {isHeygenReference ? <StudioVideoReferencePanel compact videoUrl={referenceVideoUrl} images={referenceImageUrls}
+            photoUploadHint={shortsPrompt ? translate("studio.templates.shorts.hint") : undefined}
+            audioUrls={heygenReferenceOptions.audioUrls} onAudioUrlsChange={changeReferenceAudioUrls} translate={translate}
+            onVideoUrlChange={changeReferenceVideoUrls} onFiles={onReferenceFiles} onRemove={removeReferenceImage}
+            onFileError={onFileError} onMediaUpload={onMediaUpload} authenticated={isAuthenticated} /> : null}
           <div className="df-composer-prompt-label mb-2.5 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5"><label htmlFor="video-studio-prompt" className="shrink-0 text-sm font-medium text-[var(--studio-text)]">{translate("studio.field.prompt")}</label></div>
             <span className="shrink-0 text-xs tabular-nums text-[var(--studio-muted)]">{translate("studio.workbench.characters", { count: prompt.length.toLocaleString() })}{provider === "heygen-video" && workflow === "reference-to-video" ? ` / ${HEYGEN_REFERENCE_PROMPT_LIMIT.toLocaleString("en-US")}` : ""}</span>

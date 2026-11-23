@@ -40,7 +40,6 @@
 .df-premium-composer .df-composer-more:hover { transform:translateY(-2px); color:var(--avatar-accent); border-color:color-mix(in srgb,var(--avatar-brand) 40%,var(--avatar-edge)); background:var(--df-surface); box-shadow:0 2px 5px rgb(15 23 42 / .06); }
 .df-premium-composer .df-composer-cost { padding-top:12px; color:var(--avatar-muted); font-size:10px; }
 .df-premium-composer .df-composer-advanced { padding:16px; border:1px solid var(--avatar-edge); border-radius:16px; background:var(--avatar-soft); }
-.df-premium-composer [data-reference-video-url] { border-radius:12px; background:var(--avatar-soft); }
 .df-premium-composer .df-composer-music-options { margin-top:8px; border-color:var(--avatar-edge); }
 .df-premium-composer .df-composer-music-options > button { color:var(--avatar-muted); }
 @media(max-width:767px) {
