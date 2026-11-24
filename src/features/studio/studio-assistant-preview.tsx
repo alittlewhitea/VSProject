@@ -10,7 +10,7 @@ import { VIDEO_MODEL_CONFIGS } from "./video-models";
 
 const chineseWorkflows: Record<string, string> = {
   "text-to-image": "文生图", "image-to-image": "图生图", "enhance-cleanup": "画质增强", "background-remove": "移除背景",
-  "text-to-video": "文生视频", "image-to-video": "图生视频", "reference-to-video": "参考生视频", "avatar-video": "数字人视频", "text-to-audio": "语音生成", "text-to-music": "音乐生成"
+  "text-to-video": "文生视频", "image-to-video": "图生视频", "reference-to-video": "参考生视频", "video-upscale": "视频超分", "avatar-video": "数字人视频", "text-to-audio": "语音生成", "text-to-music": "音乐生成"
 };
 
 export function StudioAssistantPreview({ model }: { model: StudioController }) {

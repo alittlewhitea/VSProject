@@ -8,7 +8,8 @@ import {
 } from "../../lib/topaz-video-upscale";
 import { StudioComposerGenerate } from "./studio-composer-controls";
 import { StudioImageUpload } from "./studio-image-upload";
-import { StudioPanel, StudioStatusNotice, type StudioStatusTone } from "./studio-primitives";
+import type { StudioStatusTone } from "./studio-primitives";
+import { UnifiedWorkbenchLayout } from "./unified-workbench-layout";
 import type { ReferenceMediaUpload } from "./studio-reference-file-upload";
 import styles from "./video-settings.module.css";
 
@@ -65,10 +66,18 @@ export function TopazVideoSettings({
   const presetSelected = resolutions.some(({ scale }) => scale === options.upscale_factor);
   const resolutionValue = presetSelected || quote ? String(options.upscale_factor) : "";
   const control = "min-h-10 w-full rounded-lg border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-sm text-[var(--studio-text)]";
-  return <div className={`${styles.workbench} df-compact-composer df-premium-composer text-start`} data-video-workspace="video-upscale">
-    <StudioPanel className={`${styles.editor} df-premium-panel`} header={workflowTabs}>
-      <div className={styles.editorScroll}>
-        <fieldset disabled={submitting || busy} className="grid min-w-0 gap-5">
+  return (
+    <UnifiedWorkbenchLayout
+      mode="video"
+      data-video-workspace="video-upscale"
+      className={styles.workbench}
+      panelClassName={styles.editor}
+      bodyClassName={styles.editorScroll}
+      workflowTabs={workflowTabs}
+      statusMessage={statusMessage}
+      statusTone={statusTone}
+    >
+      <fieldset disabled={submitting || busy} className="grid min-w-0 gap-5">
           <div>
             {source ? <video src={source.url} controls playsInline preload="metadata"
               className="mb-3 max-h-64 w-full max-w-lg rounded-xl bg-black object-contain" /> : null}
@@ -136,8 +145,6 @@ export function TopazVideoSettings({
               credits={quote?.credits} actionLabel={translate("studio.workflow.video-upscale")} translate={translate} onGenerate={onGenerate} />
           </div>
         </fieldset>
-        <StudioStatusNotice message={statusMessage} tone={statusTone} />
-      </div>
-    </StudioPanel>
-  </div>;
+    </UnifiedWorkbenchLayout>
+  );
 }

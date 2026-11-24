@@ -1,38 +1,37 @@
 "use client";
+
+import { useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { AuthLink } from "../../components/auth-link";
 import { isRtlLocale } from "../../i18n/routing";
-import { trackEvent } from "../../lib/analytics";
-const StudioBillingModal = dynamic(() => import("./studio-billing-modal").then(module=>module.StudioBillingModal));
-const StudioBillingWorkspace = dynamic(() => import("./studio-billing-workspace").then(module=>module.StudioBillingWorkspace));
 import { StudioHeader } from "./studio-header";
-const StudioHome = dynamic(() => import("./studio-home").then(module=>module.StudioHome));
-import {
-StudioBottomNavigation,
-StudioSidebar
-} from "./studio-navigation";
-const StudioProjects = dynamic(() => import("./studio-projects").then(module=>module.StudioProjects));
-const StudioReferrals = dynamic(() => import("./studio-referrals").then(module=>module.StudioReferrals));
+import { StudioBottomNavigation, StudioSidebar } from "./studio-navigation";
 import { StudioScrollToBottom } from "./studio-scroll-to-bottom";
+import { StudioTaskToast } from "./studio-task-toast";
 import "./studio-theme.css";
-import { STUDIO_SIGN_IN_URL,providerLabel } from "./studio-workspace-config";
-
+import { STUDIO_SIGN_IN_URL, providerLabel } from "./studio-workspace-config";
 import type { StudioController } from "./use-studio-controller";
-const StudioCreationWorkspace = dynamic(() => import("./studio-creation-workspace"), {loading:()=> <div className="min-h-72 animate-pulse rounded-2xl bg-[var(--studio-panel)]" aria-busy="true" />});
-const StudioAssistant = dynamic(() => import("./studio-assistant-preview").then(module => module.StudioAssistantPreview), { ssr: false });
-export function StudioShell({model}:{model:StudioController}) {
+
+const StudioBillingModal = dynamic(() => import("./studio-billing-modal").then((module) => module.StudioBillingModal));
+const StudioBillingWorkspace = dynamic(() => import("./studio-billing-workspace").then((module) => module.StudioBillingWorkspace));
+const StudioHome = dynamic(() => import("./studio-home").then((module) => module.StudioHome));
+const StudioProjects = dynamic(() => import("./studio-projects").then((module) => module.StudioProjects));
+const StudioReferrals = dynamic(() => import("./studio-referrals").then((module) => module.StudioReferrals));
+const StudioCreationWorkspace = dynamic(() => import("./studio-creation-workspace"), {
+  loading: () => <div className="min-h-72 animate-pulse rounded-2xl bg-[var(--studio-panel)]" aria-busy="true" />
+});
+const StudioAssistant = dynamic(() => import("./studio-assistant-preview").then((module) => module.StudioAssistantPreview), { ssr: false });
+
+export function StudioShell({ model }: { model: StudioController }) {
   const {
     accessToken,
-    applyWorkflow,
-    audioWorkflow,
-    authReady,
+    activeTasks,
     billingGenerationContext,
     billingHref,
     billingMessage,
     billingModalOpen,
     billingModalScrollRef,
     creditBalance,
-    creditNote,
     duration,
     isAppsHome,
     isBillingView,
@@ -52,8 +51,6 @@ export function StudioShell({model}:{model:StudioController}) {
     setMobileStudioMenuOpen,
     setPreviewModal,
     setVideoSidebarCollapsed,
-    showModernStudioChrome,
-    showModernWorkbenchRedesign,
     showVideoWorkbenchRedesign,
     sp,
     st,
@@ -62,28 +59,37 @@ export function StudioShell({model}:{model:StudioController}) {
     studioI18n,
     taskHistoryNote,
     tasks,
-    useWideStudioShell,
-    videoSidebarCollapsed,
+    videoSidebarCollapsed
   } = model;
-  const showMobileNavigation = isAppsHome || showModernWorkbenchRedesign;
+
+  const isCreationView = !isAppsHome && !isProjectsView && !isBillingView;
+  const showMobileNavigation = isAppsHome || isCreationView;
   const routeKey = sp.toString();
-  const expandedSidebarColumns = showModernWorkbenchRedesign ? "xl:grid-cols-[240px_minmax(0,1fr)]" : "xl:grid-cols-[216px_minmax(0,1fr)]";
-  const gridColumns = showModernStudioChrome
-    ? `md:grid-cols-[76px_minmax(0,1fr)] ${videoSidebarCollapsed ? "" : expandedSidebarColumns}`
-    : "lg:min-h-[calc(100vh-2rem)] lg:grid-cols-[96px_minmax(0,1fr)]";
+  const expandedSidebarColumns = isCreationView ? "xl:grid-cols-[240px_minmax(0,1fr)]" : "xl:grid-cols-[216px_minmax(0,1fr)]";
+  const gridColumns = `md:grid-cols-[76px_minmax(0,1fr)] ${videoSidebarCollapsed ? "" : expandedSidebarColumns}`;
+
+  const handleOpenBalanceBilling = useCallback(() => openBillingModal("balance"), [openBillingModal]);
+  const handleCloseBillingModal = useCallback(() => {
+    setBillingModalOpen(false);
+    setBillingGenerationContext(null);
+  }, [setBillingGenerationContext, setBillingModalOpen]);
+  const handlePreviewImage = useCallback((url: string) => setPreviewModal({ url, type: "Image" }), [setPreviewModal]);
+  const headerSignInLink = useMemo(
+    () => (
+      <AuthLink href={STUDIO_SIGN_IN_URL} authOptions={{ onBeforeRedirect: () => saveLoginDraft(false) }} className="df-button df-button--secondary df-sign-in">
+        <span>{st("studio.auth.signIn")}</span>
+      </AuthLink>
+    ),
+    [saveLoginDraft, st]
+  );
+
   return (
     <main
       dir={isRtlLocale(studioI18n.locale) ? "rtl" : "ltr"}
       data-mobile-studio-navigation={showMobileNavigation || undefined}
       className={`creative-studio relative min-h-screen w-full max-w-full overflow-x-clip${showVideoWorkbenchRedesign ? " df-video-studio" : ""}`}
     >
-      <div className={showModernStudioChrome ? "w-full" : useWideStudioShell ? "mx-auto my-3 w-[calc(100vw-24px)] max-w-[1760px] md:my-7 md:w-[calc(100vw-56px)]" : "mx-auto w-full max-w-[1540px] px-2 pt-2 md:px-8 md:pt-5"}>
-        {!authReady && !showModernStudioChrome ? (
-          <section className="mb-4 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-6 text-sm text-[var(--studio-muted)] shadow-sm">
-            {st("studio.checkingSession")}
-          </section>
-        ) : null}
-
+      <div className="w-full">
         {billingModalOpen ? <StudioBillingModal
           accessToken={accessToken}
           open={billingModalOpen}
@@ -93,14 +99,11 @@ export function StudioShell({model}:{model:StudioController}) {
           creditBalance={creditBalance}
           generationContext={billingGenerationContext}
           scrollRef={billingModalScrollRef}
-          onClose={() => {
-            setBillingModalOpen(false);
-            setBillingGenerationContext(null);
-          }}
+          onClose={handleCloseBillingModal}
           onCreditCheckout={startStudioCreditCheckout}
         /> : null}
 
-        <section className={showModernStudioChrome ? "relative min-h-screen w-full max-w-full bg-transparent" : "relative min-h-[calc(100vh-1rem)] w-full max-w-full overflow-hidden rounded-[1.35rem] border border-[var(--studio-border)] bg-[var(--studio-panel)] shadow-none backdrop-blur-2xl md:rounded-[2.25rem] md:shadow-none"}>
+        <section className="relative min-h-screen w-full max-w-full bg-transparent">
           <div className={`grid min-h-screen min-w-0 transition-[grid-template-columns] duration-300 ease-out ${gridColumns}`}>
             <StudioSidebar
               referralsVisible={referralsVisible}
@@ -109,60 +112,40 @@ export function StudioShell({model}:{model:StudioController}) {
               billingHref={billingHref}
               isReferralsView={isReferralsView && referralsVisible}
               t={st}
-              modern={showModernStudioChrome}
-              videoStudio={showModernStudioChrome}
               collapsed={videoSidebarCollapsed}
               creditBalance={creditBalance}
+              activeTaskCount={activeTasks.length}
               signedIn={Boolean(accessToken)}
-              onOpenCredits={() => openBillingModal("balance")}
+              onOpenCredits={handleOpenBalanceBilling}
               onCollapsedChange={setVideoSidebarCollapsed}
               mode={mode}
               isAppsHome={isAppsHome}
               isProjectsView={isProjectsView}
-              onImageWorkflowSelected={(workflowLabel) =>
-                trackEvent("studio_workflow_selected", { mode: "image", workflow: workflowLabel, surface: "sidebar_hover" }, accessToken)
-              }
             />
 
-            <div className={`studio-content relative min-w-0 max-w-full ${showModernWorkbenchRedesign ? "df-workbench-content" : ""} ${showModernStudioChrome ? "px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-7 lg:pb-8" : "px-3 pb-24 pt-3 md:px-8 md:py-5 lg:px-12"}`}>
+            <div className={`studio-content relative min-w-0 max-w-full ${isCreationView ? "df-workbench-content" : ""} px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-7 lg:pb-8`}>
               <StudioHeader
                 referralsVisible={referralsVisible}
                 isBillingView={isBillingView}
-              billingHref={billingHref}
-              isReferralsView={isReferralsView && referralsVisible}
+                billingHref={billingHref}
+                isReferralsView={isReferralsView && referralsVisible}
                 t={st}
-                modern={showModernStudioChrome}
-                videoStudio={showModernStudioChrome}
                 mode={mode}
                 isAppsHome={isAppsHome}
                 isProjectsView={isProjectsView}
                 mobileMenuOpen={mobileStudioMenuOpen}
                 signedIn={Boolean(accessToken)}
                 signInUrl={STUDIO_SIGN_IN_URL}
+                signInLink={headerSignInLink}
                 locale={studioI18n.locale}
                 locales={studioI18n.locales}
                 localeLabels={studioI18n.localeLabels}
                 creditBalance={creditBalance}
-                audioWorkflow={audioWorkflow}
+                activeTaskCount={activeTasks.length}
                 onMobileMenuOpenChange={setMobileStudioMenuOpen}
                 onLocaleChange={studioI18n.setLocale}
                 onBillingOpen={openBillingModal}
-                onAudioWorkflowSelect={applyWorkflow}
               />
-              {creditNote && !showModernStudioChrome ? (
-                <p className="mt-3 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-4 py-3 text-xs font-semibold text-[var(--studio-muted)] shadow-sm">
-                  {!accessToken && creditNote === st("studio.status.signInCredit") ? (
-                    <>
-                      <AuthLink href={STUDIO_SIGN_IN_URL} authOptions={{ onBeforeRedirect: () => saveLoginDraft(false) }} className="font-semibold text-[var(--studio-accent)] underline-offset-4 hover:underline">
-                        {st("studio.auth.signIn")}
-                      </AuthLink>
-                      {creditNote.replace(st("studio.auth.signIn"), "")}
-                    </>
-                  ) : (
-                    creditNote
-                  )}
-                </p>
-              ) : null}
 
               {isBillingView ? <StudioBillingWorkspace locale={studioI18n.locale} onBalanceChange={setCreditBalance} /> : null}
 
@@ -181,12 +164,12 @@ export function StudioShell({model}:{model:StudioController}) {
                   historyNote={taskHistoryNote}
                   duration={duration}
                   providerLabel={providerLabel}
-                  onPreviewImage={(url) => setPreviewModal({ url, type: "Image" })}
+                  onPreviewImage={handlePreviewImage}
                 />
               ) : null}
 
               {!isAppsHome && !isProjectsView && !isBillingView ? (
-                <div className={showModernWorkbenchRedesign ? "df-workbench-canvas" : "contents"}>
+                <div className="df-workbench-canvas">
                   <StudioCreationWorkspace model={model} />
                 </div>
               ) : null}
@@ -217,6 +200,13 @@ export function StudioShell({model}:{model:StudioController}) {
       </div>
       {showMobileNavigation ? <StudioBottomNavigation t={st} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} currentHref={routeKey ? `/studio?${routeKey}` : "/studio"} /> : null}
       <StudioScrollToBottom translate={st} routeKey={routeKey} />
+      <StudioTaskToast
+        tasks={tasks}
+        activeCount={activeTasks.length}
+        hidden={isProjectsView || isBillingView || isReferralsView || billingModalOpen || Boolean(previewModal) || mobileStudioMenuOpen}
+        t={st}
+        providerLabel={providerLabel}
+      />
       {!isProjectsView && !isBillingView && !isReferralsView && !billingModalOpen && !previewModal && !mobileStudioMenuOpen ? <StudioAssistant model={model} /> : null}
     </main>
   );

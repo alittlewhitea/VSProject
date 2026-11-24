@@ -3,7 +3,7 @@
 import { AuthLink } from "../../components/auth-link";
 
 import Link from "./studio-link";
-import { useEffect, useId, useRef, useState } from "react";
+import { memo, useEffect, useId, useRef, useState } from "react";
 import { useStudioDialog } from "./use-studio-dialog";
 import {BrandMark} from "../../components/brand-mark";
 import { StudioThemeToggle } from "./studio-theme-toggle";
@@ -178,96 +178,57 @@ function StudioAccountSummary({ t, locale, signedIn, creditBalance, onOpenCredit
 type StudioSidebarProps = NavigationState & {
   referralLocale?: Locale;
   t: Translate;
-  modern: boolean;
-  videoStudio?: boolean;
   collapsed?: boolean;
   creditBalance?: number | null;
+  activeTaskCount?: number;
   signedIn?: boolean;
   onOpenCredits: () => void;
   onCollapsedChange?: (collapsed: boolean) => void;
-  onImageWorkflowSelected: (workflowLabel: string) => void;
 };
 
-export function StudioSidebar({ t, modern, referralLocale = "en", videoStudio = false, collapsed = false, creditBalance = null, signedIn = false, onOpenCredits, onCollapsedChange, onImageWorkflowSelected, ...state }: StudioSidebarProps) {
+export const StudioSidebar = memo(function StudioSidebar({ t, referralLocale = "en", collapsed = false, creditBalance = null, activeTaskCount = 0, signedIn = false, onOpenCredits, onCollapsedChange, ...state }: StudioSidebarProps) {
   const rt = referralTranslator(referralLocale);
-  const items = navigationItems(t, state,"studio.nav.home",rt("title"));
-  const imageWorkflows = [
-    { label: t("studio.workflow.text-to-image"), body: t("studio.home.quick.textImage"), href: "/studio?mode=image&workflow=text-to-image&provider=chatgpt-image" },
-    { label: t("studio.workflow.image-to-image"), body: t("studio.home.quick.imageImage"), href: "/studio?mode=image&workflow=image-to-image&provider=nano-banana-image" },
-    { label: t("studio.workflow.enhance-cleanup"), body: t("studio.home.quick.enhance"), href: "/studio?mode=image&workflow=enhance-cleanup&provider=topaz-image" },
-    { label: t("studio.workflow.background-remove"), body: t("studio.home.quick.remove"), href: "/studio?mode=image&workflow=background-remove&provider=bria-background-remove" }
-  ];
-
-  if (videoStudio) {
-    return (
-      <aside data-studio-sidebar data-collapsed={collapsed} className="studio-sidebar relative hidden h-screen flex-col border-e border-[var(--studio-border)] bg-[var(--studio-panel)] px-3.5 py-5 md:sticky md:top-0 md:flex">
-        <button
-          type="button"
-          onClick={() => onCollapsedChange?.(!collapsed)}
-          aria-label={t(collapsed ? "studio.menu.open" : "studio.menu.close")}
-          title={t(collapsed ? "studio.menu.open" : "studio.menu.close")}
-          className="group absolute -end-3 top-1/2 z-30 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--studio-accent-border)] bg-[var(--studio-panel)] text-[var(--studio-accent)] shadow-none transition duration-200 hover:scale-110 hover:border-[var(--studio-accent-border)] hover:bg-[var(--studio-accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--studio-accent-border)] focus-visible:ring-offset-2"
-        >
-          <StudioIcon name={collapsed ? "chevron-right" : "chevron-left"} className="h-3.5 w-3.5" />
-          <span className="pointer-events-none absolute start-full ms-2.5 whitespace-nowrap rounded-lg bg-[var(--studio-primary)] px-2.5 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">{t(collapsed ? "studio.menu.open" : "studio.menu.close")}</span>
-        </button>
-        <a href="https://dreamface.io" className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-1"}`}>
-          <span className="block h-9 w-9 shrink-0 overflow-hidden rounded-xl shadow-sm"><BrandMark alt="" className="h-full w-full object-cover" /></span>
-          {!collapsed ? <span className="min-w-0"><strong className="block text-[17px] font-semibold leading-none tracking-tight text-[var(--studio-text)]">DreamFace</strong><span className="mt-1 block text-[11px] text-[var(--studio-muted)]">AI Studio</span></span> : null}
-        </a>
-        <nav aria-label={t("studio.header.apps")} className="mt-8 grid gap-1.5">
-          {items.map((item) => <Link key={`${item.label}-${item.href}`} href={item.href} title={item.label} aria-current={item.active ? "page" : undefined} className={`df-sidebar-item flex h-11 items-center rounded-[10px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[var(--studio-accent-soft)] font-bold text-[var(--studio-accent)]" : "text-[var(--studio-text)] hover:bg-[var(--studio-surface)]"}`}><StudioIcon name={item.icon} className="h-[18px] w-[18px] shrink-0" />{!collapsed ? <span className="truncate">{item.label}</span> : null}</Link>)}
-        </nav>
-        <div className="flex-1" />
-        <div data-signed-in={signedIn} className="df-sidebar-footer">
-          <StudioAccountSummary t={t} locale={referralLocale} signedIn={signedIn} creditBalance={creditBalance} onOpenCredits={onOpenCredits} />
-          {signedIn ? <StudioSignOutButton t={t} /> : null}
-        </div>
-      </aside>
-    );
-  }
+  const items = navigationItems(t, state, "studio.nav.home", rt("title"));
 
   return (
-    <aside className={`hidden border-r lg:flex lg:flex-col lg:items-center ${modern ? "border-[var(--studio-border)] bg-[var(--studio-accent-soft)] px-3 py-5" : "border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 py-5"}`}>
-      <a href="https://dreamface.io" aria-label={t("studio.menu.dreamfaceHome")} className="block h-12 w-12 overflow-hidden rounded-2xl shadow-none transition hover:-translate-y-0.5">
-        <BrandMark alt="" width={48} height={48} className="h-full w-full object-cover" />
+    <aside data-studio-sidebar data-collapsed={collapsed} className="studio-sidebar relative hidden h-screen flex-col border-e border-[var(--studio-border)] bg-[var(--studio-panel)] px-3.5 py-5 md:sticky md:top-0 md:flex">
+      <button
+        type="button"
+        onClick={() => onCollapsedChange?.(!collapsed)}
+        aria-label={t(collapsed ? "studio.menu.open" : "studio.menu.close")}
+        title={t(collapsed ? "studio.menu.open" : "studio.menu.close")}
+        className="group absolute -end-3 top-1/2 z-30 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--studio-accent-border)] bg-[var(--studio-panel)] text-[var(--studio-accent)] shadow-none transition duration-200 hover:scale-110 hover:border-[var(--studio-accent-border)] hover:bg-[var(--studio-accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--studio-accent-border)] focus-visible:ring-offset-2"
+      >
+        <StudioIcon name={collapsed ? "chevron-right" : "chevron-left"} className="h-3.5 w-3.5" />
+        <span className="pointer-events-none absolute start-full ms-2.5 whitespace-nowrap rounded-lg bg-[var(--studio-primary)] px-2.5 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">{t(collapsed ? "studio.menu.open" : "studio.menu.close")}</span>
+      </button>
+      <a href="https://dreamface.io" className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-1"}`}>
+        <span className="block h-9 w-9 shrink-0 overflow-hidden rounded-xl shadow-sm"><BrandMark alt="" className="h-full w-full object-cover" /></span>
+        {!collapsed ? <span className="min-w-0"><strong className="block text-[17px] font-semibold leading-none tracking-tight text-[var(--studio-text)]">DreamFace</strong><span className="mt-1 block text-[11px] text-[var(--studio-muted)]">AI Studio</span></span> : null}
       </a>
-      <nav className={modern ? "mt-[26px] grid w-full gap-2.5" : "mt-9 flex w-full flex-col items-center gap-4"}>
+      <nav aria-label={t("studio.header.apps")} className="mt-8 grid gap-1.5">
         {items.map((item) => {
-          const link = (
-            <Link href={item.href} className={`group flex w-full min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl px-2 py-2 text-[11px] font-semibold transition ${item.active ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]" : "text-[var(--studio-muted)] hover:bg-black/[0.035] hover:text-[var(--studio-text)]"}`}>
-              <span className={`grid h-8 w-8 place-items-center rounded-xl border text-sm ${item.active ? "border-[var(--studio-accent-border)] bg-[var(--studio-panel)] text-[var(--studio-accent)]" : "border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-muted)]"}`}><StudioIcon name={item.icon} className="h-4 w-4" /></span>
-              <span className="block max-w-full text-center leading-tight [overflow-wrap:anywhere]">{item.label}</span>
-            </Link>
-          );
-          if (item.id !== "image") return <div key={item.id}>{link}</div>;
+          const showActiveBadge = item.id === "projects" && activeTaskCount > 0;
+          const title = showActiveBadge ? `${item.label} · ${t("studio.summary.runningTasks", { count: activeTaskCount })}` : item.label;
           return (
-            <div key={item.id} className="group relative w-full">
-              {link}
-              <div className="pointer-events-none absolute left-full top-0 z-50 w-64 translate-x-2 pl-3 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-x-0 group-hover:opacity-100">
-                <div className="rounded-3xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-2 shadow-none backdrop-blur-xl">
-                  {imageWorkflows.map((workflow) => (
-                    <Link key={workflow.label} href={workflow.href} onClick={() => onImageWorkflowSelected(workflow.label)} className="block rounded-2xl px-4 py-3 text-left transition hover:bg-[var(--studio-accent-soft)]">
-                      <span className="text-sm font-semibold text-[var(--studio-text)]">{workflow.label}</span>
-                      <span className="mt-1 block text-xs font-medium text-[var(--studio-muted)]">{workflow.body}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <Link key={`${item.label}-${item.href}`} href={item.href} title={title} aria-current={item.active ? "page" : undefined} className={`df-sidebar-item relative flex h-11 items-center rounded-[10px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[var(--studio-accent-soft)] font-bold text-[var(--studio-accent)]" : "text-[var(--studio-text)] hover:bg-[var(--studio-surface)]"}`}>
+              <StudioIcon name={item.icon} className="h-[18px] w-[18px] shrink-0" />
+              {!collapsed ? <span className="min-w-0 flex-1 truncate">{item.label}</span> : null}
+              {showActiveBadge ? <b className="df-sidebar-task-badge" data-active-task-badge aria-label={t("studio.summary.runningTasks", { count: activeTaskCount })}>{activeTaskCount > 9 ? "9+" : activeTaskCount}</b> : null}
+            </Link>
           );
         })}
       </nav>
-      <Link href={state.billingHref || "/studio?view=billing"} className="mt-5 flex w-full items-center justify-center rounded-2xl bg-[var(--studio-accent-soft)] px-2 py-2 text-center text-[11px] font-semibold leading-tight text-[var(--studio-accent)]">{t("studio.billing.open")}</Link>
-      {signedIn ? <div className="df-sidebar-legacy-footer">
+      <div className="flex-1" />
+      <div data-signed-in={signedIn} className="df-sidebar-footer">
         <StudioAccountSummary t={t} locale={referralLocale} signedIn={signedIn} creditBalance={creditBalance} onOpenCredits={onOpenCredits} />
-        <StudioSignOutButton t={t} />
-      </div> : null}
+        {signedIn ? <StudioSignOutButton t={t} /> : null}
+      </div>
     </aside>
   );
-}
+});
 
-export function StudioBottomNavigation({ t, currentHref, ...state }: NavigationState & { t: Translate; currentHref: string }) {
+export const StudioBottomNavigation = memo(function StudioBottomNavigation({ t, currentHref, ...state }: NavigationState & { t: Translate; currentHref: string }) {
   const order = ["home", "video", "image", "audio", "avatar"];
   const items = navigationItems(t, state)
     .filter(item => order.includes(item.id))
@@ -289,48 +250,14 @@ export function StudioBottomNavigation({ t, currentHref, ...state }: NavigationS
       ))}
     </nav>
   );
-}
-
-/** A compact workspace menu is integrated into the current mobile page title. */
-export function StudioWorkspaceSwitcher({ t, title, open, onOpenChange, ...state }: NavigationState & {
-  t: Translate; title: string; open: boolean; onOpenChange: (open: boolean) => void;
-}) {
-  const items = navigationItems(t, state).filter(item => ["video", "image", "audio", "avatar"].includes(item.id));
-  const dialogId = useId();
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-  const close = () => onOpenChange(false);
-  useStudioDialog(open, dialogRef, { onClose: close, lockScroll: false });
-  useEffect(() => {
-    if (!open) return;
-    const desktop = window.matchMedia("(min-width: 768px)");
-    const resized = () => { if (desktop.matches) onOpenChange(false); };
-    resized(); desktop.addEventListener("change", resized);
-    return () => desktop.removeEventListener("change", resized);
-  }, [open, onOpenChange]);
-  return <div className="df-workspace-switcher">
-    <h1><button type="button" data-workspace-switcher-trigger aria-label={`${title} · ${t("studio.workspace.switch")}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? dialogId : undefined} onClick={() => onOpenChange(!open)}>
-      <span>{title}</span><svg aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-    </button></h1>
-    {open ? <>
-      <button type="button" className="df-workspace-backdrop" aria-label={t("studio.menu.close")} onClick={close} />
-      <div id={dialogId} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={t("studio.workspace.switch")} className="df-workspace-menu">
-        <div className="df-workspace-menu-heading"><span>{t("studio.workspace.switch")}</span><button type="button" aria-label={t("studio.menu.close")} onClick={close}><StudioIcon name="x" className="h-4 w-4" /></button></div>
-        <nav aria-label={t("studio.workspace.switch")}>
-          {items.map(item => <Link key={item.id} href={item.href} onClick={close} aria-current={item.active ? "page" : undefined}>
-            <StudioIcon name={item.id === "avatar" ? "user" : item.icon} className="h-[18px] w-[18px] shrink-0" /><span>{item.id === "avatar" ? t("studio.workspace.avatar") : item.label}</span>
-            {item.active ? <span aria-hidden="true" className="df-workspace-check">✓</span> : null}
-          </Link>)}
-        </nav>
-      </div>
-    </> : null}
-  </div>;
-}
+});
 
 type StudioMobileMenuProps = NavigationState & {
   t: Translate;
   open: boolean;
   signedIn: boolean;
   creditBalance: number | null;
+  activeTaskCount?: number;
   signInUrl: string;
   locale: Locale;
   locales: readonly Locale[];
@@ -340,7 +267,7 @@ type StudioMobileMenuProps = NavigationState & {
   onLocaleChange: (locale: Locale) => void;
 };
 
-export function StudioMobileMenu({ t, open, signedIn, creditBalance, signInUrl, locale, locales, localeLabels, onOpenChange, onOpenCredits, onLocaleChange, ...state }: StudioMobileMenuProps) {
+export function StudioMobileMenu({ t, open, signedIn, creditBalance, activeTaskCount = 0, signInUrl, locale, locales, localeLabels, onOpenChange, onOpenCredits, onLocaleChange, ...state }: StudioMobileMenuProps) {
   const rt=referralTranslator(locale);
   const close = () => onOpenChange(false);
   const menuId = useId();
@@ -356,8 +283,9 @@ export function StudioMobileMenu({ t, open, signedIn, creditBalance, signInUrl, 
   }, [open, onOpenChange]);
   return (
     <div className="relative shrink-0">
-      <button type="button" data-mobile-menu-trigger aria-label={open ? t("studio.menu.close") : t("studio.menu.open")} aria-expanded={open} aria-controls={open ? menuId : undefined} aria-haspopup="dialog" onClick={() => onOpenChange(!open)} className="df-mobile-menu-trigger grid h-11 w-11 place-items-center rounded-[10px] text-[var(--studio-text)] transition hover:bg-[var(--studio-surface)] md:hidden">
+      <button type="button" data-mobile-menu-trigger aria-label={open ? t("studio.menu.close") : t("studio.menu.open")} aria-expanded={open} aria-controls={open ? menuId : undefined} aria-haspopup="dialog" onClick={() => onOpenChange(!open)} className="df-mobile-menu-trigger relative grid h-11 w-11 place-items-center rounded-[10px] text-[var(--studio-text)] transition hover:bg-[var(--studio-surface)] md:hidden">
         <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16"/></svg>
+        {activeTaskCount > 0 ? <span className="df-mobile-task-dot" aria-hidden="true" /> : null}
       </button>
       <Link href="/studio?view=home" aria-label={t("studio.menu.studioHome")} className="df-header-home-link hidden h-10 w-10 place-items-center rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-text)] shadow-sm transition hover:bg-[var(--studio-accent-soft)] md:grid"><StudioIcon name="home" className="h-5 w-5" /></Link>
       {open ? (
@@ -376,7 +304,10 @@ export function StudioMobileMenu({ t, open, signedIn, creditBalance, signInUrl, 
                 {navigationItems(t, state, "studio.menu.studioHome", rt("title")).map(item => (
                   <Link key={item.id} href={item.href} data-nav-item={item.id} aria-current={item.active ? "page" : undefined} onClick={close} className="df-mobile-nav-link">
                     <StudioIcon name={item.icon} className="h-[18px] w-[18px] shrink-0" />
-                    <span>{item.label}</span>
+                    <span className="flex min-w-0 items-center justify-between gap-2">
+                      <span className="truncate">{item.label}</span>
+                      {item.id === "projects" && activeTaskCount > 0 ? <b className="df-sidebar-task-badge" data-active-task-badge>{activeTaskCount > 9 ? "9+" : activeTaskCount}</b> : null}
+                    </span>
                   </Link>
                 ))}
               </nav>

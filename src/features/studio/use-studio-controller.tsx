@@ -1,15 +1,12 @@
 "use client";
 import { useRouter,useSearchParams } from "next/navigation";
-import { useEffect,useMemo,useRef,useState } from "react";
+import { useCallback,useEffect,useMemo,useRef,useState } from "react";
 import { type Locale } from "../../i18n/routing";
 import { trackEvent } from "../../lib/analytics";
 import { AUTH_REDIRECT_EVENT,requestSignIn } from "../../lib/auth-navigation";
-import {
-CREDIT_PACKS
-} from "../../lib/billing";
 import { FLUX3_MAX_PROMO_END,isFlux3MaxPromotion } from "../../lib/flux3-max";
-import { GEMINI_TTS_PROVIDER,geminiTtsBillableText,geminiTtsCharacters,newGeminiTtsOptions,prepareGeminiTts,restoreGeminiTtsOptions } from "../../lib/gemini-tts";
-import { HEYGEN_VOICE_PROVIDER, HEYGEN_VOICE_FREE_END, heygenVoiceCharacters, isHeygenVoiceFree, newHeygenVoiceOptions, prepareHeygenVoice, restoreHeygenVoiceOptions } from "../../lib/heygen-voice";
+import { GEMINI_TTS_PROVIDER,geminiTtsBillableText,restoreGeminiTtsOptions } from "../../lib/gemini-tts";
+import { HEYGEN_VOICE_PROVIDER, HEYGEN_VOICE_FREE_END, isHeygenVoiceFree, restoreHeygenVoiceOptions } from "../../lib/heygen-voice";
 import { DEFAULT_GPT_IMAGE_OPTIONS,GPT_IMAGE_SIZES,gptImageOptionError,gptImageQuality,isGptImageProvider,normalizeGptImageProvider,type GptImageOptions,type GptImageQuality } from "../../lib/gpt-image-models";
 import { isH3DailyFreeRequest } from "../../lib/h3-daily-free-policy";
 import { heygenAvatarTiming } from "../../lib/heygen-avatar";
@@ -26,13 +23,8 @@ import { parseStudioReferenceImages,referenceTextWithoutExamples,shouldApplyUrlI
 import { uploadStudioDataUrl, uploadStudioMedia } from "./upload-studio-media";
 import type { StudioMediaKind } from "../../lib/studio-media";
 import { TOPAZ_VIDEO_PROVIDER, defaultTopazVideoOptions, parseTopazVideoOptions, topazVideoQuote, type TopazVideoSource } from "../../lib/topaz-video-upscale";
-import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
-import {
-formatSeconds,
-trimAudioFileToDataUrl
-} from "./studio-audio-utils";
-import { type GenerationBillingContext } from "./studio-billing-modal";
+import { localizeStudioErrorMessage } from "./studio-error-utils";
 import { type HomeCreationInput } from "./studio-home";
 import {
 clearPersistentIdempotency,
@@ -55,7 +47,9 @@ type TaskItem
 } from "./studio-storage";
 import { AVATAR_KLING_BUFFER_SECONDS,AVATAR_MAX_SECONDS,AudioWorkflow,DEFAULT_VIDEO_DURATION,ELEVENLABS_VOICE_GENDER_OPTIONS,ELEVENLABS_VOICE_META,IMAGE_SIZE_PRESETS,ImageWorkflow,KLING_AVATAR_DEFAULT_SCRIPT,MINIMAX_H3_MAX_AVATAR_PROMPT,MINIMAX_H3_MAX_TURBO_AVATAR_PROMPT,MINIMAX_MUSIC_DEFAULT_PROMPT,PROMPT_IMPROVE_TEXT,PROVIDER_META,SESSION_CREDIT_BALANCE_KEY,StudioWorkflow,VideoWorkflow,WORKFLOW_META,avatarDurationFromPrompt,defaultImageRatioForProvider,defaultImageSizeForProvider,defaultPromptForProvider,defaultVideoResolutionForProvider,estimateAvatarScriptSeconds,frontendPollAttempts,getImageSizePreset,h3PerformanceNote,isAvatarProvider,isH3MaxProvider,isH3VideoProvider,isModelSampleReference,isNanoBananaLiteProvider,isNanoBananaProvider,isProviderAllowedForMode,isProviderDefaultPrompt,isSamplePrompt,lastModelStorageKey,modeForPricing,modelPickerBadge,modelPickerGroup,modelPickerSpeedKey,modelSampleReferenceForProvider,promptForProviderChange,providerForWorkflow,ratioFromImageSize,readRememberedModel,stripAvatarDefaultReferences,studioProjectHref,workflowForMode } from "./studio-workspace-config";
 import {useStudioTaskHistory} from "./use-studio-task-history";
-import { useFloatingPanel } from "./use-floating-panel";
+import { useStudioAudioState } from "./use-studio-audio-state";
+import { useStudioImageState } from "./use-studio-image-state";
+import { useStudioSessionBilling, type StudioSessionActionMeta } from "./use-studio-session-billing";
 import { useH3DailyFree } from "./use-h3-daily-free";
 import { useTaskDetails } from "./use-task-details";
 import { useVerifiedAvatarAudio } from "./use-verified-avatar-audio";
@@ -76,38 +70,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
 
   const studioI18n = useStudioI18n(initialLocale,initialMessages);
   const st = studioI18n.t;
-  const localizeStudioError = (message: string, status?: number) => {
-    const normalized = message.toLowerCase();
-    if (normalized.includes("no recognizable elements") || normalized.includes("clearly visible subject") || normalized.includes("clearly visible subject in the reference image")) {
-      return st("studio.error.referenceSubjectNotVisible");
-    }
-    if (status === 401 || normalized.includes("unauthorized") || normalized.includes("access token")) {
-      return st("studio.error.sessionExpired");
-    }
-    if (normalized.includes("not enough credits") || normalized.includes("insufficient_credits")) {
-      return st("studio.error.notEnoughCredits");
-    }
-    if (status === 413 || normalized.includes("file is too large") || normalized.includes("uploaded file is too large")) {
-      return st("studio.error.uploadTooLarge");
-    }
-    if (normalized.includes("cannot trim audio") || normalized.includes("audio file could not be trimmed")) {
-      return st("studio.status.audioTrimFailed");
-    }
-    if (normalized.includes("pixel budget")) return st("studio.gpt26.gifHint");
-    if (
-      status === 422 ||
-      normalized.includes("nsfw") ||
-      normalized.includes("safety policy") ||
-      normalized.includes("content policy") ||
-      normalized.includes("moderation")
-    ) {
-      return st("studio.error.contentRejected");
-    }
-    if (status && status >= 500) {
-      return st("studio.error.providerUnavailable");
-    }
-    return message;
-  };
+  const localizeStudioError = useCallback((message: string, status?: number) => localizeStudioErrorMessage(st, message, status), [st]);
   const router = useRouter();
   const sp = useSearchParams();
   const mode: StudioMode = sp.get("mode") === "image" ? "image" : sp.get("mode") === "audio" ? "audio" : sp.get("mode") === "avatar" ? "avatar" : "video";
@@ -146,7 +109,15 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const [videoSidebarCollapsed, setVideoSidebarCollapsed] = useState(false);
   const [audioWorkflow, setAudioWorkflow] = useState<AudioWorkflow>(initialAudioWorkflow);
   const [ratio, setRatio] = useState(mode === "image" ? "1:1" : mode === "avatar" ? "source" : "16:9");
-  const [imageSize, setImageSize] = useState("default_4_3");
+  const imageState = useStudioImageState({ mode, provider, imageWorkflow, setRatio });
+  const {
+    imageSize, setImageSize, editResolution, setEditResolution, outputFormat, setOutputFormat,
+    imageQuality, setImageQuality, gptImageOptions, setGptImageOptions, numImages, setNumImages,
+    guidanceScale, setGuidanceScale, numInferenceSteps, setNumInferenceSteps,
+    acceleration, setAcceleration, limitGenerations, setLimitGenerations,
+    safetyTolerance, setSafetyTolerance, systemPrompt, setSystemPrompt,
+    enableWebSearch, setEnableWebSearch, thinkingLevel, setThinkingLevel
+  } = imageState;
   const [referenceImagesText, setReferenceImagesText] = useState(() =>
     (mode === "image" || mode === "video" || mode === "avatar") &&
     initialReferenceUrl
@@ -174,21 +145,15 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const [seedanceOptions, setSeedanceOptions] = useState<SeedanceFlashOptions>({ ...DEFAULT_SEEDANCE_FLASH_OPTIONS });
   const [heygenReferenceOptions, setHeygenReferenceOptions] = useState<HeygenReferenceOptions>({ ...DEFAULT_HEYGEN_REFERENCE_OPTIONS });
   const lastAppliedVideoUrlRef = useRef<AppliedUrlInput | null>(null);
+  const lastRegenerateKeyRef = useRef<string | null>(null);
   const lastAssistantTaskRef = useRef<string | null>(null);
   const lastAssistantImageSettingsRef = useRef<string | null>(null);
   const previousReferenceWorkflow = useRef(initialWorkflow === "reference-to-video");
   const homeReferenceRef = useRef<{ mode: "image" | "video"; image: string } | null>(null);
   const lastAppliedPromptUrlRef = useRef<AppliedUrlInput | null>(null);
   const lastAppliedReferenceUrlRef = useRef<AppliedUrlInput | null>(null);
-  // Image workspaces start empty; switching models only sets the supported quality default.
-  useEffect(() => {
-    if(mode !== "image") return;
-    if(isGptImageProvider(provider)) setImageQuality(current=>gptImageQuality(current));
-  },[mode,provider,imageWorkflow]);
-
   const [avatarAudioUrl, setAvatarAudioUrl] = useState(sp.get("audioUrl") || "");
   const [avatarAudioTrimSeconds, setAvatarAudioTrimSeconds] = useState<number | null>(null);
-  const [editResolution, setEditResolution] = useState("1K");
   const [videoResolution, setVideoResolution] = useState(() => defaultVideoResolutionForProvider(initialProvider));
   const [generateAudio, setGenerateAudio] = useState(initialProvider === "flux-3-max-video" || initialProvider === SEEDANCE_FLASH_PROVIDER);
   const [reasoningLevel, setReasoningLevel] = useState<"low"|"high">("high");
@@ -202,61 +167,32 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     window.addEventListener("focus",refresh);
     return ()=>{window.clearInterval(interval);if(timeout!==null)window.clearTimeout(timeout);window.removeEventListener("focus",refresh);};
   },[mode]);
-  const [ttsVoice, setTtsVoice] = useState("Rachel");
-  const [geminiTts, setGeminiTts] = useState(newGeminiTtsOptions);
-  const [heygenVoice, setHeygenVoice] = useState(newHeygenVoiceOptions);
-  const heygenVoiceFreeIntentRef = useRef(false);
-  useEffect(()=>{
-    if(mode!=="audio"||provider!==HEYGEN_VOICE_PROVIDER)return;
-    const refresh=()=>setPricingTime(Date.now());
+  const audioState = useStudioAudioState({ mode, provider, prompt, pricingTime });
+  const {
+    ttsVoice, setTtsVoice, geminiTts, setGeminiTts, heygenVoice, setHeygenVoice, heygenVoiceFreeIntentRef,
+    avatarVoiceGender, setAvatarVoiceGender, audioVoiceGender, setAudioVoiceGender,
+    ttsStability, setTtsStability, ttsTimestamps, setTtsTimestamps, ttsLanguageCode, setTtsLanguageCode,
+    textNormalization, setTextNormalization, musicLyrics, setMusicLyrics, lyricsOptimizer, setLyricsOptimizer,
+    isInstrumental, setIsInstrumental, musicSampleRate, setMusicSampleRate, musicBitrate, setMusicBitrate,
+    musicFormat, setMusicFormat, musicAdvancedOpen, setMusicAdvancedOpen,
+    avatarVoiceOptions, audioVoiceOptions, isMiniMaxMusic, isElevenLabsAudio, isGeminiTts, isHeygenVoice,
+    heygenVoiceFree, heygenVoiceError, geminiSpeech, speechBillableText, audioCharacterCount
+  } = audioState;
+  useEffect(() => {
+    if (mode !== "audio" || provider !== HEYGEN_VOICE_PROVIDER) return;
+    const refresh = () => setPricingTime(Date.now());
     refresh();
-    const timer=window.setInterval(refresh,60000);
-    const remaining=HEYGEN_VOICE_FREE_END-Date.now();
-    const deadline=remaining>0&&remaining<2147483647?window.setTimeout(refresh,remaining+1):null;
-    window.addEventListener("focus",refresh);
-    return ()=>{window.clearInterval(timer);if(deadline!==null)window.clearTimeout(deadline);window.removeEventListener("focus",refresh);};
-  },[mode,provider]);
-  const [avatarVoiceGender, setAvatarVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
-  const [audioVoiceGender, setAudioVoiceGender] = useState<(typeof ELEVENLABS_VOICE_GENDER_OPTIONS)[number]["value"]>("all");
-  const [ttsStability, setTtsStability] = useState(0.5);
-  const [ttsTimestamps, setTtsTimestamps] = useState(false);
-  const [ttsLanguageCode, setTtsLanguageCode] = useState("");
-  const [textNormalization, setTextNormalization] = useState("auto");
-  const [musicLyrics, setMusicLyrics] = useState("[Verse]\nStreetlights flicker, the night breeze sighs\nShadows stretch as I walk alone\n\n[Chorus]\nWandering, longing, where should I go");
-  const [lyricsOptimizer, setLyricsOptimizer] = useState(false);
-  const [isInstrumental, setIsInstrumental] = useState(false);
-  const [musicSampleRate, setMusicSampleRate] = useState(44100);
-  const [musicBitrate, setMusicBitrate] = useState(256000);
-  const [musicFormat, setMusicFormat] = useState<"mp3" | "wav" | "pcm">("mp3");
-  const [musicAdvancedOpen, setMusicAdvancedOpen] = useState(false);
-  const [outputFormat, setOutputFormat] = useState("png");
-  const [imageQuality, setImageQuality] = useState<GptImageQuality>("low");
-  const [gptImageOptions, setGptImageOptions] = useState<GptImageOptions>({...DEFAULT_GPT_IMAGE_OPTIONS});
-  const [numImages, setNumImages] = useState(1);
-  useEffect(()=>{
-    if(mode!=="image")return;
-    if(!isGptImageProvider(provider)) {
-      if(!["png","jpeg","webp"].includes(outputFormat))setOutputFormat("png");
-      if(numImages>(provider===SEEDREAM_55_PROVIDER?6:4))setNumImages(provider===SEEDREAM_55_PROVIDER?6:4);
-      if(provider===SEEDREAM_55_PROVIDER&&outputFormat==="webp")setOutputFormat("png");
-    } else {
-      if(imageWorkflow==="image-to-image"&&outputFormat==="svg")setOutputFormat("png");
-      if(outputFormat==="svg"&&numImages!==1)setNumImages(1);
-    }
-  },[mode,provider,imageWorkflow,outputFormat,numImages]);
-  const [guidanceScale, setGuidanceScale] = useState(3.5);
-  const [numInferenceSteps, setNumInferenceSteps] = useState(4);
+    const timer = window.setInterval(refresh, 60000);
+    const remaining = HEYGEN_VOICE_FREE_END - Date.now();
+    const deadline = remaining > 0 && remaining < 2147483647 ? window.setTimeout(refresh, remaining + 1) : null;
+    window.addEventListener("focus", refresh);
+    return () => { window.clearInterval(timer); if (deadline !== null) window.clearTimeout(deadline); window.removeEventListener("focus", refresh); };
+  }, [mode, provider]);
   const [enableSafetyChecker, setEnableSafetyChecker] = useState(false);
   useEffect(() => {
     if (provider === "heygen-video") setEnableSafetyChecker(videoWorkflow === "reference-to-video");
   }, [provider, videoWorkflow]);
-  const [acceleration, setAcceleration] = useState("none");
-  const [limitGenerations, setLimitGenerations] = useState(true);
   const [seed, setSeed] = useState("");
-  const [safetyTolerance, setSafetyTolerance] = useState("4");
-  const [systemPrompt, setSystemPrompt] = useState("");
-  const [enableWebSearch, setEnableWebSearch] = useState(false);
-  const [thinkingLevel, setThinkingLevel] = useState("");
   const [duration, setDuration] = useState(
     mode === "video" || mode === "avatar"
       ? videoModelDefaultDuration(initialProvider)
@@ -267,27 +203,40 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const [statusTone, setStatusTone] = useState<"ok" | "error" | "idle">("idle");
 
   const [previewModal, setPreviewModal] = useState<{ url: string; type: "Image" | "Video" } | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [referralsVisible,setReferralsVisible] = useState(false);
-  useEffect(()=>{
-    let active=true;
-    setReferralsVisible(false);
-    const refresh = async () => {
-      try {
-        if(accessToken) await fetch("/api/referrals",{method:"POST",headers:{Authorization:`Bearer ${accessToken}`}});
-        const response=await fetch(accessToken?"/api/referrals":"/api/referrals/availability",{headers:accessToken?{Authorization:`Bearer ${accessToken}`}:{}});
-        const data=await response.json();
-        if(active) setReferralsVisible(response.ok && (accessToken?data.enabled===true:data.visible===true));
-      } catch {if(active)setReferralsVisible(false);}
-    };
-    void refresh();
-    const timer=setInterval(()=>void refresh(),5*60*1000);
-    return ()=>{active=false;clearInterval(timer);};
-  },[accessToken]);
-  const [userId, setUserId] = useState<string | null>(null);
+  const sessionActionMetaRef = useRef<StudioSessionActionMeta>({
+    mode,
+    provider,
+    activeWorkflow: initialWorkflow,
+    estCredits: 0,
+    selectedProviderLabel: provider,
+    st,
+    saveLoginDraft: () => false
+  });
+  const sessionBilling = useStudioSessionBilling(sessionActionMetaRef);
+  const {
+    accessToken,
+    userId,
+    authReady,
+    referralsVisible,
+    creditBalance,
+    setCreditBalance,
+    cacheCreditBalance,
+    creditNote,
+    billingModalOpen,
+    setBillingModalOpen,
+    billingMessage,
+    billingGenerationContext,
+    setBillingGenerationContext,
+    loadingBillingItem,
+    billingModalScrollRef,
+    refreshLiveAccessToken,
+    openBillingModal,
+    openInsufficientCreditsModal,
+    startStudioCreditCheckout
+  } = sessionBilling;
   const {tasks,setTasks,taskHistoryNote,setTaskHistoryNote}=useStudioTaskHistory(accessToken,userId,st);
   const h3DailyFree = useH3DailyFree(accessToken, userId);
-  function startHomeCreation(input: HomeCreationInput) {
+  const startHomeCreation = useCallback((input: HomeCreationInput) => {
     const hasImage = input.mode !== "audio" && Boolean(input.image);
     const workflow = input.mode === "video" ? hasImage ? "image-to-video" : "text-to-video" : input.mode === "image" ? hasImage ? "image-to-image" : "text-to-image" : "text-to-audio";
     homeReferenceRef.current = hasImage ? { mode: input.mode as "image" | "video", image: input.image! } : null;
@@ -295,47 +244,9 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     if (input.prompt) params.set("prompt", input.prompt);
     if (input.mode === "audio") { setReferenceImagesText(""); setReferenceImageFiles([]); }
     navigateStudio(`/studio?${params.toString()}`);
-  }
-
-  useEffect(() => {
-    if (!accessToken || !userId) return;
-    const controller = new AbortController();
-    const refresh = async () => {
-      try {
-        const response = await fetch("/api/credits", { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal });
-        const data = await response.json();
-        if (!controller.signal.aborted && response.ok && typeof data.balance === "number") {
-          setCreditBalance(data.balance);
-          const key = scopedSessionKey(SESSION_CREDIT_BALANCE_KEY, userId);
-          if (key) safeSetLocalStorage(key, String(data.balance));
-        }
-      } catch { /* A confirmed payment can still be viewed on Billing if refresh fails. */ }
-    };
-    window.addEventListener("dreamface:credits-updated", refresh);
-    void refresh();
-    return () => { controller.abort(); window.removeEventListener("dreamface:credits-updated", refresh); };
-  }, [accessToken, userId]);
-  const [authReady, setAuthReady] = useState(false);
-  const [creditBalance, setCreditBalance] = useState<number | null>(null);
-
-  const [creditNote, setCreditNote] = useState("");
-
+  }, []);
   const [loginDraftNonce, setLoginDraftNonce] = useState(0);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [mobileStudioMenuOpen, setMobileStudioMenuOpen] = useState(false);
-  const [billingModalOpen, setBillingModalOpen] = useState(false);
-  const [billingMessage, setBillingMessage] = useState("");
-  const [billingGenerationContext, setBillingGenerationContext] = useState<GenerationBillingContext | null>(null);
-  const [loadingBillingItem, setLoadingBillingItem] = useState<string | null>(null);
-  const [modelSelectOpen, setModelSelectOpen] = useState(false);
-  const [toolbarModelSelectOpen, setToolbarModelSelectOpen] = useState(false);
-  const [modelSelectPlacement, setModelSelectPlacement] = useState<"top" | "bottom" | "modal">("bottom");
-  const [toolbarModelSelectPlacement, setToolbarModelSelectPlacement] = useState<"top" | "bottom" | "modal">("bottom");
-  const billingModalScrollRef = useRef<HTMLDivElement | null>(null);
-  const modelSelectRef = useRef<HTMLDivElement | null>(null);
-  const modelSelectPanelRef = useRef<HTMLDivElement | null>(null);
-  const toolbarModelSelectRef = useRef<HTMLDivElement | null>(null);
-  const toolbarModelSelectPanelRef = useRef<HTMLDivElement | null>(null);
   const lastStudioModeRef = useRef<StudioMode>(mode);
   const restoredLoginDraftRef = useRef(false);
   const autoSubmitLoginDraftRef = useRef(false);
@@ -363,54 +274,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   useEffect(() => {
     setMobileStudioMenuOpen(false);
   }, [isAppsHome, isProjectsView, isBillingView, mode]);
-
-  useFloatingPanel({
-    open: modelSelectOpen,
-    triggerRef: modelSelectRef,
-    panelRef: modelSelectPanelRef,
-    setOpen: setModelSelectOpen,
-    onPlacementChange: setModelSelectPlacement
-  });
-
-  useFloatingPanel({
-    open: toolbarModelSelectOpen,
-    triggerRef: toolbarModelSelectRef,
-    panelRef: toolbarModelSelectPanelRef,
-    setOpen: setToolbarModelSelectOpen,
-    onPlacementChange: setToolbarModelSelectPlacement
-  });
-
-  useEffect(() => {
-    const supabase = createBrowserSupabaseClient();
-    supabase.auth.getSession().then(({ data }) => {
-      const token = data.session?.access_token || null;
-      const nextUserId = data.session?.user.id || null;
-      setAccessToken(token);
-      setUserId(nextUserId);
-      if (typeof window !== "undefined") {
-        safeRemoveLocalStorage("nova_access_token");
-      }
-      if (!token) setCreditNote(st("studio.status.signInCredit"));
-      setAuthReady(true);
-    });
-    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
-      const token = session?.access_token || null;
-      const nextUserId = session?.user.id || null;
-      setAccessToken(token);
-      setUserId(nextUserId);
-      if (!nextUserId) {
-        setTasks([]);
-        setCreditBalance(null);
-      }
-      if (typeof window !== "undefined") {
-        safeRemoveLocalStorage("nova_access_token");
-      }
-      setAuthReady(true);
-    });
-    return () => {
-      authSub.subscription.unsubscribe();
-    };
-  }, []);
 
   useEffect(() => {
     const workflow = mode === "image" ? imageWorkflow : mode === "audio" ? audioWorkflow : mode === "avatar" ? "avatar-video" : videoWorkflow;
@@ -482,24 +345,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setStatusText("");
     setStatusTone("idle");
   }, [mode, sp]);
-
-  useEffect(() => {
-    if (mode !== "image") return;
-    const nextImageSize = defaultImageSizeForProvider(provider);
-    setImageSize(nextImageSize);
-    setRatio(defaultImageRatioForProvider(provider, nextImageSize));
-    if (provider === "flux-image") {
-      setNumInferenceSteps(4);
-      setOutputFormat((current) => (current === "webp" ? "jpeg" : current));
-    }
-    if (provider === "flux-dev") {
-      setNumInferenceSteps(28);
-      setOutputFormat((current) => (current === "webp" ? "jpeg" : current));
-    }
-    if (provider === "nano-banana-image" || provider === "nano-banana-edit" || provider === "nano-banana-pro" || provider === "nano-banana-2-lite") {
-      setEditResolution((current) => (current === "0.5K" ? "1K" : current));
-    }
-  }, [mode, provider]);
 
   useEffect(() => {
     const promptParam = sp.get("prompt");
@@ -578,6 +423,33 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     lastAppliedVideoUrlRef.current = {mode, value};
   }, [mode, sp]);
 
+  useEffect(() => {
+    if (sp.get("source") !== "regenerate") {
+      lastRegenerateKeyRef.current = null;
+      return;
+    }
+    const key = sp.toString();
+    if (lastRegenerateKeyRef.current === key) return;
+    lastRegenerateKeyRef.current = key;
+    const providerParam = sp.get("provider") || "";
+    const seedParam = sp.get("seed");
+    if (seedParam && /^\d{1,12}$/.test(seedParam)) setSeed(seedParam);
+    const taskParam = sp.get("seedanceTask");
+    if (providerParam === SEEDANCE_FLASH_PROVIDER && taskParam && ["reference", "editing", "extension"].includes(taskParam)) {
+      setSeedanceOptions(current => ({ ...current, task: taskParam as SeedanceFlashOptions["task"] }));
+    }
+    if (mode === "image") {
+      const ratioParam = sp.get("ratio");
+      if (ratioParam) setRatio(ratioParam);
+      const imageResolutionParam = sp.get("imageResolution");
+      if (imageResolutionParam && ["1K", "2K", "4K"].includes(imageResolutionParam)) setEditResolution(imageResolutionParam);
+      const qualityParam = sp.get("quality");
+      if (qualityParam) setImageQuality(isGptImageProvider(providerParam) ? gptImageQuality(qualityParam) : (qualityParam as GptImageQuality));
+      const numImagesParam = Number.parseInt(sp.get("numImages") || "", 10);
+      if (Number.isInteger(numImagesParam) && numImagesParam >= 1 && numImagesParam <= 10) setNumImages(numImagesParam);
+    }
+  }, [mode, sp]);
+
   // Apply the local upload after the existing route effects select the workflow.
   // Keep image data out of URLs and use the same reference state as editor uploads.
   useEffect(() => {
@@ -601,15 +473,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     [audioWorkflow, imageWorkflow, mode, videoWorkflow]
   );
 
-  const avatarVoiceOptions = useMemo(
-    () => ELEVENLABS_VOICE_META.filter((voice) => avatarVoiceGender === "all" || voice.gender === avatarVoiceGender).map((voice) => voice.name) as string[],
-    [avatarVoiceGender]
-  );
-  const audioVoiceOptions = useMemo(
-    () => ELEVENLABS_VOICE_META.filter((voice) => audioVoiceGender === "all" || voice.gender === audioVoiceGender).map((voice) => voice.name) as string[],
-    [audioVoiceGender]
-  );
-
   const activeWorkflow: StudioWorkflow = mode === "image" ? imageWorkflow : mode === "audio" ? audioWorkflow : mode === "avatar" ? "avatar-video" : videoWorkflow;
   const isPromptlessImageWorkflow = mode === "image" && (activeWorkflow === "enhance-cleanup" || activeWorkflow === "background-remove");
   const allReferenceImageUrls = useMemo(() => [
@@ -622,7 +485,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const isH3MaxAvatar = isAvatarWorkflow && isH3MaxProvider(provider);
   const isHeygenAvatar = isAvatarWorkflow && provider === "heygen-video";
   const heygenTiming = heygenAvatarTiming(prompt);
-  const avatarNeedsImage = isAvatarWorkflow && referenceImageUrls.length === 0;
   const avatarScriptSeconds = isAvatarWorkflow ? estimateAvatarScriptSeconds(prompt) : 0;
   const avatarOutputSeconds = isAvatarWorkflow ? avatarScriptSeconds + (AVATAR_KLING_BUFFER_SECONDS) : 0;
   const isDefaultAvatarScript = isAvatarWorkflow && prompt.trim() === KLING_AVATAR_DEFAULT_SCRIPT;
@@ -652,15 +514,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
           })
       : st("studio.avatar.emptyMeta")
     : "";
-  const isMiniMaxMusic = mode === "audio" && provider === "minimax-music-2.6";
-  const isElevenLabsAudio = mode === "audio" && provider === "elevenlabs-tts";
-  const isGeminiTts = mode === "audio" && provider === GEMINI_TTS_PROVIDER;
-  const isHeygenVoice = mode === "audio" && provider === HEYGEN_VOICE_PROVIDER;
-  const heygenVoiceFree = isHeygenVoice && isHeygenVoiceFree(pricingTime);
-  const heygenVoiceError = isHeygenVoice ? prepareHeygenVoice(prompt,heygenVoice).error : null;
-  const geminiSpeech = prepareGeminiTts(geminiTts.mode === "dialogue" ? "" : prompt, geminiTts);
-  const speechBillableText = isGeminiTts ? geminiTtsBillableText(prompt, geminiTts) : prompt;
-  const audioCharacterCount = mode === "audio" ? isHeygenVoice ? heygenVoiceCharacters(prompt) : isGeminiTts ? geminiTtsCharacters(speechBillableText) : prompt.trim().length : 0;
   const avatarSelectedSeconds = Math.max(1, Number.parseInt(avatarDuration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
 
   const isTopazVideo = mode === "video" && activeWorkflow === "video-upscale";
@@ -820,32 +673,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     mediaUrl: selectedProjectSummary.mediaUrl || selectedProjectDetails?.output_url || pickMediaUrl(selectedProjectDetails?.raw_result),
     mediaUrls: pickImageOutputUrls(selectedProjectDetails?.raw_result).length?pickImageOutputUrls(selectedProjectDetails?.raw_result):selectedProjectSummary.mediaUrls
   } : null;
-  const selectedImageSize = getImageSizePreset(imageSize);
-  const providerNoteKey = [
-    SEEDANCE_FLASH_PROVIDER,
-    SEEDREAM_55_PROVIDER,
-    "flux-image",
-    "flux-dev",
-    "chatgpt-image",
-    "topaz-image",
-    "kling-avatar-standard",
-    "kling-avatar-pro",
-    "flux-3-max-video",
-    "grok-video",    "seedance-video",
-    "seedance-mini-video",
-    "happy-horse-video",
-    "gemini-omni-flash-video",
-    MISCHIEF_PROVIDER,
-    "kling-video",
-    "elevenlabs-tts",
-    GEMINI_TTS_PROVIDER,
-    HEYGEN_VOICE_PROVIDER,
-    "minimax-music-2.6"
-  ].includes(provider)
-    ? provider
-    : "default";
-  const providerNote = provider === "heygen-video" ? `${st("studio.field.nativeAudio")} · 5–15s · 480p / 768p / 1080p / 2K` : isGptImageProvider(provider) ? PROVIDER_META[provider].bestFor : st(`studio.model.${providerNoteKey}`);
-  const showVideoModelSelect = mode === "video" && (activeWorkflow === "text-to-video" || activeWorkflow === "image-to-video" || activeWorkflow === "reference-to-video");
   const selectedProviderMeta = PROVIDER_META[provider] || {
     label: provider,
     shortLabel: provider,
@@ -853,11 +680,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     quality: "Balanced",
     bestFor: "General generation"
   };
-  const videoModelGroups = [
-    { key: "freeDraft", label: st("studio.modelSelect.group.freeDraft") },
-    { key: "betterQuality", label: st("studio.modelSelect.group.betterQuality") },
-    { key: "premium", label: st("studio.modelSelect.group.premium") }
-  ];
   const selectedVideoModelConfig = videoModelConfig(provider);
   const configuredVideoWorkflow = videoWorkflow === "reference-to-video" ? "reference-to-video" : videoWorkflow === "image-to-video" ? "image-to-video" : "text-to-video";
   const videoRatioOptions = isAvatarProvider(provider) || isH3MaxAvatar || isHeygenAvatar
@@ -877,9 +699,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const showAudioWorkbenchRedesign = !isAppsHome && !isProjectsView && !isBillingView && mode === "audio" && (audioWorkflow === "text-to-audio" || audioWorkflow === "text-to-music");
   const showAvatarWorkbenchRedesign = !isAppsHome && !isProjectsView && !isBillingView && isAvatarWorkflow;
   const showImageWorkbenchRedesign = showTextToImageTemplates || showImageToImageRedesign || showImageUtilityRedesign;
-  const showModernWorkbenchRedesign = showImageWorkbenchRedesign || showVideoWorkbenchRedesign || showAudioWorkbenchRedesign || showAvatarWorkbenchRedesign;
-  const showModernStudioChrome = showModernWorkbenchRedesign || isProjectsView || isAppsHome || isBillingView;
-  const useWideStudioShell = showModernStudioChrome || isAppsHome;
   const providerSettingsLabel =
     provider === SEEDREAM_55_PROVIDER ? `${imageSize.replace("auto_", "")} / ${outputFormat.toUpperCase()} / ${numImages}` : isGptImageProvider(provider)
       ? `${imageQuality} / ${outputFormat.toUpperCase()} / ${numImages}`
@@ -902,17 +721,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
                 ? `${videoResolution} / ${avatarDuration}`
               : `${avatarDuration} / ${ttsVoice}`
             : `${videoResolution} / ${duration}${showVideoAudioControl ? generateAudio ? " / ON" : " / OFF" : ""}`;
-
-  useEffect(() => {
-    if (mode !== "avatar") return;
-    if (avatarVoiceOptions.includes(ttsVoice)) return;
-    setTtsVoice(avatarVoiceOptions[0] || "Rachel");
-  }, [avatarVoiceOptions, mode, ttsVoice]);
-
-  useEffect(() => {
-    if (!isElevenLabsAudio || audioVoiceOptions.includes(ttsVoice)) return;
-    setTtsVoice(audioVoiceOptions[0] || "Rachel");
-  }, [audioVoiceOptions, isElevenLabsAudio, ttsVoice]);
 
   useEffect(() => {
     if (!isAvatarWorkflow || !avatarAudioUrl.startsWith("data:audio/") || avatarAudioTrimSeconds === null) return;
@@ -1155,11 +963,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setPrompt("Professional front-facing presenter avatar portrait, clean background, natural expression, sharp facial details, studio lighting, realistic but friendly, centered composition for talking avatar video.");
   }
 
-  function startAvatarAudioGuide() {
-    applyWorkflow("text-to-audio");
-    setPrompt("Hi, welcome to DreamFace. I am your AI avatar presenter, ready to introduce your product, tell your story, or deliver a polished social video message.");
-  }
-
   async function handleReferenceFiles(files: FileList | null, frameIndex?: number) {
     if (!files?.length) return;
     const uploadScope = referenceUploadScopeRef.current;
@@ -1282,57 +1085,11 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     return url;
   }
 
-  async function handleAvatarAudioFile(file: File | null | undefined) {
-    if (!file) return;
-    if (!file.type.startsWith("audio/")) {
-      setStatusTone("error");
-      setStatusText(st("studio.status.audioFileRequired"));
-      return;
-    }
-    const targetSeconds = Math.max(1, Number.parseInt(duration, 10) || Number.parseInt(DEFAULT_VIDEO_DURATION, 10));
-    try {
-      setStatusTone("idle");
-      setStatusText(st("studio.status.audioTrimming", { file: file.name, seconds: targetSeconds }));
-      const result = await trimAudioFileToDataUrl(file, targetSeconds);
-      setAvatarAudioUrl(result.dataUrl);
-      setAvatarAudioTrimSeconds(targetSeconds);
-      setStatusTone("idle");
-      setStatusText(
-        result.trimmed
-          ? st("studio.status.audioTrimmed", {
-              file: file.name,
-              original: formatSeconds(result.originalSeconds),
-              output: formatSeconds(result.outputSeconds)
-            })
-          : st("studio.status.audioFits", {
-              file: file.name,
-              duration: formatSeconds(result.originalSeconds),
-              seconds: targetSeconds
-            })
-      );
-    } catch (error) {
-      setStatusTone("error");
-      setStatusText(
-        error instanceof Error
-          ? localizeStudioError(error.message)
-          : st("studio.status.audioTrimFailed")
-      );
-    }
-  }
-
   function clearCompletedWorkbench() {
     setPrompt("");
     setReferenceImagesText("");
     setReferenceImageFiles([]);
     setGptImageOptions(current=>({...current,maskUrl:"",markupImageUrl:""}));
-  }
-
-  function cacheCreditBalance(balance: number) {
-    if (typeof window === "undefined") return;
-    const creditKey = scopedSessionKey(SESSION_CREDIT_BALANCE_KEY, userId);
-    if (creditKey) {
-      safeSetLocalStorage(creditKey, String(balance));
-    }
   }
 
   function saveLoginDraft(autoSubmit: boolean) {
@@ -1394,6 +1151,17 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
 
   const saveLoginDraftRef = useRef(saveLoginDraft);
   saveLoginDraftRef.current = saveLoginDraft;
+  const saveLoginDraftStable = useCallback((autoSubmit: boolean) => saveLoginDraftRef.current(autoSubmit), []);
+  sessionActionMetaRef.current = {
+    mode,
+    provider,
+    activeWorkflow,
+    estCredits,
+    selectedProviderLabel: selectedProviderMeta.label,
+    st,
+    onSignedOut: () => setTasks([]),
+    saveLoginDraft: saveLoginDraftStable
+  };
   useEffect(() => {
     const save = (event: Event) => { if (!saveLoginDraftRef.current(false)) event.preventDefault(); };
     window.addEventListener(AUTH_REDIRECT_EVENT, save);
@@ -1505,16 +1273,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
           if (verifiedAvatarAudio.error) throw new Error(verifiedAvatarAudio.error);
         }
       }
-      const supabase = createBrowserSupabaseClient();
-      await supabase.auth.refreshSession();
-      const { data } = await supabase.auth.getSession();
-      const liveToken = data.session?.access_token || null;
+      const liveToken = await refreshLiveAccessToken();
       if (!liveToken) {
-        setAccessToken(null);
-        setUserId(null);
-        if (typeof window !== "undefined") {
-          safeRemoveLocalStorage("nova_access_token");
-        }
         trackEvent(
           "generate_login_required",
           { mode, provider, workflow: activeWorkflow },
@@ -1928,56 +1688,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, authReady, isPromptValid, isSubmitting, loginDraftNonce, h3FreeLoading]);
 
-  async function handleTopUp(amount: number) {
-    if (!accessToken) return;
-    try {
-      const response = await fetch("/api/credits", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ amount })
-      });
-      const payload = (await response.json()) as { balance?: number; error?: string };
-      if (!response.ok) throw new Error(localizeStudioError(payload.error || st("studio.status.topUpFailed"), response.status));
-      if (typeof payload.balance === "number") {
-        setCreditBalance(payload.balance);
-        cacheCreditBalance(payload.balance);
-      }
-      setCreditNote(st("studio.status.topUpAdded", { credits: amount }));
-    } catch (error) {
-      setCreditNote(error instanceof Error ? localizeStudioError(error.message) : st("studio.status.topUpFailed"));
-    }
-  }
-
-  function openBillingModal(source: string) {
-    setBillingGenerationContext(null);
-    setBillingModalOpen(true);
-    setBillingMessage("");
-    trackEvent("studio_billing_modal_opened", { source, balance: creditBalance, mode, provider }, accessToken);
-  }
-
-  function openInsufficientCreditsModal() {
-    if (typeof creditBalance !== "number") return;
-    const context: GenerationBillingContext = {
-      requiredCredits: estCredits,
-      balance: creditBalance,
-      providerLabel: selectedProviderMeta.label
-    };
-    setBillingGenerationContext(context);
-    setBillingMessage("");
-    setBillingModalOpen(true);
-    trackEvent("generation_insufficient_credits_shown", {
-      mode,
-      provider,
-      workflow: activeWorkflow,
-      required_credits: estCredits,
-      balance: creditBalance,
-      shortfall: Math.max(0, estCredits - creditBalance)
-    }, accessToken);
-  }
-
   function improveTextToImagePrompt() {
     setPrompt((current) => {
       const trimmed = current.trim();
@@ -1986,57 +1696,18 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     trackEvent("studio_prompt_improved", { mode, provider, workflow: activeWorkflow }, accessToken);
   }
 
-  async function startStudioCreditCheckout(packId: string, paymentProvider: "paypal" | "dodo", loginToken?: string) {
-    const checkoutToken = loginToken || accessToken;
-    const checkoutSurface = billingGenerationContext ? "generation_insufficient_modal" : "studio_modal";
-    if (!checkoutToken) {
-      trackEvent("checkout_login_required", { pack_id: packId, surface: checkoutSurface });
-      requestSignIn({ onBeforeRedirect: () => saveLoginDraft(false), onSuccess: session => { void startStudioCreditCheckout(packId, paymentProvider, session.access_token); } });
-      return;
-    }
-
-    const pack = CREDIT_PACKS.find((item) => item.id === packId);
-    setLoadingBillingItem(`credits:${packId}:${paymentProvider}`);
-    setBillingMessage("");
-    trackEvent(
-      "checkout_started",
-      { surface: checkoutSurface, payment_provider: paymentProvider, pack_id: packId, credits: pack?.credits || null, amount_cents: pack?.amountCents || null },
-      accessToken
-    );
-
-    try {
-      const response = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${checkoutToken}`
-        },
-        body: JSON.stringify({ type: "credits", packId, provider: paymentProvider })
-      });
-      const payload = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !payload.url) {
-        throw new Error(response.status === 401 ? st("studio.error.sessionExpired") : st("studio.billing.checkoutFailed"));
-      }
-      window.location.href = payload.url;
-    } catch (error) {
-      setBillingMessage(error instanceof Error ? error.message : st("studio.billing.checkoutFailed"));
-      setLoadingBillingItem(null);
-    }
-  }
   return { acceleration,
     accessToken,
     activeTasks,
     activeWorkflow,
     applyProvider,
     applyWorkflow,
-    audioCharacterCount,
     audioVoiceGender,
     audioVoiceOptions,
     audioWorkflow,
     authReady,
     avatarAudioUrl,
     avatarDuration,
-    avatarNeedsImage,
     avatarScriptMeta,
     avatarScriptTooLong,
     avatarVoiceGender,
@@ -2108,12 +1779,10 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     numImages,
     numInferenceSteps,
     openBillingModal,
-    options,
     outputFormat,
     previewModal,
     prompt,
     provider,
-    providerNote,
     providerSettingsLabel,
     ratio,
     reasoningLevel,
@@ -2125,9 +1794,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setHeygenReferenceOptions,
     heygenValidationError,
     safetyTolerance,
-    saveLoginDraft,
+    saveLoginDraft: saveLoginDraftStable,
     seed,
-    selectedImageSize,
     selectedProjectTask,
     selectedProviderMeta,
     setAcceleration,
@@ -2177,7 +1845,6 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setSystemPrompt,
     setTextNormalization,
     setThinkingLevel,
-    setToolbarModelSelectOpen,
     setTtsLanguageCode,
     setTtsStability,
     setTtsTimestamps,
@@ -2190,11 +1857,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     showImageToImageRedesign,
     showImageUtilityRedesign,
     showImageWorkbenchRedesign,
-    showModernStudioChrome,
-    showModernWorkbenchRedesign,
     showTextToImageTemplates,
     showVideoAudioControl,
-    showVideoModelSelect,
     showVideoResolutionControl,
     showVideoWorkbenchRedesign,
     sp,
@@ -2210,18 +1874,12 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     tasks,
     textNormalization,
     thinkingLevel,
-    toolbarModelSelectOpen,
-    toolbarModelSelectPanelRef,
-    toolbarModelSelectPlacement,
-    toolbarModelSelectRef,
     ttsLanguageCode,
     ttsStability,
     ttsTimestamps,
     ttsVoice,
-    useWideStudioShell,
     userId,
     videoDurationOptions,
-    videoModelGroups,
     videoPromptAI,
     videoRatioOptions,
     videoResolution,

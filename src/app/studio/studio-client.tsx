@@ -3,6 +3,7 @@ import { Suspense, useEffect, useState } from "react";
 import type { Locale } from "../../i18n/routing";
 import { useStudioController } from "../../features/studio/use-studio-controller";
 import { StudioShell } from "../../features/studio/studio-shell";
+import "../../features/studio/studio-tokens.css";
 import { loadStudioMessages } from "../../lib/studio-message-loader";
 
 type Props = { initialLocale: Locale; initialMessages?: Record<string, string>; initialView?: "billing"; initialPricingTime?: number };
@@ -30,12 +31,12 @@ export function StudioPageClient(props: Props) {
   return (
     <Suspense fallback={null}>
       {messages ? <StudioContent {...props} initialMessages={messages} /> : failed ? (
-        <div className="flex min-h-screen items-center justify-center bg-[#f8f8fa]">
-          <button type="button" onClick={() => setAttempt(value => value + 1)} className="rounded-xl border border-gray-300 px-5 py-3 text-sm">
+        <div className="flex min-h-screen items-center justify-center bg-[var(--df-bg,#f5f5f7)] text-[var(--df-ink,#1d1d1f)]">
+          <button type="button" onClick={() => setAttempt(value => value + 1)} className="rounded-xl border border-[var(--df-border,#e8e8ed)] bg-[var(--df-surface,#ffffff)] px-5 py-3 text-sm font-semibold text-[var(--df-ink,#1d1d1f)]">
             Reload workspace
           </button>
         </div>
-      ) : <div className="min-h-screen animate-pulse bg-[#f8f8fa]" aria-busy="true" />}
+      ) : <div className="min-h-screen animate-pulse bg-[var(--df-bg,#f5f5f7)]" aria-busy="true" />}
     </Suspense>
   );
 }

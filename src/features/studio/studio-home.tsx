@@ -1,7 +1,7 @@
 "use client";
 import {StudioDeferredSection} from "./studio-deferred-section";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { StudioButton, StudioSegmentedControl } from "./studio-primitives";
 import type { Locale } from "../../i18n/routing";
 import { StudioIcon } from "./studio-navigation";
@@ -13,7 +13,7 @@ const CombinedTemplateGallery = dynamic(() => import("./studio-combined-template
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 export type HomeCreationInput = { mode: "video" | "image" | "audio"; prompt: string; image?: string };
 
-export function StudioHome({ t, locale, onCreate }: { t: Translate; locale: Locale; onCreate: (input: HomeCreationInput) => void }) {
+export const StudioHome = memo(function StudioHome({ t, locale, onCreate }: { t: Translate; locale: Locale; onCreate: (input: HomeCreationInput) => void }) {
   const [draft, setDraft] = useState("");
   const [intent, setIntent] = useState<"video" | "image" | "audio">("video");
   const [upload, setUpload] = useState<{ dataUrl: string; name: string } | null>(null);
@@ -72,4 +72,4 @@ export function StudioHome({ t, locale, onCreate }: { t: Translate; locale: Loca
       <StudioDeferredSection><CombinedTemplateGallery translate={t} locale={locale} /></StudioDeferredSection>
     </div>
   );
-}
+});

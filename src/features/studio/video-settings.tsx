@@ -6,7 +6,8 @@ import { remapReferenceUrlsInPrompt, removeReferenceImageFromPrompt } from "../.
 import { DEFAULT_HEYGEN_REFERENCE_OPTIONS, HEYGEN_PROMPT_ENHANCEMENTS, HEYGEN_REFERENCE_PROMPT_LIMIT, type HeygenReferenceOptions } from "../../lib/heygen-reference-video";
 
 import type { ReactNode } from "react";
-import { StudioPanel, StudioSelectField, StudioStatusNotice, type StudioStatusTone } from "./studio-primitives";
+import { StudioSelectField, type StudioStatusTone } from "./studio-primitives";
+import { UnifiedWorkbenchLayout } from "./unified-workbench-layout";
 import type { useVideoPromptEnhancement } from "./use-video-prompt-enhancement";
 import styles from "./video-settings.module.css";
 import { videoSupportsEndFrame } from "../../lib/video-keyframes";
@@ -163,10 +164,17 @@ export function VideoSettings({
   }
 
   return (
-    <div className={`${styles.workbench} df-compact-composer df-premium-composer text-start`} data-premium-workspace="video" data-video-workspace={workflow}>
-        <StudioPanel className={`${styles.editor} df-premium-panel`} header={workflowTabs}>
-          <div className={styles.editorScroll} data-video-editor-scroll>
-          <fieldset disabled={isSubmitting || promptAI.busy} className={styles.formGrid}>
+    <UnifiedWorkbenchLayout
+      mode="video"
+      data-video-workspace={workflow}
+      className={styles.workbench}
+      panelClassName={styles.editor}
+      bodyClassName={styles.editorScroll}
+      workflowTabs={workflowTabs}
+      statusMessage={statusMessage}
+      statusTone={statusTone}
+    >
+      <fieldset disabled={isSubmitting || promptAI.busy} className={styles.formGrid}>
           <div className={styles.content} data-video-prompt-section>
           {showSeedanceNotices ? <SeedanceReferencePanel videoUrls={referenceVideoUrl} images={referenceImageUrls}
             options={seedanceOptions} onOptionsChange={onSeedanceOptionsChange} onVideoUrlsChange={changeReferenceVideoUrls}
@@ -276,12 +284,8 @@ export function VideoSettings({
 
           {provider === "heygen-video" && heygenRequiresHdAspectRatio(workflow, resolution) ? <p data-heygen-hd-ratios className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate("studio.heygen.hdRatios")}</p> : null}
           {provider === "heygen-video" && heygenValidationError && heygenValidationError !== "studio.mention.missing" ? <p data-heygen-validation role="alert" className="mt-2 text-xs text-red-600">{translate(heygenValidationError)}</p> : null}
-          <StudioStatusNotice message={statusMessage} tone={statusTone} />
-
-          </div>
-          </fieldset>
-          </div>
-        </StudioPanel>
-    </div>
+        </div>
+      </fieldset>
+    </UnifiedWorkbenchLayout>
   );
 }

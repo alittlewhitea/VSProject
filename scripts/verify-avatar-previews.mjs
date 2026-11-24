@@ -16,4 +16,36 @@ assert.deepEqual(centralAvatarPreviews(twoColumns, viewport, 'last-left'), ['las
 assert.deepEqual(centralAvatarPreviews(twoColumns, viewport, 'missing'), ['center-left', 'center-right']);
 assert.deepEqual(centralAvatarPreviews([card('tall', -200, 1000)], viewport), ['tall'], 'A tall visible card is eligible even if the whole card cannot fit');
 assert.deepEqual(centralAvatarPreviews([], viewport), []);
-console.log('Avatar preview selection passed: two central cards, scrolling, edge visibility, horizontal bounds, tall cards, manual priority and empty lists. No network or generation.');
+
+const optCard = (key, top, bottom, left = 0, right = 180, optimized = true) => ({ key, top, bottom, left, right, optimized });
+const optimizedTwoCol = [
+  optCard('r1-l', 20, 220, 0, 180, true),
+  optCard('r1-r', 20, 220, 200, 380, true),
+  optCard('r2-l', 250, 450, 0, 180, true),
+  optCard('r2-r', 250, 450, 200, 380, true),
+  optCard('r3-l', 480, 680, 0, 180, true),
+  optCard('r3-r', 480, 680, 200, 380, true)
+];
+assert.deepEqual(
+  centralAvatarPreviews(optimizedTwoCol, viewport, null, { maxSlots: 4, maxHeavySlots: 1 }),
+  ['r2-l', 'r2-r', 'r3-l', 'r3-r'],
+  'Lightweight R2 clips can fill up to 4 central slots in a 2-column grid'
+);
+const heavyTwoCol = optimizedTwoCol.map(entry => ({ ...entry, optimized: false }));
+assert.deepEqual(
+  centralAvatarPreviews(heavyTwoCol, viewport, null, { maxSlots: 4, maxHeavySlots: 1 }),
+  ['r2-l'],
+  'Heavy unoptimized raw MP4s are capped at 1 concurrent autoplay slot'
+);
+const mixedTwoCol = [
+  optCard('heavy-1', 250, 450, 0, 180, false),
+  optCard('heavy-2', 250, 450, 200, 380, false),
+  optCard('opt-1', 480, 680, 0, 180, true),
+  optCard('opt-2', 480, 680, 200, 380, true)
+];
+assert.deepEqual(
+  centralAvatarPreviews(mixedTwoCol, viewport, null, { maxSlots: 4, maxHeavySlots: 1 }),
+  ['heavy-1', 'opt-1', 'opt-2'],
+  'Mixed grids cap heavy streams while still allowing lightweight R2 clips'
+);
+console.log('Avatar preview selection passed: central multi-slot playback, heavy stream cap, scrolling, edge visibility, horizontal bounds, tall cards, manual priority and empty lists. No network or generation.');

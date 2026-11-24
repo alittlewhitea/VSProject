@@ -42,7 +42,8 @@
     "verify:studio-messages": "node scripts/generate-studio-messages.mjs --check && node scripts/verify-studio-messages.mjs && node scripts/verify-studio-locale-hook.mjs",
     "verify:marketing-cache": "node scripts/verify-marketing-cache.mjs",
     "generate:locale-redirect": "node scripts/generate-locale-redirect-worker.mjs",
-    "verify:locale-redirect": "node scripts/generate-locale-redirect-worker.mjs --check && node scripts/verify-locale-redirect.mjs"
+    "verify:locale-redirect": "node scripts/generate-locale-redirect-worker.mjs --check && node scripts/verify-locale-redirect.mjs",
+    "sync:avatar-previews": "node scripts/sync-avatar-preview-videos.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1173.0",

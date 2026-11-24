@@ -15,8 +15,12 @@
 .collage { display: grid; grid-template-columns: 2fr 1fr; gap: 3px; }
 .main { position: relative; min-width: 0; min-height: 0; height: 100%; overflow: hidden; }
 .main > img, .main > video, .side img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.main > video { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+.main > video { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 140ms ease-out; }
 .main > video[data-ready="true"] { opacity: 1; }
+.previewLoading { position: absolute; top: 10px; inset-inline-end: 10px; z-index: 2; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; background: #17171fc4; backdrop-filter: blur(6px); pointer-events: none; opacity: 0; animation: preview-loading-show 140ms ease-out 160ms forwards; }
+.previewSpinner { width: 13px; height: 13px; border: 2px solid #ffffff45; border-top-color: #fff; border-radius: 999px; animation: preview-spin 650ms linear infinite; }
+@keyframes preview-loading-show { to { opacity: 1; } }
+@keyframes preview-spin { to { transform: rotate(360deg); } }
 .side { display: grid; grid-template-rows: 1fr 1fr; gap: 3px; min-height: 0; overflow: hidden; }
 .side img { min-height: 0; }
 .open { position: absolute; inset: 0; z-index: 1; cursor: pointer; }

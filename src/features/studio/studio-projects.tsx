@@ -3,7 +3,7 @@
 import Link from "./studio-link";
 import { missingOutputCopy, formatStudioTaskDate } from "./studio-display-copy";
 import { PromptEnhancementHistory } from "./prompt-enhancement-history";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { copyStudioText } from "./studio-clipboard";
 import { StudioMediaLoadError, useStudioMediaFeedback } from "./studio-media-feedback";
 
@@ -29,14 +29,18 @@ export type ProjectTask = {
 };
 
 function statusPillClass(status: TaskStatus) {
-  if (status === "Completed") return "bg-emerald-50 text-emerald-700 ring-emerald-100";
-  if (status === "Failed") return "bg-rose-50 text-rose-700 ring-rose-100";
-  if (status === "Running") return "bg-sky-50 text-sky-700 ring-sky-100";
-  return "bg-amber-50 text-amber-700 ring-amber-100";
+  if (status === "Completed") return "bg-[var(--studio-success-soft)] text-[var(--studio-success)] ring-[var(--studio-border)]";
+  if (status === "Failed") return "bg-[var(--studio-error-soft)] text-[var(--studio-error)] ring-[var(--studio-border)]";
+  if (status === "Running") return "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)] ring-[var(--studio-accent-border)]";
+  return "bg-[var(--studio-warning-soft)] text-[var(--studio-warning)] ring-[var(--studio-border)]";
 }
 
 function projectHref(taskId: string) {
   return `/studio?view=projects&taskId=${encodeURIComponent(taskId)}`;
+}
+
+function isPublicHttpUrl(value: unknown): value is string {
+  return typeof value === "string" && /^https?:\/\//i.test(value.trim());
 }
 
 function estimatedWaitRange(task: ProjectTask) {
@@ -48,11 +52,43 @@ function estimatedWaitRange(task: ProjectTask) {
 }
 
 function regenerateHref(task: ProjectTask) {
-  const mode = task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video";
-  const workflow = task.type === "Image" ? "text-to-image" : task.type === "Audio" ? task.provider === "minimax-music-2.6" ? "text-to-music" : "text-to-audio" : "text-to-video";
-  const params = new URLSearchParams({ mode, workflow });
+  const settings = task.settings || {};
+  const isAvatar = settings.videoWorkflow === "avatar-video";
+  const mode = isAvatar ? "avatar" : task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video";
+  const imageWorkflow = typeof settings.imageWorkflow === "string" && ["text-to-image", "image-to-image", "enhance-cleanup", "background-remove"].includes(settings.imageWorkflow)
+    ? settings.imageWorkflow
+    : "text-to-image";
+  const videoWorkflow = typeof settings.videoWorkflow === "string" && ["text-to-video", "image-to-video", "reference-to-video", "video-upscale"].includes(settings.videoWorkflow)
+    ? settings.videoWorkflow
+    : "text-to-video";
+  const audioWorkflow = typeof settings.audioWorkflow === "string" && ["text-to-audio", "text-to-music"].includes(settings.audioWorkflow)
+    ? settings.audioWorkflow
+    : task.provider === "minimax-music-2.6" ? "text-to-music" : "text-to-audio";
+  const workflow = isAvatar ? "avatar-video" : mode === "image" ? imageWorkflow : mode === "audio" ? audioWorkflow : videoWorkflow;
+  const params = new URLSearchParams({ mode, workflow, source: "regenerate" });
   if (task.provider) params.set("provider", task.provider);
   if (task.prompt) params.set("prompt", task.prompt);
+  if (typeof settings.duration === "string" && settings.duration.trim()) params.set("duration", settings.duration.trim());
+  if (typeof settings.ratio === "string" && settings.ratio.trim()) params.set("ratio", settings.ratio.trim());
+  if (mode === "image") {
+    if (typeof settings.imageSize === "string" && settings.imageSize.trim()) params.set("imageSize", settings.imageSize.trim());
+    if (typeof settings.resolution === "string" && settings.resolution.trim()) params.set("imageResolution", settings.resolution.trim());
+    if (typeof settings.quality === "string" && settings.quality.trim()) params.set("quality", settings.quality.trim());
+    if (typeof settings.numImages === "number" && Number.isInteger(settings.numImages) && settings.numImages >= 1) params.set("numImages", String(settings.numImages));
+  } else if (typeof settings.resolution === "string" && settings.resolution.trim()) {
+    params.set("resolution", settings.resolution.trim());
+  }
+  if (typeof settings.seed === "number" && Number.isSafeInteger(settings.seed)) params.set("seed", String(settings.seed));
+  if (typeof settings.seedanceTask === "string" && ["reference", "editing", "extension"].includes(settings.seedanceTask)) params.set("seedanceTask", settings.seedanceTask);
+  if (Array.isArray(settings.imageUrls)) {
+    const publicImages = settings.imageUrls.filter(isPublicHttpUrl).slice(0, 4);
+    const joined = publicImages.join("\n");
+    if (joined && joined.length <= 1500) params.set("reference", joined);
+  }
+  if (workflow === "reference-to-video" && Array.isArray(settings.videoUrls)) {
+    const publicVideo = settings.videoUrls.find(isPublicHttpUrl);
+    if (publicVideo && publicVideo.length <= 1000) params.set("referenceVideo", publicVideo);
+  }
   return `/studio?${params.toString()}`;
 }
 
@@ -66,12 +102,13 @@ function useAsReferenceHref(task: ProjectTask) {
   return `/studio?${params.toString()}`;
 }
 
-function taskProgress(task: ProjectTask, duration: string) {
+function taskProgress(task: ProjectTask, fallbackDuration: string, now = Date.now()) {
   if (task.status === "Completed" || task.status === "Failed") return 100;
-  const rawSeconds = Number.parseInt(duration, 10);
+  const rawDuration = typeof task.settings?.duration === "string" ? task.settings.duration : fallbackDuration;
+  const rawSeconds = Number.parseInt(rawDuration, 10);
   const estimate = task.type === "Image" ? 90 : task.type === "Audio" ? 60 : rawSeconds >= 10 ? 150 : rawSeconds >= 8 ? 125 : 95;
-  const startedAt = task.createdAt ? new Date(task.createdAt).getTime() : Date.now();
-  const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+  const startedAt = task.createdAt ? new Date(task.createdAt).getTime() : now;
+  const elapsed = Math.max(0, Math.floor((now - startedAt) / 1000));
   return Math.min(94, Math.max(task.status === "Running" ? 25 : 8, Math.round((elapsed / estimate) * 100)));
 }
 
@@ -86,7 +123,7 @@ type StudioProjectsProps = {
   onPreviewImage: (url: string) => void;
 };
 
-export function StudioProjects({ t, tasks, selectedTask:baseSelectedTask, historyNote, duration, providerLabel, onPreviewImage, locale = "en" }: StudioProjectsProps) {
+export const StudioProjects = memo(function StudioProjects({ t, tasks, selectedTask:baseSelectedTask, historyNote, duration, providerLabel, onPreviewImage, locale = "en" }: StudioProjectsProps) {
   const [outputIndex,setOutputIndex]=useState(0);
   const outputImages=baseSelectedTask?.type==="Image"?baseSelectedTask.mediaUrls||[]:[];
   const selectedTask=baseSelectedTask?{...baseSelectedTask,mediaUrl:outputImages[outputIndex]||baseSelectedTask.mediaUrl}:null;
@@ -105,9 +142,37 @@ export function StudioProjects({ t, tasks, selectedTask:baseSelectedTask, histor
   useEffect(() => {
     if (manualTaskId === selectedTask?.id) { manualCopyRef.current?.focus(); manualCopyRef.current?.select(); }
   }, [manualTaskId, selectedTask?.id]);
+  const [typeFilter, setTypeFilter] = useState<"all" | ProjectTask["type"]>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "failed">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const activeCount = tasks.filter((task) => task.status === "Queued" || task.status === "Running").length;
   const doneCount = tasks.filter((task) => task.status === "Completed").length;
   const failedCount = tasks.filter((task) => task.status === "Failed").length;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (activeCount === 0) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 3000);
+    return () => window.clearInterval(timer);
+  }, [activeCount]);
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const hasActiveFilters = typeFilter !== "all" || statusFilter !== "all" || Boolean(normalizedSearch);
+  const filteredTasks = tasks.filter((task) => {
+    if (typeFilter !== "all" && task.type !== typeFilter) return false;
+    if (statusFilter === "active" && task.status !== "Queued" && task.status !== "Running") return false;
+    if (statusFilter === "completed" && task.status !== "Completed") return false;
+    if (statusFilter === "failed" && task.status !== "Failed") return false;
+    if (normalizedSearch) {
+      const haystack = `${task.title || ""} ${task.prompt || ""} ${providerLabel(task.provider)} ${task.provider || ""}`.toLowerCase();
+      if (!haystack.includes(normalizedSearch)) return false;
+    }
+    return true;
+  });
+  const resetFilters = () => {
+    setTypeFilter("all");
+    setStatusFilter("all");
+    setSearchQuery("");
+  };
   const statusLabel = (status: TaskStatus) => t(`studio.task.${status.toLowerCase()}`);
   const typeLabel = (type: ProjectTask["type"]) => t(`studio.task.${type.toLowerCase()}`);
   const title = (task: ProjectTask) => task.title || task.prompt?.trim().split(/\s+/).slice(0, 8).join(" ") || `${providerLabel(task.provider)} ${task.type}`;
@@ -130,7 +195,7 @@ export function StudioProjects({ t, tasks, selectedTask:baseSelectedTask, histor
       {task.mediaUrl && task.type === "Image" ? <img src={task.mediaUrl} alt="" className="h-full w-full object-cover" /> : null}
       {task.mediaUrl && task.type === "Video" ? <video src={task.mediaUrl} muted playsInline preload="none" className="h-full w-full object-cover" /> : null}
       {task.type === "Audio" ? <span aria-hidden="true">{"\u266b"}</span> : !task.mediaUrl ? <span aria-hidden="true">{task.type === "Video" ? "\u25b6" : "\u2726"}</span> : null}
-      {task.status === "Running" || task.status === "Queued" ? <span className="absolute inset-x-0 bottom-0 h-1 bg-[var(--studio-accent-soft)]"><span className="block h-full bg-[var(--studio-accent-soft)]" style={{ width: `${taskProgress(task, duration)}%` }} /></span> : null}
+      {task.status === "Running" || task.status === "Queued" ? <span className="absolute inset-x-0 bottom-0 h-1 bg-[var(--studio-accent-soft)]"><span className="block h-full bg-[var(--studio-primary)] transition-all" style={{ width: `${taskProgress(task, duration, now)}%` }} /></span> : null}
     </span>
   );
 
@@ -142,7 +207,26 @@ export function StudioProjects({ t, tasks, selectedTask:baseSelectedTask, histor
           <Link href="/studio?mode=image&workflow=text-to-image" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--studio-primary)] px-5 text-sm font-semibold text-white shadow-none"><span aria-hidden="true">+</span>{t("studio.projects.new")}</Link>
         </div>
         <div className="df-project-status-strip grid grid-cols-3 divide-x divide-[var(--df-border)] rtl:divide-x-reverse">
-          {[[t("studio.projects.active"), activeCount, "#f59e0b"], [t("studio.projects.done"), doneCount, "#12b76a"], [t("studio.projects.failed"), failedCount, "#f04438"]].map(([label, value, color]) => <div key={label} className="flex min-w-0 items-center justify-center gap-2 px-2 py-3 sm:gap-3 sm:py-4"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: String(color) }} /><strong className="text-lg font-semibold tabular-nums text-[var(--studio-text)] sm:text-xl">{value}</strong><span className="truncate text-xs font-bold uppercase tracking-[0.08em] text-[var(--studio-muted)] sm:text-xs">{label}</span></div>)}
+          {([
+            ["active", t("studio.projects.active"), activeCount, "#f59e0b"],
+            ["completed", t("studio.projects.done"), doneCount, "#12b76a"],
+            ["failed", t("studio.projects.failed"), failedCount, "#f04438"]
+          ] as const).map(([key, label, value, color]) => {
+            const active = statusFilter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setStatusFilter((current) => (current === key ? "all" : key))}
+                className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-2.5 py-2 transition sm:gap-3 ${active ? "bg-[var(--studio-accent-soft)] ring-1 ring-[var(--studio-accent-border)]" : "hover:bg-[var(--studio-surface)]"}`}
+              >
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                <strong className="text-lg font-semibold tabular-nums text-[var(--studio-text)] sm:text-xl">{value}</strong>
+                <span className="truncate text-xs font-bold uppercase tracking-[0.08em] text-[var(--studio-muted)] sm:text-xs">{label}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -150,9 +234,68 @@ export function StudioProjects({ t, tasks, selectedTask:baseSelectedTask, histor
 
       <div className="grid min-w-0 grid-cols-1 gap-[14px] xl:grid-cols-[350px_minmax(0,1fr)]">
         <aside className="order-2 min-w-0 overflow-hidden rounded-[20px] border border-[var(--studio-border)] bg-[var(--studio-panel)] shadow-none xl:order-1">
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--studio-border)] px-4 py-3.5"><div className="min-w-0"><h3 className="text-sm font-semibold text-[var(--studio-text)]">{t("studio.projects.list")}</h3><p className="mt-0.5 truncate text-[11px] text-[var(--studio-muted)]">{t("studio.projects.savedTasks", { count: tasks.length, label: t(tasks.length === 1 ? "studio.projects.task" : "studio.projects.tasks") })}</p></div><span className="rounded-full bg-[var(--studio-accent-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--studio-accent)]">{tasks.length}</span></div>
+          <div className="border-b border-[var(--studio-border)] px-4 py-3.5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0"><h3 className="text-sm font-semibold text-[var(--studio-text)]">{t("studio.projects.list")}</h3><p className="mt-0.5 truncate text-[11px] text-[var(--studio-muted)]">{t("studio.projects.savedTasks", { count: filteredTasks.length, label: t(filteredTasks.length === 1 ? "studio.projects.task" : "studio.projects.tasks") })}</p></div>
+              <span className="rounded-full bg-[var(--studio-accent-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--studio-accent)]">{hasActiveFilters ? `${filteredTasks.length}/${tasks.length}` : tasks.length}</span>
+            </div>
+            {tasks.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                <div className="relative">
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder={t("studio.projects.searchPlaceholder")}
+                    aria-label={t("studio.projects.searchPlaceholder")}
+                    className="h-9 w-full rounded-xl border border-[var(--studio-border)] bg-[var(--studio-surface)] px-3 pe-8 text-xs text-[var(--studio-text)] outline-none transition placeholder:text-[var(--studio-muted)] focus:border-[var(--studio-accent-border)]"
+                  />
+                  {searchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      aria-label={t("studio.action.clear")}
+                      className="absolute inset-y-0 end-1.5 my-auto grid h-6 w-6 place-items-center rounded-md text-xs text-[var(--studio-muted)] hover:bg-[var(--studio-panel)] hover:text-[var(--studio-text)]"
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t("studio.projects.mode")}>
+                  {([
+                    ["all", t("studio.voiceGender.all")],
+                    ["Video", t("studio.task.video")],
+                    ["Image", t("studio.task.image")],
+                    ["Audio", t("studio.task.audio")]
+                  ] as const).map(([value, label]) => {
+                    const active = typeFilter === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setTypeFilter(value)}
+                        className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${active ? "bg-[var(--studio-primary)] text-white" : "bg-[var(--studio-surface)] text-[var(--studio-muted)] hover:text-[var(--studio-text)]"}`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                  {hasActiveFilters ? (
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="ms-auto text-[11px] font-semibold text-[var(--studio-accent)] hover:underline"
+                    >
+                      {t("studio.projects.resetFilters")}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </div>
           <div className="max-h-[520px] space-y-2 overflow-y-auto p-2.5 xl:max-h-[720px]">
-            {tasks.length ? tasks.map((task) => <Link key={task.id} href={projectHref(task.id)} className={`flex min-h-[94px] items-start gap-3 rounded-2xl border p-2.5 text-start transition ${selectedTask?.id === task.id ? "border-[var(--studio-accent-border)] bg-[var(--studio-surface)] shadow-none" : "border-[var(--studio-border)] bg-[var(--studio-panel)] hover:border-[var(--studio-accent-border)] hover:bg-[var(--studio-accent-soft)]"}`}>{thumbnail(task)}<span className="min-w-0 flex-1 py-0.5"><span className="flex min-w-0 items-start justify-between gap-2"><strong className="min-w-0 truncate text-[13px] font-semibold text-[var(--studio-text)]">{title(task)}</strong><span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold ring-1 ${statusPillClass(task.status)}`}>{statusLabel(task.status)}</span></span><span className="mt-1 block truncate text-xs font-semibold text-[var(--studio-muted)]">{providerLabel(task.provider)} · {formatStudioTaskDate(task.createdAt, locale)}</span><span className="mt-2 flex items-center justify-between gap-2 text-xs font-bold text-[var(--studio-muted)]"><span>{typeLabel(task.type)}</span><span>{task.cost} {t("studio.common.credits")}</span></span></span></Link>) : <div className="m-1 grid min-h-[240px] place-items-center rounded-2xl border border-dashed border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] px-6 text-center"><div><span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[var(--studio-accent-soft)] text-xl text-[var(--studio-accent)]">{"\u2726"}</span><p className="mt-4 text-sm font-semibold text-[var(--studio-text)]">{t("studio.projects.none")}</p><p className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{t("studio.projects.empty")}</p></div></div>}
+            {filteredTasks.length ? filteredTasks.map((task) => <Link key={task.id} href={projectHref(task.id)} className={`flex min-h-[94px] items-start gap-3 rounded-2xl border p-2.5 text-start transition ${selectedTask?.id === task.id ? "border-[var(--studio-accent-border)] bg-[var(--studio-surface)] shadow-none" : "border-[var(--studio-border)] bg-[var(--studio-panel)] hover:border-[var(--studio-accent-border)] hover:bg-[var(--studio-accent-soft)]"}`}>{thumbnail(task)}<span className="min-w-0 flex-1 py-0.5"><span className="flex min-w-0 items-start justify-between gap-2"><strong className="min-w-0 truncate text-[13px] font-semibold text-[var(--studio-text)]">{title(task)}</strong><span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold ring-1 ${statusPillClass(task.status)}`}>{statusLabel(task.status)}</span></span><span className="mt-1 block truncate text-xs font-semibold text-[var(--studio-muted)]">{providerLabel(task.provider)} · {formatStudioTaskDate(task.createdAt, locale)}</span><span className="mt-2 flex items-center justify-between gap-2 text-xs font-bold text-[var(--studio-muted)]"><span>{typeLabel(task.type)}</span><span>{task.cost} {t("studio.common.credits")}</span></span></span></Link>) : tasks.length ? <div className="m-1 grid min-h-[200px] place-items-center rounded-2xl border border-dashed border-[var(--studio-border)] bg-[var(--studio-surface)] px-5 text-center"><div><p className="text-sm font-semibold text-[var(--studio-text)]">{t("studio.projects.noMatches")}</p><button type="button" onClick={resetFilters} className="mt-3 inline-flex min-h-9 items-center rounded-xl border border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] px-3.5 text-xs font-semibold text-[var(--studio-accent)]">{t("studio.projects.resetFilters")}</button></div></div> : <div className="m-1 grid min-h-[240px] place-items-center rounded-2xl border border-dashed border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] px-6 text-center"><div><span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[var(--studio-accent-soft)] text-xl text-[var(--studio-accent)]">{"\u2726"}</span><p className="mt-4 text-sm font-semibold text-[var(--studio-text)]">{t("studio.projects.none")}</p><p className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{t("studio.projects.empty")}</p></div></div>}
           </div>
         </aside>
 
@@ -163,7 +306,7 @@ export function StudioProjects({ t, tasks, selectedTask:baseSelectedTask, histor
                 <div className="mb-3 flex min-w-0 items-start justify-between gap-3 px-1"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.13em] text-[var(--df-stage-muted)]">{t("studio.projects.preview")}</p><h3 className="mt-1 truncate text-sm font-semibold text-white sm:text-base">{title(selectedTask)}</h3><p className="mt-1 truncate text-[11px] text-[var(--df-stage-muted)]">{providerLabel(selectedTask.provider)} · {typeLabel(selectedTask.type)} · {formatStudioTaskDate(selectedTask.createdAt, locale)}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1.5 text-xs font-semibold ring-1 ${statusPillClass(selectedTask.status)}`}>{statusLabel(selectedTask.status)}</span></div>
                 <div className="df-project-preview-stage relative grid min-h-[240px] w-full min-w-0 place-items-center overflow-hidden rounded-xl border border-[var(--studio-border)] sm:min-h-[400px] lg:min-h-[560px]">
                   {mediaFeedback.failed ? <StudioMediaLoadError translate={t} onRetry={mediaFeedback.retry} originalUrl={selectedTask.mediaUrl || undefined} /> : null}
-                  {selectedTask.mediaUrl ? selectedTask.type === "Video" ? <video key={mediaFeedback.mediaKey} onError={mediaFeedback.onError} hidden={mediaFeedback.failed} src={selectedTask.mediaUrl} controls playsInline preload="metadata" className="block max-h-[68dvh] w-full min-w-0 max-w-full bg-black object-contain sm:max-h-[520px] md:max-h-[620px]" /> : selectedTask.type === "Audio" ? <div hidden={mediaFeedback.failed} className="m-2 w-[calc(100%-1rem)] min-w-0 max-w-xl rounded-[1.2rem] border border-[var(--studio-border)] bg-white/[0.08] p-4 text-white shadow-none sm:m-0 sm:w-full sm:rounded-[1.4rem] sm:p-6"><p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-[var(--df-stage-muted)]">{t("studio.projects.voiceover")}</p><audio key={mediaFeedback.mediaKey} onError={mediaFeedback.onError} src={selectedTask.mediaUrl} controls className="w-full min-w-0 max-w-full" /></div> : <button type="button" hidden={mediaFeedback.failed} onClick={() => onPreviewImage(selectedTask.mediaUrl || "")} className="block max-h-[420px] max-w-full overflow-hidden rounded-[1.2rem] shadow-none transition hover:scale-[1.01] md:max-h-[620px]"><img key={mediaFeedback.mediaKey} onError={mediaFeedback.onError} src={selectedTask.mediaUrl} alt={selectedTask.id} className="max-h-[420px] w-full object-contain md:max-h-[620px]" /></button> : <div className="max-w-sm px-6 text-center"><div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-[var(--studio-panel)] text-lg font-semibold text-white shadow-none">{selectedTask.status === "Failed" ? "!" : "..."}</div><p className="mt-5 text-base font-semibold text-white">{selectedTask.status === "Failed" ? t("studio.projects.generationFailed") : selectedTask.status === "Completed" ? t("studio.task.completed") : t("studio.projects.providerCreating")}</p><p className="mt-2 text-sm leading-6 text-[var(--df-stage-muted)]">{selectedTask.status === "Failed" ? selectedTask.failureReason || t("studio.projects.refundDefault") : selectedTask.status === "Completed" ? missingOutputCopy(locale) : selectedTask.type === "Video" ? t("studio.projects.videoWaitHint", { range: estimatedWaitRange(selectedTask) }) : t("studio.projects.providerCreatingDescription")}</p>{selectedTask.status === "Queued" || selectedTask.status === "Running" ? <div className="mt-6 h-2 overflow-hidden rounded-full bg-[var(--studio-panel)]"><div className="h-full rounded-full bg-[var(--studio-primary)] transition-all" style={{ width: `${taskProgress(selectedTask, duration)}%` }} /></div> : null}</div>}
+                  {selectedTask.mediaUrl ? selectedTask.type === "Video" ? <video key={mediaFeedback.mediaKey} onError={mediaFeedback.onError} hidden={mediaFeedback.failed} src={selectedTask.mediaUrl} controls playsInline preload="metadata" className="block max-h-[68dvh] w-full min-w-0 max-w-full bg-black object-contain sm:max-h-[520px] md:max-h-[620px]" /> : selectedTask.type === "Audio" ? <div hidden={mediaFeedback.failed} className="m-2 w-[calc(100%-1rem)] min-w-0 max-w-xl rounded-[1.2rem] border border-[var(--studio-border)] bg-white/[0.08] p-4 text-white shadow-none sm:m-0 sm:w-full sm:rounded-[1.4rem] sm:p-6"><p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-[var(--df-stage-muted)]">{t("studio.projects.voiceover")}</p><audio key={mediaFeedback.mediaKey} onError={mediaFeedback.onError} src={selectedTask.mediaUrl} controls className="w-full min-w-0 max-w-full" /></div> : <button type="button" hidden={mediaFeedback.failed} onClick={() => onPreviewImage(selectedTask.mediaUrl || "")} className="block max-h-[420px] max-w-full overflow-hidden rounded-[1.2rem] shadow-none transition hover:scale-[1.01] md:max-h-[620px]"><img key={mediaFeedback.mediaKey} onError={mediaFeedback.onError} src={selectedTask.mediaUrl} alt={selectedTask.id} className="max-h-[420px] w-full object-contain md:max-h-[620px]" /></button> : <div className="max-w-sm px-6 text-center"><div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-[var(--studio-panel)] text-lg font-semibold text-white shadow-none">{selectedTask.status === "Failed" ? "!" : "..."}</div><p className="mt-5 text-base font-semibold text-white">{selectedTask.status === "Failed" ? t("studio.projects.generationFailed") : selectedTask.status === "Completed" ? t("studio.task.completed") : t("studio.projects.providerCreating")}</p><p className="mt-2 text-sm leading-6 text-[var(--df-stage-muted)]">{selectedTask.status === "Failed" ? selectedTask.failureReason || t("studio.projects.refundDefault") : selectedTask.status === "Completed" ? missingOutputCopy(locale) : selectedTask.type === "Video" ? t("studio.projects.videoWaitHint", { range: estimatedWaitRange(selectedTask) }) : t("studio.projects.providerCreatingDescription")}</p>{selectedTask.status === "Queued" || selectedTask.status === "Running" ? <div className="mt-6 h-2 overflow-hidden rounded-full bg-[var(--studio-panel)]"><div className="h-full rounded-full bg-[var(--studio-primary)] transition-all" style={{ width: `${taskProgress(selectedTask, duration, now)}%` }} /></div> : null}</div>}
                 </div>
                 {outputImages.length>1?<div data-project-image-outputs className="df-stage-history mt-3">{outputImages.map((url,index)=><button type="button" key={url+index} className="df-stage-thumbnail" aria-label={`${t("studio.reference.image")} ${index+1}`} aria-pressed={outputIndex===index} onClick={()=>setOutputIndex(index)}><img src={url} alt="" loading="lazy" /><span>{index+1}</span></button>)}</div>:null}
               </article>
@@ -180,4 +323,4 @@ export function StudioProjects({ t, tasks, selectedTask:baseSelectedTask, histor
       </div>
     </div>
   );
-}
+});
