@@ -97,12 +97,12 @@
     margin-inline: 0;
   }
   .df-image-settings .df-inline-model-picker > .df-model-trigger-name { flex: 1; text-align: start; }
-  .df-image-settings [data-image-parameters] :is(.df-select-field, .df-select-control, select) {
+  .df-image-settings [data-image-parameters] :is(.df-select-field, .df-select-control, select, .df-select-trigger) {
     width: 100%;
     min-width: 0;
     max-width: none;
   }
-  .df-image-settings [data-image-parameters] select { padding-inline-end: 26px; }
+  .df-image-settings [data-image-parameters] :is(select, .df-select-trigger) { padding-inline-end: 26px; }
   .df-image-settings[data-utility-workflow] [data-image-parameters] > .df-select-field { grid-column: 1 / -1; }
   .df-image-settings .df-composer-more { line-height: 1.35; text-align: center; }
   .df-image-settings .df-composer-more > span { overflow-wrap: anywhere; }
@@ -112,5 +112,5 @@
 @media (max-width: 359px) {
   .creative-studio .df-mode-image .df-image-editor textarea[data-composer-prompt] { height: 152px; }
   .df-image-settings [data-image-parameters] .df-select-control > [data-select-icon] { display: none; }
-  .df-image-settings [data-image-parameters] .df-select-control[data-has-icon="true"] > select { padding-inline-start: 10px; }
+  .df-image-settings [data-image-parameters] .df-select-control[data-has-icon="true"] > :is(select, .df-select-trigger) { padding-inline-start: 10px; }
 }

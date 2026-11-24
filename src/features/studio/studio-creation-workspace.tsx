@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { trackEvent } from "../../lib/analytics";
 import { requestSignIn } from "../../lib/auth-navigation";
@@ -17,8 +18,10 @@ import {
   isH3VideoProvider,
   isNanoBananaLiteProvider,
   isNanoBananaProvider,
+  providerLabel,
   ratioFromImageSize
 } from "./studio-workspace-config";
+import { StudioRecentResults } from "./studio-recent-results";
 import { UnifiedWorkbenchLayout } from "./unified-workbench-layout";
 import type { StudioController } from "./use-studio-controller";
 import { WorkflowSwitcher } from "./workflow-switcher";
@@ -143,6 +146,7 @@ export default function StudioCreationWorkspace({ model }: { model: StudioContro
     setNumImages,
     setNumInferenceSteps,
     setOutputFormat,
+    setPreviewModal,
     setPrompt,
     setRatio,
     setReasoningLevel,
@@ -180,6 +184,7 @@ export default function StudioCreationWorkspace({ model }: { model: StudioContro
     statusTone,
     studioI18n,
     systemPrompt,
+    tasks,
     textNormalization,
     thinkingLevel,
     topazOptions,
@@ -197,6 +202,18 @@ export default function StudioCreationWorkspace({ model }: { model: StudioContro
     videoResolutionOptions,
     videoWorkflow
   } = model;
+
+  useEffect(() => {
+    if (isAppsHome || isProjectsView || isBillingView) return;
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey || event.isComposing || event.repeat) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"], [role="listbox"]')) return;
+      event.preventDefault();
+      if (!generateDisabled && !isSubmitting) handleGenerateClick();
+    };
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [generateDisabled, handleGenerateClick, isAppsHome, isBillingView, isProjectsView, isSubmitting]);
 
   const workflowNavigation = (
     <WorkflowSwitcher
@@ -483,84 +500,94 @@ export default function StudioCreationWorkspace({ model }: { model: StudioContro
             onGenerate={handleGenerateClick}
           />
         ) : showVideoWorkbenchRedesign ? (
-          <>
-            <VideoSettings
-              workflowTabs={workflowNavigation}
-              statusMessage={statusText}
-              statusTone={statusTone}
-              dailyFreeLabel={h3FreeLabel}
-              workflow={configuredVideoWorkflow}
-              onUseReference={() => applyWorkflow("reference-to-video")}
-              referenceVideoUrl={referenceVideoUrl}
-              shortsTemplate={sp.get("templateCategory") === "shorts" && Boolean(sp.get("templateId")) && sp.get("referenceVideo") === referenceVideoUrl}
-              heygenReferenceOptions={heygenReferenceOptions}
-              onHeygenReferenceOptionsChange={setHeygenReferenceOptions}
-              heygenValidationError={heygenValidationError}
-              seedanceOptions={seedanceOptions}
-              seedanceValidationError={seedanceValidationError}
-              onSeedanceOptionsChange={setSeedanceOptions}
-              onReferenceVideoUrlChange={setReferenceVideoUrl}
-              onMediaUpload={handleCloudMediaFile}
-              prompt={prompt}
-              referenceImageUrls={referenceImageUrls}
-              provider={provider}
-              providerOptions={modelPickerOptions}
-              duration={duration}
-              durationOptions={videoDurationOptions}
-              ratio={ratio}
-              ratioOptions={videoRatioOptions}
-              ratioDisabled={(provider === "kling-video" || provider === "grok-video" || isH3VideoProvider(provider)) && activeWorkflow === "image-to-video"}
-              showResolutionControl={showVideoResolutionControl}
-              resolution={videoResolution}
-              resolutionOptions={videoResolutionOptions}
-              showAudioControl={showVideoAudioControl}
-              generateAudio={generateAudio}
-              reasoningLevel={reasoningLevel}
-              onReasoningLevelChange={setReasoningLevel}
-              enableSafetyChecker={enableSafetyChecker}
-              onEnableSafetyCheckerChange={setEnableSafetyChecker}
-              seed={seed}
-              estimatedCredits={estCredits}
-              creditBalance={creditBalance}
-              generateDisabled={generateDisabled}
-              isSubmitting={isSubmitting}
-              isAuthenticated={Boolean(accessToken)}
-              translate={st}
-              onPromptChange={videoPromptAI.edit}
-              promptAI={videoPromptAI}
-              onReferenceClear={() => {
-                setReferenceImagesText("");
-                setReferenceImageFiles([]);
-              }}
-              onReferenceFiles={handleReferenceFiles}
-              onReferenceRemove={(index) => {
-                if (videoWorkflow === "reference-to-video") {
-                  const urls = parseStudioReferenceImages(referenceImagesText);
-                  if (index < urls.length) setReferenceImagesText(urls.filter((_, position) => position !== index).join("\n"));
-                  else setReferenceImageFiles((files) => files.filter((_, position) => position !== index - urls.length));
-                  return;
-                }
-                setReferenceImagesText("");
-                setReferenceImageFiles(index === 0 ? [] : referenceImageUrls.slice(0, 1));
-              }}
-              onFileError={() => {
-                setStatusTone("error");
-                setStatusText(st("studio.status.fileReadFailed"));
-              }}
-              onProviderChange={applyProvider}
-              onDurationChange={setDuration}
-              onRatioChange={setRatio}
-              onResolutionChange={setVideoResolution}
-              onGenerateAudioChange={setGenerateAudio}
-              onSeedChange={setSeed}
-              onGenerate={handleGenerateClick}
-            />
-            <StudioDeferredSection id="studio-video-templates">
-              <VideoTemplateGallery translate={st} locale={studioI18n.locale} />
-            </StudioDeferredSection>
-          </>
+          <VideoSettings
+            workflowTabs={workflowNavigation}
+            statusMessage={statusText}
+            statusTone={statusTone}
+            dailyFreeLabel={h3FreeLabel}
+            workflow={configuredVideoWorkflow}
+            onUseReference={() => applyWorkflow("reference-to-video")}
+            referenceVideoUrl={referenceVideoUrl}
+            shortsTemplate={sp.get("templateCategory") === "shorts" && Boolean(sp.get("templateId")) && sp.get("referenceVideo") === referenceVideoUrl}
+            heygenReferenceOptions={heygenReferenceOptions}
+            onHeygenReferenceOptionsChange={setHeygenReferenceOptions}
+            heygenValidationError={heygenValidationError}
+            seedanceOptions={seedanceOptions}
+            seedanceValidationError={seedanceValidationError}
+            onSeedanceOptionsChange={setSeedanceOptions}
+            onReferenceVideoUrlChange={setReferenceVideoUrl}
+            onMediaUpload={handleCloudMediaFile}
+            prompt={prompt}
+            referenceImageUrls={referenceImageUrls}
+            provider={provider}
+            providerOptions={modelPickerOptions}
+            duration={duration}
+            durationOptions={videoDurationOptions}
+            ratio={ratio}
+            ratioOptions={videoRatioOptions}
+            ratioDisabled={(provider === "kling-video" || provider === "grok-video" || isH3VideoProvider(provider)) && activeWorkflow === "image-to-video"}
+            showResolutionControl={showVideoResolutionControl}
+            resolution={videoResolution}
+            resolutionOptions={videoResolutionOptions}
+            showAudioControl={showVideoAudioControl}
+            generateAudio={generateAudio}
+            reasoningLevel={reasoningLevel}
+            onReasoningLevelChange={setReasoningLevel}
+            enableSafetyChecker={enableSafetyChecker}
+            onEnableSafetyCheckerChange={setEnableSafetyChecker}
+            seed={seed}
+            estimatedCredits={estCredits}
+            creditBalance={creditBalance}
+            generateDisabled={generateDisabled}
+            isSubmitting={isSubmitting}
+            isAuthenticated={Boolean(accessToken)}
+            translate={st}
+            onPromptChange={videoPromptAI.edit}
+            promptAI={videoPromptAI}
+            onReferenceClear={() => {
+              setReferenceImagesText("");
+              setReferenceImageFiles([]);
+            }}
+            onReferenceFiles={handleReferenceFiles}
+            onReferenceRemove={(index) => {
+              if (videoWorkflow === "reference-to-video") {
+                const urls = parseStudioReferenceImages(referenceImagesText);
+                if (index < urls.length) setReferenceImagesText(urls.filter((_, position) => position !== index).join("\n"));
+                else setReferenceImageFiles((files) => files.filter((_, position) => position !== index - urls.length));
+                return;
+              }
+              setReferenceImagesText("");
+              setReferenceImageFiles(index === 0 ? [] : referenceImageUrls.slice(0, 1));
+            }}
+            onFileError={() => {
+              setStatusTone("error");
+              setStatusText(st("studio.status.fileReadFailed"));
+            }}
+            onProviderChange={applyProvider}
+            onDurationChange={setDuration}
+            onRatioChange={setRatio}
+            onResolutionChange={setVideoResolution}
+            onGenerateAudioChange={setGenerateAudio}
+            onSeedChange={setSeed}
+            onGenerate={handleGenerateClick}
+          />
         ) : null}
       </div>
+
+      <StudioRecentResults
+        mode={mode}
+        tasks={tasks}
+        duration={duration}
+        t={st}
+        providerLabel={providerLabel}
+        onPreview={setPreviewModal}
+      />
+
+      {showVideoWorkbenchRedesign && !isTopazVideo ? (
+        <StudioDeferredSection id="studio-video-templates">
+          <VideoTemplateGallery translate={st} locale={studioI18n.locale} />
+        </StudioDeferredSection>
+      ) : null}
 
       {showTextToImageTemplates ? (
         <StudioDeferredSection>

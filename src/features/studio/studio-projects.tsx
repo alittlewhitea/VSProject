@@ -6,41 +6,27 @@ import { PromptEnhancementHistory } from "./prompt-enhancement-history";
 import { memo, useEffect, useRef, useState } from "react";
 import { copyStudioText } from "./studio-clipboard";
 import { StudioMediaLoadError, useStudioMediaFeedback } from "./studio-media-feedback";
+import {
+  studioTaskDisplayTitle,
+  studioTaskDownloadHref,
+  studioTaskNextSteps,
+  studioTaskProgress,
+  studioTaskProjectHref,
+  studioTaskRegenerateHref,
+  studioTaskUseAsReferenceHref,
+  type StudioTaskRecord,
+  type StudioTaskStatus
+} from "./studio-task-actions";
 
 type Translate = (key: string, values?: Record<string, string | number | null | undefined>) => string;
-type TaskStatus = "Queued" | "Running" | "Completed" | "Failed";
-export type ProjectTask = {
-  id: string;
-  type: "Image" | "Video" | "Audio";
-  status: TaskStatus;
-  cost: number;
-  title?: string | null;
-  provider?: string;
-  prompt?: string;
-  transport?: "real" | "mock";
-  createdAt?: string;
-  mediaUrl?: string | null;
-  mediaUrls?: string[];
-  settings?: Record<string, unknown> | null;
-  chargedCredits?: number;
-  refundedCredits?: number;
-  refundStatus?: "refunded" | "not_refunded" | "not_applicable";
-  failureReason?: string | null;
-};
+type TaskStatus = StudioTaskStatus;
+export type ProjectTask = StudioTaskRecord;
 
 function statusPillClass(status: TaskStatus) {
   if (status === "Completed") return "bg-[var(--studio-success-soft)] text-[var(--studio-success)] ring-[var(--studio-border)]";
   if (status === "Failed") return "bg-[var(--studio-error-soft)] text-[var(--studio-error)] ring-[var(--studio-border)]";
   if (status === "Running") return "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)] ring-[var(--studio-accent-border)]";
   return "bg-[var(--studio-warning-soft)] text-[var(--studio-warning)] ring-[var(--studio-border)]";
-}
-
-function projectHref(taskId: string) {
-  return `/studio?view=projects&taskId=${encodeURIComponent(taskId)}`;
-}
-
-function isPublicHttpUrl(value: unknown): value is string {
-  return typeof value === "string" && /^https?:\/\//i.test(value.trim());
 }
 
 function estimatedWaitRange(task: ProjectTask) {
@@ -51,66 +37,10 @@ function estimatedWaitRange(task: ProjectTask) {
   return "2-4";
 }
 
-function regenerateHref(task: ProjectTask) {
-  const settings = task.settings || {};
-  const isAvatar = settings.videoWorkflow === "avatar-video";
-  const mode = isAvatar ? "avatar" : task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video";
-  const imageWorkflow = typeof settings.imageWorkflow === "string" && ["text-to-image", "image-to-image", "enhance-cleanup", "background-remove"].includes(settings.imageWorkflow)
-    ? settings.imageWorkflow
-    : "text-to-image";
-  const videoWorkflow = typeof settings.videoWorkflow === "string" && ["text-to-video", "image-to-video", "reference-to-video", "video-upscale"].includes(settings.videoWorkflow)
-    ? settings.videoWorkflow
-    : "text-to-video";
-  const audioWorkflow = typeof settings.audioWorkflow === "string" && ["text-to-audio", "text-to-music"].includes(settings.audioWorkflow)
-    ? settings.audioWorkflow
-    : task.provider === "minimax-music-2.6" ? "text-to-music" : "text-to-audio";
-  const workflow = isAvatar ? "avatar-video" : mode === "image" ? imageWorkflow : mode === "audio" ? audioWorkflow : videoWorkflow;
-  const params = new URLSearchParams({ mode, workflow, source: "regenerate" });
-  if (task.provider) params.set("provider", task.provider);
-  if (task.prompt) params.set("prompt", task.prompt);
-  if (typeof settings.duration === "string" && settings.duration.trim()) params.set("duration", settings.duration.trim());
-  if (typeof settings.ratio === "string" && settings.ratio.trim()) params.set("ratio", settings.ratio.trim());
-  if (mode === "image") {
-    if (typeof settings.imageSize === "string" && settings.imageSize.trim()) params.set("imageSize", settings.imageSize.trim());
-    if (typeof settings.resolution === "string" && settings.resolution.trim()) params.set("imageResolution", settings.resolution.trim());
-    if (typeof settings.quality === "string" && settings.quality.trim()) params.set("quality", settings.quality.trim());
-    if (typeof settings.numImages === "number" && Number.isInteger(settings.numImages) && settings.numImages >= 1) params.set("numImages", String(settings.numImages));
-  } else if (typeof settings.resolution === "string" && settings.resolution.trim()) {
-    params.set("resolution", settings.resolution.trim());
-  }
-  if (typeof settings.seed === "number" && Number.isSafeInteger(settings.seed)) params.set("seed", String(settings.seed));
-  if (typeof settings.seedanceTask === "string" && ["reference", "editing", "extension"].includes(settings.seedanceTask)) params.set("seedanceTask", settings.seedanceTask);
-  if (Array.isArray(settings.imageUrls)) {
-    const publicImages = settings.imageUrls.filter(isPublicHttpUrl).slice(0, 4);
-    const joined = publicImages.join("\n");
-    if (joined && joined.length <= 1500) params.set("reference", joined);
-  }
-  if (workflow === "reference-to-video" && Array.isArray(settings.videoUrls)) {
-    const publicVideo = settings.videoUrls.find(isPublicHttpUrl);
-    if (publicVideo && publicVideo.length <= 1000) params.set("referenceVideo", publicVideo);
-  }
-  return `/studio?${params.toString()}`;
-}
-
-function useAsReferenceHref(task: ProjectTask) {
-  if (task.type === "Video" && task.mediaUrl) {
-    return `/studio?${new URLSearchParams({mode:"video",workflow:"reference-to-video",provider:"heygen-video",referenceVideo:task.mediaUrl,...(task.prompt ? {prompt:task.prompt} : {})}).toString()}`;
-  }
-  const params = new URLSearchParams({ mode: task.type === "Image" ? "image" : task.type === "Audio" ? "audio" : "video", workflow: task.type === "Image" ? "image-to-image" : "image-to-video" });
-  if (task.mediaUrl) params.set("reference", task.mediaUrl);
-  if (task.prompt) params.set("prompt", task.prompt);
-  return `/studio?${params.toString()}`;
-}
-
-function taskProgress(task: ProjectTask, fallbackDuration: string, now = Date.now()) {
-  if (task.status === "Completed" || task.status === "Failed") return 100;
-  const rawDuration = typeof task.settings?.duration === "string" ? task.settings.duration : fallbackDuration;
-  const rawSeconds = Number.parseInt(rawDuration, 10);
-  const estimate = task.type === "Image" ? 90 : task.type === "Audio" ? 60 : rawSeconds >= 10 ? 150 : rawSeconds >= 8 ? 125 : 95;
-  const startedAt = task.createdAt ? new Date(task.createdAt).getTime() : now;
-  const elapsed = Math.max(0, Math.floor((now - startedAt) / 1000));
-  return Math.min(94, Math.max(task.status === "Running" ? 25 : 8, Math.round((elapsed / estimate) * 100)));
-}
+const projectHref = studioTaskProjectHref;
+const regenerateHref = studioTaskRegenerateHref;
+const useAsReferenceHref = studioTaskUseAsReferenceHref;
+const taskProgress = studioTaskProgress;
 
 type StudioProjectsProps = {
   t: Translate;
@@ -175,7 +105,8 @@ export const StudioProjects = memo(function StudioProjects({ t, tasks, selectedT
   };
   const statusLabel = (status: TaskStatus) => t(`studio.task.${status.toLowerCase()}`);
   const typeLabel = (type: ProjectTask["type"]) => t(`studio.task.${type.toLowerCase()}`);
-  const title = (task: ProjectTask) => task.title || task.prompt?.trim().split(/\s+/).slice(0, 8).join(" ") || `${providerLabel(task.provider)} ${task.type}`;
+  const title = (task: ProjectTask) => studioTaskDisplayTitle(task, providerLabel);
+  const selectedNextSteps = selectedTask ? studioTaskNextSteps(selectedTask, selectedTask.mediaUrl) : [];
   const copyPrompt = async (task: ProjectTask) => {
     if (!task.prompt) return;
     setManualTaskId(null);
@@ -312,7 +243,26 @@ export const StudioProjects = memo(function StudioProjects({ t, tasks, selectedT
               </article>
 
               <aside className="min-w-0 space-y-3">
-                <div className="min-w-0 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-3"><div className="grid min-w-0 grid-cols-2 gap-2">{selectedTask.mediaUrl ? <a href={`/api/generate/download?taskId=${encodeURIComponent(selectedTask.id)}&name=${encodeURIComponent(selectedTask.id)}&index=${selectedTask.type==="Image"&&outputIndex<outputImages.length?outputIndex:0}`} className="flex min-h-11 min-w-0 items-center justify-center rounded-xl bg-[var(--studio-primary)] px-3 text-center text-xs font-semibold text-white">{"\u21e9"} <span className="ms-1">{t("studio.projects.download")}</span></a> : null}<button type="button" onClick={() => copyPrompt(selectedTask)} disabled={!selectedTask.prompt} className="min-h-11 min-w-0 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-xs font-semibold text-[var(--studio-text)] disabled:opacity-45">{copiedTaskId === selectedTask.id ? "\u2713 " : ""}{t("studio.projects.copyPrompt")}</button><Link href={regenerateHref(selectedTask)} className="flex min-h-11 min-w-0 items-center justify-center rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-center text-xs font-semibold text-[var(--studio-text)]">{selectedTask.status === "Failed" ? t("studio.projects.retry") : t("studio.projects.regenerate")}</Link>{selectedTask.mediaUrl && selectedTask.type !== "Audio" ? <Link href={useAsReferenceHref(selectedTask)} className="flex min-h-11 min-w-0 items-center justify-center rounded-xl border border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] px-3 text-center text-xs font-semibold text-[var(--studio-accent)]">{t("studio.projects.useReference")}</Link> : null}</div></div>
+                <div className="min-w-0 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-3">
+                  <div className="grid min-w-0 grid-cols-2 gap-2">
+                    {selectedTask.mediaUrl ? <a href={studioTaskDownloadHref(selectedTask.id, selectedTask.type === "Image" && outputIndex < outputImages.length ? outputIndex : 0)} className="flex min-h-11 min-w-0 items-center justify-center rounded-xl bg-[var(--studio-primary)] px-3 text-center text-xs font-semibold text-white">{"\u21e9"} <span className="ms-1">{t("studio.projects.download")}</span></a> : null}
+                    <button type="button" onClick={() => copyPrompt(selectedTask)} disabled={!selectedTask.prompt} className="min-h-11 min-w-0 rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-xs font-semibold text-[var(--studio-text)] disabled:opacity-45">{copiedTaskId === selectedTask.id ? "\u2713 " : ""}{t("studio.projects.copyPrompt")}</button>
+                    <Link href={regenerateHref(selectedTask)} className="flex min-h-11 min-w-0 items-center justify-center rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] px-3 text-center text-xs font-semibold text-[var(--studio-text)]">{selectedTask.status === "Failed" ? t("studio.projects.retry") : t("studio.projects.regenerate")}</Link>
+                    {selectedTask.mediaUrl && selectedTask.type !== "Audio" ? <Link href={useAsReferenceHref(selectedTask)} className="flex min-h-11 min-w-0 items-center justify-center rounded-xl border border-[var(--studio-accent-border)] bg-[var(--studio-accent-soft)] px-3 text-center text-xs font-semibold text-[var(--studio-accent)]">{t("studio.projects.useReference")}</Link> : null}
+                  </div>
+                  {selectedNextSteps.length > 0 ? (
+                    <div className="df-project-next-steps mt-3 border-t border-[var(--studio-border)] pt-3">
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.11em] text-[var(--studio-muted)]">{t("studio.projects.nextSteps")}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedNextSteps.map((step) => (
+                          <Link key={step.id} href={step.href} className="df-recent-next-chip">
+                            {t(step.labelKey)}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
                 <div className="min-w-0 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-4"><p className="text-xs font-semibold uppercase tracking-[0.13em] text-[var(--studio-muted)]">{t("studio.projects.prompt")}</p><span role="status" className="sr-only">{copiedTaskId === selectedTask.id ? t("studio.gallery.copyDone") : ""}</span>
                 {manualTaskId === selectedTask.id ? <><p role="alert" className="mt-3 text-sm text-[var(--studio-text)]">{t("studio.gallery.copyFailed")}</p><textarea ref={manualCopyRef} readOnly value={selectedTask.prompt || ""} dir="auto" aria-label={t("studio.projects.prompt")} rows={5} onFocus={event => event.currentTarget.select()} className="mt-3 w-full resize-y rounded-xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-3 text-sm text-[var(--studio-text)]" /></> : <p className="mt-3 max-h-[210px] overflow-y-auto whitespace-pre-wrap break-words text-sm leading-6 text-[var(--studio-text)]">{selectedTask.prompt || t("studio.projects.noPrompt")}</p>}<PromptEnhancementHistory settings={selectedTask.settings} translate={t} /></div>
                 <div className="min-w-0 rounded-2xl border border-[var(--studio-border)] bg-[var(--studio-panel)] p-4"><p className="text-xs font-semibold uppercase tracking-[0.13em] text-[var(--studio-muted)]">{t("studio.projects.details")}</p><dl className="mt-3 space-y-0 text-xs">{[[t("studio.projects.model"), providerLabel(selectedTask.provider)], [t("studio.projects.mode"), typeLabel(selectedTask.type)], [t("studio.projects.created"), formatStudioTaskDate(selectedTask.createdAt, locale)], [t("studio.projects.charged"), `${selectedTask.chargedCredits ?? selectedTask.cost} ${t("studio.common.credits")}`], [t("studio.projects.refund"), selectedTask.refundedCredits ? `${selectedTask.refundedCredits} ${t("studio.common.credits")}` : selectedTask.refundStatus || "not_applicable"], [t("studio.projects.transport"), selectedTask.transport || "real"]].map(([label, value]) => <div key={label} className="grid min-w-0 grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] items-start gap-3 border-b border-[var(--studio-border)] py-2.5 first:pt-0 last:border-0 last:pb-0"><dt className="min-w-0 break-words font-semibold text-[var(--studio-muted)]">{label}</dt><dd className="min-w-0 break-words text-end font-bold text-[var(--studio-text)]">{value}</dd></div>)}</dl></div>

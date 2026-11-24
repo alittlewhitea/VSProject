@@ -7,10 +7,101 @@
 .df-select-field { display: flex; min-width: 0; flex-direction: column; gap: 7px; text-align: start; }
 .df-select-field > span:first-child { color: var(--df-muted); font-size: 12px; line-height: 18px; font-weight: 500; }
 .df-select-control { display: block; position: relative; min-width: 0; }
-.df-select-control > select { appearance: none; display: block; width: 100%; min-width: 0; height: 44px; padding: 10px 12px; padding-inline-end: 36px; border: 1px solid var(--df-border); border-radius: var(--df-radius-button); background: var(--df-surface); color: var(--df-ink); font: inherit; font-size: 14px; line-height: 22px; text-overflow: ellipsis; cursor: pointer; }
-.df-select-control > select:hover:not(:disabled) { border-color: var(--df-primary-border); }
-.df-select-control > select:disabled { cursor: default; color: var(--df-muted); background: var(--df-surface-soft); }
+.df-select-control > :is(select, .df-select-trigger) { appearance: none; display: flex; align-items: center; width: 100%; min-width: 0; height: 44px; padding: 10px 12px; padding-inline-end: 34px; border: 1px solid var(--df-border); border-radius: var(--df-radius-button); background: var(--df-surface); color: var(--df-ink); font: inherit; font-size: 14px; line-height: 22px; text-align: start; text-overflow: ellipsis; cursor: pointer; }
+.df-select-trigger-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.df-select-control > :is(select, .df-select-trigger):hover:not(:disabled) { border-color: var(--df-primary-border); }
+.df-select-control > :is(select, .df-select-trigger):disabled { cursor: default; color: var(--df-muted); background: var(--df-surface-soft); }
 .df-select-control > svg { position: absolute; top: 14px; inset-inline-end: 12px; width: 16px; height: 16px; color: var(--df-muted); pointer-events: none; }
+.df-select-control > .df-select-chevron { transition: transform var(--df-transition); }
+.df-select-control[data-open="true"] > .df-select-chevron { transform: rotate(180deg); color: var(--df-accent); }
+.df-select-control[data-open="true"] > .df-select-trigger { border-color: var(--df-primary-border); background: var(--df-primary-soft); color: var(--df-accent); }
+.df-select-popover {
+  position: fixed;
+  z-index: 320;
+  display: flex;
+  flex-direction: column;
+  max-width: min(260px, calc(100vw - 16px));
+  max-height: min(300px, calc(100dvh - 32px));
+  padding: 6px;
+  border: 1px solid var(--df-border);
+  border-radius: 14px;
+  background: var(--df-surface);
+  color: var(--df-ink);
+  box-shadow: var(--df-shadow-overlay);
+  font-family: var(--df-system-font);
+  animation: df-select-popover-in 130ms ease-out;
+}
+.df-select-popover-title {
+  padding: 5px 10px 7px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--df-border);
+  color: var(--df-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.df-select-popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.df-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--df-ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--df-transition), color var(--df-transition);
+}
+.df-select-option:hover,
+.df-select-option[data-highlighted="true"] {
+  background: var(--df-surface-soft);
+}
+.df-select-option[aria-selected="true"] {
+  background: var(--df-primary-soft);
+  color: var(--df-accent);
+  font-weight: 600;
+}
+.df-select-option-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.df-select-option-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.df-select-ratio-glyph {
+  flex: none;
+  color: var(--df-muted);
+}
+.df-select-option[aria-selected="true"] .df-select-ratio-glyph {
+  color: var(--df-accent);
+}
+.df-select-check {
+  flex: none;
+  color: var(--df-accent);
+}
+@keyframes df-select-popover-in {
+  from { opacity: 0; transform: translateY(3px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 .df-home-upload-preview { display: flex; align-items: center; gap: 10px; width: fit-content; max-width: 100%; margin-bottom: 12px; padding: 6px; padding-inline-end: 8px; border: 1px solid var(--df-border); border-radius: var(--df-radius-input); }
 .df-home-upload-preview img { width: 56px; height: 48px; object-fit: cover; border-radius: 7px; }
 .df-home-upload-preview > span { min-width: 0; max-width: 200px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

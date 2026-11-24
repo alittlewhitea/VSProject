@@ -1,6 +1,6 @@
 "use client";
-import {StudioDeferredSection} from "./studio-deferred-section";
 
+import { StudioDeferredSection } from "./studio-deferred-section";
 import { memo, useEffect, useRef, useState } from "react";
 import { StudioButton, StudioSegmentedControl } from "./studio-primitives";
 import type { Locale } from "../../i18n/routing";
@@ -11,11 +11,11 @@ const HomeTemplateCarousel = dynamic(() => import("./studio-home-template-carous
 const CombinedTemplateGallery = dynamic(() => import("./studio-combined-template-gallery"), { ssr: false });
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
-export type HomeCreationInput = { mode: "video" | "image" | "audio"; prompt: string; image?: string };
+export type HomeCreationInput = { mode: "video" | "image" | "avatar" | "audio"; prompt: string; image?: string };
 
 export const StudioHome = memo(function StudioHome({ t, locale, onCreate }: { t: Translate; locale: Locale; onCreate: (input: HomeCreationInput) => void }) {
   const [draft, setDraft] = useState("");
-  const [intent, setIntent] = useState<"video" | "image" | "audio">("video");
+  const [intent, setIntent] = useState<"video" | "image" | "avatar" | "audio">("video");
   const [upload, setUpload] = useState<{ dataUrl: string; name: string } | null>(null);
   const [reading, setReading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -50,19 +50,32 @@ export const StudioHome = memo(function StudioHome({ t, locale, onCreate }: { t:
     <div className="studio-home">
       <section className="df-home-create">
         <div className="df-home-masthead">
-        <span className="df-eyebrow">DreamFace Creative Studio</span>
-        <h2>{t("studio.workspace.heroTitle")} {t("studio.workspace.heroAccent")}</h2>
-        <p>{t("studio.workspace.heroBody")}</p>
+          <span className="df-eyebrow">DreamFace Creative Studio</span>
+          <h2>{t("studio.workspace.heroTitle")} {t("studio.workspace.heroAccent")}</h2>
+          <p>{t("studio.workspace.heroBody")}</p>
         </div>
         <StudioDeferredSection><HomeTemplateCarousel translate={t} /></StudioDeferredSection>
         <div className="studio-composer">
           {upload ? <div className="df-home-upload-preview"><img src={upload.dataUrl} alt={upload.name} /><span>{upload.name}</span><button type="button" onClick={() => { uploadSequence.current++; setUpload(null); setReading(false); }} aria-label={t("studio.action.clear")}><StudioIcon name="x" className="h-4 w-4" /></button></div> : null}
           <label htmlFor="studio-home-prompt" className="sr-only">{t("studio.field.prompt")}</label>
-          <textarea id="studio-home-prompt" dir="auto" value={draft} onChange={event => setDraft(event.target.value)} placeholder={t(intent === "video" ? "studio.placeholder.video" : intent === "image" ? "studio.placeholder.image" : "studio.placeholder.audio")} rows={2} />
+          <textarea
+            id="studio-home-prompt"
+            dir="auto"
+            value={draft}
+            onChange={event => setDraft(event.target.value)}
+            onKeyDown={event => {
+              if (event.key === "Enter" && (event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && !event.nativeEvent.isComposing && !reading) {
+                event.preventDefault();
+                start();
+              }
+            }}
+            placeholder={t(intent === "video" ? "studio.placeholder.video" : intent === "image" ? "studio.placeholder.image" : intent === "avatar" ? "studio.placeholder.avatar" : "studio.placeholder.audio")}
+            rows={2}
+          />
           <div className="studio-composer-actions">
             <input ref={fileInput} data-home-image-input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" aria-label={t("studio.action.chooseImage")} onChange={event => { void readImage(event.target.files?.[0]); event.target.value = ""; }} />
             <StudioButton className="studio-upload-link" disabled={reading} onClick={() => fileInput.current?.click()} aria-label={t("studio.action.chooseImage")} title={t("studio.action.chooseImage")}><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-5 w-5"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg><span className="df-home-upload-label">{t("studio.action.chooseImage")}</span></StudioButton>
-            <StudioSegmentedControl label={t("studio.workspace.intentTitle")} value={intent} onChange={mode => { if (reading) return; setIntent(mode); if (upload) start(mode); }} options={(["video", "image", "audio"] as const).map(value => ({ value, label: t(`studio.nav.${value}`), icon: <StudioIcon name={value} className="h-4 w-4" /> }))} />
+            <StudioSegmentedControl label={t("studio.workspace.intentTitle")} value={intent} onChange={mode => { if (reading) return; setIntent(mode); if (upload) start(mode); }} options={(["video", "image", "avatar", "audio"] as const).map(value => ({ value, label: t(`studio.nav.${value}`), icon: <StudioIcon name={value === "avatar" ? "user" : value} className="h-4 w-4" /> }))} />
             <StudioButton onClick={() => start()} disabled={reading} variant="primary" className="studio-start">{t("studio.workspace.start")}<StudioIcon name="chevron-right" className="h-4 w-4 rtl:rotate-180" /></StudioButton>
           </div>
           {uploadError ? <p role="alert" className="mt-3 text-sm text-[var(--studio-error)]">{uploadError}</p> : null}

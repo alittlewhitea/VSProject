@@ -149,7 +149,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const lastAssistantTaskRef = useRef<string | null>(null);
   const lastAssistantImageSettingsRef = useRef<string | null>(null);
   const previousReferenceWorkflow = useRef(initialWorkflow === "reference-to-video");
-  const homeReferenceRef = useRef<{ mode: "image" | "video"; image: string } | null>(null);
+  const homeReferenceRef = useRef<{ mode: "image" | "video" | "avatar"; image: string } | null>(null);
   const lastAppliedPromptUrlRef = useRef<AppliedUrlInput | null>(null);
   const lastAppliedReferenceUrlRef = useRef<AppliedUrlInput | null>(null);
   const [avatarAudioUrl, setAvatarAudioUrl] = useState(sp.get("audioUrl") || "");
@@ -238,8 +238,14 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const h3DailyFree = useH3DailyFree(accessToken, userId);
   const startHomeCreation = useCallback((input: HomeCreationInput) => {
     const hasImage = input.mode !== "audio" && Boolean(input.image);
-    const workflow = input.mode === "video" ? hasImage ? "image-to-video" : "text-to-video" : input.mode === "image" ? hasImage ? "image-to-image" : "text-to-image" : "text-to-audio";
-    homeReferenceRef.current = hasImage ? { mode: input.mode as "image" | "video", image: input.image! } : null;
+    const workflow = input.mode === "avatar"
+      ? "avatar-video"
+      : input.mode === "video"
+        ? hasImage ? "image-to-video" : "text-to-video"
+        : input.mode === "image"
+          ? hasImage ? "image-to-image" : "text-to-image"
+          : "text-to-audio";
+    homeReferenceRef.current = hasImage ? { mode: input.mode as "image" | "video" | "avatar", image: input.image! } : null;
     const params = new URLSearchParams({ mode: input.mode, workflow });
     if (input.prompt) params.set("prompt", input.prompt);
     if (input.mode === "audio") { setReferenceImagesText(""); setReferenceImageFiles([]); }
@@ -455,7 +461,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   useEffect(() => {
     const pending = homeReferenceRef.current;
     if (!pending || sp.get("view") === "home" || mode !== pending.mode) return;
-    const expectedWorkflow = mode === "image" ? "image-to-image" : "image-to-video";
+    const expectedWorkflow = mode === "avatar" ? "avatar-video" : mode === "image" ? "image-to-image" : "image-to-video";
     if (sp.get("workflow") !== expectedWorkflow) return;
     setReferenceImagesText("");
     setReferenceImageFiles([pending.image]);

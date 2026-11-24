@@ -165,10 +165,6 @@ export function ReferencePromptEditor({ value, images, videos, audio, placeholde
             if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setDismissed(queryKey); return; }
             if (event.key === "Enter") { event.preventDefault(); event.stopPropagation(); return; }
           }
-          if (event.key === "Enter" && !event.shiftKey) {
-            if (window.matchMedia("(min-width: 1024px)").matches && (event.ctrlKey || event.metaKey)) return;
-            event.preventDefault(); onGenerate();
-          }
         }} />
     </div>
     <div className={styles.footer} id={`${id}-hint`}>

@@ -3,8 +3,8 @@
 }
 
 html[data-studio-theme="dark"] .df-video-studio {
-  --df-video-tab-active: #585e65;
-  --df-video-elevation: 0 10px 24px -12px rgb(0 0 0 / .24);
+  --df-video-tab-active: #232833;
+  --df-video-elevation: 0 18px 44px -12px rgb(0 0 0 / .55);
 }
 
 .df-video-studio .df-workbench-content { padding-block: 0; }

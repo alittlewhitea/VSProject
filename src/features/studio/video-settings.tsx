@@ -14,7 +14,7 @@ import { videoSupportsEndFrame } from "../../lib/video-keyframes";
 import { StudioVideoReferencePanel } from "./studio-video-reference-panel";
 import { StudioImagePreview, StudioImageUpload } from "./studio-image-upload";
 import type { ReferenceMediaUpload } from "./studio-reference-file-upload";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StudioComposerGenerate } from "./studio-composer-controls";
 import { GenerationCostSummary } from "./generation-cost-summary";
 import type { StudioVideoWorkflow } from "./video-models";
@@ -115,17 +115,6 @@ export function VideoSettings({
   const flashAutomaticRatio = provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video" && ["editing", "extension"].includes(seedanceOptions.task);
   const flashNeedsInput = seedanceValidationError && ["prompt", "startImage", "emptyReference"].some(code => seedanceValidationError === `studio.seedance.validation.${code}`);
   const speechTiming = provider === "heygen-video" ? videoDialogueTiming(prompt, duration) : null;
-  useEffect(() => {
-    const handleShortcut = (event: KeyboardEvent) => {
-      if (!window.matchMedia("(min-width: 1024px)").matches || event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey || event.isComposing || event.repeat) return;
-      // Do not submit behind the model picker, billing dialog, or other modal.
-      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
-      event.preventDefault();
-      if (!generateDisabled && !isSubmitting) onGenerate();
-    };
-    window.addEventListener("keydown", handleShortcut);
-    return () => window.removeEventListener("keydown", handleShortcut);
-  }, [generateDisabled, isSubmitting, onGenerate]);
 
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
     setActivePreset(preset.id);
@@ -191,7 +180,7 @@ export function VideoSettings({
           </div>
 
           <div className="df-video-composer-input">
-            {showSeedanceNotices || isHeygenReference ? <ReferencePromptEditor value={prompt} images={referenceImageUrls} videos={referenceVideos} audio={referenceAudio} placeholder={translate("studio.referenceVideo.placeholder")} notice={referenceNotice} showMissingNotice={!awaitingShortsPhoto} onChange={next => { setReferenceNotice(""); onPromptChange(next); }} onGenerate={onGenerate} translate={translate} /> : <textarea dir="auto" id="video-studio-prompt" value={prompt} onChange={(event) => onPromptChange(event.target.value)} onKeyDown={(event) => { if (window.matchMedia("(min-width: 1024px)").matches && (event.ctrlKey || event.metaKey)) return; if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onGenerate(); } }} placeholder={translate(workflow === "reference-to-video" ? "studio.referenceVideo.placeholder" : workflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")} className="h-[150px] w-full resize-none border-0 bg-transparent p-4 text-[15px] leading-[1.55] text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />}
+            {showSeedanceNotices || isHeygenReference ? <ReferencePromptEditor value={prompt} images={referenceImageUrls} videos={referenceVideos} audio={referenceAudio} placeholder={translate("studio.referenceVideo.placeholder")} notice={referenceNotice} showMissingNotice={!awaitingShortsPhoto} onChange={next => { setReferenceNotice(""); onPromptChange(next); }} onGenerate={onGenerate} translate={translate} /> : <textarea dir="auto" id="video-studio-prompt" value={prompt} onChange={(event) => onPromptChange(event.target.value)} placeholder={translate(workflow === "reference-to-video" ? "studio.referenceVideo.placeholder" : workflow === "image-to-video" ? "studio.placeholder.imageVideo" : "studio.placeholder.video")} className="h-[150px] w-full resize-none border-0 bg-transparent p-4 text-[15px] leading-[1.55] text-[var(--studio-text)] outline-none placeholder:text-[var(--studio-muted)]" />}
             {workflow === "image-to-video" ? (
               <div className="mx-3 mb-3" data-video-keyframes>
                 {supportsEndFrame ? (

@@ -11,7 +11,7 @@
   --avatar-shadow:0 16px 40px -12px rgb(15 23 42 / .05);
 }
 html[data-studio-theme="dark"] :is(.df-avatar-composer,.df-premium-composer,:is([data-avatar-model-picker="true"],[data-premium-model-picker="true"])) {
-  --avatar-shadow:0 16px 40px -12px rgb(0 0 0 / .24);
+  --avatar-shadow:0 20px 50px -12px rgb(0 0 0 / .52);
 }
 .creative-studio .df-avatar-composer .df-unified-inspector, .creative-studio .df-premium-composer .df-premium-panel {
   position:relative; isolation:isolate; width:100%;

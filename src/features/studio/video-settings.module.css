@@ -115,6 +115,7 @@
 
 .workbench .toolbar :global(.df-inline-model-picker),
 .workbench .toolbar :global(.df-select-control > select),
+.workbench .toolbar :global(.df-select-control > .df-select-trigger),
 .workbench .toolbar .advancedButton {
   min-height: 42px;
   border-color: transparent;
@@ -125,6 +126,7 @@
 
 .workbench .toolbar :global(.df-inline-model-picker:hover:not(:disabled)),
 .workbench .toolbar :global(.df-select-control > select:hover:not(:disabled)),
+.workbench .toolbar :global(.df-select-control > .df-select-trigger:hover:not(:disabled)),
 .workbench .toolbar .advancedButton:hover:not(:disabled) {
   transform: none;
   border-color: var(--df-primary-border);
@@ -133,7 +135,8 @@
 }
 
 .toolbar :global(.df-model-trigger-icon) { color: var(--df-accent); }
-.workbench .toolbar :global(.df-select-control > select:focus-visible) { box-shadow: 0 0 0 3px var(--df-primary-soft); }
+.workbench .toolbar :global(.df-select-control > select:focus-visible),
+.workbench .toolbar :global(.df-select-control > .df-select-trigger:focus-visible) { box-shadow: 0 0 0 3px var(--df-primary-soft); }
 .advancedButton { flex: 0 1 auto; }
 .advancedButton[aria-expanded="true"] { color: var(--df-accent); }
 .advancedIcon, .advancedChevron { display: none; }
@@ -189,7 +192,8 @@
     overflow-wrap: anywhere;
   }
 
-  .workbench .toolbar .parameters :global(.df-select-control > select) {
+  .workbench .toolbar .parameters :global(.df-select-control > select),
+  .workbench .toolbar .parameters :global(.df-select-control > .df-select-trigger) {
     width: 100%;
     min-width: 0;
     min-height: 44px;
@@ -235,5 +239,6 @@
 
 @media (max-width: 359px) {
   .workbench .parameters :global(.df-select-control > [data-select-icon]) { display: none; }
-  .workbench .toolbar .parameters :global(.df-select-control > select) { padding-inline-start: 8px; }
+  .workbench .toolbar .parameters :global(.df-select-control > select),
+  .workbench .toolbar .parameters :global(.df-select-control > .df-select-trigger) { padding-inline-start: 8px; }
 }
