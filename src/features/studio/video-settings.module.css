@@ -28,7 +28,7 @@
   padding: 3px;
   border: 1px solid var(--df-border);
   border-radius: 12px;
-  background: var(--df-bg);
+  background: var(--df-tab-track);
   overflow: visible;
 }
 
@@ -48,7 +48,7 @@
 .workbench .editor :global(.df-workflow-nav .df-segmented button:hover) { color: var(--df-ink); }
 .workbench .editor :global(.df-workflow-nav .df-segmented button:focus-visible) { outline-offset: -2px; }
 .workbench .editor :global(.df-workflow-nav .df-segmented button[aria-pressed="true"]) {
-  background: var(--df-surface-soft);
+  background: var(--df-tab-active);
   color: var(--df-ink);
   box-shadow: var(--df-pill-shadow);
   font-weight: 650;

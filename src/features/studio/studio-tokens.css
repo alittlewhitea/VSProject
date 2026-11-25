@@ -9,6 +9,8 @@
   --df-faint: #92959e;
   --df-border: #e5e5e0;
   --df-rim: rgb(255 255 255 / .88);
+  --df-tab-track: #eeeeea;
+  --df-tab-active: #ffffff;
 
   /* High-contrast monochrome primary CTA */
   --df-cta-bg: #141518;
@@ -105,6 +107,8 @@ html[data-studio-theme="dark"] {
   --df-faint: #5f6674;
   --df-border: #232730;
   --df-rim: rgb(255 255 255 / .07);
+  --df-tab-track: #0d0f13;
+  --df-tab-active: #222630;
 
   /* Pure white high-contrast CTA in cinema dark mode */
   --df-cta-bg: #f4f5f7;

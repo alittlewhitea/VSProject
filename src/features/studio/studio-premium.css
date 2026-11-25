@@ -16,7 +16,7 @@
   padding:3px;
   border:1px solid var(--df-border);
   border-radius:12px;
-  background:var(--df-bg);
+  background:var(--df-tab-track);
   overflow-x:auto;
 }
 .df-premium-composer .df-workflow-nav .df-segmented button {
@@ -34,7 +34,7 @@
 }
 .df-premium-composer .df-workflow-nav .df-segmented button:hover { color:var(--df-ink); }
 .df-premium-composer .df-workflow-nav .df-segmented button[aria-pressed="true"] {
-  background:var(--df-surface-soft);
+  background:var(--df-tab-active);
   color:var(--df-ink);
   font-weight:650;
   box-shadow:var(--df-pill-shadow);

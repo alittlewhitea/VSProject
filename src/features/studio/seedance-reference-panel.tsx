@@ -37,7 +37,8 @@ export function SeedanceReferencePanel({ videoUrls, images, options, onOptionsCh
     <div className={styles.slotsGrid}>
       <div className={styles.slotCard}>
         <label className={`${styles.label} ${styles.mediaLabel}`} htmlFor={`${id}-images`}>
-          {t("studio.seedance.images")}<span className={styles.requirement}>{t("studio.seedance.optional")}</span><small>{images.length}/{SEEDANCE_FLASH_IMAGE_LIMIT}</small>
+          <span className={styles.slotTitle}>{t("studio.seedance.images")}</span>
+          <small>{images.length}/{SEEDANCE_FLASH_IMAGE_LIMIT}</small>
         </label>
         {images.length ? <div className={styles.previews}>{images.map((url, index) => {
           const name = `@Image${index + 1}`;
@@ -48,19 +49,22 @@ export function SeedanceReferencePanel({ videoUrls, images, options, onOptionsCh
           <StudioImageUpload compact={images.length > 0} disabled={reading || images.length >= SEEDANCE_FLASH_IMAGE_LIMIT} onFiles={upload}
             inputProps={{ id: `${id}-images`, accept: "image/jpeg,image/png,image/webp", multiple: true }}
             label={t(reading ? "studio.references.reading" : images.length ? "studio.references.addMore" : "studio.references.upload")}
-            hint={images.length || reading ? imageHint : `${t("studio.references.uploadHint")} · ${imageHint}`} />
+            hint={imageHint} />
         </div>
       </div>
-      <div className={styles.slotCard} data-required-slot={needsVideo || undefined}>
+      <div className={styles.slotCard}>
         <label className={`${styles.label} ${styles.mediaLabel}`} htmlFor={`${id}-videos`}>
-          {t("studio.referenceMedia.title.video")}<span className={styles.requirement} data-required={needsVideo}>{t(needsVideo ? "studio.seedance.required" : "studio.seedance.optional")}</span><small>{videoCount}/{SEEDANCE_FLASH_MEDIA_LIMIT}</small>
+          <span className={styles.slotTitle}>{t("studio.referenceMedia.title.video")}</span>
+          {needsVideo ? <span className={styles.requirement} data-required="true">{t("studio.seedance.required")}</span> : null}
+          <small>{videoCount}/{SEEDANCE_FLASH_MEDIA_LIMIT}</small>
         </label>
         <StudioReferenceFileUpload id={`${id}-videos`} kind="video" value={videoUrls} limit={SEEDANCE_FLASH_MEDIA_LIMIT}
           authenticated={authenticated} translate={t} onUpload={onMediaUpload} onChange={onVideoUrlsChange} />
       </div>
       <div className={styles.slotCard}>
         <label className={`${styles.label} ${styles.mediaLabel}`} htmlFor={`${id}-audio`}>
-          {t("studio.referenceMedia.title.audio")}<span className={styles.requirement}>{t("studio.seedance.optional")}</span><small>{audioCount}/{SEEDANCE_FLASH_MEDIA_LIMIT}</small>
+          <span className={styles.slotTitle}>{t("studio.referenceMedia.title.audio")}</span>
+          <small>{audioCount}/{SEEDANCE_FLASH_MEDIA_LIMIT}</small>
         </label>
         <StudioReferenceFileUpload id={`${id}-audio`} kind="audio" value={options.audioUrls} limit={SEEDANCE_FLASH_MEDIA_LIMIT}
           maxBytes={SEEDANCE_FLASH_AUDIO_BYTES} extensions={["mp3", "wav"]} hintKey="studio.seedance.audioHint"

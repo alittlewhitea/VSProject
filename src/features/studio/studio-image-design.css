@@ -10,7 +10,7 @@
   padding: 3px;
   border: 1px solid var(--df-border);
   border-radius: 12px;
-  background: var(--df-bg);
+  background: var(--df-tab-track);
   overflow: visible;
 }
 
@@ -30,7 +30,7 @@
 .df-mode-image .df-workflow-nav .df-segmented button:hover { color: var(--df-ink); }
 .df-mode-image .df-workflow-nav .df-segmented button[aria-pressed="true"] {
   border-color: transparent;
-  background: var(--df-surface-soft);
+  background: var(--df-tab-active);
   color: var(--df-ink);
   box-shadow: var(--df-pill-shadow);
   font-weight: 650;

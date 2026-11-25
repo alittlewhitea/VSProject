@@ -97,7 +97,7 @@ export function StudioReferenceFileUpload({ id, kind, value, limit, maxBytes = m
     </div> : null}
     <StudioImageUpload compact={urls.length > 0} disabled={busy || !onUpload || urls.length >= limit}
       label={busy ? translate("studio.referenceMedia.uploading") : label}
-      hint={busy || urls.length ? uploadHint : `${translate("studio.referenceMedia.hint")} · ${uploadHint}`}
+      hint={uploadHint}
       inputProps={{ id, accept, multiple: limit > 1, "aria-label": label, "data-reference-file": kind }}
       onFiles={upload} />
     {!authenticated ? <AuthLink href="/auth" className={styles.templateLink}>{translate("studio.referenceMedia.signIn")}</AuthLink> :
