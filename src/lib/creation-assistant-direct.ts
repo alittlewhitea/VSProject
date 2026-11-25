@@ -19,9 +19,9 @@ function referenceHelp(context: AssistantContext, t: Translate) {
       const fileMB = HEYGEN_REFERENCE_IMAGE_BYTES / 1024 ** 2;
       const totalMB = HEYGEN_REFERENCE_UPLOAD_BYTES / 1024 ** 2;
       return t(
-        `HeyGen accepts up to ${HEYGEN_REFERENCE_IMAGE_LIMIT} images, ${HEYGEN_REFERENCE_VIDEO_LIMIT} video links and ${HEYGEN_REFERENCE_AUDIO_LIMIT} audio links. All references are optional. A prompt is required. Images can be up to ${fileMB} MB each and ${totalMB} MB total.`,
-        `HeyGen 最多可用 ${HEYGEN_REFERENCE_IMAGE_LIMIT} 张图片、${HEYGEN_REFERENCE_VIDEO_LIMIT} 段视频和 ${HEYGEN_REFERENCE_AUDIO_LIMIT} 段音频。素材均为选填，提示词必填。图片每张不超过 ${fileMB} MB，合计不超过 ${totalMB} MB，视频和音频使用公开链接。`,
-        `HeyGen 最多可用 ${HEYGEN_REFERENCE_IMAGE_LIMIT} 張圖片、${HEYGEN_REFERENCE_VIDEO_LIMIT} 段影片及 ${HEYGEN_REFERENCE_AUDIO_LIMIT} 段音訊。素材皆為選填，提示詞必填。圖片每張不超過 ${fileMB} MB，合計不超過 ${totalMB} MB，影片和音訊使用公開連結。`
+        `HeyGen accepts up to ${HEYGEN_REFERENCE_IMAGE_LIMIT} images, ${HEYGEN_REFERENCE_VIDEO_LIMIT} video links and ${HEYGEN_REFERENCE_AUDIO_LIMIT} audio links. At least one reference image or video is required along with a prompt; audio is optional and cannot be used alone. Images can be up to ${fileMB} MB each and ${totalMB} MB total.`,
+        `HeyGen 最多可用 ${HEYGEN_REFERENCE_IMAGE_LIMIT} 张图片、${HEYGEN_REFERENCE_VIDEO_LIMIT} 段视频和 ${HEYGEN_REFERENCE_AUDIO_LIMIT} 段音频。提示词必填，且至少需添加 1 张参考图片或 1 段参考视频；音频为选填，不能单独使用。图片每张不超过 ${fileMB} MB，合计不超过 ${totalMB} MB，视频和音频使用公开链接。`,
+        `HeyGen 最多可用 ${HEYGEN_REFERENCE_IMAGE_LIMIT} 張圖片、${HEYGEN_REFERENCE_VIDEO_LIMIT} 段影片及 ${HEYGEN_REFERENCE_AUDIO_LIMIT} 段音訊。提示詞必填，且至少需新增 1 張參考圖片或 1 段參考影片；音訊為選填，不能單獨使用。圖片每張不超過 ${fileMB} MB，合計不超過 ${totalMB} MB，影片和音訊使用公開連結。`
       );
     }
     if (provider === SEEDANCE_FLASH_PROVIDER) {

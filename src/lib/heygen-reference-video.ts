@@ -50,25 +50,40 @@ export function isPublicReferenceUrl(value: unknown): value is string {
   } catch { return false; }
 }
 
-type ReferenceIssue = "videos" | "images" | "audio" | "upload";
+type ReferenceIssue = "videos" | "images" | "audio" | "upload" | "required";
 function validReferenceImage(value: unknown): value is string {
   if (typeof value !== "string") return false;
   if (isPublicReferenceUrl(value)) return true;
   const match = /^data:image\/(?:jpeg|png|webp);base64,([A-Za-z0-9+/]+)(={0,2})$/i.exec(value);
   return Boolean(match && (match[1].length + match[2].length) % 4 === 0);
 }
-export function heygenReferenceIssue(videoUrls: unknown, imageUrls: unknown, audioUrls?: unknown): ReferenceIssue | null {
+export function heygenReferenceIssue(
+  videoUrls: unknown,
+  imageUrls: unknown,
+  audioUrls?: unknown,
+  options?: { requireVisual?: boolean }
+): ReferenceIssue | null {
   if (videoUrls !== undefined && (!Array.isArray(videoUrls) || videoUrls.length > HEYGEN_REFERENCE_VIDEO_LIMIT || videoUrls.some(url => !isPublicReferenceUrl(url)))) return "videos";
   if (audioUrls !== undefined && (!Array.isArray(audioUrls) || audioUrls.length > HEYGEN_REFERENCE_AUDIO_LIMIT || audioUrls.some(url => !isPublicReferenceUrl(url)))) return "audio";
   if (imageUrls !== undefined && (!Array.isArray(imageUrls) || imageUrls.length > HEYGEN_REFERENCE_IMAGE_LIMIT || imageUrls.some(url => !validReferenceImage(url)))) {
     return "images";
   }
   if (Array.isArray(imageUrls) && (imageUrls.some(url => heygenReferenceImageBytes(url) > HEYGEN_REFERENCE_IMAGE_BYTES) || imageUrls.reduce((total: number, url: string) => total + heygenReferenceImageBytes(url), 0) > HEYGEN_REFERENCE_UPLOAD_BYTES)) return "upload";
+  if (options?.requireVisual !== false) {
+    const videoCount = Array.isArray(videoUrls) ? videoUrls.length : 0;
+    const imageCount = Array.isArray(imageUrls) ? imageUrls.length : 0;
+    if (videoCount + imageCount === 0) return "required";
+  }
   return null;
 }
 
-export function heygenReferenceValidationKey(videoUrls: unknown, imageUrls: unknown, audioUrls?: unknown) {
-  const issue = heygenReferenceIssue(videoUrls, imageUrls, audioUrls);
+export function heygenReferenceValidationKey(
+  videoUrls: unknown,
+  imageUrls: unknown,
+  audioUrls?: unknown,
+  options?: { requireVisual?: boolean }
+) {
+  const issue = heygenReferenceIssue(videoUrls, imageUrls, audioUrls, options);
   return issue ? `studio.heygen.reference.error.${issue}` : null;
 }
 
@@ -79,5 +94,6 @@ export function validateHeygenReferences(videoUrls: unknown, imageUrls: unknown,
     images: "Use up to 9 reference images: JPEG, PNG or WebP uploads, or public image URLs.",
     audio: "Use up to 3 publicly accessible HTTP(S) audio URLs, or leave audio references empty.",
     upload: "Platform image upload limits: 30 MB per image and 40 MB total.",
+    required: "At least one reference image or video is required. Audio references can only be used alongside an image or video.",
   }[issue] : null;
 }

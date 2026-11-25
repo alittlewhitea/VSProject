@@ -44,7 +44,8 @@ test("chat uses an independent economical model and bounded output", () => {
 test("server grounding uses actual model capabilities, media limits and pricing", () => {
   const facts = buildAssistantFacts({...input,messages:[{role:"user",content:"多图生视频的素材数量有限制吗？"}]});
   assert.equal(facts.mediaRules?.heygenReference?.maxImages, 9);
-  assert.equal(facts.mediaRules?.heygenReference?.allReferencesOptional, true);
+  assert.equal(facts.mediaRules?.heygenReference?.requiresImageOrVideo, true);
+  assert.equal(facts.mediaRules?.heygenReference?.audioOptional, true);
   assert.equal(facts.mediaRules?.seedanceReference?.maxImages, 10);
   assert.equal(facts.mediaRules?.seedanceReference?.maxVideos, 5);
   assert.equal(facts.mediaRules?.seedanceReference?.editingAndExtensionNeedVideo, true);

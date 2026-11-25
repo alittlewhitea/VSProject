@@ -21,8 +21,9 @@ const hdRatios: Record<Locale, string> = {
 
 const referenceEn: Record<string, string> = {
   "studio.heygen.reference.title": "Reference media",
-  "studio.heygen.reference.hint": "Only the prompt is required. Images, videos and audio are optional; use whichever references you need.",
+  "studio.heygen.reference.hint": "A prompt plus at least one reference image or video are required. Audio is optional.",
   "studio.heygen.reference.optional": "Optional",
+  "studio.heygen.reference.imageOrVideo": "Image or video required",
   "studio.heygen.reference.images": "Reference images",
   "studio.heygen.reference.videos": "Video URLs",
   "studio.heygen.reference.audio": "Audio URLs",
@@ -33,6 +34,7 @@ const referenceEn: Record<string, string> = {
   "studio.heygen.reference.error.audio": "Use up to 3 valid, publicly accessible HTTP(S) audio links, or leave this field empty.",
   "studio.heygen.reference.error.images": "Use up to 9 JPEG, PNG or WebP images, or public image links.",
   "studio.heygen.reference.error.upload": "Platform upload limits are 30 MB per image and 40 MB total. Reduce the image sizes before uploading.",
+  "studio.heygen.reference.error.required": "Add at least one reference image or video. Audio references can only be used alongside an image or video.",
   "studio.heygen.reference.error.prompt": "Keep the prompt within 32,000 characters.",
   "studio.heygen.reference.error.seed": "The seed must be an integer from 0 to 4,294,967,295, or left blank for random.",
   "studio.heygen.reference.enhancement": "Model prompt enhancement",
@@ -45,8 +47,9 @@ const referenceEn: Record<string, string> = {
 };
 const referenceZh: Record<string, string> = {
   "studio.heygen.reference.title": "参考素材",
-  "studio.heygen.reference.hint": "仅提示词必填。图片、视频和音频均为选填，按需选择即可，无需全部添加。",
+  "studio.heygen.reference.hint": "提示词必填，且至少需添加 1 张参考图片或 1 段参考视频；音频为选填。",
   "studio.heygen.reference.optional": "选填",
+  "studio.heygen.reference.imageOrVideo": "图或视频至少选一项",
   "studio.heygen.reference.images": "参考图片",
   "studio.heygen.reference.videos": "视频链接",
   "studio.heygen.reference.audio": "音频链接",
@@ -57,6 +60,7 @@ const referenceZh: Record<string, string> = {
   "studio.heygen.reference.error.audio": "请填写最多 3 个有效、可公开访问的 HTTP(S) 音频链接，或留空。",
   "studio.heygen.reference.error.images": "请使用最多 9 张 JPEG、PNG、WebP 图片或公开图片链接。",
   "studio.heygen.reference.error.upload": "平台上传限制为单张 30 MB、总计 40 MB，请压缩图片后重试。",
+  "studio.heygen.reference.error.required": "请至少添加 1 张参考图片或 1 段参考视频。音频只能搭配图片或视频使用，不能单独生成。",
   "studio.heygen.reference.error.prompt": "提示词请控制在 32,000 字符以内。",
   "studio.heygen.reference.error.seed": "随机种子须为 0–4,294,967,295 的整数，留空则随机生成。",
   "studio.heygen.reference.enhancement": "模型提示词增强",
@@ -69,8 +73,9 @@ const referenceZh: Record<string, string> = {
 };
 const referenceZhTw: Record<string, string> = {
   "studio.heygen.reference.title": "參考素材",
-  "studio.heygen.reference.hint": "僅提示詞必填。圖片、影片和音訊均為選填，按需選擇即可，無需全部新增。",
+  "studio.heygen.reference.hint": "提示詞必填，且至少需新增 1 張參考圖片或 1 段參考影片；音訊為選填。",
   "studio.heygen.reference.optional": "選填",
+  "studio.heygen.reference.imageOrVideo": "圖或影片至少選一項",
   "studio.heygen.reference.images": "參考圖片",
   "studio.heygen.reference.videos": "影片連結",
   "studio.heygen.reference.audio": "音訊連結",
@@ -81,6 +86,7 @@ const referenceZhTw: Record<string, string> = {
   "studio.heygen.reference.error.audio": "請填寫最多 3 個有效、可公開存取的 HTTP(S) 音訊連結，或留空。",
   "studio.heygen.reference.error.images": "請使用最多 9 張 JPEG、PNG、WebP 圖片或公開圖片連結。",
   "studio.heygen.reference.error.upload": "平台上傳限制為單張 30 MB、總計 40 MB，請壓縮圖片後重試。",
+  "studio.heygen.reference.error.required": "請至少新增 1 張參考圖片或 1 段參考影片。音訊只能搭配圖片或影片使用，不能單獨生成。",
   "studio.heygen.reference.error.prompt": "提示詞請控制在 32,000 字元以內。",
   "studio.heygen.reference.error.seed": "隨機種子須為 0–4,294,967,295 的整數，留空則隨機生成。",
   "studio.heygen.reference.enhancement": "模型提示詞增強",

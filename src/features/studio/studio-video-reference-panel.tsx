@@ -19,8 +19,9 @@ export function StudioVideoReferencePanel({ compact = false, videoUrl, images, p
   const [reading, setReading] = useState(false);
   const videos = heygenReferenceMediaUrls(videoUrl);
   const audio = heygenReferenceMediaUrls(audioUrls);
-  const videoError = heygenReferenceValidationKey(videos, undefined);
-  const audioError = heygenReferenceValidationKey(undefined, undefined, audio);
+  const needsVisual = images.length === 0 && videos.length === 0;
+  const videoError = heygenReferenceValidationKey(videos, undefined, undefined, { requireVisual: false });
+  const audioError = heygenReferenceValidationKey(undefined, undefined, audio, { requireVisual: false });
   const imageHint = t("studio.heygen.reference.uploadHint");
   async function read(files: FileList | null) {
     if (!files?.length || reading) return;
@@ -29,7 +30,7 @@ export function StudioVideoReferencePanel({ compact = false, videoUrl, images, p
   }
   return <section data-video-reference-panel data-compact={compact || undefined} tabIndex={-1} aria-label={t("studio.referenceVideo.title")} className={styles.panel}>
     <h3>{t("studio.heygen.reference.title")}</h3>
-    <label htmlFor={`${id}-images`} className={`${styles.label} ${styles.mediaLabel}`}>{t("studio.heygen.reference.images")}{!photoUploadHint ? <span className={styles.requirement}>{t("studio.heygen.reference.optional")}</span> : null}<small>{images.length}/{HEYGEN_REFERENCE_IMAGE_LIMIT}</small></label>
+    <label htmlFor={`${id}-images`} className={`${styles.label} ${styles.mediaLabel}`}>{t("studio.heygen.reference.images")}{!photoUploadHint ? <span className={styles.requirement} data-required={needsVisual}>{t(needsVisual ? "studio.heygen.reference.imageOrVideo" : "studio.heygen.reference.optional")}</span> : null}<small>{images.length}/{HEYGEN_REFERENCE_IMAGE_LIMIT}</small></label>
     {images.length ? <div className={styles.previews}>{images.map((url, index) => {
       const name = `${t("studio.reference.image")} ${index + 1}`;
       return <StudioImagePreview key={`${url}-${index}`} src={url} alt={name} caption={`@Image${index + 1}`} index={index} disabled={reading} removeLabel={`${t("studio.action.clear")} ${name}`} onRemove={() => onRemove(index)} />;
@@ -42,7 +43,7 @@ export function StudioVideoReferencePanel({ compact = false, videoUrl, images, p
     </div>
     <span role="status" aria-live="polite" className="sr-only">{images.length}/{HEYGEN_REFERENCE_IMAGE_LIMIT} · {t("studio.reference.images")}</span>
     <div className={styles.referenceMediaGroup}>
-      <label htmlFor={`${id}-videos`} className={`${styles.label} ${styles.mediaLabel}`}>{t("studio.referenceMedia.title.video")}<span className={styles.requirement}>{t("studio.heygen.reference.optional")}</span><small>{videos.length}/{HEYGEN_REFERENCE_VIDEO_LIMIT}</small></label>
+      <label htmlFor={`${id}-videos`} className={`${styles.label} ${styles.mediaLabel}`}>{t("studio.referenceMedia.title.video")}<span className={styles.requirement} data-required={needsVisual}>{t(needsVisual ? "studio.heygen.reference.imageOrVideo" : "studio.heygen.reference.optional")}</span><small>{videos.length}/{HEYGEN_REFERENCE_VIDEO_LIMIT}</small></label>
       <StudioReferenceFileUpload id={`${id}-videos`} kind="video" value={videoUrl} limit={HEYGEN_REFERENCE_VIDEO_LIMIT}
         authenticated={authenticated} translate={t} onUpload={onMediaUpload} onChange={onVideoUrlChange} />
       <a href="#studio-video-templates" data-choose-video-template className={styles.templateLink}>

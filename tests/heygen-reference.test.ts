@@ -6,11 +6,18 @@ const image = "https://cdn.example.test/subject.png";
 const video = "https://cdn.example.test/scene.mp4?token=a,b&v=2";
 const audio = "https://cdn.example.test/sound.wav";
 
-test("HeyGen references are optional and retain signed URL punctuation and order", () => {
-  assert.equal(validateHeygenReferences(undefined, undefined, undefined), null);
-  assert.equal(validateHeygenReferences([], [], []), null);
+test("HeyGen requires at least one reference image or video and retains signed URL punctuation and order", () => {
+  assert.equal(heygenReferenceValidationKey(undefined, undefined, undefined), "studio.heygen.reference.error.required");
+  assert.equal(heygenReferenceValidationKey([], [], []), "studio.heygen.reference.error.required");
+  assert.equal(heygenReferenceValidationKey([], [], [audio]), "studio.heygen.reference.error.required");
+  assert.ok(validateHeygenReferences(undefined, undefined, undefined));
+  assert.ok(validateHeygenReferences([], [], [audio]));
   assert.equal(validateHeygenReferences([], [image]), null);
-  assert.equal(validateHeygenReferences([], [], [audio]), null);
+  assert.equal(validateHeygenReferences([video], []), null);
+  assert.equal(validateHeygenReferences([], [image], [audio]), null);
+  assert.equal(validateHeygenReferences([video], [], [audio]), null);
+  assert.equal(heygenReferenceValidationKey([], undefined, undefined, { requireVisual: false }), null);
+  assert.equal(heygenReferenceValidationKey(undefined, undefined, [audio], { requireVisual: false }), null);
   assert.deepEqual(heygenReferenceMediaUrls(` \n ${video}\r\n\nhttps://cdn.example.test/second.mp4 `), [video, "https://cdn.example.test/second.mp4"]);
 });
 

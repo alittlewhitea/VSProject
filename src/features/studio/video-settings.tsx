@@ -114,6 +114,7 @@ export function VideoSettings({
   const awaitingShortsPhoto = prompt === shortsPrompt && referenceImageUrls.length === 0;
   const flashAutomaticRatio = provider === SEEDANCE_FLASH_PROVIDER && workflow === "reference-to-video" && ["editing", "extension"].includes(seedanceOptions.task);
   const flashNeedsInput = seedanceValidationError && ["prompt", "startImage", "emptyReference"].some(code => seedanceValidationError === `studio.seedance.validation.${code}`);
+  const heygenNeedsInput = heygenValidationError === "studio.heygen.reference.error.required" && referenceAudio.length === 0;
   const speechTiming = provider === "heygen-video" ? videoDialogueTiming(prompt, duration) : null;
 
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
@@ -272,7 +273,7 @@ export function VideoSettings({
           </div> : null}
 
           {provider === "heygen-video" && heygenRequiresHdAspectRatio(workflow, resolution) ? <p data-heygen-hd-ratios className="mt-2 text-xs leading-5 text-[var(--studio-muted)]">{translate("studio.heygen.hdRatios")}</p> : null}
-          {provider === "heygen-video" && heygenValidationError && heygenValidationError !== "studio.mention.missing" ? <p data-heygen-validation role="alert" className="mt-2 text-xs text-red-600">{translate(heygenValidationError)}</p> : null}
+          {provider === "heygen-video" && heygenValidationError && heygenValidationError !== "studio.mention.missing" ? <p data-heygen-validation role={heygenNeedsInput ? "status" : "alert"} className={`mt-2 text-xs ${heygenNeedsInput ? "text-[var(--studio-muted)]" : "text-red-600"}`}>{translate(heygenValidationError)}</p> : null}
         </div>
       </fieldset>
     </UnifiedWorkbenchLayout>

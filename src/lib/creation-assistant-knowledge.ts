@@ -11,7 +11,7 @@ import type { AssistantRequest } from "./creation-assistant";
 
 type ModelFacts = { id: string; name: string; for: string; workflows: string[]; durations?: readonly string[]; resolutions?: readonly string[]; ratios?: unknown; nativeAudioControl?: boolean };
 type MediaRules = {
-  heygenReference?: { maxImages:number; maxVideos:number; maxAudio:number; allReferencesOptional:true; promptRequired:true; imageUploadMB:number; combinedImageUploadMB:number };
+  heygenReference?: { maxImages:number; maxVideos:number; maxAudio:number; requiresImageOrVideo:true; audioOptional:true; promptRequired:true; imageUploadMB:number; combinedImageUploadMB:number };
   seedanceReference?: { maxImages:number; maxVideos:number; maxAudio:number; referenceTaskVideoOptional:true; editingAndExtensionNeedVideo:true; promptMentions:string };
   seedreamEdit?: { maxImages:number };
   currentImages?: { maxImages:number; meaning:string };
@@ -93,7 +93,7 @@ export function buildAssistantFacts(request: AssistantRequest, scope = assistant
   if (topics.has("media") || scope.usesPrompt || relevant.has("reference-to-video")) {
     const rules: MediaRules = {};
     const reference = relevant.has("reference-to-video") || topics.has("media") && /多[图圖]|几[张張]|多少[张張]|max.{0,8}images?/i.test(request.messages.at(-1)!.content);
-    if (reference && selection.has("heygen-video")) rules.heygenReference={maxImages:HEYGEN_REFERENCE_IMAGE_LIMIT,maxVideos:HEYGEN_REFERENCE_VIDEO_LIMIT,maxAudio:HEYGEN_REFERENCE_AUDIO_LIMIT,allReferencesOptional:true,promptRequired:true,imageUploadMB:30,combinedImageUploadMB:40};
+    if (reference && selection.has("heygen-video")) rules.heygenReference={maxImages:HEYGEN_REFERENCE_IMAGE_LIMIT,maxVideos:HEYGEN_REFERENCE_VIDEO_LIMIT,maxAudio:HEYGEN_REFERENCE_AUDIO_LIMIT,requiresImageOrVideo:true,audioOptional:true,promptRequired:true,imageUploadMB:30,combinedImageUploadMB:40};
     if (reference && selection.has(SEEDANCE_FLASH_PROVIDER)) rules.seedanceReference={maxImages:SEEDANCE_FLASH_IMAGE_LIMIT,maxVideos:SEEDANCE_FLASH_MEDIA_LIMIT,maxAudio:SEEDANCE_FLASH_MEDIA_LIMIT,referenceTaskVideoOptional:true,editingAndExtensionNeedVideo:true,promptMentions:"Type @ to select uploaded entities. Images are references, not start/end frames."};
     if (relevant.has("image-to-image") && selection.has(SEEDREAM_55_PROVIDER)) rules.seedreamEdit={maxImages:SEEDREAM_55_REFERENCE_LIMIT};
     if (context && relevant.has("image-to-video")) rules.currentImages={maxImages:videoSupportsEndFrame(context.provider)?2:1,meaning:videoSupportsEndFrame(context.provider)?"First image is the start frame; optional second image is the end frame, not another subject reference.":"One start image. Use reference-to-video to combine multiple subject references."};
