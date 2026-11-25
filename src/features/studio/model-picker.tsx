@@ -6,6 +6,8 @@ import { formatApproximateCreditValue } from "../../lib/billing";
 import { modelLogoForProvider } from "../../lib/model-logos";
 import { useStudioDialog } from "./use-studio-dialog";
 
+export type ModelCapabilityTag = "audio" | "keyframes" | "free" | "budget" | "hd";
+
 export type ModelPickerOption = {
   value: string;
   label: string;
@@ -17,7 +19,10 @@ export type ModelPickerOption = {
   credits: number;
   badge?: string;
   group: string;
+  capabilities?: ModelCapabilityTag[];
 };
+
+const MODEL_CAPABILITY_ORDER: readonly ModelCapabilityTag[] = ["free", "audio", "keyframes", "budget", "hd"];
 
 type ModelPickerProps = {
   compact?: boolean;
@@ -42,6 +47,8 @@ function ModelMark({provider,compact=false}:{provider?:string;compact?:boolean})
 export function ModelPicker({ value, options, translate, onChange, compact = false, inline = false, videoAppearance = false }: ModelPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"all" | ModelCapabilityTag>("all");
+  const [failedTriggerLogo, setFailedTriggerLogo] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const dialogRef = useRef<HTMLElement | null>(null);
@@ -63,12 +70,21 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
   function closePicker() {
     setOpen(false);
     setQuery("");
+    setActiveFilter("all");
   }
 
   function updateQuery(value: string) {
     setQuery(value);
     if (listRef.current) listRef.current.scrollTop = 0;
   }
+
+  const availableFilters = useMemo(() => {
+    if (options.length < 4) return [];
+    const present = MODEL_CAPABILITY_ORDER.filter((tag) =>
+      options.some((option) => option.capabilities?.includes(tag))
+    );
+    return present.length >= 2 ? present : [];
+  }, [options]);
 
   useStudioDialog(showPicker, dialogRef, { onClose: closePicker });
 
@@ -92,14 +108,16 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
 
   const groupedOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    const filtered = normalizedQuery
-      ? options.filter((option) => `${option.label} ${option.description} ${option.performanceNote || ""} ${option.speed} ${option.quality}`.toLowerCase().includes(normalizedQuery))
-      : options;
+    const filtered = options.filter((option) => {
+      if (activeFilter !== "all" && !option.capabilities?.includes(activeFilter)) return false;
+      if (!normalizedQuery) return true;
+      return `${option.label} ${option.description} ${option.performanceNote || ""} ${option.speed} ${option.quality}`.toLowerCase().includes(normalizedQuery);
+    });
     return Array.from(new Set(filtered.map((option) => option.group))).map((group) => ({
       group,
       options: filtered.filter((option) => option.group === group)
     }));
-  }, [options, query]);
+  }, [activeFilter, options, query]);
 
   const panel = showPicker ? createPortal(
     <div ref={overlayRef} data-premium-model-picker={isPremiumPicker ? "true" : undefined} data-avatar-model-picker={isAvatarPicker ? "true" : undefined} data-video-model-picker={videoAppearance || undefined} dir={triggerRef.current?.closest("[dir]")?.getAttribute("dir") || undefined} className="studio-overlay df-model-overlay fixed inset-0 z-[300] flex items-end justify-center sm:items-center sm:p-6" role="presentation">
@@ -128,6 +146,35 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
                 searchRef.current?.focus({ preventScroll: true });
               }}><span aria-hidden="true">{"\u00d7"}</span></button> : null}
             </div>
+            {availableFilters.length > 0 ? (
+              <div className="df-model-filters" role="group" aria-label={translate("studio.modelPicker.title")}>
+                <button
+                  type="button"
+                  aria-pressed={activeFilter === "all"}
+                  className="df-model-filter-chip"
+                  onClick={() => {
+                    setActiveFilter("all");
+                    if (listRef.current) listRef.current.scrollTop = 0;
+                  }}
+                >
+                  {translate("studio.voiceGender.all")}
+                </button>
+                {availableFilters.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    aria-pressed={activeFilter === tag}
+                    className="df-model-filter-chip"
+                    onClick={() => {
+                      setActiveFilter((current) => (current === tag ? "all" : tag));
+                      if (listRef.current) listRef.current.scrollTop = 0;
+                    }}
+                  >
+                    {translate(`studio.modelPicker.filter.${tag}`)}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -205,11 +252,33 @@ export function ModelPicker({ value, options, translate, onChange, compact = fal
 
   if (!selected) return null;
 
-  if (inline) return <>
-    <button ref={triggerRef} type="button" className="df-inline-model-picker" onClick={openPicker} aria-label={`${translate("studio.modelPicker.label")}: ${selected.label}`} aria-haspopup={hasChoices?"dialog":undefined} aria-expanded={hasChoices?showPicker:undefined} aria-controls={showPicker ? "studio-model-picker" : undefined}>
-      <svg className="df-model-trigger-icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="m9.75 17-.75 3-1 1h8l-1-1-.75-3M3 13h18"/><rect x="3" y="3" width="18" height="14" rx="2"/></svg><span className="df-model-trigger-name" title={selected.label}>{selected.label}</span><svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m5 8 5 5 5-5"/></svg>
-    </button>{panel}
-  </>;
+  if (inline) {
+    const triggerLogo = modelLogoForProvider(selected.value);
+    const creditTag = selected.credits === 0
+      ? translate("studio.modelPicker.filter.free")
+      : `${selected.credits}`;
+    return <>
+      <button ref={triggerRef} type="button" className="df-inline-model-picker" onClick={openPicker} aria-label={`${translate("studio.modelPicker.label")}: ${selected.label}`} aria-haspopup={hasChoices?"dialog":undefined} aria-expanded={hasChoices?showPicker:undefined} aria-controls={showPicker ? "studio-model-picker" : undefined}>
+        {triggerLogo && failedTriggerLogo !== triggerLogo ? (
+          <img
+            src={triggerLogo}
+            alt=""
+            width={16}
+            height={16}
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailedTriggerLogo(triggerLogo)}
+            className="df-model-trigger-logo"
+          />
+        ) : (
+          <svg className="df-model-trigger-icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="m9.75 17-.75 3-1 1h8l-1-1-.75-3M3 13h18"/><rect x="3" y="3" width="18" height="14" rx="2"/></svg>
+        )}
+        <span className="df-model-trigger-name" title={selected.label}>{selected.label}</span>
+        <span className={`df-model-trigger-credits${selected.credits === 0 ? " df-model-trigger-credits--free" : ""}`} aria-hidden="true">{creditTag}</span>
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m5 8 5 5 5-5"/></svg>
+      </button>{panel}
+    </>;
+  }
 
   const selectedBadgeIsRecommendation = Boolean(
     selected.badge && selected.badge.trim().toLowerCase() === selected.group.trim().toLowerCase()

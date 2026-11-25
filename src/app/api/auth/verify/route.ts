@@ -4,6 +4,11 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getMysqlPool, toMysqlDate, withMysqlTransaction } from "../../../../lib/mysql";
 import { createSession, getSessionFromToken, hashAuthToken, SESSION_COOKIE_NAME, upsertEmailUser } from "../../../../lib/server-auth";
 import { ensureSignupCreditAccount, getRequestCountryCode, getRequestIp } from "../../../../lib/credits";
+import {
+  createSignedSignupDeviceCookie,
+  readSignedSignupDeviceId,
+  SIGNUP_DEVICE_COOKIE
+} from "../../../../lib/signup-abuse-guard";
 import { createSupabaseAdminClient } from "../../../../lib/supabase-admin";
 import { consumeRateLimit, safeInternalPath, trustedPublicOrigin } from "../../../../lib/request-security";
 import { completeReferralAuth } from "../../../../lib/referrals";
@@ -104,9 +109,17 @@ export async function POST(request: NextRequest) {
     const user = await upsertEmailUser(String(row.email), { countryCode: getRequestCountryCode(request.headers) });
     await recordSignupAttribution(user.id, user.isNew, cookieStore.get(GROWTH_COOKIE)?.value).catch(() => false);
     stage = "signup_credits";
+    const existingDeviceId = readSignedSignupDeviceId(cookieStore.get(SIGNUP_DEVICE_COOKIE)?.value);
+    const issuedDevice = existingDeviceId ? null : createSignedSignupDeviceCookie();
+    const signupDeviceId = existingDeviceId || issuedDevice!.id;
+    const isTestInvalidEmail = String(row.email).toLowerCase().endsWith(".invalid");
     const admin = createSupabaseAdminClient();
     if (admin) {
-      await ensureSignupCreditAccount(admin, user.id, request.headers);
+      await ensureSignupCreditAccount(admin, user.id, request.headers, {
+        email: String(row.email),
+        provider: "email",
+        deviceId: isTestInvalidEmail ? null : signupDeviceId
+      });
     }
     // A failed session INSERT must roll back consumption, so a transient server
     // failure leaves the same credential usable. The conditional UPDATE also serializes
@@ -131,6 +144,15 @@ export async function POST(request: NextRequest) {
       path: "/",
       expires: new Date(session.expires_at)
     });
+    if (issuedDevice && !isTestInvalidEmail) {
+      cookieStore.set(SIGNUP_DEVICE_COOKIE, issuedDevice.value, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 365 * 24 * 60 * 60
+      });
+    }
     setLoginSuccessReceipt(cookieStore, session, "email");
     cookieStore.set(cookieName, "", { path: EMAIL_VERIFY_PATH, maxAge: 0 });
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });

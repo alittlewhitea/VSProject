@@ -1,7 +1,9 @@
 import { createHmac } from "node:crypto";
+import { canonicalizeSignupEmail, evaluateSignupBonusPolicy } from "./signup-abuse-guard";
 
 export const SIGNUP_BONUS_CREDITS = 100;
 export const LIMITED_REGION_SIGNUP_BONUS_CREDITS = 15;
+export const UNKNOWN_COUNTRY_SIGNUP_BONUS_CREDITS = 0;
 const LIMITED_SIGNUP_BONUS_COUNTRIES = new Set([
   "AF",
   "AO",
@@ -169,20 +171,23 @@ export function getRequestIp(headers: Headers) {
 
 function cleanCountryCode(value: string | null) {
   const code = value?.trim().toUpperCase();
-  return code && /^[A-Z]{2}$/.test(code) && code !== "XX" ? code : null;
+  // Reject Cloudflare unknown ("XX") and Tor exit node ("T1") codes.
+  return code && /^[A-Z]{2}$/.test(code) && code !== "XX" && code !== "T1" ? code : null;
 }
 
 export function getRequestCountryCode(headers: Headers) {
+  // Only trust edge-injected geo headers; ignore client-spoofable X-Country-Code.
   return (
     cleanCountryCode(headers.get("cf-ipcountry")) ||
     cleanCountryCode(headers.get("x-vercel-ip-country")) ||
-    cleanCountryCode(headers.get("x-country-code")) ||
     cleanCountryCode(headers.get("cloudfront-viewer-country"))
   );
 }
 
 export function signupBonusCreditsForCountry(countryCode: string | null) {
-  return countryCode && LIMITED_SIGNUP_BONUS_COUNTRIES.has(countryCode)
+  // Fail closed: missing/unknown/Tor country receives 0 free signup credits.
+  if (!countryCode) return UNKNOWN_COUNTRY_SIGNUP_BONUS_CREDITS;
+  return LIMITED_SIGNUP_BONUS_COUNTRIES.has(countryCode)
     ? LIMITED_REGION_SIGNUP_BONUS_CREDITS
     : SIGNUP_BONUS_CREDITS;
 }
@@ -304,15 +309,71 @@ export async function ensureCreditAccount(admin: any, userId: string, options: E
   }
 }
 
-export async function ensureSignupCreditAccount(admin: any, userId: string, headers: Headers) {
+export type SignupCreditContext = {
+  email?: string | null;
+  provider?: "email" | "google" | null;
+  deviceId?: string | null;
+};
+
+async function claimSignupKey(admin: any, userId: string, claimKey: string) {
+  const { error } = await admin.from("signup_ip_claims").insert({
+    ip_hash: claimKey,
+    user_id: userId
+  });
+  if (!error) return { allowed: true, duplicateUserId: null as string | null };
+  if (error.code !== "23505") throw error;
+  const { data, error: selectError } = await admin
+    .from("signup_ip_claims")
+    .select("user_id")
+    .eq("ip_hash", claimKey)
+    .maybeSingle();
+  if (selectError) throw selectError;
+  const duplicateUserId = typeof data?.user_id === "string" ? data.user_id : null;
+  return { allowed: duplicateUserId === userId, duplicateUserId };
+}
+
+export async function ensureSignupCreditAccount(
+  admin: any,
+  userId: string,
+  headers: Headers,
+  context: SignupCreditContext = {}
+) {
   const existingAccount = await getCreditAccount(admin, userId);
   if (existingAccount) return existingAccount;
 
+  const countryCode = getRequestCountryCode(headers);
+  const countryBonusCredits = signupBonusCreditsForCountry(countryCode);
+  const evaluation = evaluateSignupBonusPolicy({
+    countryCode,
+    countryBonusCredits,
+    email: context.email,
+    provider: context.provider
+  });
+
+  if (evaluation.credits <= 0) {
+    return ensureCreditAccount(admin, userId, {
+      signupBonusCredits: 0,
+      signupBonusReferenceId: null
+    });
+  }
+
   const signupClaim = await claimSignupBonusForIp(admin, userId, getRequestIp(headers));
-  const signupBonusCredits = signupBonusCreditsForCountry(getRequestCountryCode(headers));
+  let allowed = signupClaim.allowed;
+
+  const canonicalEmail = canonicalizeSignupEmail(context.email);
+  if (allowed && canonicalEmail) {
+    const emailClaim = await claimSignupKey(admin, userId, `email:${hashSignupIp(canonicalEmail)}`);
+    if (!emailClaim.allowed) allowed = false;
+  }
+
+  if (allowed && context.deviceId) {
+    const deviceClaim = await claimSignupKey(admin, userId, `device:${hashSignupIp(context.deviceId)}`);
+    if (!deviceClaim.allowed) allowed = false;
+  }
+
   return ensureCreditAccount(admin, userId, {
-    signupBonusCredits: signupClaim.allowed ? signupBonusCredits : 0,
-    signupBonusReferenceId: signupClaim.ipHash
+    signupBonusCredits: allowed ? evaluation.credits : 0,
+    signupBonusReferenceId: allowed ? signupClaim.ipHash : null
   });
 }
 

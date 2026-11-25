@@ -1,18 +1,4 @@
-/* Shared premium presentation adapted from the approved Avatar HTML. Business state stays upstream. */
-.df-avatar-composer, .df-premium-composer, :is([data-avatar-model-picker="true"],[data-premium-model-picker="true"]) {
-  --avatar-brand:var(--df-primary);
-  --avatar-accent:var(--df-accent);
-  --avatar-brand-deep:var(--df-primary-hover);
-  --avatar-ink:var(--df-ink);
-  --avatar-muted:var(--df-muted);
-  --avatar-edge:var(--df-border);
-  --avatar-soft:var(--df-surface-soft);
-  --avatar-tint:var(--df-primary-soft);
-  --avatar-shadow:0 16px 40px -12px rgb(15 23 42 / .05);
-}
-html[data-studio-theme="dark"] :is(.df-avatar-composer,.df-premium-composer,:is([data-avatar-model-picker="true"],[data-premium-model-picker="true"])) {
-  --avatar-shadow:0 20px 50px -12px rgb(0 0 0 / .52);
-}
+/* Shared premium presentation; color and shadow tokens are centralized in studio-tokens.css. */
 .creative-studio .df-avatar-composer .df-unified-inspector, .creative-studio .df-premium-composer .df-premium-panel {
   position:relative; isolation:isolate; width:100%;
   padding:28px; border:1px solid transparent; border-radius:20px;

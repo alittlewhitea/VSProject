@@ -2,6 +2,11 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { createSession, SESSION_COOKIE_NAME, upsertGoogleUser } from "../../../../../lib/server-auth";
 import { ensureSignupCreditAccount, getRequestCountryCode } from "../../../../../lib/credits";
+import {
+  createSignedSignupDeviceCookie,
+  readSignedSignupDeviceId,
+  SIGNUP_DEVICE_COOKIE
+} from "../../../../../lib/signup-abuse-guard";
 import { createSupabaseAdminClient } from "../../../../../lib/supabase-admin";
 import { safeInternalPath, trustedPublicOrigin } from "../../../../../lib/request-security";
 import { completeReferralAuth } from "../../../../../lib/referrals";
@@ -90,9 +95,17 @@ export async function GET(request: NextRequest) {
     raw: profile
   });
   await recordSignupAttribution(user.id, user.isNew, cookieStore.get(GROWTH_COOKIE)?.value).catch(() => false);
+  const existingDeviceId = readSignedSignupDeviceId(cookieStore.get(SIGNUP_DEVICE_COOKIE)?.value);
+  const issuedDevice = existingDeviceId ? null : createSignedSignupDeviceCookie();
+  const signupDeviceId = existingDeviceId || issuedDevice!.id;
+  const isTestInvalidEmail = Boolean(user.email?.toLowerCase().endsWith(".invalid"));
   const admin = createSupabaseAdminClient();
   if (admin) {
-    await ensureSignupCreditAccount(admin, user.id, request.headers);
+    await ensureSignupCreditAccount(admin, user.id, request.headers, {
+      email: user.email,
+      provider: "google",
+      deviceId: isTestInvalidEmail ? null : signupDeviceId
+    });
   }
   const session = await createSession(user);
   await completeReferralAuth(user,user.isNew,profile.email_verified===true,state.csrf,request.headers);
@@ -103,6 +116,15 @@ export async function GET(request: NextRequest) {
     path: "/",
     expires: new Date(session.expires_at)
   });
+  if (issuedDevice && !isTestInvalidEmail) {
+    cookieStore.set(SIGNUP_DEVICE_COOKIE, issuedDevice.value, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 365 * 24 * 60 * 60
+    });
+  }
   setLoginSuccessReceipt(cookieStore, session, "google");
 
   const next = safeInternalPath(state.next);

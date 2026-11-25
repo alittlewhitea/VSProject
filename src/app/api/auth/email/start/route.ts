@@ -9,6 +9,7 @@ import { captureReferralAuth } from "../../../../../lib/referrals";
 import { EMAIL_CODE_LENGTH, EMAIL_CODE_LIFETIME_SECONDS, EMAIL_RESEND_COOLDOWN_SECONDS, normalizeSignInEmail } from "../../../../../lib/auth-email-policy";
 import { EMAIL_CODE_COOKIE, emailCodeCookieOptions, hashEmailCode } from "../../../../../lib/auth-email-code";
 import { readRequestJson, RequestBodyError } from "../../../../../lib/request-body";
+import { hasDisposableMxRecord, isDisposableSignupEmail } from "../../../../../lib/signup-abuse-guard";
 
 function reserveSignInCode(email: string, codeHash: string) {
   // Serialize the recent-history check and code creation across all app instances.
@@ -87,6 +88,12 @@ export async function POST(request: NextRequest) {
     const body = await readRequestJson(request, 4096);
     const email = normalizeSignInEmail(body?.email);
     if (!email) return NextResponse.json({ error: "Invalid email." }, { status: 400 });
+    if (isDisposableSignupEmail(email) || await hasDisposableMxRecord(email)) {
+      return NextResponse.json(
+        { error: "Temporary or disposable email addresses are not supported. Please use a regular email or sign in with Google.", reason: "disposable_email" },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
 
     const ip = getRequestIp(request.headers) || "unknown";
     const ipLimit = await consumeRateLimit({ scope: "auth_ip", subject: ip, limit: 10, windowSeconds: 10 * 60 });

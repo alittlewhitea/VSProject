@@ -606,6 +606,27 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
       : rawOptionCredits;
     const groupKey = modelPickerGroup(mode, activeWorkflow, option.value, recommendedProvider);
     const badgeKey = modelPickerBadge(mode, option.value, recommendedProvider);
+    const capabilities: Array<"audio" | "keyframes" | "free" | "budget" | "hd"> = [];
+    if (optionCredits === 0) capabilities.push("free");
+    if (mode === "video" && (option.value === "heygen-video" || Boolean(videoModelConfig(option.value)?.showAudioControl))) {
+      capabilities.push("audio");
+    }
+    if (mode === "video" && activeWorkflow === "image-to-video" && videoSupportsEndFrame(option.value)) {
+      capabilities.push("keyframes");
+    }
+    if (
+      optionCredits > 0 &&
+      (mode === "image" ? optionCredits <= 6 : mode === "video" || isAvatarWorkflow ? optionCredits <= 18 : optionCredits <= 8)
+    ) {
+      capabilities.push("budget");
+    }
+    if (
+      mode === "image"
+        ? option.value !== "nano-banana-2-lite"
+        : videoModelResolutions(option.value).some((res) => res === "1080p" || res === "2K" || res === "4K")
+    ) {
+      capabilities.push("hd");
+    }
     return {
       value: option.value,
       label: meta.label,
@@ -620,7 +641,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
         : undefined,
       credits: optionCredits,
       badge: option.value===HEYGEN_VOICE_PROVIDER&&isHeygenVoiceFree(pricingTime)?st("studio.heygenVoice.freeBadge"):option.value === "flux-3-max-video" && isFlux3MaxPromotion(pricingTime) ? st("studio.flux3.promotion") : badgeKey ? st(badgeKey) : undefined,
-      group: st(groupKey)
+      group: st(groupKey),
+      capabilities
     };
   }), [activeWorkflow, avatarDuration, duration, editResolution, estCredits, geminiTts, generateAudio, gptImageOptions, h3DailyFree, imageQuality, imageSize, imageWorkflow, isAvatarWorkflow, isTopazVideo, mode, numImages, options, pricingTime, prompt, provider, recommendedProvider, referenceImageUrls, referenceVideoUrl, seedanceOptions, st, videoResolution]);
   const hasEnoughCredits = creditBalance === null || creditBalance >= estCredits;

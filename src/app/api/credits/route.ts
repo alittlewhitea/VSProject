@@ -45,7 +45,7 @@ export async function GET(request: Request) {
 
     const signupBonusCredits = signupBonusCreditsForCountry(getRequestCountryCode(request.headers));
     const existingAccount = await withTimeout(getCreditAccount(admin, user.id), CREDIT_TIMEOUT_MS);
-    const account = existingAccount || await withTimeout(ensureSignupCreditAccount(admin, user.id, request.headers), CREDIT_TIMEOUT_MS);
+    const account = existingAccount || await withTimeout(ensureSignupCreditAccount(admin, user.id, request.headers, { email: user.email }), CREDIT_TIMEOUT_MS);
     const ledger = await withTimeout(listCreditLedger(admin, user.id), CREDIT_TIMEOUT_MS).catch(() => []);
     const { data: purchases } = await withTimeout<CreditPurchasesResult>(
       admin

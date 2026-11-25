@@ -66,6 +66,17 @@
   --studio-warning: var(--df-warning);
   --studio-warning-soft: var(--df-warning-soft);
   --studio-scheme: var(--df-color-scheme);
+
+  /* Unified composer aliases (single source of truth for Avatar & Premium workspaces). */
+  --avatar-brand: var(--df-primary);
+  --avatar-accent: var(--df-accent);
+  --avatar-brand-deep: var(--df-primary-hover);
+  --avatar-ink: var(--df-ink);
+  --avatar-muted: var(--df-muted);
+  --avatar-edge: var(--df-border);
+  --avatar-soft: var(--df-surface-soft);
+  --avatar-tint: var(--df-primary-soft);
+  --avatar-shadow: 0 16px 40px -12px rgb(15 23 42 / .05);
 }
 html[data-studio-theme="dark"] {
   --df-bg: #0e1013;
@@ -92,5 +103,6 @@ html[data-studio-theme="dark"] {
   --df-stage-border: #252a34;
   --df-shadow-overlay: 0 24px 64px rgb(0 0 0 / .62);
   --df-pill-shadow: 0 2px 10px rgb(0 0 0 / .45), 0 0 0 1px rgb(255 255 255 / .06);
+  --avatar-shadow: 0 20px 50px -12px rgb(0 0 0 / .52);
   --df-color-scheme: dark;
 }

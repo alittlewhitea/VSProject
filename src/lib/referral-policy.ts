@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { BlockList, isIP } from "node:net";
-import disposableDomains from "disposable-email-domains/index.json";
+import { isDisposableSignupEmail } from "./signup-abuse-guard";
 
 export const REFERRAL_DEVICE_COOKIE = "df_referral_device";
 export const REFERRAL_CODE_COOKIE = "df_referral_code";
@@ -27,13 +27,7 @@ export function referralQuotaPeriod(now = new Date()) {
   return { day, month: day.slice(0, 7) };
 }
 export function isDisposableEmail(email: string) {
-  const domain = email.trim().toLowerCase().split("@")[1];
-  if (!domain) return true;
-  const allowed = (process.env.REFERRAL_EMAIL_ALLOWLIST || "").toLowerCase().split(",").map(x => x.trim());
-  if (allowed.includes(domain)) return false;
-  const denied = new Set([...disposableDomains, ...(process.env.REFERRAL_EMAIL_DENYLIST || "").toLowerCase().split(",").map(x => x.trim())]);
-  const labels = domain.split(".");
-  return labels.some((_, i) => denied.has(labels.slice(i).join(".")));
+  return isDisposableSignupEmail(email);
 }
 export function excludedReferralIp(ip: string | null, rules = process.env.REFERRAL_EXCLUDED_IPS || "") {
   if (!ip || !isIP(ip)) return true;
