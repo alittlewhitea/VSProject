@@ -115,6 +115,28 @@ export const StudioRecentResults = memo(function StudioRecentResults({
             return (
               <article key={task.id} className="df-recent-card" data-recent-task-status={task.status.toLowerCase()}>
                 <div className={`df-recent-media${task.type === "Audio" ? " df-recent-media--audio" : ""}`}>
+                  {task.type !== "Audio" ? (
+                    <div className="df-recent-media-overlay">
+                      <Link
+                        href={studioTaskRegenerateHref(task)}
+                        className="df-recent-overlay-btn"
+                        aria-label={`${isFailed ? t("studio.projects.retry") : t("studio.projects.regenerate")}: ${title}`}
+                        title={isFailed ? t("studio.projects.retry") : t("studio.projects.regenerate")}
+                      >
+                        ↻
+                      </Link>
+                      {isCompleted && mediaUrl ? (
+                        <a
+                          href={studioTaskDownloadHref(task.id)}
+                          className="df-recent-overlay-btn"
+                          aria-label={`${t("studio.projects.download")}: ${title}`}
+                          title={t("studio.projects.download")}
+                        >
+                          ⇩
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {isCompleted && mediaUrl && task.type === "Image" ? (
                     <button
                       type="button"
@@ -157,6 +179,9 @@ export const StudioRecentResults = memo(function StudioRecentResults({
                       ) : null}
                     </Link>
                   )}
+                  {task.type !== "Audio" ? (
+                    <span className="df-recent-model-pill">{providerLabel(task.provider)}</span>
+                  ) : null}
                 </div>
 
                 <div className="df-recent-body">
@@ -164,31 +189,36 @@ export const StudioRecentResults = memo(function StudioRecentResults({
                     <Link href={studioTaskProjectHref(task.id)} className="df-recent-card-title" title={title}>
                       {title}
                     </Link>
-                    <span className="df-recent-card-provider">{providerLabel(task.provider)}</span>
-                  </div>
-
-                  <div className="df-recent-actions">
-                    <Link href={studioTaskRegenerateHref(task)} className="df-recent-action-btn">
-                      {isFailed ? t("studio.projects.retry") : t("studio.projects.regenerate")}
-                    </Link>
-                    {isCompleted && mediaUrl ? (
-                      <a
-                        href={studioTaskDownloadHref(task.id)}
-                        className="df-recent-action-btn df-recent-action-btn--icon"
-                        aria-label={`${t("studio.projects.download")}: ${title}`}
-                        title={t("studio.projects.download")}
+                    {task.type === "Audio" ? (
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <Link
+                          href={studioTaskRegenerateHref(task)}
+                          className="df-recent-next-more"
+                          title={isFailed ? t("studio.projects.retry") : t("studio.projects.regenerate")}
+                        >
+                          {isFailed ? t("studio.projects.retry") : t("studio.projects.regenerate")}
+                        </Link>
+                        {isCompleted && mediaUrl ? (
+                          <a
+                            href={studioTaskDownloadHref(task.id)}
+                            className="df-recent-next-more"
+                            aria-label={`${t("studio.projects.download")}: ${title}`}
+                            title={t("studio.projects.download")}
+                          >
+                            ⇩
+                          </a>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <Link
+                        href={studioTaskProjectHref(task.id)}
+                        className="shrink-0 text-[var(--df-muted)] hover:text-[var(--df-ink)]"
+                        aria-label={`${t("studio.workbench.openProjects")}: ${title}`}
+                        title={t("studio.workbench.openProjects")}
                       >
-                        ⇩
-                      </a>
-                    ) : null}
-                    <Link
-                      href={studioTaskProjectHref(task.id)}
-                      className="df-recent-action-btn df-recent-action-btn--icon"
-                      aria-label={`${t("studio.workbench.openProjects")}: ${title}`}
-                      title={t("studio.workbench.openProjects")}
-                    >
-                      <StudioIcon name="chevron-right" className="h-3.5 w-3.5 rtl:rotate-180" />
-                    </Link>
+                        <StudioIcon name="chevron-right" className="h-3.5 w-3.5 rtl:rotate-180" />
+                      </Link>
+                    )}
                   </div>
 
                   {primarySteps.length > 0 ? (

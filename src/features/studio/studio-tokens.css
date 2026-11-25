@@ -1,37 +1,53 @@
-/* Shared Studio colors, with a separate palette for media previews. */
+/* Shared Studio colors: Monochrome Cinema + Emerald Spark (Light & Dark). */
 :root {
-  --df-bg: #f5f5f7;
+  --df-bg: #f7f7f5;
+  --df-sidebar-bg: #fcfcfb;
   --df-surface: #ffffff;
-  --df-surface-soft: #f1f1f4;
-  --df-ink: #1d1d1f;
-  --df-muted: #6e6e73;
-  --df-faint: #86868b;
-  --df-border: #e8e8ed;
-  --df-primary: #047857;
-  --df-accent: #047857;
-  --df-primary-hover: #065f46;
-  --df-primary-soft: #e9f5ef;
-  --df-primary-border: #a9d7c4;
+  --df-surface-soft: #f0f0ed;
+  --df-ink: #141518;
+  --df-muted: #666870;
+  --df-faint: #92959e;
+  --df-border: #e5e5e0;
+  --df-rim: rgb(255 255 255 / .88);
+
+  /* High-contrast monochrome primary CTA */
+  --df-cta-bg: #141518;
+  --df-cta-hover: #26282e;
+  --df-cta-fg: #ffffff;
+  --df-cta-pill-bg: rgb(255 255 255 / .16);
+
+  /* Emerald Spark: reserved for brand dot, active icon/state & live task pulses */
+  --df-primary: #059669;
+  --df-accent: #059669;
+  --df-primary-hover: #047857;
+  --df-primary-soft: rgb(5 150 105 / .09);
+  --df-primary-border: rgb(5 150 105 / .26);
   --df-icon: #059669;
-  --df-success: #13856a;
-  --df-success-soft: #e8f5ef;
-  /* Slightly deeper than the draft palette: readable on the pale error surface. */
-  --df-error: #b83b4e;
-  --df-error-soft: #fff0f1;
-  --df-warning: #94601a;
-  --df-warning-soft: #fff4e3;
-  --df-stage: #111318;
-  --df-stage-elevated: #1c1f27;
-  --df-stage-border: #30343d;
-  --df-stage-text: #f5f6fa;
-  --df-stage-muted: #aaaebb;
-  --df-stage-accent: #9adbbf;
+
+  --df-success: #059669;
+  --df-success-soft: rgb(5 150 105 / .10);
+  --df-error: #c2394d;
+  --df-error-soft: #fff1f2;
+  --df-warning: #9a6318;
+  --df-warning-soft: #fff6e6;
+
+  --df-stage: #0d0f13;
+  --df-stage-elevated: #171a21;
+  --df-stage-border: #2a2f3a;
+  --df-stage-text: #f4f5f7;
+  --df-stage-muted: #9aa3b2;
+  --df-stage-accent: #34d399;
+
+  --df-canvas-glow: radial-gradient(64% 48% at 50% 0%, rgb(20 21 24 / .035), transparent 72%);
+  --df-shadow-card: 0 1px 2px rgb(20 21 24 / .04), 0 12px 32px -12px rgb(20 21 24 / .07);
+  --df-focus-ring: 0 0 0 1px rgb(20 21 24 / .14), 0 16px 40px -12px rgb(20 21 24 / .10);
+
   --df-font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --df-system-font: -apple-system, BlinkMacSystemFont, "Inter", system-ui, "Segoe UI", sans-serif;
   --df-body: 14px;
   --df-label: 13px;
   --df-meta: 12px;
-  --df-radius-panel: 14px;
+  --df-radius-panel: 18px;
   --df-radius-input: 12px;
   --df-radius-button: 10px;
   --df-space-1: 4px;
@@ -43,12 +59,12 @@
   --df-space-8: 32px;
   --df-space-12: 48px;
   --df-space-16: 64px;
-  --df-shadow-overlay: 0 16px 56px #1113181f;
-  --df-pill-shadow: 0 1px 5px rgb(29 29 31 / .08), 0 0 0 1px rgb(29 29 31 / .035);
+  --df-shadow-overlay: 0 18px 52px rgb(17 19 24 / .14);
+  --df-pill-shadow: 0 1px 3px rgb(20 21 24 / .08), 0 0 0 1px rgb(20 21 24 / .04);
   --df-transition: 160ms ease-out;
   --df-color-scheme: light;
 
-  /* Compatibility aliases keep the other existing workspaces consistent. */
+  /* Compatibility aliases keep all workspaces consistent. */
   --studio-canvas: var(--df-bg);
   --studio-panel: var(--df-surface);
   --studio-surface: var(--df-surface-soft);
@@ -76,33 +92,49 @@
   --avatar-edge: var(--df-border);
   --avatar-soft: var(--df-surface-soft);
   --avatar-tint: var(--df-primary-soft);
-  --avatar-shadow: 0 16px 40px -12px rgb(15 23 42 / .05);
+  --avatar-shadow: var(--df-shadow-card);
 }
+
 html[data-studio-theme="dark"] {
-  --df-bg: #0e1013;
-  --df-surface: #16191f;
-  --df-surface-soft: #1f242c;
-  --df-ink: #f3f5f8;
-  --df-muted: #9aa3b2;
-  --df-faint: #768091;
-  --df-border: #272c36;
-  --df-primary: #0d825b;
-  --df-accent: #6ee7b7;
-  --df-primary-hover: #0a6e4d;
-  --df-primary-soft: #112a22;
-  --df-primary-border: #1e5b46;
-  --df-icon: #5cd6a6;
-  --df-success: #4ade80;
-  --df-success-soft: #102a1f;
+  --df-bg: #090a0c;
+  --df-sidebar-bg: #0d0e12;
+  --df-surface: #13151a;
+  --df-surface-soft: #1b1e25;
+  --df-ink: #f4f5f7;
+  --df-muted: #8e96a4;
+  --df-faint: #5f6674;
+  --df-border: #232730;
+  --df-rim: rgb(255 255 255 / .07);
+
+  /* Pure white high-contrast CTA in cinema dark mode */
+  --df-cta-bg: #f4f5f7;
+  --df-cta-hover: #ffffff;
+  --df-cta-fg: #0b0c0f;
+  --df-cta-pill-bg: rgb(11 12 15 / .11);
+
+  --df-primary: #10b981;
+  --df-accent: #34d399;
+  --df-primary-hover: #059669;
+  --df-primary-soft: rgb(52 211 153 / .11);
+  --df-primary-border: rgb(52 211 153 / .28);
+  --df-icon: #34d399;
+
+  --df-success: #34d399;
+  --df-success-soft: rgb(52 211 153 / .11);
   --df-error: #fb7185;
-  --df-error-soft: #31151d;
+  --df-error-soft: #2e141c;
   --df-warning: #fbbf24;
-  --df-warning-soft: #2e2311;
-  --df-stage: #090b0e;
-  --df-stage-elevated: #14171d;
-  --df-stage-border: #252a34;
-  --df-shadow-overlay: 0 24px 64px rgb(0 0 0 / .62);
-  --df-pill-shadow: 0 2px 10px rgb(0 0 0 / .45), 0 0 0 1px rgb(255 255 255 / .06);
-  --avatar-shadow: 0 20px 50px -12px rgb(0 0 0 / .52);
+  --df-warning-soft: #2b2110;
+
+  --df-stage: #07080a;
+  --df-stage-elevated: #12141a;
+  --df-stage-border: #222630;
+
+  --df-canvas-glow: radial-gradient(62% 48% at 50% 0%, rgb(255 255 255 / .045), transparent 72%);
+  --df-shadow-card: 0 1px 2px rgb(0 0 0 / .45), 0 18px 44px -14px rgb(0 0 0 / .62);
+  --df-focus-ring: 0 0 0 1px rgb(255 255 255 / .14), 0 22px 52px -14px rgb(0 0 0 / .72);
+  --df-shadow-overlay: 0 24px 64px rgb(0 0 0 / .68);
+  --df-pill-shadow: 0 1px 4px rgb(0 0 0 / .45), 0 0 0 1px rgb(255 255 255 / .06);
+  --avatar-shadow: var(--df-shadow-card);
   --df-color-scheme: dark;
 }

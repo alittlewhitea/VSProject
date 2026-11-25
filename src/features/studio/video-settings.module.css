@@ -1,41 +1,45 @@
 .workbench { width: 100%; min-width: 0; }
 
 :global(.df-video-studio) .workbench .editor:global(.df-premium-panel) {
-  --video-editor-inset: 28px;
+  --video-editor-inset: 24px;
   padding: 0;
   overflow: visible;
   border-color: var(--df-border);
-  border-radius: 24px;
-  box-shadow: var(--df-video-elevation);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 var(--df-rim), var(--df-video-elevation);
 }
 
-:global(.df-video-studio) .workbench .editor:focus-within { box-shadow: var(--df-video-elevation); }
+:global(.df-video-studio) .workbench .editor:focus-within {
+  border-color: color-mix(in srgb, var(--df-ink) 16%, var(--df-border));
+  box-shadow: inset 0 1px 0 var(--df-rim), var(--df-focus-ring);
+}
 .workbench .editor:global(.df-premium-panel)::before { display: none; }
 
 .workbench .editor:global(.df-premium-panel) > :global(.df-panel-heading) {
-  padding: 22px var(--video-editor-inset) 16px;
+  padding: 18px var(--video-editor-inset) 14px;
   border-bottom: 1px solid var(--df-border);
 }
 
 .editor :global(.df-workflow-nav) { margin: 0; max-width: none; }
 .workbench .editor :global(.df-workflow-nav .df-segmented) {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
-  padding: 4px;
-  border-radius: 14px;
-  background: var(--df-surface-soft);
+  display: inline-grid;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--df-border);
+  border-radius: 12px;
+  background: var(--df-bg);
   overflow: visible;
 }
 
 .workbench .editor :global(.df-workflow-nav .df-segmented button) {
   min-width: 0;
-  min-height: 44px;
-  padding: 6px 8px;
+  min-height: 36px;
+  padding: 6px 14px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 9px;
   color: var(--df-muted);
-  font-size: 14px;
+  font-size: 12.5px;
   line-height: 18px;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -44,13 +48,13 @@
 .workbench .editor :global(.df-workflow-nav .df-segmented button:hover) { color: var(--df-ink); }
 .workbench .editor :global(.df-workflow-nav .df-segmented button:focus-visible) { outline-offset: -2px; }
 .workbench .editor :global(.df-workflow-nav .df-segmented button[aria-pressed="true"]) {
-  background: var(--df-video-tab-active, var(--df-surface));
+  background: var(--df-surface-soft);
   color: var(--df-ink);
   box-shadow: var(--df-pill-shadow);
   font-weight: 650;
 }
 
-.workbench .editor .editorScroll { min-width: 0; padding: 18px var(--video-editor-inset) 24px; }
+.workbench .editor .editorScroll { min-width: 0; padding: 18px var(--video-editor-inset) 22px; }
 .formGrid { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin: 0; border: 0; padding: 0; }
 .content, .configuration { min-width: 0; }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -117,11 +121,17 @@
 .workbench .toolbar :global(.df-select-control > select),
 .workbench .toolbar :global(.df-select-control > .df-select-trigger),
 .workbench .toolbar .advancedButton {
-  min-height: 42px;
+  min-height: 40px;
   border-color: transparent;
-  border-radius: 100px;
+  border-radius: 10px;
   background: var(--df-surface-soft);
   font-weight: 550;
+}
+
+.workbench .toolbar :global(.df-inline-model-picker) {
+  border-color: var(--df-border);
+  background: var(--df-bg);
+  font-weight: 600;
 }
 
 .workbench .toolbar :global(.df-inline-model-picker:hover:not(:disabled)),
@@ -129,8 +139,9 @@
 .workbench .toolbar :global(.df-select-control > .df-select-trigger:hover:not(:disabled)),
 .workbench .toolbar .advancedButton:hover:not(:disabled) {
   transform: none;
-  border-color: var(--df-primary-border);
-  background: var(--df-primary-soft);
+  border-color: var(--df-border);
+  background: var(--df-bg);
+  color: var(--df-ink);
   box-shadow: none;
 }
 
@@ -138,26 +149,28 @@
 .workbench .toolbar :global(.df-select-control > select:focus-visible),
 .workbench .toolbar :global(.df-select-control > .df-select-trigger:focus-visible) { box-shadow: 0 0 0 3px var(--df-primary-soft); }
 .advancedButton { flex: 0 1 auto; }
-.advancedButton[aria-expanded="true"] { color: var(--df-accent); }
+.advancedButton[aria-expanded="true"] { border-color: var(--df-border); background: var(--df-bg); color: var(--df-ink); }
 .advancedIcon, .advancedChevron { display: none; }
 
 :global(.df-video-studio) .workbench .toolbar :global(.df-composer-generate) {
-  min-height: 44px;
-  border-radius: 100px;
-  background: var(--df-primary);
+  min-height: 40px;
+  border-radius: 10px;
+  background: var(--df-cta-bg);
+  color: var(--df-cta-fg);
   box-shadow: none;
   font-weight: 650;
 }
 
-:global(.df-video-studio) .workbench .toolbar :global(.df-composer-generate:hover:not(:disabled)) { background: var(--df-primary-hover); }
+:global(.df-video-studio) .workbench .toolbar :global(.df-composer-generate:hover:not(:disabled)) { background: var(--df-cta-hover); }
 .workbench .toolbar :global(.df-composer-generate::before) { display: none; }
-.workbench .toolbar :global(.df-composer-quote) { border-radius: 100px; color: white; font-family: inherit; }
+.workbench .toolbar :global(.df-composer-quote) { border-radius: 999px; background: var(--df-cta-pill-bg); color: var(--df-cta-fg); font-family: inherit; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 767px) {
-  :global(.df-video-studio) .workbench .editor:global(.df-premium-panel) { --video-editor-inset: 16px; border-radius: 20px; }
+  :global(.df-video-studio) .workbench .editor:global(.df-premium-panel) { --video-editor-inset: 16px; border-radius: 18px; }
   .workbench .editor:global(.df-premium-panel) > :global(.df-panel-heading) { padding-block: 14px 12px; }
   .workbench .editor .editorScroll { padding-block: 14px 18px; }
-  .workbench .editor :global(.df-workflow-nav .df-segmented button) { padding-inline: 4px; font-size: 12px; }
+  .workbench .editor :global(.df-workflow-nav .df-segmented) { display: grid; width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .workbench .editor :global(.df-workflow-nav .df-segmented button) { min-height: 40px; padding-inline: 4px; font-size: 12px; }
   .promptActions { column-gap: 4px; }
   .toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 

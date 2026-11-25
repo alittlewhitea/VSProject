@@ -1,47 +1,52 @@
-.creative-studio .df-mode-image .df-premium-panel { padding: 24px; }
-.df-mode-image .df-unified-inspector > .df-panel-heading { padding-bottom: 16px; }
+.creative-studio .df-mode-image .df-premium-panel { padding: 0; }
+.df-mode-image .df-unified-inspector > .df-panel-heading { padding: 18px 24px 14px; border-bottom: 1px solid var(--df-border); }
+.creative-studio .df-mode-image [data-creation-input] { padding: 18px 24px 0; }
+.creative-studio .df-mode-image [data-creation-config] { margin-top: 14px; padding: 14px 24px 22px; }
 
 .df-mode-image .df-workflow-nav .df-segmented {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
-  padding: 4px;
+  display: inline-grid;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--df-border);
   border-radius: 12px;
-  background: var(--df-surface-soft);
+  background: var(--df-bg);
   overflow: visible;
 }
 
 .df-mode-image .df-workflow-nav .df-segmented button {
   min-width: 0;
-  min-height: 44px;
-  padding: 6px 8px;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 9px;
   color: var(--df-muted);
-  line-height: 1.35;
+  font-size: 12.5px;
+  line-height: 18px;
   overflow-wrap: anywhere;
   text-align: center;
 }
 
 .df-mode-image .df-workflow-nav .df-segmented button:hover { color: var(--df-ink); }
 .df-mode-image .df-workflow-nav .df-segmented button[aria-pressed="true"] {
-  border-color: var(--df-border);
-  background: var(--df-surface);
-  color: var(--df-accent);
-  font-weight: 600;
+  border-color: transparent;
+  background: var(--df-surface-soft);
+  color: var(--df-ink);
+  box-shadow: var(--df-pill-shadow);
+  font-weight: 650;
 }
 
 .df-image-editor .df-composer-prompt {
   min-width: 0;
-  border: 1px solid var(--df-border);
-  border-radius: 14px;
-  background: var(--df-surface);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
-.df-image-editor .df-composer-prompt:focus-within { border-color: var(--df-primary-border); }
-.df-mode-image .df-composer-prompt-label { align-items: baseline; margin: 12px 12px 8px; }
+.df-image-editor .df-composer-prompt:focus-within { border-color: transparent; }
+.df-mode-image .df-composer-prompt-label { align-items: baseline; margin: 0 0 10px; }
 .df-mode-image .df-composer-prompt-label label {
-  color: var(--df-ink);
+  color: var(--df-muted);
   font-size: 12px;
   letter-spacing: 0;
   text-transform: none;
@@ -59,29 +64,32 @@
   height: 128px;
   min-height: 112px;
   margin: 0;
-  padding: 0 12px 8px;
-  font-size: 16px;
-  line-height: 1.55;
-  letter-spacing: 0;
+  padding: 0 0 8px;
+  font-size: 15.5px;
+  line-height: 1.65;
+  letter-spacing: -.01em;
 }
 
 .df-mode-image .df-composer-prompt-actions {
-  gap: 2px;
-  margin: 0;
-  padding: 0 4px;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding: 8px 0 0;
   border-top: 1px solid var(--df-border);
 }
 .df-mode-image .df-composer-prompt-actions > :is(button, a) { padding-inline: 10px; }
 
-.creative-studio .df-mode-image [data-creation-config] { margin-top: 16px; padding-top: 14px; }
 .df-image-settings .df-composer-more { gap: 6px; }
 .df-mode-image .df-image-settings .df-composer-generate { box-shadow: none; }
 .df-image-settings .df-composer-generate::before { display: none; }
 .df-image-settings .df-composer-cost { padding-top: 8px; font-size: 11px; line-height: 1.45; }
 
 @media (max-width: 767px) {
-  .creative-studio .df-mode-image .df-premium-panel { padding: 14px; }
-  .df-mode-image .df-workflow-nav .df-segmented { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .creative-studio .df-mode-image .df-premium-panel { padding: 0; }
+  .df-mode-image .df-unified-inspector > .df-panel-heading { padding: 14px 16px 12px; }
+  .creative-studio .df-mode-image [data-creation-input] { padding: 14px 16px 0; }
+  .creative-studio .df-mode-image [data-creation-config] { padding: 14px 16px 18px; }
+  .df-mode-image .df-workflow-nav .df-segmented { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .df-mode-image .df-workflow-nav .df-segmented button { min-height: 40px; padding-inline: 8px; font-size: 12px; }
   .creative-studio .df-mode-image .df-image-editor textarea[data-composer-prompt] { height: 136px; resize: none; }
 
   .df-image-settings > .df-composer-toolbar {

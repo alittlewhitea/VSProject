@@ -1,4 +1,4 @@
-.df-unified-workspace { width: 100%; max-width: none; min-width: 0; margin-inline: auto; }
+.df-unified-workspace { width: 100%; max-width: 880px; min-width: 0; margin-inline: auto; }
 .df-avatar-composer { scroll-margin-top: calc(var(--df-sticky-header-height,72px) + 16px); }
 .df-avatar-composer .df-unified-inspector { padding: 28px; }
 .df-avatar-script-label { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--df-muted); }

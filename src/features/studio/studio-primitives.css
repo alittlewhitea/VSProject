@@ -118,8 +118,8 @@
 .df-project-media [hidden] { display: none; }
 .df-preview-stage .df-stage-canvas :is(img, video, audio)[hidden], .df-audio-result[hidden] { display: none; }
 .df-unified-inspector .df-status-region { margin-inline: 16px; }
-.df-button--primary { background: var(--df-primary); color: #fff; }
-.df-button--primary:hover:not(:disabled) { background: var(--df-primary-hover); }
+.df-button--primary { background: var(--df-cta-bg); color: var(--df-cta-fg); font-weight: 600; }
+.df-button--primary:hover:not(:disabled) { background: var(--df-cta-hover); }
 .df-button--secondary { background: var(--df-surface); color: var(--df-ink); border-color: var(--df-border); }
 .df-button--secondary:hover:not(:disabled), .df-button--ghost:hover:not(:disabled) { background: var(--df-surface-soft); }
 .df-button--ghost { color: var(--df-muted); background: transparent; }
@@ -133,7 +133,7 @@
 .df-segmented { display: flex; align-items: stretch; gap: 4px; padding: 4px; border-radius: var(--df-radius-input); background: var(--df-surface-soft); }
 .df-segmented button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 40px; padding: 8px 12px; border: 1px solid transparent; border-radius: var(--df-radius-button); font-size: 13px; line-height: 20px; font-weight: 500; color: var(--df-muted); transition: background var(--df-transition), color var(--df-transition); }
 .df-segmented button:hover { color: var(--df-ink); }
-.df-segmented button[aria-pressed="true"] { background: var(--df-surface); color: var(--studio-accent); border-color: var(--df-border); }
+.df-segmented button[aria-pressed="true"] { background: var(--df-surface); color: var(--df-ink); font-weight: 600; border-color: var(--df-border); box-shadow: var(--df-pill-shadow); }
 .df-eyebrow { display: block; font-size: 11px; line-height: 18px; letter-spacing: .1em; text-transform: uppercase; font-weight: 500; color: var(--df-muted); }
 .df-home-masthead { margin: 0 0 20px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .df-home-masthead h2 { font-size: 40px; line-height: 48px; letter-spacing: -.035em; font-weight: 600; max-width: 720px; text-wrap: balance; }

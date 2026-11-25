@@ -1,15 +1,15 @@
 .df-video-studio {
-  --df-video-elevation: 0 12px 32px -8px rgb(29 29 31 / .07), 0 2px 6px rgb(29 29 31 / .025);
+  --df-video-elevation: var(--df-shadow-card);
 }
 
 html[data-studio-theme="dark"] .df-video-studio {
-  --df-video-tab-active: #232833;
-  --df-video-elevation: 0 18px 44px -12px rgb(0 0 0 / .55);
+  --df-video-tab-active: #20242d;
+  --df-video-elevation: var(--df-shadow-card);
 }
 
 .df-video-studio .df-workbench-content { padding-block: 0; }
 .df-video-studio .df-workbench-canvas {
-  padding-block: clamp(24px, 3vw, 36px) 64px;
+  padding-block: clamp(20px, 2.8vw, 32px) 64px;
   font-family: var(--df-system-font);
 }
 

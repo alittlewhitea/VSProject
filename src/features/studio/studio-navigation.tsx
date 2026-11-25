@@ -197,22 +197,22 @@ export const StudioSidebar = memo(function StudioSidebar({ t, referralLocale = "
         onClick={() => onCollapsedChange?.(!collapsed)}
         aria-label={t(collapsed ? "studio.menu.open" : "studio.menu.close")}
         title={t(collapsed ? "studio.menu.open" : "studio.menu.close")}
-        className="group absolute -end-3 top-1/2 z-30 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--studio-accent-border)] bg-[var(--studio-panel)] text-[var(--studio-accent)] shadow-none transition duration-200 hover:scale-110 hover:border-[var(--studio-accent-border)] hover:bg-[var(--studio-accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--studio-accent-border)] focus-visible:ring-offset-2"
+        className="group absolute -end-3 top-1/2 z-30 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-[var(--studio-border)] bg-[var(--studio-panel)] text-[var(--studio-muted)] shadow-none transition duration-200 hover:scale-105 hover:bg-[var(--studio-surface)] hover:text-[var(--studio-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--studio-accent-border)] focus-visible:ring-offset-2"
       >
         <StudioIcon name={collapsed ? "chevron-right" : "chevron-left"} className="h-3.5 w-3.5" />
-        <span className="pointer-events-none absolute start-full ms-2.5 whitespace-nowrap rounded-lg bg-[var(--studio-primary)] px-2.5 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">{t(collapsed ? "studio.menu.open" : "studio.menu.close")}</span>
+        <span className="pointer-events-none absolute start-full ms-2.5 whitespace-nowrap rounded-lg bg-[var(--df-cta-bg)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--df-cta-fg)] opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">{t(collapsed ? "studio.menu.open" : "studio.menu.close")}</span>
       </button>
       <a href="https://dreamface.io" className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-1"}`}>
         <span className="block h-9 w-9 shrink-0 overflow-hidden rounded-xl shadow-sm"><BrandMark alt="" className="h-full w-full object-cover" /></span>
-        {!collapsed ? <span className="min-w-0"><strong className="block text-[17px] font-semibold leading-none tracking-tight text-[var(--studio-text)]">DreamFace</strong><span className="mt-1 block text-[11px] text-[var(--studio-muted)]">AI Studio</span></span> : null}
+        {!collapsed ? <span className="min-w-0"><strong className="block text-[16px] font-semibold leading-none tracking-tight text-[var(--studio-text)]">DreamFace</strong><span className="mt-1 block text-[11px] text-[var(--studio-muted)]">AI Studio</span></span> : null}
       </a>
-      <nav aria-label={t("studio.header.apps")} className="mt-8 grid gap-1.5">
+      <nav aria-label={t("studio.header.apps")} className="mt-7 grid gap-1">
         {items.map((item) => {
           const showActiveBadge = item.id === "projects" && activeTaskCount > 0;
           const title = showActiveBadge ? `${item.label} · ${t("studio.summary.runningTasks", { count: activeTaskCount })}` : item.label;
           return (
-            <Link key={`${item.label}-${item.href}`} href={item.href} title={title} aria-current={item.active ? "page" : undefined} className={`df-sidebar-item relative flex h-11 items-center rounded-[10px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[var(--studio-accent-soft)] font-bold text-[var(--studio-accent)]" : "text-[var(--studio-text)] hover:bg-[var(--studio-surface)]"}`}>
-              <StudioIcon name={item.icon} className="h-[18px] w-[18px] shrink-0" />
+            <Link key={`${item.label}-${item.href}`} href={item.href} title={title} aria-current={item.active ? "page" : undefined} className={`df-sidebar-item relative flex h-10 items-center rounded-[10px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[var(--studio-surface)] font-semibold text-[var(--studio-text)]" : "text-[var(--studio-muted)] hover:bg-[var(--studio-surface)] hover:text-[var(--studio-text)]"}`}>
+              <StudioIcon name={item.icon} className="h-[17px] w-[17px] shrink-0" />
               {!collapsed ? <span className="min-w-0 flex-1 truncate">{item.label}</span> : null}
               {showActiveBadge ? <b className="df-sidebar-task-badge" data-active-task-badge aria-label={t("studio.summary.runningTasks", { count: activeTaskCount })}>{activeTaskCount > 9 ? "9+" : activeTaskCount}</b> : null}
             </Link>

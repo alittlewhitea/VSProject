@@ -4,11 +4,11 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  min-height: 68px;
-  padding: 10px 12px;
-  border: 1px dashed var(--df-primary-border);
-  border-radius: var(--df-radius-input);
-  background: var(--df-surface-soft);
+  min-height: 60px;
+  padding: 9px 11px;
+  border: 1px dashed var(--df-border);
+  border-radius: 10px;
+  background: var(--df-surface);
   color: var(--df-ink);
   text-align: start;
   cursor: pointer;
@@ -16,17 +16,23 @@
 }
 .trigger:hover:not(:disabled),
 .upload[data-dragging] .trigger {
-  border-color: var(--df-accent);
-  background: var(--df-primary-soft);
+  border-color: var(--df-primary-border);
+  background: var(--df-surface-soft);
 }
 .trigger:disabled { opacity: .5; cursor: not-allowed; }
 .icon {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--df-surface-soft);
+  color: var(--df-muted);
+  transition: background var(--df-transition), color var(--df-transition);
+}
+.trigger:hover:not(:disabled) .icon,
+.upload[data-dragging] .trigger .icon {
   background: var(--df-primary-soft);
   color: var(--df-accent);
 }
