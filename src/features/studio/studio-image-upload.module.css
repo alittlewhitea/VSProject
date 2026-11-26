@@ -7,17 +7,20 @@
   width: 100%;
   min-height: 64px;
   padding: 10px 12px;
-  border: 1px dashed var(--df-border);
+  border: 1px dashed var(--df-border-hi);
   border-radius: 12px;
-  background: var(--df-bg);
+  background: rgb(8 14 17 / .34);
   color: var(--df-ink);
   text-align: start;
   cursor: pointer;
   transition: background var(--df-transition), border-color var(--df-transition);
 }
+:global(html[data-studio-theme="light"]) .trigger {
+  background: rgb(255 255 255 / .72);
+}
 .trigger:hover:not(:disabled),
 .upload[data-dragging] .trigger {
-  border-color: var(--df-primary-border);
+  border-color: var(--df-accent-warm-border);
   background: var(--df-surface-soft);
 }
 .trigger:disabled { opacity: .5; cursor: not-allowed; }
@@ -28,15 +31,15 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: var(--df-surface);
+  background: var(--df-surface-soft);
   border: 1px solid var(--df-border);
   color: var(--df-muted);
   transition: background var(--df-transition), border-color var(--df-transition), color var(--df-transition);
 }
 .trigger:hover:not(:disabled) .icon,
 .upload[data-dragging] .trigger .icon {
-  border-color: var(--df-primary-border);
-  background: var(--df-primary-soft);
+  border-color: var(--df-accent-warm-border);
+  background: var(--df-accent-warm-soft);
   color: var(--df-accent);
 }
 .icon svg { width: 16px; height: 16px; }

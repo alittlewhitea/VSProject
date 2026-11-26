@@ -14,7 +14,7 @@
 .df-select-control > svg { position: absolute; top: 14px; inset-inline-end: 12px; width: 16px; height: 16px; color: var(--df-muted); pointer-events: none; }
 .df-select-control > .df-select-chevron { transition: transform var(--df-transition); }
 .df-select-control[data-open="true"] > .df-select-chevron { transform: rotate(180deg); color: var(--df-accent); }
-.df-select-control[data-open="true"] > .df-select-trigger { border-color: var(--df-primary-border); background: var(--df-primary-soft); color: var(--df-accent); }
+.df-select-control[data-open="true"] > .df-select-trigger { border-color: var(--df-accent-warm-border); background: var(--df-accent-warm-soft); color: var(--df-accent); }
 .df-select-popover {
   position: fixed;
   z-index: 320;
@@ -23,11 +23,13 @@
   max-width: min(260px, calc(100vw - 16px));
   max-height: min(300px, calc(100dvh - 32px));
   padding: 6px;
-  border: 1px solid var(--df-border);
-  border-radius: 14px;
-  background: var(--df-surface);
+  border: 1px solid var(--df-border-hi);
+  border-radius: 16px;
+  background: var(--df-surface-glass);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
   color: var(--df-ink);
-  box-shadow: var(--df-shadow-overlay);
+  box-shadow: inset 0 1px 0 var(--df-rim), var(--df-shadow-overlay);
   font-family: var(--df-system-font);
   animation: df-select-popover-in 130ms ease-out;
 }
@@ -71,7 +73,7 @@
   background: var(--df-surface-soft);
 }
 .df-select-option[aria-selected="true"] {
-  background: var(--df-primary-soft);
+  background: var(--df-accent-warm-soft);
   color: var(--df-accent);
   font-weight: 600;
 }

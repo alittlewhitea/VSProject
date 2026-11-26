@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CREDIT_PACKS, formatUsd, type CreditPack, type CreditPaymentProvider } from "../lib/billing";
+import { CREDIT_PACKS, cheapestCreditUsageCapacity, formatUsd, type CreditPack, type CreditPaymentProvider } from "../lib/billing";
 import { trackEvent, trackPurchaseEvent } from "../lib/analytics";
 import { getPayPalWalletConfig, mountPayPalWallets, type WalletController, type WalletStatus, type WalletReceipt, type Wallet, type WalletCallbacks } from "../lib/paypal-wallets-client";
 import { DODO_CHECKOUT_SUSPENDED } from "../lib/payment-release";
@@ -37,6 +37,8 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
   const starter=CREDIT_PACKS.find(item=>item.id==="starter")!;
   const discount=Math.max(0,Math.floor((1-(displayPack.amountCents/displayPack.credits)/(starter.amountCents/starter.credits))*100));
   const quotedBalance=(pending?.packId||paid?.packId||pack.id)!==pack.id?null:startingBalance.current;
+  const orderCredits=paid?.credits??displayPack.credits;
+  const orderCapacity=typeof cheapestCreditUsageCapacity==="function"?cheapestCreditUsageCapacity(orderCredits):{images:orderCredits,videos:Math.floor(orderCredits/15),voiceovers:orderCredits};
   async function post(path:string,body:unknown) {
     const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${accessToken}`},body:JSON.stringify(body),signal:AbortSignal.timeout(45000)});
     const payload=await response.json().catch(()=>null);
@@ -167,6 +169,11 @@ export default function CreditPaymentDialog({pack,accessToken,t,loadingPack,mess
           <div className={styles.orderRow}><span>{t("creditShop.creditsAdded")}</span><strong data-order-credits>+{(paid?.credits??displayPack.credits).toLocaleString()} {t("creditShop.credits")}</strong></div>
           <div className={styles.orderRow}><span>{t("creditShop.newBalance")}</span><strong data-order-balance>{quotedBalance === null ? "—" : `${(quotedBalance + (paid?.credits??displayPack.credits)).toLocaleString()} ${t("creditShop.credits")}`}</strong></div>
           <div className={`${styles.orderRow} ${styles.orderDiscount}`}><span>{t("creditShop.discountTier")}</span><strong>{discount>0?t("creditShop.savings",{percent:discount}):t("creditShop.standardRate")}</strong></div>
+          <div className={styles.orderCapacity}>
+            <span><CreditShopIcon name="image" />{orderCapacity.images.toLocaleString()}</span>
+            <span><CreditShopIcon name="video" />{orderCapacity.videos.toLocaleString()}</span>
+            <span><CreditShopIcon name="audio" />{orderCapacity.voiceovers.toLocaleString()}</span>
+          </div>
           <div className={`${styles.orderRow} ${styles.orderTotal}`}><span>{t("creditShop.dueToday")}</span><strong data-order-total>{formatUsd(paid?.amountCents??displayPack.amountCents)} <small>USD</small></strong></div>
         </div>
         {paid ? <p role="status" className="rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{t("creditShop.paid")}</p> : <>

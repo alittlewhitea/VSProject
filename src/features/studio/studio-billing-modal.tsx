@@ -30,9 +30,9 @@ export function StudioBillingModal({ open, t, loadingItem, message, creditBalanc
         <button type="button" aria-label={t("studio.billing.close")} disabled={Boolean(loadingItem)} onClick={close} className={styles.close}>×</button>
         <div ref={scrollRef} className={styles.modalScroll}>
           <CreditPackGrid appearance="studio" titleId="credit-shop-title" balance={creditBalance} t={t} loadingPack={loadingItem?.replace(/^credits:/, "") || null} onCheckout={onCreditCheckout} shortfall={shortfall} accessToken={accessToken} message={message}>
-            {generationContext ? <div className="mb-5 rounded-2xl border border-[var(--df-primary-border)] bg-[var(--df-primary-soft)] p-4 text-sm text-[var(--df-ink)]">
-              <p className="font-semibold">{t("studio.cost.insufficientTitle", { credits: shortfall.toLocaleString() })}</p>
-              <p className="mt-1">{generationContext.providerLabel} · {t("studio.cost.insufficientBody", { required: generationContext.requiredCredits.toLocaleString(), balance: generationContext.balance.toLocaleString() })}</p>
+            {generationContext ? <div className={styles.shortfallBanner}>
+              <p className={styles.shortfallTitle}>{t("studio.cost.insufficientTitle", { credits: shortfall.toLocaleString() })}</p>
+              <p className={styles.shortfallBody}>{generationContext.providerLabel} · {t("studio.cost.insufficientBody", { required: generationContext.requiredCredits.toLocaleString(), balance: generationContext.balance.toLocaleString() })}</p>
             </div> : null}
           </CreditPackGrid>
         </div>

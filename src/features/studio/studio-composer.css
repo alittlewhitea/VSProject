@@ -23,9 +23,9 @@
 .df-compact-composer .df-select-control > :is(select, .df-select-trigger), .df-composer-toolbar > .df-composer-parameters > select { min-height:44px; min-width:76px; max-width:220px; border-color:transparent; background:var(--df-surface-soft); font-size:13px; font-weight:400; color:var(--df-ink); }
 .df-composer-more { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:8px 10px; border-radius:8px; color:var(--df-muted); font-size:12px; text-align:start; }
 .df-composer-more:hover { color:var(--df-accent); background:var(--df-surface-soft); }
-.creative-studio .df-composer-generate { display:inline-flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; width:auto; min-height:44px; min-width:148px; margin-inline-start:auto; border:0; border-radius:var(--df-radius-button); padding:10px 16px; background:var(--df-cta-bg); color:var(--df-cta-fg); font-size:13.5px; font-weight:650; }
+.creative-studio .df-composer-generate { display:inline-flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; width:auto; min-height:42px; min-width:148px; margin-inline-start:auto; border:0; border-radius:999px; padding:10px 18px; background:var(--df-cta-bg); color:var(--df-cta-fg); box-shadow:var(--df-cta-glow); font-size:13.5px; font-weight:700; }
 .creative-studio .df-composer-generate:hover:not(:disabled) { background:var(--df-cta-hover); transform:none; }
-.df-composer-generate:disabled { opacity:.45; }
+.df-composer-generate:disabled { opacity:.42; box-shadow:none; }
 .df-composer-quote { padding:2px 8px; border-radius:100px; background:var(--df-cta-pill-bg); color:var(--df-cta-fg); font-size:11px; font-weight:550; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .df-composer-cost { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:4px 12px; padding-top:10px; color:var(--df-muted); font-size:11px; line-height:18px; }
 .df-composer-cost > span { font-weight:400; }

@@ -25,18 +25,18 @@ const labels: Record<string, [string, string]> = {
 
 /** Appearance only: does not change any workspace or generation state. */
 export function StudioThemeToggle({ locale, showLabel = false }: { locale: string; showLabel?: boolean }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
   useEffect(() => {
     const apply = (value: string | null) => {
-      const next = value === "dark" ? "dark" : "light";
+      const next = value === "light" ? "light" : "dark";
       document.documentElement.dataset.studioTheme = next;
       setTheme(next);
     };
-    try { apply(localStorage.getItem(STORAGE_KEY)); } catch { apply(document.documentElement.dataset.studioTheme || "light"); }
+    try { apply(localStorage.getItem(STORAGE_KEY)); } catch { apply(document.documentElement.dataset.studioTheme || "dark"); }
     const sync = (event: StorageEvent) => {
       if (event.key === STORAGE_KEY || event.key === null) apply(event.newValue);
     };
-    const syncCurrentWindow = () => setTheme(document.documentElement.dataset.studioTheme === "dark" ? "dark" : "light");
+    const syncCurrentWindow = () => setTheme(document.documentElement.dataset.studioTheme === "light" ? "light" : "dark");
     window.addEventListener("storage", sync);
     window.addEventListener("dreamface:studio-appearance", syncCurrentWindow);
     return () => {

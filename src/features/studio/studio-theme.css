@@ -41,15 +41,15 @@
 .studio-home-intro { max-width: 790px; margin: 20px auto 36px; text-align: center; }
 .studio-home-intro h2 { font-size: clamp(28px, 3vw, 46px); line-height: 1.2; font-weight: 600; letter-spacing: -.04em; text-wrap: balance; }
 .studio-home-intro > p { color: var(--studio-muted); font-size: 14px; line-height: 1.7; margin: 12px auto 24px; max-width: 620px; }
-.studio-composer { background: var(--studio-panel); border: 1px solid var(--studio-border); border-radius: 16px; padding: 16px; text-align: start; }
-.studio-composer:focus-within { border-color: var(--studio-accent-border); }
+.studio-composer { background: var(--df-surface-glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--df-border-hi); box-shadow: inset 0 1px 0 var(--df-rim), var(--df-shadow-card); border-radius: 18px; padding: 16px; text-align: start; }
+.studio-composer:focus-within { border-color: var(--df-accent-warm-border); }
 .studio-composer textarea { width: 100%; min-height: 74px; resize: vertical; background: transparent; font-size: 16px; line-height: 1.6; outline: none; }
 .studio-composer-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .studio-composer-tabs { display: flex; gap: 4px; }
-.studio-composer-tabs button, .studio-upload-link { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; border-radius: 8px; padding: 8px 10px; color: var(--studio-muted); font-size: 13px; }
+.studio-composer-tabs button, .studio-upload-link { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; border-radius: 999px; padding: 8px 12px; color: var(--studio-muted); font-size: 13px; }
 .studio-upload-link { border: 1px solid var(--studio-border); }
-.studio-composer-tabs button[aria-pressed="true"] { background: var(--studio-accent-soft); color: var(--studio-accent); }
-.studio-start { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px; border-radius: 10px; padding: 10px 18px; background: var(--df-cta-bg); color: var(--df-cta-fg); font-size: 13px; font-weight: 650; margin-inline-start: auto; }
+.studio-composer-tabs button[aria-pressed="true"] { background: var(--df-accent-warm-soft); color: var(--df-accent); }
+.studio-start { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px; border-radius: 999px; padding: 10px 20px; background: var(--df-cta-bg); color: var(--df-cta-fg); box-shadow: var(--df-cta-glow); font-size: 13px; font-weight: 700; margin-inline-start: auto; }
 .studio-start:hover { background: var(--df-cta-hover); filter: none; }
 .studio-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .studio-section-heading h2 { font-size: 18px; font-weight: 600; letter-spacing: -.02em; }

@@ -122,15 +122,15 @@
 .workbench .toolbar :global(.df-select-control > .df-select-trigger),
 .workbench .toolbar .advancedButton {
   min-height: 40px;
-  border-color: transparent;
-  border-radius: 10px;
+  border-color: var(--df-border);
+  border-radius: 999px;
   background: var(--df-surface-soft);
   font-weight: 550;
 }
 
 .workbench .toolbar :global(.df-inline-model-picker) {
-  border-color: var(--df-border);
-  background: var(--df-bg);
+  border-color: var(--df-primary-border);
+  background: var(--df-primary-soft);
   font-weight: 600;
 }
 
@@ -139,26 +139,26 @@
 .workbench .toolbar :global(.df-select-control > .df-select-trigger:hover:not(:disabled)),
 .workbench .toolbar .advancedButton:hover:not(:disabled) {
   transform: none;
-  border-color: var(--df-border);
-  background: var(--df-bg);
+  border-color: var(--df-border-hi);
+  background: var(--df-surface);
   color: var(--df-ink);
   box-shadow: none;
 }
 
-.toolbar :global(.df-model-trigger-icon) { color: var(--df-accent); }
+.toolbar :global(.df-model-trigger-icon) { color: var(--df-spark); }
 .workbench .toolbar :global(.df-select-control > select:focus-visible),
-.workbench .toolbar :global(.df-select-control > .df-select-trigger:focus-visible) { box-shadow: 0 0 0 3px var(--df-primary-soft); }
+.workbench .toolbar :global(.df-select-control > .df-select-trigger:focus-visible) { box-shadow: 0 0 0 3px var(--df-accent-warm-soft); }
 .advancedButton { flex: 0 1 auto; }
-.advancedButton[aria-expanded="true"] { border-color: var(--df-border); background: var(--df-bg); color: var(--df-ink); }
+.advancedButton[aria-expanded="true"] { border-color: var(--df-accent-warm-border); background: var(--df-accent-warm-soft); color: var(--df-accent); }
 .advancedIcon, .advancedChevron { display: none; }
 
 :global(.df-video-studio) .workbench .toolbar :global(.df-composer-generate) {
   min-height: 40px;
-  border-radius: 10px;
+  border-radius: 999px;
   background: var(--df-cta-bg);
   color: var(--df-cta-fg);
-  box-shadow: none;
-  font-weight: 650;
+  box-shadow: var(--df-cta-glow);
+  font-weight: 700;
 }
 
 :global(.df-video-studio) .workbench .toolbar :global(.df-composer-generate:hover:not(:disabled)) { background: var(--df-cta-hover); }

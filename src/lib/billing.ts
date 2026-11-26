@@ -1,4 +1,5 @@
-import { estimateGenerationCredits } from "./model-pricing";
+import { estimateGenerationCredits, HEYGEN_PROMOTION_END } from "./model-pricing";
+import { HEYGEN_VOICE_FREE_END, HEYGEN_VOICE_PROVIDER } from "./heygen-voice";
 import { CREDIT_PACK_PRICES } from "./credit-pack-prices";
 
 export type CreditPack = {
@@ -85,6 +86,64 @@ export function creditUsageCapacity(credits: number) {
     videos: Math.floor(credits / CREDIT_USAGE_REFERENCE.video.credits),
     voiceovers: Math.floor(credits / CREDIT_USAGE_REFERENCE.audio.credits),
     avatars: Math.floor(credits / CREDIT_USAGE_REFERENCE.avatar.credits)
+  };
+}
+
+// Entitlement benchmarks calculated from the lowest-cost active model in each mode.
+export const CHEAPEST_CREDIT_USAGE_REFERENCE = {
+  image: {
+    credits: estimateGenerationCredits({
+      mode: "image",
+      provider: "flux-image",
+      imageSize: "landscape_16_9",
+      numImages: 1
+    }),
+    model: "FLUX Schnell"
+  },
+  video: {
+    credits: estimateGenerationCredits({
+      mode: "video",
+      provider: "heygen-video",
+      duration: "5s",
+      resolution: "480p",
+      pricingTime: HEYGEN_PROMOTION_END
+    }),
+    seconds: 5,
+    resolution: "480p",
+    model: "HeyGen Video"
+  },
+  audio: {
+    credits: estimateGenerationCredits({
+      mode: "audio",
+      provider: HEYGEN_VOICE_PROVIDER,
+      promptText: "x".repeat(1000),
+      pricingTime: HEYGEN_VOICE_FREE_END
+    }),
+    characters: 1000,
+    model: "HeyGen Voice Turbo"
+  },
+  avatar: {
+    credits: estimateGenerationCredits({
+      mode: "video",
+      provider: "heygen-video",
+      duration: "5s",
+      resolution: "480p",
+      hasReferences: true,
+      pricingTime: HEYGEN_PROMOTION_END
+    }),
+    seconds: 5,
+    resolution: "480p",
+    model: "HeyGen Video"
+  }
+} as const;
+
+export function cheapestCreditUsageCapacity(credits: number) {
+  const safe = Math.max(0, credits);
+  return {
+    images: Math.floor(safe / CHEAPEST_CREDIT_USAGE_REFERENCE.image.credits),
+    videos: Math.floor(safe / CHEAPEST_CREDIT_USAGE_REFERENCE.video.credits),
+    voiceovers: Math.floor(safe / CHEAPEST_CREDIT_USAGE_REFERENCE.audio.credits),
+    avatars: Math.floor(safe / CHEAPEST_CREDIT_USAGE_REFERENCE.avatar.credits)
   };
 }
 

@@ -31,12 +31,12 @@ export function StudioPageClient(props: Props) {
   return (
     <Suspense fallback={null}>
       {messages ? <StudioContent {...props} initialMessages={messages} /> : failed ? (
-        <div className="flex min-h-screen items-center justify-center bg-[var(--df-bg,#f5f5f7)] text-[var(--df-ink,#1d1d1f)]">
-          <button type="button" onClick={() => setAttempt(value => value + 1)} className="rounded-xl border border-[var(--df-border,#e8e8ed)] bg-[var(--df-surface,#ffffff)] px-5 py-3 text-sm font-semibold text-[var(--df-ink,#1d1d1f)]">
+        <div className="flex min-h-screen items-center justify-center bg-[var(--df-bg,#080e11)] text-[var(--df-ink,#faf3e1)]">
+          <button type="button" onClick={() => setAttempt(value => value + 1)} className="rounded-xl border border-[var(--df-border,#264653)] bg-[var(--df-surface,#0f1c22)] px-5 py-3 text-sm font-semibold text-[var(--df-ink,#faf3e1)]">
             Reload workspace
           </button>
         </div>
-      ) : <div className="min-h-screen animate-pulse bg-[var(--df-bg,#f5f5f7)]" aria-busy="true" />}
+      ) : <div className="min-h-screen animate-pulse bg-[var(--df-bg,#080e11)]" aria-busy="true" />}
     </Suspense>
   );
 }

@@ -3,7 +3,7 @@
 }
 
 html[data-studio-theme="dark"] .df-video-studio {
-  --df-video-tab-active: #20242d;
+  --df-video-tab-active: #1f3943;
   --df-video-elevation: var(--df-shadow-card);
 }
 

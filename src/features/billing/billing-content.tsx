@@ -7,6 +7,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   CREDIT_PACKS,
   SUBSCRIPTION_PLANS,
+  cheapestCreditUsageCapacity,
   formatUsd,
   type BillingCycle
 } from "../../lib/billing";
@@ -64,6 +65,7 @@ type SubscriptionEntry = {
 type PricingGuideRow = {
   provider: string;
   label: string;
+  mode?: "image" | "video" | "audio";
   workflow: string;
   falBasis: string;
   typicalCredits: number;
@@ -76,6 +78,18 @@ type PricingGuideRow = {
   currency?: string;
   checkedAt?: string;
 };
+
+function selectPriceGuideRows(rows: PricingGuideRow[]) {
+  const seen = new Set<string>();
+  const unique: PricingGuideRow[] = [];
+  for (const row of rows) {
+    const key = `${row.provider}:${row.mode || row.workflow}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(row);
+  }
+  return unique.sort((a, b) => a.typicalCredits - b.typicalCredits).slice(0, 10);
+}
 
 type TranslationFunction = ReturnType<typeof useTranslations>;
 const cycleLabels: Record<BillingCycle, string> = { weekly: "Weekly", monthly: "Monthly", yearly: "Yearly" };
@@ -570,6 +584,9 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
   }
 
   const BillingContainer = embedded ? "div" : "main";
+  const balanceCapacity = typeof balance === "number" && balance > 0 ? cheapestCreditUsageCapacity(balance) : null;
+  const curatedPricingRows = useMemo(() => selectPriceGuideRows(pricingRows), [pricingRows]);
+  const creatorPack = CREDIT_PACKS.find((pack) => pack.id === "creator") ?? CREDIT_PACKS[0];
   if (surface === "billing") {
     return (
       <BillingContainer data-studio-billing={embedded || undefined} className={embedded ? "df-billing-workspace" : "min-h-screen bg-[var(--df-bg)] text-[var(--df-ink)]"}>
@@ -580,7 +597,19 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
         <section className="mx-auto max-w-[1280px] px-3 py-5 sm:px-5 md:py-8">
           <section className="df-billing-summary">
             <div><p className="df-eyebrow">{t("creditShop.eyebrow")}</p><h2>{t("billing.title")}</h2><p>{t("creditShop.subtitle")}</p></div>
-            <div className="df-balance-card"><span>{t("billing.currentBalance")}</span><strong>{balance === null ? "--" : balance.toLocaleString()} <small>{t("creditShop.credits")}</small></strong><p>{t("billing.creditsAvailable")}</p>
+            <div className="df-balance-card">
+              <div className="df-balance-head">
+                <span><i className="df-balance-dot" aria-hidden="true" />{t("billing.currentBalance")}</span>
+              </div>
+              <strong>{balance === null ? "--" : balance.toLocaleString()} <small>{t("creditShop.credits")}</small></strong>
+              <p>{t("billing.creditsAvailable")}</p>
+              {balanceCapacity ? (
+                <div className="df-balance-runway">
+                  <span>{t("creditShop.outputImages", { count: balanceCapacity.images.toLocaleString() })}</span>
+                  <span>{t("creditShop.outputVideos", { count: balanceCapacity.videos.toLocaleString() })}</span>
+                  <span>{t("creditShop.outputVoice", { count: balanceCapacity.voiceovers.toLocaleString() })}</span>
+                </div>
+              ) : null}
               <button type="button" onClick={() => { trackEvent("balance_refreshed", { surface: "billing" }, accessToken); accessToken ? loadCredits(accessToken) : requestSignIn({ onSuccess: session => { void loadCredits(session.access_token); } }); }} disabled={refreshingCredits} className="df-button df-button--secondary">{refreshingCredits ? t("pricing.refreshing") : accessToken ? t("billing.refreshBalance") : t("billing.signInToView")}</button>
             </div>
           </section>
@@ -667,51 +696,51 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
           </section>
 
           <section className="mt-10 grid gap-5 lg:grid-cols-2">
-            <article className="rounded-[14px] border border-[var(--df-border)] bg-[var(--df-surface)] p-5 shadow-none sm:p-6">
-              <h2 className="text-2xl font-semibold tracking-[-0.03em]">{t("billing.creditActivity")}</h2>
-              <div className="mt-6 space-y-3">
+            <article className="df-billing-panel">
+              <h2 className="text-xl font-semibold tracking-[-0.025em]">{t("billing.creditActivity")}</h2>
+              <div className="mt-5 space-y-2.5">
                 {ledger.length ? (
                   ledger.slice(0, 10).map((entry) => (
-                    <div key={entry.id} className="flex items-center justify-between gap-4 rounded-xl border border-[var(--df-border)] bg-[var(--df-surface-soft)] px-4 py-3">
+                    <div key={entry.id} className="df-billing-entry flex items-center justify-between gap-4">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold">{formatReason(entry.reason, t)}</p>
                         <p className="mt-1 text-xs font-medium text-[var(--df-muted)]">{formatDate(entry.created_at)}</p>
                       </div>
-                      <p className={`shrink-0 text-lg font-semibold ${entry.amount >= 0 ? "text-[var(--df-success)]" : "text-[var(--df-error)]"}`}>
+                      <p className={`shrink-0 text-base font-bold tabular-nums ${entry.amount >= 0 ? "text-[var(--df-success)]" : "text-[var(--df-error)]"}`}>
                         {entry.amount >= 0 ? "+" : ""}
                         {entry.amount.toLocaleString()}
                       </p>
                     </div>
                   ))
                 ) : (
-                  <p className="rounded-2xl bg-[var(--df-surface-soft)] px-4 py-3 text-sm font-semibold text-[var(--df-muted)]">
+                  <p className="rounded-2xl bg-[var(--df-surface-soft)] px-4 py-3 text-sm font-medium text-[var(--df-muted)]">
                     {accessToken ? t("billing.noCreditActivity") : t("billing.signInCreditActivity")}
                   </p>
                 )}
               </div>
             </article>
 
-            <article className="rounded-[14px] border border-[var(--df-border)] bg-[var(--df-surface)] p-5 shadow-none sm:p-6">
-              <h2 className="text-2xl font-semibold tracking-[-0.03em]">{t("billing.stripePurchases")}</h2>
-              <div className="mt-6 space-y-3">
+            <article className="df-billing-panel">
+              <h2 className="text-xl font-semibold tracking-[-0.025em]">{t("billing.stripePurchases")}</h2>
+              <div className="mt-5 space-y-2.5">
                 {purchases.length ? (
                   purchases.slice(0, 10).map((purchase) => (
-                    <div key={purchase.id} className="rounded-xl border border-[var(--df-border)] bg-[var(--df-surface-soft)] px-4 py-3">
+                    <div key={purchase.id} className="df-billing-entry">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <p className="text-sm font-semibold">
-                          {purchase.pack_id} - {purchase.credits.toLocaleString()} credits
+                          {creditPackName(purchase.pack_id)} · {purchase.credits.toLocaleString()} {t("creditShop.credits")}
                         </p>
-                        <span className="rounded-full border border-[var(--df-border)] bg-[var(--df-surface)] px-3 py-1 text-xs font-semibold">{formatStatus(purchase.status, t)}</span>
+                        <span className="rounded-full border border-[var(--df-border)] bg-[var(--df-surface)] px-3 py-0.5 text-xs font-semibold">{formatStatus(purchase.status, t)}</span>
                       </div>
-                      <p className="mt-2 text-xs font-semibold capitalize text-[#4f5a6d]">{purchase.payment_provider}</p>
+                      <p className="mt-2 text-xs font-semibold capitalize text-[var(--df-accent)]">{purchase.payment_provider}</p>
                       <p className="mt-1 break-all text-xs font-medium text-[var(--df-muted)]">{t("billing.stripeCheckoutId")}: {purchaseReference(purchase)}</p>
-                      <p className="mt-2 text-xs font-medium text-[var(--df-muted)]">
-                        {formatUsd(purchase.amount_cents)} - {formatDate(purchase.updated_at)}
+                      <p className="mt-2 text-xs font-medium text-[var(--df-muted)] tabular-nums">
+                        {formatUsd(purchase.amount_cents)} · {formatDate(purchase.updated_at)}
                       </p>
                     </div>
                   ))
                 ) : (
-                  <p className="rounded-2xl bg-[var(--df-surface-soft)] px-4 py-3 text-sm font-semibold text-[var(--df-muted)]">
+                  <p className="rounded-2xl bg-[var(--df-surface-soft)] px-4 py-3 text-sm font-medium text-[var(--df-muted)]">
                     {accessToken ? t("billing.noStripePurchases") : t("billing.signInStripePurchases")}
                   </p>
                 )}
@@ -735,18 +764,32 @@ export function PricingContent({ surface = "price", embedded = false, onBalanceC
           </ol>
         </section>
         <section className={creditShopStyles.pricingSection}>
-          <h2>{t("pricing.modelGuide.title")}</h2>
-          <p>{t("creditShop.modelNote")}</p>
+          <div className={creditShopStyles.pricingSectionHeader}>
+            <div>
+              <h2>{t("pricing.modelGuide.title")}</h2>
+              <p>{t("creditShop.modelNote")}</p>
+            </div>
+          </div>
           <ul className={creditShopStyles.pricingModels}>
-            {pricingRows.slice(0, 7).map(row => (
-              <li key={`${row.provider}-${row.workflow}`}>
-                <div>
-                  <p className={creditShopStyles.modelName}>{row.label}</p>
-                  <p className={creditShopStyles.modelSpec}>{t(row.workflow === "Image to Video" ? "nav.imageToVideo" : "nav.textToVideo")} &middot; {row.referenceResolution} &middot; {t("pricing.modelGuide.duration", { seconds: Number.parseInt(row.referenceDuration || "5s", 10) })}</p>
-                </div>
-                <p className={creditShopStyles.modelCredits}>{t("pricing.modelGuide.estimatedCredits", { credits: row.typicalCredits })}</p>
-              </li>
-            ))}
+            {curatedPricingRows.map(row => {
+              const durationSeconds = row.referenceDuration ? Number.parseInt(row.referenceDuration, 10) : NaN;
+              const specParts = [row.workflow];
+              if (row.referenceResolution) specParts.push(row.referenceResolution);
+              if (Number.isFinite(durationSeconds) && durationSeconds > 0) specParts.push(t("pricing.modelGuide.duration", { seconds: durationSeconds }));
+              const creatorRuns = row.typicalCredits > 0 ? Math.floor(creatorPack.credits / row.typicalCredits) : null;
+              return (
+                <li key={`${row.provider}-${row.workflow}`}>
+                  <div>
+                    <p className={creditShopStyles.modelName}>{row.label}</p>
+                    <p className={creditShopStyles.modelSpec}>{specParts.join(" · ")}</p>
+                  </div>
+                  <div className={creditShopStyles.modelMeta}>
+                    <p className={creditShopStyles.modelCredits}>{t("pricing.modelGuide.estimatedCredits", { credits: row.typicalCredits })}</p>
+                    {creatorRuns !== null ? <p className={creditShopStyles.modelPackRun}>{creatorPack.name}: {creatorRuns.toLocaleString()}×</p> : null}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </section>
       </div>

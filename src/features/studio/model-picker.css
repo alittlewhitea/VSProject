@@ -37,12 +37,12 @@
   transition: background var(--df-transition), border-color var(--df-transition), color var(--df-transition);
 }
 .df-model-filter-chip:hover {
-  border-color: var(--df-primary-border);
+  border-color: var(--df-accent-warm-border);
   color: var(--df-ink);
 }
 .df-model-filter-chip[aria-pressed="true"] {
-  border-color: var(--df-primary-border);
-  background: var(--df-primary-soft);
+  border-color: var(--df-accent-warm-border);
+  background: var(--df-accent-warm-soft);
   color: var(--df-accent);
 }
 .df-model-trigger-logo {

@@ -1,16 +1,112 @@
 .df-billing-workspace { min-height: 0; width: 100%; padding: 0; background: transparent; color: var(--df-ink); }
 .df-billing-workspace > div:empty { display: none; }
 .df-billing-workspace > section { width: 100%; max-width: none; padding: 0; margin: 0; }
-.df-billing-summary { display: grid; grid-template-columns: minmax(0,1fr) minmax(260px,.42fr); gap: 32px; padding: 28px; background: var(--df-surface); border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); }
-.df-billing-summary h2 { margin-top: 12px; font-size: 32px; line-height: 40px; letter-spacing: -.035em; font-weight: 600; }
-.df-billing-summary > div > p:last-child { margin-top: 12px; max-width: 580px; font-size: 14px; line-height: 22px; color: var(--df-muted); }
-.df-balance-card { background: var(--df-surface); border: 1px solid var(--df-border); border-radius: var(--df-radius-panel); padding: 20px; }
-.df-balance-card > span { font-size: 12px; color: var(--df-muted); }
-.df-balance-card > strong { display: block; margin-top: 10px; font-size: 32px; line-height: 40px; letter-spacing: -.03em; font-weight: 600; font-variant-numeric: tabular-nums; }
-.df-balance-card small { font-size: 12px; line-height: 18px; color: var(--df-muted); font-weight: 400; letter-spacing: 0; }
-.df-balance-card p { font-size: 12px; color: var(--df-muted); margin: 4px 0 16px; }
-@media(max-width:767px) {
-  .df-billing-summary { grid-template-columns: minmax(0,1fr); gap: 20px; padding: 20px; }
-  .df-billing-summary h2 { font-size: 28px; line-height: 36px; }
+
+.df-billing-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, .46fr);
+  gap: 28px;
+  padding: 28px;
+  background: var(--df-surface-glass);
+  background-image:
+    radial-gradient(460px 220px at 94% 0%, rgb(244 162 97 / .12), transparent 64%),
+    radial-gradient(420px 220px at 8% 100%, rgb(42 157 143 / .12), transparent 64%);
+  border: 1px solid var(--df-border-strong);
+  border-radius: var(--df-radius-panel);
+  box-shadow: var(--df-rim), var(--df-shadow-soft);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+.df-billing-summary h2 { margin-top: 12px; font-size: clamp(26px, 2.8vw, 34px); line-height: 1.2; letter-spacing: -.035em; font-weight: 700; }
+.df-billing-summary > div > p:last-child { margin-top: 10px; max-width: 560px; font-size: 14px; line-height: 22px; color: var(--df-muted); }
+
+.df-balance-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--df-surface-soft);
+  border: 1px solid var(--df-accent-border);
+  border-radius: 18px;
+  box-shadow: var(--df-rim);
+  padding: 20px;
+}
+.df-balance-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.df-balance-head > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--df-muted);
+}
+.df-balance-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--df-spark);
+  box-shadow: 0 0 10px var(--df-spark);
+}
+.df-balance-card > strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 34px;
+  line-height: 40px;
+  letter-spacing: -.035em;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  color: var(--df-ink);
+}
+.df-balance-card small { font-size: 13px; line-height: 18px; color: var(--df-accent); font-weight: 600; letter-spacing: 0; }
+.df-balance-card > p { font-size: 12px; color: var(--df-muted); margin: 4px 0 12px; }
+.df-balance-runway {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+.df-balance-runway span {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--df-border);
+  background: var(--df-surface-glass);
+  color: var(--df-ink);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.df-balance-card .df-button {
+  margin-top: auto;
+  border-radius: 999px;
+}
+
+.df-billing-panel {
+  border-radius: var(--df-radius-panel);
+  border: 1px solid var(--df-border);
+  background: var(--df-surface-glass);
+  box-shadow: var(--df-rim), var(--df-shadow-soft);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 22px 24px;
+}
+.df-billing-entry {
+  border-radius: 14px;
+  border: 1px solid var(--df-border);
+  background: var(--df-surface-soft);
+  padding: 13px 16px;
+  transition: border-color .15s ease;
+}
+.df-billing-entry:hover {
+  border-color: var(--df-border-strong);
+}
+
+@media (max-width: 860px) {
+  .df-billing-summary { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 20px; }
   .df-balance-card { padding: 16px; }
+  .df-billing-panel { padding: 18px; }
 }
