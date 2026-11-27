@@ -240,6 +240,7 @@ export function shouldShowWelcomeModal(input: {
   signedIn: boolean;
   userId: string | null;
   creditBalance: number | null;
+  tasksLoaded: boolean;
   taskCount: number;
   suppressed: boolean;
   alreadySeen: boolean;
@@ -249,6 +250,7 @@ export function shouldShowWelcomeModal(input: {
       input.signedIn &&
       input.userId &&
       typeof input.creditBalance === "number" &&
+      input.tasksLoaded &&
       input.taskCount === 0 &&
       !input.suppressed &&
       !input.alreadySeen

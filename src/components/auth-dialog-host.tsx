@@ -3,8 +3,8 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AUTH_DIALOG_EVENT, clearPendingHomeLogin, isMarketingHomePath, pendingHomeLogin, type SignInRequest } from "../lib/auth-navigation";
-import { createBrowserSupabaseClient } from "../lib/supabase-client";
+import { AUTH_DIALOG_EVENT, authReturnPath, clearPendingHomeLogin, isMarketingHomePath, pendingHomeLogin, type SignInRequest } from "../lib/auth-navigation";
+import { createBrowserSupabaseClient, getCachedAuthSession } from "../lib/supabase-client";
 
 const AuthDialog = dynamic(() => import("./auth-dialog"), { ssr: false });
 
@@ -14,11 +14,33 @@ export function AuthDialogHost() {
   const [request, setRequest] = useState<(SignInRequest & { id: number }) | null>(null);
   const sequence = useRef(0);
   const activeRequest = useRef(false);
+  const previousPathname = useRef(pathname);
   useEffect(() => {
-    const open = (event: Event) => { activeRequest.current = true; setRequest({ ...(event as CustomEvent<SignInRequest>).detail, id: ++sequence.current }); };
+    const open = (event: Event) => {
+      const detail = (event as CustomEvent<SignInRequest>).detail;
+      const existing = getCachedAuthSession();
+      if (existing) {
+        clearPendingHomeLogin();
+        try { detail.googlePopup?.close(); } catch { /* Optional popup close. */ }
+        detail.onSuccess?.(existing);
+        if (detail.redirectOnSuccess && !detail.onSuccess) router.push(authReturnPath(detail.next));
+        return;
+      }
+      activeRequest.current = true;
+      setRequest({ ...detail, id: ++sequence.current });
+    };
     window.addEventListener(AUTH_DIALOG_EVENT, open);
     return () => window.removeEventListener(AUTH_DIALOG_EVENT, open);
-  }, []);
+  }, [router]);
+  useEffect(() => {
+    if (previousPathname.current !== pathname) {
+      previousPathname.current = pathname;
+      if (activeRequest.current) {
+        activeRequest.current = false;
+        setRequest(null);
+      }
+    }
+  }, [pathname]);
   useEffect(() => {
     if (!isMarketingHomePath(pathname || "/")) { clearPendingHomeLogin(); return; }
     let active = true;

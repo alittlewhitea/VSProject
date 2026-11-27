@@ -236,7 +236,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     openInsufficientCreditsModal,
     startStudioCreditCheckout
   } = sessionBilling;
-  const {tasks,setTasks,taskHistoryNote,setTaskHistoryNote}=useStudioTaskHistory(accessToken,userId,st);
+  const {tasks,setTasks,tasksLoaded,taskHistoryNote,setTaskHistoryNote}=useStudioTaskHistory(accessToken,userId,st);
   const h3DailyFree = useH3DailyFree(accessToken, userId);
   const startHomeCreation = useCallback((input: HomeCreationInput) => {
     const hasImage = input.mode !== "audio" && Boolean(input.image);
@@ -1910,6 +1910,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     systemPrompt,
     taskHistoryNote,
     tasks,
+    tasksLoaded,
     textNormalization,
     thinkingLevel,
     ttsLanguageCode,

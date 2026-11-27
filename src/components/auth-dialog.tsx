@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { isLocale, isRtlLocale, type Locale } from "../i18n/routing";
 import { AUTH_RESULT_EVENT, authReturnPath, openGoogleSignInPopup, type SignInRequest } from "../lib/auth-navigation";
-import { createBrowserSupabaseClient, notifyAuthChange, type AuthSession } from "../lib/supabase-client";
+import { createBrowserSupabaseClient, getCachedAuthSession, hasResolvedAuthSession, notifyAuthChange, type AuthSession } from "../lib/supabase-client";
 import { trackEvent } from "../lib/analytics";
 import { useStudioDialog } from "../features/studio/use-studio-dialog";
 import { ReferralSignup } from "./referral-signup";
@@ -21,6 +21,7 @@ export default function AuthDialog({ request, onClose }: { request: SignInReques
   const [locale] = useState<Locale>(() => isLocale(document.documentElement.lang) ? document.documentElement.lang : "en");
   const copy = authDialogCopy(locale);
   const [googleBusy, setGoogleBusy] = useState(Boolean(request.googlePopup));
+  const [readyToShow, setReadyToShow] = useState(() => hasResolvedAuthSession() && !getCachedAuthSession());
   const [error, setError] = useState("");
   const [blocked, setBlocked] = useState(request.googlePopup === null);
   const dialog = useRef<HTMLDivElement>(null);
@@ -33,7 +34,7 @@ export default function AuthDialog({ request, onClose }: { request: SignInReques
   const emailSignIn = useEmailCodeSignIn({ next, surface: "dialog" });
   const { email, code, sent, remaining } = emailSignIn;
   const busy = googleBusy || emailSignIn.busy !== null;
-  useStudioDialog(true, dialog, { onClose });
+  useStudioDialog(readyToShow, dialog, { onClose });
 
   useEffect(() => {
     if (popupCloseTimer.current) clearTimeout(popupCloseTimer.current);
@@ -49,7 +50,19 @@ export default function AuthDialog({ request, onClose }: { request: SignInReques
       latest.current.request.onSuccess?.(session);
       if (latest.current.request.redirectOnSuccess && !latest.current.request.onSuccess) router.push(next);
     }
-    const { data } = client.auth.onAuthStateChange((_event, session) => { if (session) finish(session); });
+    const { data } = client.auth.onAuthStateChange((_event, session) => {
+      if (session) finish(session);
+      else setReadyToShow(true);
+    });
+    if (!hasResolvedAuthSession()) {
+      void client.auth.getSession().then(
+        ({ data: result }) => {
+          if (result.session) finish(result.session);
+          else setReadyToShow(true);
+        },
+        () => setReadyToShow(true)
+      );
+    }
     const message = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.source !== popup.current || event.data?.type !== AUTH_RESULT_EVENT) return;
       if (event.data.error) { setError(copy.error); setGoogleBusy(false); }
@@ -84,6 +97,8 @@ export default function AuthDialog({ request, onClose }: { request: SignInReques
     if (request.onBeforeRedirect?.() === false) { setError(copy.error); return; }
     window.location.assign(`/api/auth/google/start?${new URLSearchParams({ next })}`);
   }
+
+  if (!readyToShow) return null;
 
   return createPortal(<div className={styles.backdrop} data-auth-dialog-backdrop onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
     <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="auth-dialog-title" aria-describedby="auth-dialog-description" tabIndex={-1} className={styles.dialog} dir={isRtlLocale(locale) ? "rtl" : "ltr"} data-auth-dialog>

@@ -67,6 +67,7 @@ export function StudioShell({ model }: { model: StudioController }) {
     studioI18n,
     taskHistoryNote,
     tasks,
+    tasksLoaded,
     userId,
     videoSidebarCollapsed
   } = model;
@@ -234,6 +235,7 @@ export function StudioShell({ model }: { model: StudioController }) {
         signedIn={Boolean(accessToken)}
         userId={userId}
         creditBalance={creditBalance}
+        tasksLoaded={tasksLoaded}
         taskCount={tasks.length}
         suppressed={
           isProjectsView ||

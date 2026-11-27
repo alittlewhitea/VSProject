@@ -17,6 +17,21 @@ const AUTH_STORAGE_KEY = "dreamface-auth-updated";
 let browserClient: ReturnType<typeof makeClient> | null = null;
 let sessionRead: Promise<AuthSession | null> | null = null;
 let emailVerification: Promise<{ ok: boolean; error?: string }> | null = null;
+let cachedSession: AuthSession | null | undefined = undefined;
+
+function isLiveSession(session: AuthSession | null | undefined): session is AuthSession {
+  if (!session?.access_token) return false;
+  const expiresMs = Date.parse(session.expires_at);
+  return !Number.isFinite(expiresMs) || expiresMs > Date.now() + 5_000;
+}
+
+export function getCachedAuthSession(): AuthSession | null {
+  return isLiveSession(cachedSession) ? cachedSession : null;
+}
+
+export function hasResolvedAuthSession(): boolean {
+  return cachedSession !== undefined;
+}
 
 async function submitEmailCredential(credential?: { email: string; code: string }) {
   const response = await fetch("/api/auth/verify", {
@@ -47,7 +62,9 @@ function readSession(): Promise<AuthSession | null> {
     // auth completes. All other pages can claim; the server arbitrates tabs.
     const googlePopup = window.name === "dreamface-google-login" && window.opener && !window.opener.closed;
     if (payload.session && payload.loginEvent && !googlePopup) void trackLoginSuccess(payload.loginEvent);
-    return payload?.session || null;
+    const session = payload?.session || null;
+    cachedSession = session;
+    return session;
   })().finally(() => { sessionRead = null; });
   return sessionRead;
 }
@@ -116,6 +133,7 @@ function makeClient() {
         if (!response.ok) return { error: new Error("Unable to sign out.") };
         // Let any earlier session read finish before subscribers read the cleared session.
         await sessionRead?.catch(() => null);
+        cachedSession = null;
         notifyAuthChange();
         return { error: null };
       },

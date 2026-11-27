@@ -3,8 +3,9 @@ import {useEffect,useState} from "react";
 import {mergeTasks,pickMediaUrl,pickImageOutputUrls,readSessionTasks,safeRemoveLocalStorage,sessionTasksKey,writeSessionTasksCache,type TaskItem} from "./studio-storage";
 type Translate=(key:string,values?:Record<string,string|number|null|undefined>)=>string;
 export function useStudioTaskHistory(accessToken:string|null,userId:string|null,st:Translate){
-const [tasks,setTasks]=useState<TaskItem[]>([]),[taskHistoryNote,setTaskHistoryNote]=useState("");
+const [tasks,setTasks]=useState<TaskItem[]>([]),[tasksLoaded,setTasksLoaded]=useState(false),[taskHistoryNote,setTaskHistoryNote]=useState("");
 useEffect(() => {
+    setTasksLoaded(false);
     if (!accessToken || !userId) return;
     let cancelled = false;
     async function loadHistory(skipSync = false) {
@@ -83,6 +84,7 @@ useEffect(() => {
         }
         if (cancelled) return;
         setTasks(mergeTasks(remoteTasks, sessionTasks.filter(task => task.createdAt && Date.now() - new Date(task.createdAt).getTime() < 10 * 60 * 1000)));
+        setTasksLoaded(true);
         setTaskHistoryNote("");
         if (!skipSync && remoteTasks.some(task => task.status === "Queued" || task.status === "Running")) {
           void fetch("/api/tasks", { method: "POST", headers: { Authorization: `Bearer ${accessToken}` } })
@@ -118,5 +120,5 @@ useEffect(() => {
       safeRemoveLocalStorage(tasksKey);
     }
   }, [tasks, userId]);
-return {tasks,setTasks,taskHistoryNote,setTaskHistoryNote};
+return {tasks,setTasks,tasksLoaded,taskHistoryNote,setTaskHistoryNote};
 }

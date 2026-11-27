@@ -1,4 +1,4 @@
-import type { AuthSession } from "./supabase-client";
+import { getCachedAuthSession, type AuthSession } from "./supabase-client";
 import { locales } from "../i18n/routing";
 
 export const AUTH_DIALOG_EVENT = "dreamface-open-auth";
@@ -93,5 +93,9 @@ export function requestSignIn(options: SignInRequest = {}) {
 
 export function requestGoogleSignIn(options: SignInRequest = {}) {
   const next = authReturnPath(options.next || `${window.location.pathname}${window.location.search}${window.location.hash}`);
+  if (getCachedAuthSession()) {
+    requestSignIn({ ...options, next });
+    return;
+  }
   requestSignIn({ ...options, next, googlePopup: openGoogleSignInPopup(next) });
 }

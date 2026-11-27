@@ -29,6 +29,7 @@ test("shouldShowWelcomeModal triggers only once for brand-new signed-in users wi
     signedIn: true,
     userId: "user-123",
     creditBalance: 100,
+    tasksLoaded: true,
     taskCount: 0,
     suppressed: false,
     alreadySeen: false
@@ -39,6 +40,7 @@ test("shouldShowWelcomeModal triggers only once for brand-new signed-in users wi
   assert.equal(shouldShowWelcomeModal({ ...base, authReady: false }), false);
   assert.equal(shouldShowWelcomeModal({ ...base, signedIn: false }), false);
   assert.equal(shouldShowWelcomeModal({ ...base, creditBalance: null }), false);
+  assert.equal(shouldShowWelcomeModal({ ...base, tasksLoaded: false }), false);
   assert.equal(shouldShowWelcomeModal({ ...base, taskCount: 1 }), false);
   assert.equal(shouldShowWelcomeModal({ ...base, suppressed: true }), false);
   assert.equal(shouldShowWelcomeModal({ ...base, alreadySeen: true }), false);

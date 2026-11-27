@@ -11,6 +11,37 @@ const video = JSON.parse(readFileSync("public/data/studio-video-templates.json",
 const combined = JSON.parse(readFileSync("public/data/studio-combined-template-order.json", "utf8"));
 const slides = JSON.parse(readFileSync("public/data/studio-home-template-slides.json", "utf8"));
 const all = [...image.items, ...video.items];
+const allowedCategories = {
+  image: ["product-shot", "ads", "posters", "marketplace"],
+  video: ["motion", "ugc", "tiktok", "shorts"]
+};
+for (const [kind, catalog] of [["image", image], ["video", video]]) {
+  assert.equal(catalog.version, 1, `${kind} catalog version must be 1`);
+  assert.ok(Array.isArray(catalog.items) && catalog.items.length > 0, `${kind} catalog items must be non-empty`);
+  for (const item of catalog.items) {
+    assert.equal(typeof item.id, "string", `${kind} item missing id`);
+    assert.equal(typeof item.title, "string", `${kind} item ${item.id} missing title`);
+    assert.ok(Array.isArray(item.categories) && item.categories.some(c => allowedCategories[kind].includes(c)), `${kind} item ${item.id} missing valid category`);
+    assert.ok(Number.isFinite(item.width) && item.width > 0 && Number.isFinite(item.height) && item.height > 0, `${kind} item ${item.id} invalid dimensions`);
+    assert.ok(typeof item.sourceUrl === "string" && item.sourceUrl.startsWith("https://"), `${kind} item ${item.id} missing https sourceUrl`);
+    if (kind === "video") {
+      assert.ok(typeof item.videoUrl === "string" && item.videoUrl.startsWith("https://"), `video item ${item.id} invalid videoUrl`);
+      assert.ok(typeof item.posterUrl === "string" && item.posterUrl.startsWith("https://"), `video item ${item.id} invalid posterUrl`);
+    } else {
+      assert.ok(typeof item.imageUrl === "string" && item.imageUrl.startsWith("https://"), `image item ${item.id} invalid imageUrl`);
+    }
+  }
+  if (catalog.categoryOrder) {
+    for (const [category, order] of Object.entries(catalog.categoryOrder)) {
+      const expected = catalog.items.filter(item => category === "all" || item.categories.includes(category));
+      const ids = new Set(expected.map(item => item.id));
+      assert.ok(Array.isArray(order), `${kind} categoryOrder.${category} must be array`);
+      assert.equal(order.length, expected.length, `${kind} categoryOrder.${category} length mismatch (${order.length} !== ${expected.length})`);
+      assert.equal(new Set(order).size, order.length, `${kind} categoryOrder.${category} has duplicate ids`);
+      assert.ok(order.every(id => ids.has(id)), `${kind} categoryOrder.${category} contains unknown id`);
+    }
+  }
+}
 assert.equal(combined.ids.length, all.length);
 assert.deepEqual([...combined.ids].sort(), all.map(item => item.id).sort());
 assert.equal(new Set(combined.ids).size, all.length);

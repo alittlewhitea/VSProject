@@ -85,6 +85,7 @@ export function StudioWelcomeModal({
   signedIn,
   userId,
   creditBalance,
+  tasksLoaded,
   taskCount,
   suppressed
 }: {
@@ -93,6 +94,7 @@ export function StudioWelcomeModal({
   signedIn: boolean;
   userId: string | null;
   creditBalance: number | null;
+  tasksLoaded: boolean;
   taskCount: number;
   suppressed: boolean;
 }) {
@@ -115,6 +117,7 @@ export function StudioWelcomeModal({
       signedIn,
       userId,
       creditBalance,
+      tasksLoaded,
       taskCount,
       suppressed,
       alreadySeen
@@ -131,7 +134,7 @@ export function StudioWelcomeModal({
       trackEvent("studio_welcome_shown", { locale, credits: creditBalance });
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [authReady, creditBalance, locale, signedIn, suppressed, taskCount, userId]);
+  }, [authReady, creditBalance, locale, signedIn, suppressed, taskCount, tasksLoaded, userId]);
 
   const dismiss = (action?: string) => {
     setOpen(false);

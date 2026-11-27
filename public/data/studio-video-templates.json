@@ -19,7 +19,8 @@
       "videoUrl": "https://media.dreamface.io/videos/studio-pet-sing-dance-carousel.mp4",
       "posterUrl": "https://media.dreamface.io/images/studio-pet-sing-dance-carousel-poster.webp",
       "width": 720,
-      "height": 1096
+      "height": 1096,
+      "sourceUrl": "https://dreamface.io/studio?view=apps&app=pet-sing-dance"
     },
     {
       "id": "6089a97b-4e49-43ed-9338-09a9c63e2783",
@@ -4362,6 +4363,7 @@
   },
   "categoryOrder": {
     "all": [
+      "dreamface-pet-sing-dance-kittens",
       "6089a97b-4e49-43ed-9338-09a9c63e2783",
       "000b690e-7f6d-4a7c-9196-a90f15494bb6",
       "46406130-acc3-43f0-b6fe-554a22cad279",

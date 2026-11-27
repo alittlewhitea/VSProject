@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 
 import { trackEvent } from "../../lib/analytics";
 import { requestSignIn } from "../../lib/auth-navigation";
 import { CREDIT_PACKS } from "../../lib/billing";
-import { createBrowserSupabaseClient } from "../../lib/supabase-client";
+import { createBrowserSupabaseClient, getCachedAuthSession } from "../../lib/supabase-client";
 import type { GenerationBillingContext } from "./studio-billing-modal";
 import { safeRemoveLocalStorage, safeSetLocalStorage, scopedSessionKey, type StudioMode } from "./studio-storage";
 import { SESSION_CREDIT_BALANCE_KEY, type StudioWorkflow } from "./studio-workspace-config";
@@ -23,9 +23,9 @@ export type StudioSessionActionMeta = {
 };
 
 export function useStudioSessionBilling(actionMetaRef: MutableRefObject<StudioSessionActionMeta>) {
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [authReady, setAuthReady] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(() => getCachedAuthSession()?.access_token ?? null);
+  const [userId, setUserId] = useState<string | null>(() => getCachedAuthSession()?.user.id ?? null);
+  const [authReady, setAuthReady] = useState<boolean>(() => Boolean(getCachedAuthSession()));
   const [referralsVisible, setReferralsVisible] = useState(false);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [creditNote, setCreditNote] = useState("");
