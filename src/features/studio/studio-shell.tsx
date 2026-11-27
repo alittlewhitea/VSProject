@@ -14,6 +14,9 @@ import type { StudioController } from "./use-studio-controller";
 
 const StudioBillingModal = dynamic(() => import("./studio-billing-modal").then((module) => module.StudioBillingModal));
 const StudioBillingWorkspace = dynamic(() => import("./studio-billing-workspace").then((module) => module.StudioBillingWorkspace));
+const StudioAppsWorkspace = dynamic(() => import("./studio-apps-workspace").then((module) => module.StudioAppsWorkspace), {
+  loading: () => <div className="min-h-72 animate-pulse rounded-2xl bg-[var(--studio-panel)]" aria-busy="true" />
+});
 const StudioHome = dynamic(() => import("./studio-home").then((module) => module.StudioHome));
 const StudioProjects = dynamic(() => import("./studio-projects").then((module) => module.StudioProjects));
 const StudioReferrals = dynamic(() => import("./studio-referrals").then((module) => module.StudioReferrals));
@@ -25,6 +28,7 @@ const StudioAssistant = dynamic(() => import("./studio-assistant-preview").then(
 export function StudioShell({ model }: { model: StudioController }) {
   const {
     accessToken,
+    activeApp,
     activeTasks,
     billingGenerationContext,
     billingHref,
@@ -34,6 +38,7 @@ export function StudioShell({ model }: { model: StudioController }) {
     creditBalance,
     duration,
     isAppsHome,
+    isAppsView,
     isBillingView,
     isProjectsView,
     isReferralsView,
@@ -62,8 +67,8 @@ export function StudioShell({ model }: { model: StudioController }) {
     videoSidebarCollapsed
   } = model;
 
-  const isCreationView = !isAppsHome && !isProjectsView && !isBillingView;
-  const showMobileNavigation = isAppsHome || isCreationView;
+  const isCreationView = !isAppsHome && !isAppsView && !isProjectsView && !isBillingView;
+  const showMobileNavigation = isAppsHome || isAppsView || isCreationView;
   const routeKey = sp.toString();
   const expandedSidebarColumns = isCreationView ? "xl:grid-cols-[240px_minmax(0,1fr)]" : "xl:grid-cols-[216px_minmax(0,1fr)]";
   const gridColumns = `md:grid-cols-[76px_minmax(0,1fr)] ${videoSidebarCollapsed ? "" : expandedSidebarColumns}`;
@@ -108,6 +113,7 @@ export function StudioShell({ model }: { model: StudioController }) {
             <StudioSidebar
               referralsVisible={referralsVisible}
               referralLocale={studioI18n.locale}
+              isAppsView={isAppsView}
               isBillingView={isBillingView}
               billingHref={billingHref}
               isReferralsView={isReferralsView && referralsVisible}
@@ -126,6 +132,8 @@ export function StudioShell({ model }: { model: StudioController }) {
             <div className={`studio-content relative min-w-0 max-w-full ${isCreationView ? "df-workbench-content" : ""} px-3.5 pb-[calc(90px+env(safe-area-inset-bottom))] lg:px-7 lg:pb-8`}>
               <StudioHeader
                 referralsVisible={referralsVisible}
+                isAppsView={isAppsView}
+                activeApp={activeApp}
                 isBillingView={isBillingView}
                 billingHref={billingHref}
                 isReferralsView={isReferralsView && referralsVisible}
@@ -168,7 +176,9 @@ export function StudioShell({ model }: { model: StudioController }) {
                 />
               ) : null}
 
-              {!isAppsHome && !isProjectsView && !isBillingView ? (
+              {isAppsView ? (
+                <StudioAppsWorkspace model={model} />
+              ) : !isAppsHome && !isProjectsView && !isBillingView ? (
                 <div className="df-workbench-canvas">
                   <StudioCreationWorkspace model={model} />
                 </div>
@@ -198,7 +208,7 @@ export function StudioShell({ model }: { model: StudioController }) {
           </div>
         ) : null}
       </div>
-      {showMobileNavigation ? <StudioBottomNavigation t={st} mode={mode} isAppsHome={isAppsHome} isProjectsView={isProjectsView} currentHref={routeKey ? `/studio?${routeKey}` : "/studio"} /> : null}
+      {showMobileNavigation ? <StudioBottomNavigation t={st} locale={studioI18n.locale} mode={mode} isAppsHome={isAppsHome} isAppsView={isAppsView} isProjectsView={isProjectsView} currentHref={routeKey ? `/studio?${routeKey}` : "/studio"} /> : null}
       <StudioScrollToBottom translate={st} routeKey={routeKey} />
       <StudioTaskToast
         tasks={tasks}

@@ -9,6 +9,7 @@
 @import "./studio-video-design.css";
 @import "./studio-image-design.css";
 @import "./model-picker.css";
+@import "./studio-apps.css";
 
 .creative-studio, .studio-overlay {
   color: var(--studio-text);

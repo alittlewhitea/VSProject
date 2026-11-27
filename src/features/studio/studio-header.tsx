@@ -4,6 +4,8 @@ import { memo, useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { AuthLink } from "../../components/auth-link";
 import type { Locale } from "../../i18n/routing";
 import { referralTranslator } from "../../lib/referral-i18n";
+import { PET_APP_ID } from "./studio-apps-catalog";
+import { studioAppsCopy } from "./studio-apps-i18n";
 import { StudioIcon, StudioMobileMenu, type StudioNavigationMode } from "./studio-navigation";
 import { StudioActionLink, StudioButton } from "./studio-primitives";
 import { StudioThemeToggle } from "./studio-theme-toggle";
@@ -11,6 +13,8 @@ import { StudioThemeToggle } from "./studio-theme-toggle";
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 type StudioHeaderProps = {
+  isAppsView?: boolean;
+  activeApp?: string | null;
   isBillingView?: boolean;
   billingHref?: string;
   referralsVisible?: boolean;
@@ -128,6 +132,8 @@ function StudioLanguageMenu({ label, locale, locales, localeLabels, onLocaleChan
 }
 
 export const StudioHeader = memo(function StudioHeader({
+  isAppsView = false,
+  activeApp = null,
   isBillingView = false,
   billingHref,
   referralsVisible = false,
@@ -150,13 +156,19 @@ export const StudioHeader = memo(function StudioHeader({
   onBillingOpen
 }: StudioHeaderProps) {
   const rt = referralTranslator(locale);
+  const appsCopy = studioAppsCopy(locale);
   const copy = isBillingView
     ? { title: t("studio.billing.open"), description: "" }
-    : isReferralsView
-      ? { title: rt("title"), description: rt("history") }
-      : headerCopy(t, mode, isAppsHome, isProjectsView);
+    : isAppsView
+      ? {
+          title: activeApp === PET_APP_ID ? appsCopy.petAppTitle : appsCopy.hubTitle,
+          description: activeApp === PET_APP_ID ? appsCopy.petAppTagline : appsCopy.hubSubtitle
+        }
+      : isReferralsView
+        ? { title: rt("title"), description: rt("history") }
+        : headerCopy(t, mode, isAppsHome, isProjectsView);
 
-  const workspaceTitle = !isAppsHome && !isProjectsView && !isBillingView && !isReferralsView
+  const workspaceTitle = !isAppsHome && !isAppsView && !isProjectsView && !isBillingView && !isReferralsView
     ? t("studio.workspace.title", { name: t(mode === "avatar" ? "studio.workspace.avatar" : `studio.nav.${mode}`) })
     : copy.title;
   const languageMenu = <StudioLanguageMenu label={t("studio.language")} locale={locale} locales={locales} localeLabels={localeLabels} onLocaleChange={onLocaleChange} />;
@@ -165,6 +177,7 @@ export const StudioHeader = memo(function StudioHeader({
     <header className="studio-topbar df-app-header">
       <div className="df-header-title">
         <StudioMobileMenu
+          isAppsView={isAppsView}
           isBillingView={isBillingView}
           billingHref={billingHref}
           referralsVisible={referralsVisible}

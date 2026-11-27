@@ -7,6 +7,7 @@ import { memo, useEffect, useId, useRef, useState } from "react";
 import { useStudioDialog } from "./use-studio-dialog";
 import {BrandMark} from "../../components/brand-mark";
 import { StudioThemeToggle } from "./studio-theme-toggle";
+import { studioAppsCopy } from "./studio-apps-i18n";
 import { referralTranslator } from "../../lib/referral-i18n";
 import { createBrowserSupabaseClient } from "../../lib/supabase-client";
 import type { Locale } from "../../i18n/routing";
@@ -41,6 +42,7 @@ export type StudioIconName =
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 type NavigationState = {
+  isAppsView?: boolean;
   isBillingView?: boolean;
   billingHref?: string;
   referralsVisible?: boolean;
@@ -51,7 +53,7 @@ type NavigationState = {
 };
 
 type NavigationItem = {
-  id: "home" | StudioNavigationMode | "projects" | "billing" | "referrals";
+  id: "home" | "apps" | StudioNavigationMode | "projects" | "billing" | "referrals";
   label: string;
   href: string;
   icon: StudioIconName;
@@ -61,6 +63,7 @@ type NavigationItem = {
 
 const filledNavigationPaths: Record<NavigationItem["id"], string> = {
   home: "M10.7 3.3a2 2 0 0 1 2.6 0l7 6a2 2 0 0 1 .7 1.5V19a2 2 0 0 1-2 2h-4v-6a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v6H5a2 2 0 0 1-2-2v-8.2a2 2 0 0 1 .7-1.5z",
+  apps: "M4 5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm10 0a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM4 15a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm10 0a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z",
   avatar: "M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm6 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm-5 11h10a5.2 5.2 0 0 0-10 0z",
   video: "M5.5 5.5h9a3 3 0 0 1 3 3v1.2l3-2a1 1 0 0 1 1.5.9v6.8a1 1 0 0 1-1.5.9l-3-2v1.2a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3z",
   image: "M6 4h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3zm2.6 3.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zM5 16.2v.8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1.7l-3-3a1.1 1.1 0 0 0-1.5 0l-3.3 3.1-2-1.8a1 1 0 0 0-1.4 0z",
@@ -74,14 +77,14 @@ function FilledNavigationIcon({ item }: { item: NavigationItem }) {
   return <svg aria-hidden="true" className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="currentColor"><path fillRule="evenodd" d={filledNavigationPaths[item.id]} /></svg>;
 }
 
-function navigationItems(t: Translate, state: NavigationState, homeLabelKey = "studio.nav.home", referralLabel="Invite friends"): NavigationItem[] {
-  const inWorkbench = !state.isAppsHome && !state.isProjectsView && !state.isBillingView;
+function navigationItems(t: Translate, state: NavigationState, homeLabelKey = "studio.nav.home", referralLabel="Invite friends", appsLabel = "Apps"): NavigationItem[] {
+  const inWorkbench = !state.isAppsHome && !state.isAppsView && !state.isProjectsView && !state.isBillingView;
   return ([
     { id: "home", label: t(homeLabelKey), href: "/studio?view=home", icon: "home", visualIcon: "✦", active: state.isAppsHome },
     { id: "avatar", label: t("studio.nav.avatar"), href: "/studio?mode=avatar&workflow=avatar-video&provider=heygen-video", icon: "video", visualIcon: "💬", active: inWorkbench && state.mode === "avatar" },
     { id: "video", label: t("studio.nav.video"), href: "/studio?mode=video&workflow=text-to-video", icon: "video", visualIcon: "🎞️", active: inWorkbench && state.mode === "video" },
     { id: "image", label: t("studio.nav.image"), href: "/studio?mode=image&workflow=text-to-image", icon: "image", visualIcon: "🖼️", active: inWorkbench && state.mode === "image" },
-    { id: "audio", label: t("studio.nav.audio"), href: "/studio?mode=audio&workflow=text-to-audio&provider=elevenlabs-tts", icon: "audio", visualIcon: "🎵", active: inWorkbench && state.mode === "audio" },
+    { id: "apps", label: appsLabel, href: "/studio?view=apps", icon: "sparkles", visualIcon: "✨", active: Boolean(state.isAppsView) || (inWorkbench && state.mode === "audio") },
     { id: "projects", label: t("studio.nav.projects"), href: "/studio?view=projects", icon: "projects", visualIcon: "📁", active: state.isProjectsView && !state.isReferralsView },
     { id: "referrals", label: referralLabel, href: "/studio?view=referrals", icon: "sparkles", visualIcon: "🎁", active: Boolean(state.isReferralsView) },
     { id: "billing", label: t("studio.billing.open"), href: state.billingHref || "/studio?view=billing", icon: "billing", visualIcon: "💳", active: Boolean(state.isBillingView) }
@@ -188,7 +191,8 @@ type StudioSidebarProps = NavigationState & {
 
 export const StudioSidebar = memo(function StudioSidebar({ t, referralLocale = "en", collapsed = false, creditBalance = null, activeTaskCount = 0, signedIn = false, onOpenCredits, onCollapsedChange, ...state }: StudioSidebarProps) {
   const rt = referralTranslator(referralLocale);
-  const items = navigationItems(t, state, "studio.nav.home", rt("title"));
+  const appsCopy = studioAppsCopy(referralLocale);
+  const items = navigationItems(t, state, "studio.nav.home", rt("title"), appsCopy.navLabel);
 
   return (
     <aside data-studio-sidebar data-collapsed={collapsed} className="studio-sidebar relative hidden h-screen flex-col border-e border-[var(--studio-border)] bg-[var(--studio-panel)] px-3.5 py-5 md:sticky md:top-0 md:flex">
@@ -209,11 +213,13 @@ export const StudioSidebar = memo(function StudioSidebar({ t, referralLocale = "
       <nav aria-label={t("studio.header.apps")} className="mt-7 grid gap-1">
         {items.map((item) => {
           const showActiveBadge = item.id === "projects" && activeTaskCount > 0;
+          const showHotBadge = !collapsed && item.id === "apps";
           const title = showActiveBadge ? `${item.label} · ${t("studio.summary.runningTasks", { count: activeTaskCount })}` : item.label;
           return (
             <Link key={`${item.label}-${item.href}`} href={item.href} title={title} aria-current={item.active ? "page" : undefined} className={`df-sidebar-item relative flex h-10 items-center rounded-[10px] text-sm transition ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${item.active ? "bg-[var(--studio-surface)] font-semibold text-[var(--studio-text)]" : "text-[var(--studio-muted)] hover:bg-[var(--studio-surface)] hover:text-[var(--studio-text)]"}`}>
               <StudioIcon name={item.icon} className="h-[17px] w-[17px] shrink-0" />
               {!collapsed ? <span className="min-w-0 flex-1 truncate">{item.label}</span> : null}
+              {showHotBadge ? <span className="df-sidebar-hot-badge">{appsCopy.navBadge}</span> : null}
               {showActiveBadge ? <b className="df-sidebar-task-badge" data-active-task-badge aria-label={t("studio.summary.runningTasks", { count: activeTaskCount })}>{activeTaskCount > 9 ? "9+" : activeTaskCount}</b> : null}
             </Link>
           );
@@ -228,9 +234,10 @@ export const StudioSidebar = memo(function StudioSidebar({ t, referralLocale = "
   );
 });
 
-export const StudioBottomNavigation = memo(function StudioBottomNavigation({ t, currentHref, ...state }: NavigationState & { t: Translate; currentHref: string }) {
-  const order = ["home", "video", "image", "audio", "avatar"];
-  const items = navigationItems(t, state)
+export const StudioBottomNavigation = memo(function StudioBottomNavigation({ t, currentHref, locale = "en", ...state }: NavigationState & { t: Translate; currentHref: string; locale?: Locale }) {
+  const appsCopy = studioAppsCopy(locale);
+  const order = ["home", "apps", "video", "image", "avatar"];
+  const items = navigationItems(t, state, "studio.nav.home", "Invite friends", appsCopy.navLabel)
     .filter(item => order.includes(item.id))
     .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 
@@ -269,6 +276,7 @@ type StudioMobileMenuProps = NavigationState & {
 
 export function StudioMobileMenu({ t, open, signedIn, creditBalance, activeTaskCount = 0, signInUrl, locale, locales, localeLabels, onOpenChange, onOpenCredits, onLocaleChange, ...state }: StudioMobileMenuProps) {
   const rt=referralTranslator(locale);
+  const appsCopy = studioAppsCopy(locale);
   const close = () => onOpenChange(false);
   const menuId = useId();
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -301,11 +309,12 @@ export function StudioMobileMenu({ t, open, signedIn, creditBalance, activeTaskC
             </div>
             <div className="df-mobile-menu-body">
               <nav aria-label={t("studio.header.apps")} className="df-mobile-menu-nav">
-                {navigationItems(t, state, "studio.menu.studioHome", rt("title")).map(item => (
+                {navigationItems(t, state, "studio.menu.studioHome", rt("title"), appsCopy.navLabel).map(item => (
                   <Link key={item.id} href={item.href} data-nav-item={item.id} aria-current={item.active ? "page" : undefined} onClick={close} className="df-mobile-nav-link">
                     <StudioIcon name={item.icon} className="h-[18px] w-[18px] shrink-0" />
                     <span className="flex min-w-0 items-center justify-between gap-2">
                       <span className="truncate">{item.label}</span>
+                      {item.id === "apps" ? <span className="df-sidebar-hot-badge">{appsCopy.navBadge}</span> : null}
                       {item.id === "projects" && activeTaskCount > 0 ? <b className="df-sidebar-task-badge" data-active-task-badge>{activeTaskCount > 9 ? "9+" : activeTaskCount}</b> : null}
                     </span>
                   </Link>

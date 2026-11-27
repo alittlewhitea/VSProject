@@ -75,6 +75,8 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
   const sp = useSearchParams();
   const mode: StudioMode = sp.get("mode") === "image" ? "image" : sp.get("mode") === "audio" ? "audio" : sp.get("mode") === "avatar" ? "avatar" : "video";
   const view = sp.get("view") || initialView;
+  const isAppsView = view === "apps";
+  const activeApp = sp.get("app") || null;
   const isBillingView = view === "billing";
   const billingParams = new URLSearchParams(sp.toString());
   billingParams.set("view", "billing");
@@ -1779,7 +1781,10 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     imageSize,
     imageWorkflow,
     improveTextToImagePrompt,
+    activeApp,
+    cacheCreditBalance,
     isAppsHome,
+    isAppsView,
     isAvatarWorkflow,
     isBillingView,
     isElevenLabsAudio,
@@ -1795,6 +1800,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     isSubmitting,
     limitGenerations,
     loadingBillingItem,
+    localizeStudioError,
     lyricsOptimizer,
     mobileStudioMenuOpen,
     mode,
@@ -1809,6 +1815,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     openBillingModal,
     outputFormat,
     previewModal,
+    pricingTime,
     prompt,
     provider,
     providerSettingsLabel,
@@ -1818,6 +1825,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     referenceImagesText,
     referenceVideoUrl,
     referralsVisible,
+    refreshLiveAccessToken,
     heygenReferenceOptions,
     setHeygenReferenceOptions,
     heygenValidationError,
@@ -1858,6 +1866,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setNumInferenceSteps,
     setOutputFormat,
     setPreviewModal,
+    setPricingTime,
     setPrompt,
     setRatio,
     setReasoningLevel,
@@ -1871,6 +1880,7 @@ export function useStudioController({ initialLocale, initialMessages, initialVie
     setStatusText,
     setStatusTone,
     setSystemPrompt,
+    setTasks,
     setTextNormalization,
     setThinkingLevel,
     setTtsLanguageCode,
