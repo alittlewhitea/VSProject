@@ -6,6 +6,7 @@ import { loadMessages } from "../i18n/messages";
 import { defaultLocale, isLocale, isRtlLocale } from "../i18n/routing";
 import { AuthDialogHost } from "../components/auth-dialog-host";
 import { GrowthTracker } from "../components/growth-tracker";
+import { GtmLoader } from "../components/gtm-loader";
 
 export const metadata: Metadata = {
   title: {
@@ -54,14 +55,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale} dir={isRtlLocale(locale) ? "rtl" : "ltr"}>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WG68M9NW');"
-          }}
-        />
-      </head>
       <body>
         <noscript>
           <iframe
@@ -75,6 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
           <AuthDialogHost />
           <GrowthTracker />
+          <GtmLoader />
         </NextIntlClientProvider>
       </body>
     </html>

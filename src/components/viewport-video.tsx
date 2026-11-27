@@ -6,6 +6,7 @@ type ViewportVideoProps = Omit<VideoHTMLAttributes<HTMLVideoElement>, "children"
   src: string;
   mobileSrc?: string;
   playbackGroup?: string;
+  deferUntilIdle?: boolean;
 };
 
 type PreviewMember = { video: HTMLVideoElement; visible: { current: boolean } };
@@ -17,10 +18,45 @@ function syncPreviewGroup(group: Set<PreviewMember>) {
 }
 
 /** Decorative previews: no media request until visible, pause when off-screen. */
-export function ViewportVideo({ src, mobileSrc, playbackGroup, ...props }: ViewportVideoProps) {
+export function ViewportVideo({ src, mobileSrc, playbackGroup, deferUntilIdle = false, ...props }: ViewportVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
   const visible = useRef(false);
   const [loaded, setLoaded] = useState(false);
+  const [readyToFetch, setReadyToFetch] = useState(!deferUntilIdle);
+
+  useEffect(() => {
+    if (!deferUntilIdle) {
+      setReadyToFetch(true);
+      return;
+    }
+    let timer: number | null = null;
+    let idleId: number | null = null;
+    const events = ["pointerdown", "touchstart", "scroll", "keydown"] as const;
+    const cleanup = () => {
+      for (const eventName of events) window.removeEventListener(eventName, activate);
+      window.removeEventListener("load", schedule);
+      if (timer !== null) window.clearTimeout(timer);
+      if (idleId !== null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+    const activate = () => {
+      cleanup();
+      setReadyToFetch(true);
+    };
+    const schedule = () => {
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(activate, { timeout: 1400 });
+      } else {
+        timer = window.setTimeout(activate, 1000);
+      }
+    };
+    for (const eventName of events) window.addEventListener(eventName, activate, { once: true, passive: true });
+    if (document.readyState === "complete") schedule();
+    else window.addEventListener("load", schedule, { once: true });
+    timer = window.setTimeout(activate, 1800);
+    return cleanup;
+  }, [deferUntilIdle]);
 
   useEffect(() => {
     const video = ref.current;
@@ -64,7 +100,7 @@ export function ViewportVideo({ src, mobileSrc, playbackGroup, ...props }: Viewp
 
   useEffect(() => {
     const video = ref.current;
-    if (!video || !loaded) return;
+    if (!video || !loaded || !readyToFetch) return;
     const media = window.matchMedia("(max-width: 639px)");
     const selectSource = () => {
       const nextSrc = mobileSrc && media.matches ? mobileSrc : src;
@@ -80,7 +116,7 @@ export function ViewportVideo({ src, mobileSrc, playbackGroup, ...props }: Viewp
     selectSource();
     media.addEventListener("change", selectSource);
     return () => media.removeEventListener("change", selectSource);
-  }, [loaded, src, mobileSrc, playbackGroup]);
+  }, [loaded, readyToFetch, src, mobileSrc, playbackGroup]);
 
   return <video {...props} ref={ref} preload={playbackGroup ? "metadata" : "none"} />;
 }

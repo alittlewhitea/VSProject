@@ -121,9 +121,7 @@ export default async function HomePage() {
       <div className="mx-auto max-w-[1540px] px-3 pt-3 sm:px-4 sm:pt-4 md:px-8 md:pt-5">
         <TopNav />
 
-        <Reveal>
-          <HomeHeroCarousel />
-        </Reveal>
+        <HomeHeroCarousel />
 
         {galleryItems.length ? (
           <Reveal>
@@ -248,6 +246,8 @@ export default async function HomePage() {
                 <div className="overflow-hidden rounded-[1.4rem] bg-white shadow-[0_22px_55px_rgba(16,27,48,0.14)] sm:rounded-[2rem] sm:shadow-[0_28px_80px_rgba(16,27,48,0.16)]">
                   <ViewportVideo
                     src="https://media.dreamface.io/videos/Text_to_Video.webm"
+                    poster="/images/home-t2v-poster.webp"
+                    deferUntilIdle
                     className="aspect-[16/9] w-full object-contain"
                     muted
                     loop
@@ -288,6 +288,8 @@ export default async function HomePage() {
                 <div className="overflow-hidden rounded-[1.4rem] bg-white shadow-[0_22px_55px_rgba(16,27,48,0.14)] sm:rounded-[2rem] sm:shadow-[0_28px_80px_rgba(16,27,48,0.16)]">
                   <ViewportVideo
                     src="https://media.dreamface.io/videos/Image_to_Video.mp4"
+                    poster="/images/home-i2v-poster.webp"
+                    deferUntilIdle
                     className="aspect-[16/9] w-full object-cover"
                     muted
                     loop
@@ -304,11 +306,9 @@ export default async function HomePage() {
               <h3 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">{t("home.pricing.title")}</h3>
               <Link href="/price" className="text-sm font-semibold text-[#1d1d1f]">{t("home.pricing.cta")} -&gt;</Link>
             </div>
-          </Reveal>
-          <div className="grid gap-5 md:grid-cols-3">
-            {plans.map((p, i) => (
-              <Reveal key={p.name} delayMs={i * 60}>
-                <article className={`card motion-smooth lift-soft rounded-2xl p-7 ${i === 0 ? "tone-blue" : i === 1 ? "tone-violet" : "tone-pink"}`}>
+            <div className="grid gap-5 md:grid-cols-3">
+              {plans.map((p, i) => (
+                <article key={p.name} className={`card motion-smooth lift-soft rounded-2xl p-7 ${i === 0 ? "tone-blue" : i === 1 ? "tone-violet" : "tone-pink"}`}>
                   <p className="text-sm text-[#6e6e73]">{p.note}</p>
                   <h4 className="mt-2 text-3xl font-semibold tracking-tight">{p.name}</h4>
                   <p className="mt-4 text-4xl font-semibold tracking-tight">{p.price}</p>
@@ -317,9 +317,9 @@ export default async function HomePage() {
                     <AppButton href={p.href} variant="dark" size="md">{t("home.pricing.getCredits")}</AppButton>
                   </div>
                 </article>
-              </Reveal>
-            ))}
-          </div>
+              ))}
+            </div>
+          </Reveal>
         </section>
 
         <section className="section-shell mt-14 md:mt-20" id="faq">
@@ -331,17 +331,15 @@ export default async function HomePage() {
                 {t("home.faq.description")}
               </p>
             </div>
-          </Reveal>
-          <div className="mt-7 grid gap-3 lg:grid-cols-2">
-            {faqs.map((f, i) => (
-              <Reveal key={f.q} delayMs={i * 60}>
-                <article className={`card motion-smooth lift-soft h-full rounded-2xl p-6 ${i % 3 === 0 ? "tone-blue" : i % 3 === 1 ? "tone-peach" : "tone-mint"}`}>
+            <div className="mt-7 grid gap-3 lg:grid-cols-2">
+              {faqs.map((f, i) => (
+                <article key={f.q} className={`card motion-smooth lift-soft h-full rounded-2xl p-6 ${i % 3 === 0 ? "tone-blue" : i % 3 === 1 ? "tone-peach" : "tone-mint"}`}>
                   <h4 className="text-lg font-semibold tracking-tight">{f.q}</h4>
                   <p className="mt-2 text-sm leading-7 text-[#606676]">{f.a}</p>
                 </article>
-              </Reveal>
-            ))}
-          </div>
+              ))}
+            </div>
+          </Reveal>
         </section>
 
         <section className="mt-14 md:mt-20">

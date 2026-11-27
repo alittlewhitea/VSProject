@@ -14,6 +14,7 @@ type HomeHeroCarouselProps = {
 };
 
 const HERO_VIDEO_SRC = "https://media.dreamface.io/videos/Dreamface_home_ios.mp4";
+const HERO_POSTER_SRC = "/images/home-hero-poster.webp";
 
 function ArrowIcon() {
   return (
@@ -76,6 +77,8 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
             <div className="absolute inset-[12px] overflow-hidden rounded-[3.95rem] border border-white/70 bg-[#eaf8ff] shadow-[inset_0_0_46px_rgba(255,255,255,0.85)] sm:inset-[18px] sm:rounded-[6.3rem]">
               <ViewportVideo
                 src={HERO_VIDEO_SRC}
+                poster={HERO_POSTER_SRC}
+                deferUntilIdle
                 className="h-full w-full rotate-[16deg] scale-[1.32] object-cover"
                 muted
                 loop
@@ -86,12 +89,15 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
           </div>
 
           <div className="absolute right-[1%] top-[26%] h-[250px] w-[88px] rotate-[12deg] overflow-hidden rounded-[2rem] border border-white/70 bg-white/40 shadow-[0_24px_52px_rgba(15,23,42,0.14)] backdrop-blur sm:h-[390px] sm:w-[136px] sm:rounded-[3rem] lg:h-[430px] lg:w-[150px]">
-            <ViewportVideo
-              src={HERO_VIDEO_SRC}
+            <img
+              src={HERO_POSTER_SRC}
+              alt=""
+              aria-hidden="true"
+              width={720}
+              height={1280}
+              decoding="async"
+              fetchPriority="high"
               className="h-full w-full scale-[1.55] object-cover"
-              muted
-              loop
-              playsInline
             />
           </div>
         </div>
