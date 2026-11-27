@@ -229,10 +229,7 @@ try {
   assert.equal(matchingGoogleStyle, true, 'Homepage and dialog share the Google button style and multicolor icon');
   await evaluate("document.querySelector('[data-auth-dialog] button[aria-label=Close]').click()");
   const googleBeforeTry = authTrace.filter(entry=>entry.path==='/api/auth/google/start').length;
-  await evaluate("document.querySelector('[data-home-google-sign-in]').parentElement.querySelector('a:not([data-home-google-sign-in])').click()");
-  await waitFor("!!document.querySelector('[data-auth-dialog]')");
-  assert.equal(authTrace.filter(entry=>entry.path==='/api/auth/google/start').length, googleBeforeTry, 'Try DreamFace keeps the login method chooser');
-  await evaluate("document.querySelector('[data-auth-dialog] button[aria-label=Close]').click()");
+  assert.equal(await evaluate("document.querySelector('[data-home-try-studio]')?.getAttribute('href')"), '/studio?view=home', 'Try DreamFace links directly to Studio preview');
   await evaluate("window.originalOpen=window.open;window.open=()=>null;document.querySelector('[data-home-google-sign-in]').click()");
   await waitFor("document.querySelector('[data-auth-dialog]')?.textContent.includes('blocked')");
   await evaluate("window.open=window.originalOpen;document.querySelector('[data-auth-dialog] button[aria-label=Close]').click()");
@@ -270,8 +267,8 @@ try {
   await evaluate("document.querySelector('header a[href*=\"/auth?next\"]').click()");await waitFor("!!document.querySelector('[data-auth-dialog]')");
   await evaluate("[...document.querySelectorAll('[data-auth-dialog] button')].find(x=>x.innerText==='Continue with Google').click()");
   await waitFor("location.pathname==='/studio'&&new URLSearchParams(location.search).get('view')==='home'");await waitLoginCount(7);
-  authenticated=false;await navigate('/en');await waitFor("Object.keys(document.querySelector('[data-home-google-sign-in]')||{}).some(key=>key.startsWith('__reactProps'))");
-  await evaluate("document.querySelector('[data-home-google-sign-in]').parentElement.querySelector('a:not([data-home-google-sign-in])').click()");await waitFor("!!document.querySelector('[data-auth-dialog]')");
+  authenticated=false;await navigate('/en');await waitFor("Object.keys(document.querySelector('header a[href*=\"/auth?next\"]')||{}).some(key=>key.startsWith('__reactProps'))");
+  await evaluate("document.querySelector('header a[href*=\"/auth?next\"]').click()");await waitFor("!!document.querySelector('[data-auth-dialog]')");
   await field('#auth-dialog-email','home@example.invalid');await evaluate("document.querySelector('[data-auth-dialog] form').requestSubmit()");await waitFor("document.querySelector('#auth-dialog-title').textContent==='Check your inbox'");
   const homeEmail=await target(origin+'/api/auth/verify?'+new URLSearchParams({token:'c'.repeat(64),next:emails.at(-1).next}));
   await waitFor("location.pathname==='/studio'&&new URLSearchParams(location.search).get('view')==='home'");

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AuthLink } from "./auth-link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -58,15 +59,15 @@ export function HomeHeroCarousel(_props: HomeHeroCarouselProps) {
               <GoogleIcon />
               {t("hero.ctaGoogle")}
             </AuthLink>
-            <AuthLink
-              href={localizedHref("/auth?next=%2Fstudio%3Fview%3Dhome")}
-              authOptions={{ redirectOnSuccess: true }}
-              onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/auth", item: "get_started" })}
+            <Link
+              href="/studio?view=home"
+              data-home-try-studio
+              onClick={() => trackEvent("hero_slide_clicked", { slide: "heygen_style_home", target: "/studio?view=home", item: "get_started" })}
               className="inline-flex h-[52px] items-center justify-center gap-3 rounded-xl bg-[#08bdf2] px-7 py-3 text-sm font-black text-[#08232d] shadow-[0_18px_38px_rgba(8,189,242,0.22)] transition hover:-translate-y-0.5 hover:bg-[#15c8fa] sm:h-14 sm:justify-start sm:text-base"
             >
               {t("hero.ctaPrimary")}
               <ArrowIcon />
-            </AuthLink>
+            </Link>
           </div>
         </div>
 

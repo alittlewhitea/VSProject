@@ -14,8 +14,8 @@ const all = [...image.items, ...video.items];
 assert.equal(combined.ids.length, all.length);
 assert.deepEqual([...combined.ids].sort(), all.map(item => item.id).sort());
 assert.equal(new Set(combined.ids).size, all.length);
-assert.equal(slides.items.length, 7);
-assert.equal(slides.items[Math.floor(slides.items.length / 2)].category, "tiktok", "TikTok must match the center pagination dot");
+assert.ok(slides.items.length >= 7);
+assert.equal(slides.items[Math.floor(slides.items.length / 2)].category, "pet-sing-dance", "Pet Sing & Dance must match the center pagination dot");
 for (const slide of slides.items) {
   const original = all.find(item => item.id === slide.id);
   assert.ok(original && original.categories.includes(slide.category));

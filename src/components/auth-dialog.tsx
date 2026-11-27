@@ -88,8 +88,9 @@ export default function AuthDialog({ request, onClose }: { request: SignInReques
   return createPortal(<div className={styles.backdrop} data-auth-dialog-backdrop onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
     <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="auth-dialog-title" aria-describedby="auth-dialog-description" tabIndex={-1} className={styles.dialog} dir={isRtlLocale(locale) ? "rtl" : "ltr"} data-auth-dialog>
       <button type="button" className={styles.close} aria-label={copy.close} onClick={() => onClose()}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
-      <h2 id="auth-dialog-title">{sent ? copy.inbox : copy.title}</h2>
-      <p id="auth-dialog-description" className={styles.description} aria-live="polite">{sent ? emailSignIn.error === "deliveryUnconfirmed" ? email : copy.sent.replace("{email}", email) : copy.subtitle}</p>
+      {!sent ? <div className={styles.badgeWrap}><span className={styles.badge}>{request.highlightBadge || copy.starterBadge}</span></div> : null}
+      <h2 id="auth-dialog-title">{sent ? copy.inbox : request.title || copy.title}</h2>
+      <p id="auth-dialog-description" className={styles.description} aria-live="polite">{sent ? emailSignIn.error === "deliveryUnconfirmed" ? email : copy.sent.replace("{email}", email) : request.subtitle || copy.subtitle}</p>
       {sent ? <form onSubmit={event => { event.preventDefault(); void emailSignIn.verify(); }}>
         <label className={styles.label} htmlFor="auth-dialog-code">{copy.code}</label>
         <input id="auth-dialog-code" name="code" type="text" dir="ltr" inputMode="numeric" autoComplete="one-time-code" value={code}

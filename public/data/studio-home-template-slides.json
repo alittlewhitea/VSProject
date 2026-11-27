@@ -57,6 +57,21 @@
       "label": "TikTok"
     },
     {
+      "id": "dreamface-pet-sing-dance-kittens",
+      "title": "Mitten Kittens Sing & Dance",
+      "categories": [
+        "pet-sing-dance",
+        "tiktok"
+      ],
+      "videoUrl": "https://media.dreamface.io/videos/studio-pet-sing-dance-carousel.mp4",
+      "posterUrl": "https://media.dreamface.io/images/studio-pet-sing-dance-carousel-poster.webp",
+      "width": 720,
+      "height": 1096,
+      "href": "/studio?view=apps&app=pet-sing-dance",
+      "category": "pet-sing-dance",
+      "label": "Pet Sing & Dance"
+    },
+    {
       "id": "a7959412-402f-50a6-8388-675b190e4f71",
       "title": "Plush Paw",
       "categories": [

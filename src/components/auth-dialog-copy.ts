@@ -39,7 +39,32 @@ const completionErrors: Record<Locale, [string, string, string]> = {
   ar: ["انتهت صلاحية رابط الدخول. اطلب رابطًا جديدًا.", "تم استخدام هذا الرابط بالفعل. اطلب رابطًا جديدًا.", "تعذر على المتصفح حفظ جلسة الدخول. افتح الرابط في متصفحك الرئيسي وحاول مجددًا."]
 };
 
+const starterBadges: Record<Locale, string> = {
+  en: "Free starter credits for eligible new accounts",
+  "zh-CN": "新账号注册即享免费体验积分",
+  "zh-TW": "新帳號註冊即享免費體驗積分",
+  "pt-BR": "Créditos iniciais grátis para novas contas elegíveis",
+  ru: "Стартовые кредиты для новых аккаунтов",
+  vi: "Tín dụng khởi đầu miễn phí cho tài khoản mới đủ điều kiện",
+  de: "Kostenlose Start-Credits für berechtigte neue Konten",
+  fr: "Crédits de démarrage gratuits pour les nouveaux comptes éligibles",
+  ja: "新規アカウント向け無料スタータークレジット",
+  th: "เครดิตเริ่มต้นฟรีสำหรับบัญชีใหม่ที่มีสิทธิ์",
+  nl: "Gratis startcredits voor in aanmerking komende nieuwe accounts",
+  he: "קרדיטים התחלתיים בחינם לחשבונות חדשים זכאים",
+  ko: "신규 계정을 위한 무료 스타터 크레딧",
+  es: "Créditos iniciales gratis para cuentas nuevas elegibles",
+  it: "Crediti iniziali gratuiti per i nuovi account idonei",
+  ar: "رصيد بداية مجاني للحسابات الجديدة المؤهلة"
+};
+
 export function authDialogCopy(locale: Locale) {
   const [expiredLink, usedLink, sessionMissing] = completionErrors[locale];
-  return { ...Object.fromEntries(keys.map((key, index) => [key, translations[locale][index]])) as Record<typeof keys[number], string>, expiredLink, usedLink, sessionMissing };
+  return {
+    ...(Object.fromEntries(keys.map((key, index) => [key, translations[locale][index]])) as Record<typeof keys[number], string>),
+    starterBadge: starterBadges[locale] || starterBadges.en,
+    expiredLink,
+    usedLink,
+    sessionMissing
+  };
 }

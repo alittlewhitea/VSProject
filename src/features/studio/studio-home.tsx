@@ -54,7 +54,7 @@ export const StudioHome = memo(function StudioHome({ t, locale, onCreate }: { t:
           <h2>{t("studio.workspace.heroTitle")} {t("studio.workspace.heroAccent")}</h2>
           <p>{t("studio.workspace.heroBody")}</p>
         </div>
-        <StudioDeferredSection><HomeTemplateCarousel translate={t} /></StudioDeferredSection>
+        <StudioDeferredSection><HomeTemplateCarousel translate={t} locale={locale} /></StudioDeferredSection>
         <div className="studio-composer">
           {upload ? <div className="df-home-upload-preview"><img src={upload.dataUrl} alt={upload.name} /><span>{upload.name}</span><button type="button" onClick={() => { uploadSequence.current++; setUpload(null); setReading(false); }} aria-label={t("studio.action.clear")}><StudioIcon name="x" className="h-4 w-4" /></button></div> : null}
           <label htmlFor="studio-home-prompt" className="sr-only">{t("studio.field.prompt")}</label>

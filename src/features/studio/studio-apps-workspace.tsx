@@ -26,6 +26,7 @@ import {
   type PetTemplateCategory
 } from "./studio-apps-catalog";
 import { studioAppsCopy } from "./studio-apps-i18n";
+import { studioOnboardingCopy } from "./studio-onboarding-i18n";
 import {
   clearPersistentIdempotency,
   createIdempotencyFingerprint,
@@ -185,6 +186,7 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
   } = model;
 
   const copy = studioAppsCopy(studioI18n.locale);
+  const onboardingCopy = studioOnboardingCopy(studioI18n.locale);
   const [petPhoto, setPetPhoto] = useState<{ dataUrl: string; name: string; file: File; uploadedUrl?: string } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [rightTab, setRightTab] = useState<"templates" | "creations">("templates");
@@ -377,7 +379,7 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
     [copy.uploadFailed, copy.uploadInvalid]
   );
 
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = useCallback(async (overrideToken?: string, overrideUserId?: string) => {
     if (submitLockRef.current) return;
     setErrorMessage("");
     setStatusMessage("");
@@ -387,7 +389,7 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
       return;
     }
 
-    if (typeof creditBalance === "number" && creditBalance < estimatedCredits) {
+    if (!overrideToken && typeof creditBalance === "number" && creditBalance < estimatedCredits) {
       setBillingGenerationContext({
         requiredCredits: estimatedCredits,
         balance: creditBalance,
@@ -402,12 +404,20 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
     let idempotencyStorageKey: string | null = null;
 
     try {
-      const liveToken = await refreshLiveAccessToken();
+      const liveToken = overrideToken || (await refreshLiveAccessToken());
+      const effectiveUserId = overrideUserId || userId;
       if (!liveToken) {
         trackEvent("generate_login_required", { mode: "video", provider, workflow: "image-to-video", studio_app: PET_APP_ID }, accessToken);
+        submitLockRef.current = false;
+        if (!unmountedRef.current) setIsSubmitting(false);
         requestSignIn({
-          onSuccess: () => {
-            if (!unmountedRef.current) setStatusMessage("");
+          title: onboardingCopy.authPetTitle,
+          subtitle: onboardingCopy.authPetSubtitle,
+          highlightBadge: onboardingCopy.authBadge,
+          onSuccess: (session) => {
+            if (!unmountedRef.current && session.access_token) {
+              void handleGenerate(session.access_token, session.user?.id);
+            }
           }
         });
         return;
@@ -431,7 +441,7 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
         studioApp: PET_APP_ID,
         templateId: selectedTemplate.id
       });
-      const idempotency = getPersistentIdempotency(userId, fingerprint);
+      const idempotency = getPersistentIdempotency(effectiveUserId, fingerprint);
       idempotencyStorageKey = idempotency.storageKey;
 
       const uploadedUrl = petPhoto.uploadedUrl
@@ -669,6 +679,9 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
     creditBalance,
     estimatedCredits,
     localizeStudioError,
+    onboardingCopy.authBadge,
+    onboardingCopy.authPetSubtitle,
+    onboardingCopy.authPetTitle,
     petPhoto,
     provider,
     ratio,

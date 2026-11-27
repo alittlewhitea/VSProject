@@ -10,6 +10,7 @@
 @import "./studio-image-design.css";
 @import "./model-picker.css";
 @import "./studio-apps.css";
+@import "./studio-onboarding.css";
 
 .creative-studio, .studio-overlay {
   color: var(--studio-text);

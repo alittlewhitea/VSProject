@@ -17,6 +17,8 @@ const StudioBillingWorkspace = dynamic(() => import("./studio-billing-workspace"
 const StudioAppsWorkspace = dynamic(() => import("./studio-apps-workspace").then((module) => module.StudioAppsWorkspace), {
   loading: () => <div className="min-h-72 animate-pulse rounded-2xl bg-[var(--studio-panel)]" aria-busy="true" />
 });
+const StudioGuestBanner = dynamic(() => import("./studio-onboarding").then((module) => module.StudioGuestBanner), { ssr: false });
+const StudioWelcomeModal = dynamic(() => import("./studio-onboarding").then((module) => module.StudioWelcomeModal), { ssr: false });
 const StudioHome = dynamic(() => import("./studio-home").then((module) => module.StudioHome));
 const StudioProjects = dynamic(() => import("./studio-projects").then((module) => module.StudioProjects));
 const StudioReferrals = dynamic(() => import("./studio-referrals").then((module) => module.StudioReferrals));
@@ -30,6 +32,7 @@ export function StudioShell({ model }: { model: StudioController }) {
     accessToken,
     activeApp,
     activeTasks,
+    authReady,
     billingGenerationContext,
     billingHref,
     billingMessage,
@@ -64,6 +67,7 @@ export function StudioShell({ model }: { model: StudioController }) {
     studioI18n,
     taskHistoryNote,
     tasks,
+    userId,
     videoSidebarCollapsed
   } = model;
 
@@ -155,6 +159,13 @@ export function StudioShell({ model }: { model: StudioController }) {
                 onBillingOpen={openBillingModal}
               />
 
+              <StudioGuestBanner
+                locale={studioI18n.locale}
+                authReady={authReady}
+                signedIn={Boolean(accessToken)}
+                hidden={isBillingView || isProjectsView || isReferralsView}
+              />
+
               {isBillingView ? <StudioBillingWorkspace locale={studioI18n.locale} onBalanceChange={setCreditBalance} /> : null}
 
               {isAppsHome ? (
@@ -216,6 +227,23 @@ export function StudioShell({ model }: { model: StudioController }) {
         hidden={isProjectsView || isBillingView || isReferralsView || billingModalOpen || Boolean(previewModal) || mobileStudioMenuOpen}
         t={st}
         providerLabel={providerLabel}
+      />
+      <StudioWelcomeModal
+        locale={studioI18n.locale}
+        authReady={authReady}
+        signedIn={Boolean(accessToken)}
+        userId={userId}
+        creditBalance={creditBalance}
+        taskCount={tasks.length}
+        suppressed={
+          isProjectsView ||
+          isBillingView ||
+          isReferralsView ||
+          Boolean(activeApp) ||
+          billingModalOpen ||
+          Boolean(previewModal) ||
+          mobileStudioMenuOpen
+        }
       />
       {!isProjectsView && !isBillingView && !isReferralsView && !billingModalOpen && !previewModal && !mobileStudioMenuOpen ? <StudioAssistant model={model} /> : null}
     </main>

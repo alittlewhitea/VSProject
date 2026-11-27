@@ -5,10 +5,22 @@
   "categoryCounts": {
     "motion": 235,
     "ugc": 61,
-    "tiktok": 25,
+    "tiktok": 26,
     "shorts": 40
   },
   "items": [
+    {
+      "id": "dreamface-pet-sing-dance-kittens",
+      "title": "Mitten Kittens Sing & Dance",
+      "categories": [
+        "pet-sing-dance",
+        "tiktok"
+      ],
+      "videoUrl": "https://media.dreamface.io/videos/studio-pet-sing-dance-carousel.mp4",
+      "posterUrl": "https://media.dreamface.io/images/studio-pet-sing-dance-carousel-poster.webp",
+      "width": 720,
+      "height": 1096
+    },
     {
       "id": "6089a97b-4e49-43ed-9338-09a9c63e2783",
       "title": "Green Tea Macro",

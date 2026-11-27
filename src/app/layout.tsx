@@ -57,7 +57,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const messages = handledByLocaleLayout ? {} : pickClientMessages(await loadMessages(locale));
 
   return (
-    <html lang={locale} dir={isRtlLocale(locale) ? "rtl" : "ltr"}>
+    <html lang={locale} dir={isRtlLocale(locale) ? "rtl" : "ltr"} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("dreamface.studio.appearance");if(t==="light"||t==="dark"){document.documentElement.dataset.studioTheme=t;}}catch(e){}`
+          }}
+        />
+      </head>
       <body>
         <noscript>
           <iframe

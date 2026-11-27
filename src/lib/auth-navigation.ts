@@ -10,6 +10,9 @@ const PENDING_LOGIN_MS = 10 * 60 * 1000;
 export type SignInRequest = {
   next?: string;
   referral?: string | null;
+  title?: string;
+  subtitle?: string;
+  highlightBadge?: string;
   onSuccess?: (session: AuthSession) => void;
   onBeforeRedirect?: () => boolean | void;
   googlePopup?: Window | null;
