@@ -20,6 +20,7 @@ import {
   videoModelRatios,
   videoModelResolutions
 } from "../src/features/studio/video-models";
+import { uploadStudioDataUrl } from "../src/features/studio/upload-studio-media";
 
 test("Pet Sing & Dance templates cover dance and sing styles with detailed native-audio prompts", () => {
   assert.ok(PET_SING_DANCE_TEMPLATES.length >= 16);
@@ -96,5 +97,28 @@ test("Studio Apps i18n resolves cleanly across all 16 supported locales", () => 
       assert.ok(copy.templates[tpl.id]?.title.trim().length > 0, `${locale} missing title for ${tpl.id}`);
       assert.ok(copy.templates[tpl.id]?.subtitle.trim().length > 0, `${locale} missing subtitle for ${tpl.id}`);
     }
+  }
+});
+
+test("uploadStudioDataUrl decodes data URLs in memory without fetch(data:) CSP violations", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    calls.push(url);
+    assert.ok(!url.startsWith("data:"), `uploadStudioDataUrl must never call fetch() on a data: URL (${url})`);
+    return new Response(JSON.stringify({ code: "cloud_media_disabled" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  }) as typeof fetch;
+
+  try {
+    const sample = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0s0AAAAASUVORK5CYII=";
+    const result = await uploadStudioDataUrl(sample, "image", "test-token");
+    assert.equal(result, sample);
+    assert.deepEqual(calls, ["/api/media"]);
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });

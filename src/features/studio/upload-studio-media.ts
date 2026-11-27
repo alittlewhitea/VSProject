@@ -29,8 +29,26 @@ export async function uploadStudioMedia(file: Blob, kind: StudioMediaKind, token
   return media.url as string;
 }
 
+function dataUrlToBlob(value: string): Blob {
+  const comma = value.indexOf(",");
+  if (comma === -1) throw new Error("Upload failed. Please try again.");
+  const header = value.slice(5, comma);
+  const payload = value.slice(comma + 1);
+  const isBase64 = /;base64$/i.test(header);
+  const mime = header.replace(/;base64$/i, "").split(";")[0]?.trim() || "application/octet-stream";
+  if (!isBase64) {
+    return new Blob([decodeURIComponent(payload)], { type: mime });
+  }
+  const binary = atob(payload);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
+}
+
 export async function uploadStudioDataUrl(value: string, kind: StudioMediaKind, token: string, signal?: AbortSignal) {
   if (!value.startsWith(`data:${kind}/`)) return value;
-  const file = await (await fetch(value, { signal })).blob();
+  const file = dataUrlToBlob(value);
   return await uploadStudioMedia(file, kind, token, signal) ?? value;
 }

@@ -41,7 +41,7 @@ import {
   modelPickerSpeedKey,
   studioProjectHref
 } from "./studio-workspace-config";
-import { uploadStudioDataUrl } from "./upload-studio-media";
+import { uploadStudioDataUrl, uploadStudioMedia } from "./upload-studio-media";
 import type { StudioController } from "./use-studio-controller";
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -184,7 +184,7 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
   } = model;
 
   const copy = studioAppsCopy(studioI18n.locale);
-  const [petPhoto, setPetPhoto] = useState<{ dataUrl: string; name: string } | null>(null);
+  const [petPhoto, setPetPhoto] = useState<{ dataUrl: string; name: string; file: File; uploadedUrl?: string } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [rightTab, setRightTab] = useState<"templates" | "creations">("templates");
   const [category, setCategory] = useState<"all" | PetTemplateCategory>("all");
@@ -324,7 +324,7 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
           reader.readAsDataURL(file);
         });
         if (seq === uploadSeqRef.current && !unmountedRef.current) {
-          setPetPhoto({ dataUrl, name: file.name });
+          setPetPhoto({ dataUrl, name: file.name, file });
           setStatusMessage("");
         }
       } catch {
@@ -393,9 +393,15 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
       const idempotency = getPersistentIdempotency(userId, fingerprint);
       idempotencyStorageKey = idempotency.storageKey;
 
-      const uploadedUrls = cloudMediaEnabled
-        ? await Promise.all(requestPayload.imageUrls.map((url) => uploadStudioDataUrl(url, "image", liveToken)))
-        : requestPayload.imageUrls;
+      const uploadedUrl = petPhoto.uploadedUrl
+        ? petPhoto.uploadedUrl
+        : cloudMediaEnabled
+          ? (await uploadStudioMedia(petPhoto.file, "image", liveToken)) ?? (await uploadStudioDataUrl(petPhoto.dataUrl, "image", liveToken))
+          : petPhoto.dataUrl;
+      if (uploadedUrl && uploadedUrl !== petPhoto.dataUrl && !unmountedRef.current) {
+        setPetPhoto((current) => (current && current.dataUrl === petPhoto.dataUrl ? { ...current, uploadedUrl } : current));
+      }
+      const uploadedUrls = [uploadedUrl];
 
       const response = await fetch("/api/generate", {
         method: "POST",
