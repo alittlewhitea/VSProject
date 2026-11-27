@@ -21,22 +21,20 @@ function injectGtm() {
   document.head.appendChild(script);
 }
 
-/** Defer GTM until first interaction or post-load idle so third-party tags do not block mobile hydration. */
+/**
+ * Load GTM on first user interaction or after initial page settle so third-party
+ * tags never block mobile hydration/TTI while preserving all queued dataLayer events.
+ */
 export function GtmLoader() {
   useEffect(() => {
     if (window.__dreamfaceGtmLoaded) return;
 
+    const events = ["pointerdown", "keydown", "touchstart", "scroll", "mousemove"] as const;
     let timer: number | null = null;
-    let idleId: number | null = null;
-    const events = ["pointerdown", "keydown", "touchstart", "scroll"] as const;
 
     const cleanup = () => {
       for (const eventName of events) window.removeEventListener(eventName, trigger);
-      window.removeEventListener("load", scheduleIdle);
       if (timer !== null) window.clearTimeout(timer);
-      if (idleId !== null && typeof window.cancelIdleCallback === "function") {
-        window.cancelIdleCallback(idleId);
-      }
     };
 
     const trigger = () => {
@@ -44,18 +42,8 @@ export function GtmLoader() {
       injectGtm();
     };
 
-    const scheduleIdle = () => {
-      if (typeof window.requestIdleCallback === "function") {
-        idleId = window.requestIdleCallback(trigger, { timeout: 2500 });
-      } else {
-        timer = window.setTimeout(trigger, 2000);
-      }
-    };
-
     for (const eventName of events) window.addEventListener(eventName, trigger, { once: true, passive: true });
-    if (document.readyState === "complete") scheduleIdle();
-    else window.addEventListener("load", scheduleIdle, { once: true });
-    timer = window.setTimeout(trigger, 4000);
+    timer = window.setTimeout(trigger, 9000);
 
     return cleanup;
   }, []);

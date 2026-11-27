@@ -28,3 +28,12 @@ export async function loadMessages(locale: Locale) {
   const localized = (await import(`../../messages/${locale}.json`)).default as MessageTree;
   return mergeMessages(mergeMessages(english, localized), {creditShop});
 }
+
+const SERVER_ONLY_NAMESPACES = new Set(["home", "metadata", "footer"]);
+
+/** Omit server-only namespaces from NextIntlClientProvider to shrink Flight hydration payloads. */
+export function pickClientMessages(messages: MessageTree): MessageTree {
+  return Object.fromEntries(
+    Object.entries(messages).filter(([key]) => !SERVER_ONLY_NAMESPACES.has(key))
+  );
+}

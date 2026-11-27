@@ -1,7 +1,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { loadMessages } from "../../i18n/messages";
+import { loadMessages, pickClientMessages } from "../../i18n/messages";
 import { isLocale, locales } from "../../i18n/routing";
 
 export function generateStaticParams() {
@@ -21,7 +21,7 @@ export default async function LocaleLayout({
   }
 
   return (
-    <NextIntlClientProvider locale={locale} messages={await loadMessages(locale)}>
+    <NextIntlClientProvider locale={locale} messages={pickClientMessages(await loadMessages(locale))}>
       {children}
     </NextIntlClientProvider>
   );

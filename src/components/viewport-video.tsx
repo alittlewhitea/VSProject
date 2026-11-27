@@ -30,31 +30,23 @@ export function ViewportVideo({ src, mobileSrc, playbackGroup, deferUntilIdle = 
       return;
     }
     let timer: number | null = null;
-    let idleId: number | null = null;
-    const events = ["pointerdown", "touchstart", "scroll", "keydown"] as const;
+    const events = ["pointerdown", "touchstart", "scroll", "keydown", "mousemove"] as const;
     const cleanup = () => {
       for (const eventName of events) window.removeEventListener(eventName, activate);
       window.removeEventListener("load", schedule);
       if (timer !== null) window.clearTimeout(timer);
-      if (idleId !== null && typeof window.cancelIdleCallback === "function") {
-        window.cancelIdleCallback(idleId);
-      }
     };
     const activate = () => {
       cleanup();
       setReadyToFetch(true);
     };
     const schedule = () => {
-      if (typeof window.requestIdleCallback === "function") {
-        idleId = window.requestIdleCallback(activate, { timeout: 1400 });
-      } else {
-        timer = window.setTimeout(activate, 1000);
-      }
+      const isMobile = window.matchMedia("(max-width: 767px)").matches;
+      timer = window.setTimeout(activate, isMobile ? 6500 : 2200);
     };
     for (const eventName of events) window.addEventListener(eventName, activate, { once: true, passive: true });
     if (document.readyState === "complete") schedule();
     else window.addEventListener("load", schedule, { once: true });
-    timer = window.setTimeout(activate, 1800);
     return cleanup;
   }, [deferUntilIdle]);
 

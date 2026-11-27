@@ -2,7 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
-import { loadMessages } from "../i18n/messages";
+import { loadMessages, pickClientMessages } from "../i18n/messages";
 import { defaultLocale, isLocale, isRtlLocale } from "../i18n/routing";
 import { AuthDialogHost } from "../components/auth-dialog-host";
 import { GrowthTracker } from "../components/growth-tracker";
@@ -49,9 +49,12 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const requestLocale = (await headers()).get("x-dreamface-locale");
+  const headerStore = await headers();
+  const requestLocale = headerStore.get("x-dreamface-locale");
+  const requestPath = headerStore.get("x-dreamface-pathname") || "";
   const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
-  const messages = await loadMessages(locale);
+  const handledByLocaleLayout = requestPath === `/${locale}` || requestPath.startsWith(`/${locale}/`);
+  const messages = handledByLocaleLayout ? {} : pickClientMessages(await loadMessages(locale));
 
   return (
     <html lang={locale} dir={isRtlLocale(locale) ? "rtl" : "ltr"}>

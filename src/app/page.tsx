@@ -113,6 +113,7 @@ export default async function HomePage() {
 
   return (
     <main className="bg-grid pb-16">
+      <link rel="preload" as="image" href="/images/home-hero-poster.webp" type="image/webp" fetchPriority="high" />
       <PageAnalytics eventName="home_view" />
       <script
         type="application/ld+json"
