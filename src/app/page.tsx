@@ -1,5 +1,5 @@
 import Link from "next/link";
-import {GalleryImage} from "../components/gallery-image";
+import { HomeGalleryGrid } from "../components/home-gallery-grid";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { HomeHeroCarousel } from "../components/home-hero-carousel";
@@ -11,8 +11,8 @@ import { TopNav } from "../components/top-nav";
 import { AppButton } from "../components/ui/button";
 import { defaultLocale, isLocale } from "../i18n/routing";
 import { CREDIT_PACKS, formatUsd } from "../lib/billing";
-import { galleryItemPath, mapGalleryRow } from "../lib/gallery";
-import { fetchHomeGalleryItems } from "../lib/gallery-server";
+import { mapGalleryRow } from "../lib/gallery";
+import { fetchHealthyHomeGalleryItems } from "../lib/home-gallery-server";
 import { siteUrl } from "../lib/site-url";
 import { LandingAssistantPreview } from "../components/landing-assistant-preview";
 
@@ -44,7 +44,7 @@ export default async function HomePage() {
   const requestLocale = (await headers()).get("x-dreamface-locale");
   const locale = isLocale(requestLocale) ? requestLocale : defaultLocale;
   const t = await getTranslations({ locale });
-  const galleryItems = await fetchHomeGalleryItems()
+  const galleryItems = await fetchHealthyHomeGalleryItems()
     .then((rows) => rows.map(mapGalleryRow))
     .catch(() => []);
   const plans = [
@@ -144,39 +144,7 @@ export default async function HomePage() {
                 </Link>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                {galleryItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={galleryItemPath(item)}
-                    className="card group overflow-hidden rounded-2xl bg-white"
-                  >
-                    <div className="relative aspect-[4/3] overflow-hidden bg-[#eef2f7]">
-                      <GalleryImage
-                        src={item.thumbnailUrl || item.imageUrl}
-                        alt={item.title}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
-                        fill
-                        sizes="(min-width: 1540px) 350px, (min-width: 1024px) 25vw, 50vw"
-                      />
-                    </div>
-                    <div className="p-3 sm:p-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="min-w-0 truncate rounded-full border border-black/10 bg-[#f8fbff] px-2.5 py-1 text-[10px] font-semibold text-[#4c5a70] sm:text-[11px]">
-                          {item.category}
-                        </span>
-                        <span className="hidden shrink-0 text-[10px] uppercase tracking-[0.12em] text-[#8792a5] sm:inline">
-                          {item.model}
-                        </span>
-                      </div>
-                      <h3 className="mt-3 line-clamp-1 text-sm font-semibold tracking-tight text-[#1d1d1f] sm:text-base">
-                        {item.title}
-                      </h3>
-                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#687386]">{item.prompt}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              <HomeGalleryGrid items={galleryItems} maxVisible={8} />
             </section>
           </Reveal>
         ) : null}

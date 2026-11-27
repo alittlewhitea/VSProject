@@ -28,6 +28,7 @@ function GalleryContent({ initialItems = [], initialLoaded = false, initialKey }
   const activeSort: GallerySort = sortParam;
   const activeQuery = queryParam.trim().slice(0, 300);
   const [items, setItems] = useState<GalleryItem[]>(initialItems);
+  const [brokenIds, setBrokenIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(!initialLoaded);
   const [note, setNote] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -76,7 +77,11 @@ function GalleryContent({ initialItems = [], initialLoaded = false, initialKey }
     };
   }, [activeCategory, activeSort, activeQuery]);
 
-  const featuredCount = useMemo(() => items.filter((item) => item.isFeatured).length, [items]);
+  const visibleItems = useMemo(
+    () => items.filter((item) => !brokenIds.includes(item.id)),
+    [items, brokenIds]
+  );
+  const featuredCount = useMemo(() => visibleItems.filter((item) => item.isFeatured).length, [visibleItems]);
 
   function galleryHref(category: GalleryCategory, sort: GallerySort, search = activeQuery) {
     const params = new URLSearchParams();
@@ -146,7 +151,7 @@ function GalleryContent({ initialItems = [], initialLoaded = false, initialKey }
             <div className="grid grid-cols-2 gap-3 rounded-2xl border border-black/10 bg-white/75 p-4 text-sm">
               <div>
                 <p className="text-xs uppercase tracking-[0.12em] text-[#7a8494]">Items</p>
-                <p className="mt-1 text-2xl font-semibold">{items.length}</p>
+                <p className="mt-1 text-2xl font-semibold">{visibleItems.length}</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.12em] text-[#7a8494]">Featured</p>
@@ -243,9 +248,9 @@ function GalleryContent({ initialItems = [], initialLoaded = false, initialKey }
               />
             ))}
           </section>
-        ) : items.length ? (
+        ) : visibleItems.length ? (
           <section className="mt-6 columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <Link
                 key={item.id}
                 href={item.id.startsWith("sample-") ? `/studio?mode=image&workflow=text-to-image&prompt=${encodeURIComponent(item.prompt)}` : galleryItemPath(item)}
@@ -258,6 +263,9 @@ function GalleryContent({ initialItems = [], initialLoaded = false, initialKey }
                   width={item.width || 800}
                   height={item.height || 1000}
                   sizes="(min-width: 1540px) 350px, (min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  onError={() =>
+                    setBrokenIds((current) => (current.includes(item.id) ? current : [...current, item.id]))
+                  }
                 />
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-2">
