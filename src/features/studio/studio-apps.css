@@ -379,15 +379,17 @@ a.df-apps-card:hover {
 .df-pet-chip-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 9px;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 11px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #faf3e1;
-  background: rgb(8 14 17 / 0.68);
-  border: 1px solid rgb(250 243 225 / 0.22);
+  background: rgb(8 14 17 / 0.72);
+  border: 1px solid rgb(250 243 225 / 0.24);
   backdrop-filter: blur(8px);
+  cursor: pointer;
   transition: background 140ms ease, border-color 140ms ease;
 }
 
@@ -1102,108 +1104,147 @@ a.df-apps-card:hover {
   text-align: center;
 }
 
-/* Lightbox Template Preview Modal */
+/* Full-bleed 9:16 Reels-style Template Preview Modal */
 
 .df-pet-lightbox-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 360;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background: rgb(4 8 10 / 0.78);
-  backdrop-filter: blur(10px);
+  padding: 16px;
+  background: rgb(4 8 10 / 0.84);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: df-pet-fade-in 150ms ease-out;
+}
+
+@keyframes df-pet-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .df-pet-lightbox {
-  width: 100%;
-  max-width: 780px;
-  max-height: 90vh;
-  display: grid;
-  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-  overflow: hidden;
-  border-radius: 22px;
-  border: 1px solid var(--df-border-hi);
-  background: var(--df-surface);
-  box-shadow: var(--df-shadow-overlay);
-}
-
-.df-pet-lightbox-media {
-  background: var(--df-stage);
+  position: relative;
+  height: min(86dvh, 720px);
   aspect-ratio: 9 / 16;
-  max-height: 82vh;
+  max-width: calc(100vw - 28px);
+  border-radius: 26px;
+  overflow: hidden;
+  border: 1px solid rgb(250 243 225 / 0.22);
+  background: var(--df-stage);
+  box-shadow: 0 32px 84px rgb(0 0 0 / 0.78);
 }
 
-.df-pet-lightbox-media img {
+.df-pet-lightbox-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.df-pet-lightbox-info {
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
-}
-
-.df-pet-lightbox-head {
+.df-pet-lightbox-top {
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  padding: 14px 14px 28px;
+  background: linear-gradient(180deg, rgb(6 11 14 / 0.72) 0%, transparent 100%);
+}
+
+.df-pet-lightbox-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #faf3e1;
+  background: rgb(8 14 17 / 0.66);
+  border: 1px solid rgb(250 243 225 / 0.2);
+  backdrop-filter: blur(10px);
 }
 
 .df-pet-lightbox-close {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--df-border);
-  background: var(--df-surface-soft);
-  color: var(--df-ink);
+  border: 1px solid rgb(250 243 225 / 0.24);
+  background: rgb(8 14 17 / 0.68);
+  color: #faf3e1;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease;
 }
 
-.df-pet-lightbox-info h3 {
-  font-size: 22px;
+.df-pet-lightbox-close:hover {
+  background: rgb(8 14 17 / 0.92);
+  transform: scale(1.06);
+}
+
+.df-pet-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #faf3e1;
+  background: rgb(8 14 17 / 0.56);
+  border: 1px solid rgb(250 243 225 / 0.22);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease;
+}
+
+.df-pet-lightbox-nav:hover {
+  background: rgb(8 14 17 / 0.88);
+  transform: translateY(-50%) scale(1.06);
+}
+
+.df-pet-lightbox-nav--prev {
+  inset-inline-start: 12px;
+}
+
+.df-pet-lightbox-nav--next {
+  inset-inline-end: 12px;
+}
+
+.df-pet-lightbox-bottom {
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 44px 16px 16px;
+  background: linear-gradient(180deg, transparent 0%, rgb(6 11 14 / 0.78) 38%, rgb(6 11 14 / 0.96) 100%);
+}
+
+.df-pet-lightbox-title-row h3 {
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--df-ink);
+  color: #faf3e1;
+  line-height: 1.2;
 }
 
-.df-pet-lightbox-sub {
-  font-size: 13px;
-  color: var(--df-muted);
-}
-
-.df-pet-lightbox-prompt {
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--df-border);
-  background: var(--df-tab-track);
-}
-
-.df-pet-lightbox-prompt span {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--df-muted);
-  margin-bottom: 6px;
-}
-
-.df-pet-lightbox-prompt p {
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--df-ink);
-}
-
-.df-pet-lightbox-actions {
-  margin-top: auto;
-  padding-top: 8px;
+.df-pet-lightbox-title-row p {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: #c8dde6;
 }
 
 /* Sidebar HOT badge for Apps */
@@ -1261,11 +1302,9 @@ a.df-apps-card:hover {
   }
 
   .df-pet-lightbox {
-    grid-template-columns: 1fr;
-    max-width: 420px;
-  }
-
-  .df-pet-lightbox-media {
-    max-height: 46vh;
+    width: calc(100vw - 24px);
+    height: auto;
+    max-height: 86dvh;
+    border-radius: 22px;
   }
 }

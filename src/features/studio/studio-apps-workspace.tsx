@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { trackEvent } from "../../lib/analytics";
 import { requestSignIn } from "../../lib/auth-navigation";
 import { ModelPicker, type ModelPickerOption } from "./model-picker";
@@ -199,6 +200,9 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const railRef = useRef<HTMLElement | null>(null);
+  const galleryRef = useRef<HTMLElement | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
   const uploadSeqRef = useRef(0);
   const unmountedRef = useRef(false);
   const submitLockRef = useRef(false);
@@ -211,20 +215,52 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!previewTemplate) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPreviewTemplate(null);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [previewTemplate]);
-
   const selectedTemplate = useMemo(() => petAppTemplateById(templateId), [templateId]);
   const visibleTemplates = useMemo(
     () => (category === "all" ? PET_SING_DANCE_TEMPLATES : PET_SING_DANCE_TEMPLATES.filter((item) => item.category === category)),
     [category]
   );
+
+  const previewList = useMemo(
+    () => (previewTemplate && visibleTemplates.some((item) => item.id === previewTemplate.id) ? visibleTemplates : PET_SING_DANCE_TEMPLATES),
+    [previewTemplate, visibleTemplates]
+  );
+  const previewIndex = useMemo(
+    () => (previewTemplate ? previewList.findIndex((item) => item.id === previewTemplate.id) : -1),
+    [previewList, previewTemplate]
+  );
+
+  const stepPreview = useCallback(
+    (delta: number) => {
+      if (previewIndex < 0 || previewList.length <= 1) return;
+      const next = (previewIndex + delta + previewList.length) % previewList.length;
+      setPreviewTemplate(previewList[next]);
+    },
+    [previewIndex, previewList]
+  );
+
+  useEffect(() => {
+    if (!previewTemplate) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewTemplate(null);
+      else if (event.key === "ArrowLeft") stepPreview(-1);
+      else if (event.key === "ArrowRight") stepPreview(1);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [previewTemplate, stepPreview]);
+
+  const handleOpenTemplatePicker = useCallback(() => {
+    setRightTab("templates");
+    requestAnimationFrame(() => {
+      galleryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
 
   const durationOptions = useMemo(() => petAppDurationsForProvider(provider), [provider]);
   const resolutionOptions = useMemo(() => petAppResolutionsForProvider(provider), [provider]);
@@ -299,10 +335,15 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
   }, []);
 
   const handleSelectTemplate = useCallback(
-    (tpl: PetSingDanceTemplate) => {
+    (tpl: PetSingDanceTemplate, scrollToControls = false) => {
       setTemplateId(tpl.id);
       setDuration(normalizePetAppDuration(provider, tpl.recommendedDuration));
       setErrorMessage("");
+      if (scrollToControls && typeof window !== "undefined" && window.innerWidth <= 1024) {
+        requestAnimationFrame(() => {
+          railRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
     },
     [provider]
   );
@@ -668,7 +709,7 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
 
       <div className="df-pet-layout">
         {/* Left: Compact Higgsfield-style control rail */}
-        <aside className="df-pet-rail">
+        <aside ref={railRef} className="df-pet-rail">
           {/* Selected Template Visual Hero Card */}
           <div className="df-pet-selected-card">
             <img src={selectedTemplate.coverUrl} alt={templateCopy.title} />
@@ -690,7 +731,7 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
                   <button
                     type="button"
                     className="df-pet-chip-btn"
-                    onClick={() => setRightTab("templates")}
+                    onClick={handleOpenTemplatePicker}
                   >
                     <span>{copy.changeTemplate}</span>
                   </button>
@@ -843,7 +884,7 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
         </aside>
 
         {/* Right: Higgsfield-grade 9:16 Visual Gallery + My Creations Cinema Stage */}
-        <section className="df-pet-gallery-area">
+        <section ref={galleryRef} className="df-pet-gallery-area">
           <div className="df-pet-gallery-bar">
             <div className="df-pet-view-tabs" role="tablist" aria-label={copy.petAppTitle}>
               <button
@@ -899,7 +940,7 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
                       className="df-pet-poster-select"
                       data-pet-template={tpl.id}
                       aria-pressed={selected}
-                      onClick={() => handleSelectTemplate(tpl)}
+                      onClick={() => handleSelectTemplate(tpl, true)}
                     >
                       <img src={tpl.coverUrl} alt={info.title} loading="lazy" />
                       <div className="df-pet-poster-overlay">
@@ -1047,56 +1088,105 @@ function PetSingDanceWorkbench({ model }: { model: StudioController }) {
         </section>
       </div>
 
-      {/* Lightbox Template Preview Modal */}
-      {previewTemplate ? (
-        <div
-          className="df-pet-lightbox-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-label={copy.templates[previewTemplate.id].title}
-          onClick={() => setPreviewTemplate(null)}
-        >
-          <div className="df-pet-lightbox" onClick={(event) => event.stopPropagation()}>
-            <div className="df-pet-lightbox-media">
-              <img src={previewTemplate.coverUrl} alt={copy.templates[previewTemplate.id].title} />
-            </div>
-            <div className="df-pet-lightbox-info">
-              <div className="df-pet-lightbox-head">
-                <span className="df-apps-card-badge df-apps-card-badge--hot">
-                  {previewTemplate.category === "dance" ? copy.filterDance : copy.filterSing} · {copy.stageAudioBadge}
-                </span>
-                <button
-                  type="button"
-                  className="df-pet-lightbox-close"
-                  aria-label={copy.closePreview}
-                  onClick={() => setPreviewTemplate(null)}
-                >
-                  <StudioIcon name="x" className="h-4 w-4" />
-                </button>
+      {/* Full-bleed 9:16 Reels-style Template Preview Modal (portal over entire Studio + mobile dock) */}
+      {previewTemplate && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="studio-overlay df-pet-lightbox-backdrop"
+              role="dialog"
+              aria-modal="true"
+              aria-label={copy.templates[previewTemplate.id].title}
+              onClick={() => setPreviewTemplate(null)}
+            >
+              <div
+                className="df-pet-lightbox"
+                onClick={(event) => event.stopPropagation()}
+                onTouchStart={(event) => {
+                  touchStartXRef.current = event.touches[0]?.clientX ?? null;
+                }}
+                onTouchEnd={(event) => {
+                  const startX = touchStartXRef.current;
+                  touchStartXRef.current = null;
+                  if (startX === null) return;
+                  const endX = event.changedTouches[0]?.clientX ?? startX;
+                  const delta = endX - startX;
+                  if (Math.abs(delta) > 48) stepPreview(delta > 0 ? -1 : 1);
+                }}
+              >
+                <img
+                  key={previewTemplate.id}
+                  src={previewTemplate.coverUrl}
+                  alt={copy.templates[previewTemplate.id].title}
+                  className="df-pet-lightbox-img"
+                />
+
+                <div className="df-pet-lightbox-top">
+                  <span className="df-pet-lightbox-pill">
+                    {previewTemplate.category === "dance" ? copy.filterDance : copy.filterSing}
+                    {previewIndex >= 0 ? ` · ${previewIndex + 1} / ${previewList.length}` : ""}
+                  </span>
+                  <button
+                    type="button"
+                    className="df-pet-lightbox-close"
+                    aria-label={copy.closePreview}
+                    onClick={() => setPreviewTemplate(null)}
+                  >
+                    <StudioIcon name="x" className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {previewList.length > 1 ? (
+                  <>
+                    <button
+                      type="button"
+                      className="df-pet-lightbox-nav df-pet-lightbox-nav--prev"
+                      aria-label="Previous"
+                      onClick={() => stepPreview(-1)}
+                    >
+                      <StudioIcon name="chevron-left" className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      className="df-pet-lightbox-nav df-pet-lightbox-nav--next"
+                      aria-label="Next"
+                      onClick={() => stepPreview(1)}
+                    >
+                      <StudioIcon name="chevron-right" className="h-5 w-5" />
+                    </button>
+                  </>
+                ) : null}
+
+                <div className="df-pet-lightbox-bottom">
+                  <div className="df-pet-lightbox-title-row">
+                    <div>
+                      <h3>{copy.templates[previewTemplate.id].title}</h3>
+                      <p>{copy.templates[previewTemplate.id].subtitle}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="df-pet-generate-btn"
+                    onClick={() => {
+                      handleSelectTemplate(previewTemplate);
+                      setPreviewTemplate(null);
+                      if (typeof window !== "undefined" && window.innerWidth <= 1024) {
+                        requestAnimationFrame(() => {
+                          railRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        });
+                      }
+                    }}
+                  >
+                    <StudioIcon name="check" className="h-4 w-4" />
+                    <span>
+                      {previewTemplate.id === selectedTemplate.id ? copy.selectedLabel : copy.useStyleAction}
+                    </span>
+                  </button>
+                </div>
               </div>
-              <h3>{copy.templates[previewTemplate.id].title}</h3>
-              <p className="df-pet-lightbox-sub">{copy.templates[previewTemplate.id].subtitle}</p>
-              <div className="df-pet-lightbox-prompt">
-                <span>{copy.promptDetailsLabel}</span>
-                <p>{previewTemplate.prompt}</p>
-              </div>
-              <div className="df-pet-lightbox-actions">
-                <button
-                  type="button"
-                  className="df-pet-generate-btn"
-                  onClick={() => {
-                    handleSelectTemplate(previewTemplate);
-                    setPreviewTemplate(null);
-                  }}
-                >
-                  <StudioIcon name="check" className="h-4 w-4" />
-                  <span>{copy.useStyleAction}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
