@@ -3,6 +3,7 @@ import { HomeGalleryGrid } from "../components/home-gallery-grid";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { HomeHeroCarousel } from "../components/home-hero-carousel";
+import { HomeStudioShowcase } from "../components/home-studio-showcase";
 import { ViewportVideo } from "../components/viewport-video";
 import { PageAnalytics } from "../components/page-analytics";
 import { Reveal } from "../components/reveal";
@@ -123,6 +124,10 @@ export default async function HomePage() {
         <TopNav />
 
         <HomeHeroCarousel />
+
+        <Reveal>
+          <HomeStudioShowcase locale={locale} />
+        </Reveal>
 
         {galleryItems.length ? (
           <Reveal>
